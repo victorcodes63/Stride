@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { DeploymentEntitlements } from '@/lib/entitlements-types';
 import { entitlementsSetCookieHeader } from '@/lib/entitlements-cookie';
 import { saveDeploymentEntitlements } from '@/lib/entitlements-store';
+import { saveOrganizationEntitlements } from '@/lib/org-entitlements-store';
 import { horizontalQuotaForTier } from '@/lib/entitlement-buckets';
 import type { ModuleKey } from '@/lib/modules';
 import { planIdToTier } from '@/lib/entitlements-resolver';
@@ -12,6 +13,8 @@ export const dynamic = 'force-dynamic';
 
 type WebhookPayload = {
   slug: string;
+  organizationId?: string;
+  tenantOrgSlug?: string;
   accountStatus: string;
   pastDueSince?: string | null;
   billingEmail?: string | null;
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
   }
 
   const expectedSlug = trimEnv('CONTROL_PLANE_CUSTOMER_SLUG');
-  if (expectedSlug && data.slug !== expectedSlug) {
+  if (expectedSlug && data.slug !== expectedSlug && !data.organizationId) {
     return NextResponse.json({ error: 'Slug mismatch' }, { status: 403 });
   }
 
@@ -81,6 +84,10 @@ export async function POST(request: NextRequest) {
   };
 
   await saveDeploymentEntitlements(entitlements);
+
+  if (data.organizationId) {
+    await saveOrganizationEntitlements(data.organizationId, entitlements);
+  }
 
   const response = NextResponse.json({
     ok: true,

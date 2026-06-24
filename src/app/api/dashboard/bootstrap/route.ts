@@ -17,6 +17,7 @@ import {
   syncDeploymentEntitlements,
 } from '@/lib/entitlements-resolver';
 import { loadDeploymentEntitlements } from '@/lib/entitlements-store';
+import { loadOrganizationEntitlements } from '@/lib/org-entitlements-store';
 import { isEntitlementsStale } from '@/lib/entitlements-types';
 import { planIdToTier } from '@/lib/entitlements-resolver';
 import { getDeploymentTier } from '@/lib/deployment-tier';
@@ -48,7 +49,10 @@ export async function GET(request: NextRequest) {
       const licensed = listLicensedModules();
       const moduleAdminFlags = setup.moduleAdminFlags;
 
-      let entitlements = await loadDeploymentEntitlements();
+      let entitlements = await loadOrganizationEntitlements(ctx.organizationId);
+      if (!entitlements) {
+        entitlements = await loadDeploymentEntitlements();
+      }
       if (
         isControlPlaneSyncConfigured() &&
         (!entitlements || isEntitlementsStale(entitlements.syncedAt))

@@ -33,6 +33,7 @@
     "db:tenancy:migration": "node scripts/build-tenancy-migration.mjs",
     "test:rls": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-rls.ts",
     "test:tenant-audit": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-tenant-audit.ts",
+    "audit:module-tenant": "npx tsx scripts/audit-module-tenant-gate.ts",
     "db:studio": "prisma studio",
     "db:reset-for-go-live": "node prisma/reset-for-go-live.js",
     "db:reset-ess-shell": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx prisma/reset-ess-shell.ts",

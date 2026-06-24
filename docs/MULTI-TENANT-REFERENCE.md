@@ -93,7 +93,10 @@ passes. Wire it as `npm run test:rls` and run it in CI.
 - Platform's thin feature modules (people/payroll/etc.) — Stride's are far more complete. Use platform
   only for the tenancy core.
 
+## Related docs
+
+- [`MODULE-MIGRATION-CHECKLIST.md`](./MODULE-MIGRATION-CHECKLIST.md) — per-module gate when migrating routes (RAV-67)
+
 ---
 *Once RAV-62 lands and `npm run test:rls` passes on Stride, `platform/` has served its purpose and can
 be archived (`_archive/platform/`).*
-</content>
