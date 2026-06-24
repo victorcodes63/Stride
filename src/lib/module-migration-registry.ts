@@ -158,7 +158,7 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
       return {
         ...base,
         phase: 'routes-partial',
-        notes: 'M-Pesa sandbox disbursement + bank export; migrate remaining payroll API routes to withTenant().',
+        notes: 'Payroll run wizard + M-Pesa sandbox disbursement; migrate remaining payroll API routes to withTenant().',
       };
     }
 

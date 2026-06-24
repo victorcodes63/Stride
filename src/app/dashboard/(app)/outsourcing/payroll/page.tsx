@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Banknote, FileText, Mail, Loader2, Pencil, Calculator, Upload, Download, AlertTriangle, Eye } from 'lucide-react';
 import PayrollEditModal from '@/components/payroll/PayrollEditModal';
+import { PayrollRunWizard } from '@/components/payroll/PayrollRunWizard';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { useEntity } from '@/components/EntitySwitcher';
@@ -110,6 +111,12 @@ export default function OutsourcingPayrollPage() {
  }
  return { enabled: true, title: 'Download CSV for bank batch payment (net pay)' as const };
  }, [payrolls]);
+
+ const draftCount = useMemo(() => payrolls.filter((p) => p.status === 'draft').length, [payrolls]);
+ const approvedCount = useMemo(
+ () => payrolls.filter((p) => p.status === 'approved' || p.status === 'paid').length,
+ [payrolls],
+ );
 
  const fetchPayrolls = async () => {
  setLoading(true);
@@ -347,7 +354,8 @@ export default function OutsourcingPayrollPage() {
  const miss = parseInt(res.headers.get('X-Missing-Bank-Details-Count') || '0', 10);
  if (!res.ok) {
  const data = await res.json().catch(() => ({}));
- throw new Error((data as { error?: string }).error || 'Bank export failed');
+ const errMsg = (data as { error?: string }).error || 'Bank export failed';
+ throw new Error(errMsg);
  }
  const blob = await res.blob();
  const cd = res.headers.get('Content-Disposition');
@@ -402,6 +410,23 @@ export default function OutsourcingPayrollPage() {
  description="Generate payroll and payslips by month for your workforce."
  />
  <EntityContextBanner />
+
+ <PayrollRunWizard
+ month={month}
+ year={year}
+ scope={scope}
+ clientId={clientId}
+ departmentId={departmentId}
+ payrollCount={payrolls.length}
+ draftCount={draftCount}
+ approvedCount={approvedCount}
+ formatCurrency={formatCurrency}
+ onGenerate={handleGenerate}
+ generating={generating}
+ onApproved={fetchPayrolls}
+ onBankExport={handleBankExport}
+ bankExportEnabled={bankExportState.enabled}
+ />
 
  {error && (
  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
