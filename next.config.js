@@ -45,7 +45,7 @@ const nextConfig = {
       },
       {
         source: '/dashboard/outsourcing/leave',
-        destination: '/dashboard/leave',
+        destination: '/dashboard/leave?audience=employees',
         permanent: false,
       },
       {

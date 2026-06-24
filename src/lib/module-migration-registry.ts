@@ -178,6 +178,14 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
       };
     }
 
+    if (def.key === 'leave') {
+      return {
+        ...base,
+        phase: 'routes-partial',
+        notes: 'Unified leave hub (employee + staff); overview API with withTenant(); migrate legacy application routes.',
+      };
+    }
+
     if (def.key === 'hse') {
       return {
         ...base,

@@ -22,6 +22,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
 import { useDashboardTabParam } from '@/hooks/useDashboardTabParam';
+import { LeaveAudienceTabs } from '../leave/LeaveHub';
 import {
  StaffLeaveTeamOverview,
  type TeamOverviewData,
@@ -408,11 +409,14 @@ function StaffLeavePageContent() {
 
  return (
  <DashboardPage>
+ <div className="mb-2">
+ <LeaveAudienceTabs active="staff" />
+ </div>
  <DashboardPageHeader
  title="Staff leave"
  icon={CalendarDays}
  iconClassName="h-7 w-7 text-primary-600"
- description="Balances, requests, and approvals."
+ description="Balances, requests, and approvals for internal staff."
  actions={
  <>
  <select

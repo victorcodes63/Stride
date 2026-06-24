@@ -50,6 +50,7 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   // —— Leave ——
   { prefix: '/api/ess/leave', module: 'leave' },
   { prefix: '/api/staff/leave', module: 'leave' },
+  { prefix: '/api/outsourcing/leave', module: 'leave' },
   { prefix: '/api/leave', module: 'leave' },
   { prefix: '/dashboard/leave', module: 'leave' },
   { prefix: '/dashboard/outsourcing/leave', module: 'leave' },
