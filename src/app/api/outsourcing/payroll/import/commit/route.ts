@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { parsePayrollImportWorkbook } from '@/lib/payroll-import-template';
 import { normalizeEmployeeNationalId } from '@/lib/outsourcing-employee-national-id';
-import { calculateStatutoryForPayroll } from '@/lib/payroll-calc';
+import { calculateStatutoryForPayroll, getPayrollStatutoryRates } from '@/lib/payroll-calc';
 import { mapOutsourcingClientsToAccountsClients } from '@/lib/payroll-accounts-link';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { requireStaffUser } from '@/lib/staff-api-auth';
@@ -129,6 +129,10 @@ export async function POST(request: NextRequest) {
       employees.map((e) => [normalizeEmployeeNationalId(e.idNumber) ?? '', e]),
     );
     const accountsByOutsourcing = await mapOutsourcingClientsToAccountsClients([clientId]);
+    const statutoryRates = await getPayrollStatutoryRates({
+      clientId,
+      organizationId: user.currentOrgId,
+    });
 
     const unmatchedRows = rowsToCommit
       .filter((r) => !employeeByIdNumber.has(normalizeEmployeeNationalId(r.nationalId) ?? ''))
@@ -195,7 +199,7 @@ export async function POST(request: NextRequest) {
       const leavePay = Math.max(0, row.leavePay);
       const grossPay = Math.max(0, row.grossPay);
       const employmentGross = leavePayMode === 'none' ? grossPay : Math.max(0, grossPay - leavePay);
-      const statutory = calculateStatutoryForPayroll(leavePayMode, employmentGross, leavePay, 0);
+      const statutory = calculateStatutoryForPayroll(leavePayMode, employmentGross, leavePay, 0, statutoryRates);
 
       const allowances = [
         { name: 'Incentives', amount: row.incentives },

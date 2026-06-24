@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
-import { calculateStatutoryForPayroll } from '@/lib/payroll-calc';
+import { calculateStatutoryForPayroll, getPayrollStatutoryRatesByClient, getPayrollStatutoryRates } from '@/lib/payroll-calc';
 import { isBiweeklyClient } from '@/lib/biweekly-payroll';
 import { mapOutsourcingClientsToAccountsClients } from '@/lib/payroll-accounts-link';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
@@ -55,6 +55,11 @@ export async function POST(request: NextRequest) {
     biweekly = isBiweeklyClient(c?.payrollFrequency);
     leavePayMode = c?.leavePayMode ?? 'none';
 
+    const statutoryRates = await getPayrollStatutoryRates({
+      clientId,
+      organizationId: user.currentOrgId,
+    });
+
     const employees = await prisma.employee.findMany({
       where: {
         outsourcingClientId: clientId,
@@ -68,6 +73,7 @@ export async function POST(request: NextRequest) {
     );
 
     const clientModes = new Map<string, string | null>();
+    let statutoryByClient = new Map<string, Awaited<ReturnType<typeof getPayrollStatutoryRates>>>();
     if (!clientId && employees.length) {
       const clientIds = [...new Set(employees.map((e) => e.outsourcingClientId))];
       const clients = await prisma.outsourcingClient.findMany({
@@ -77,6 +83,7 @@ export async function POST(request: NextRequest) {
       for (const c of clients) {
         clientModes.set(c.id, c.leavePayMode);
       }
+      statutoryByClient = await getPayrollStatutoryRatesByClient(clientIds, user.currentOrgId);
     }
 
     const existing = await prisma.payroll.findMany({
@@ -105,6 +112,9 @@ export async function POST(request: NextRequest) {
       for (const e of toCreate) {
         const mode =
           clientId ? leavePayMode : clientModes.get(e.outsourcingClientId) ?? 'none';
+        const rates = clientId
+          ? statutoryRates
+          : statutoryByClient.get(e.outsourcingClientId) ?? statutoryRates;
         const basic = e.baseSalary != null ? Number(e.baseSalary) : 0;
         const attendanceAggregate = await tx.attendanceDaySummary.aggregate({
           where: {
@@ -147,7 +157,7 @@ export async function POST(request: NextRequest) {
           const half = Math.round(basic / 2);
           const other = basic - half;
           const employmentGross = half + other + overtimeAmount;
-          const stat = calculateStatutoryForPayroll(mode, employmentGross, lp, 0);
+          const stat = calculateStatutoryForPayroll(mode, employmentGross, lp, 0, rates);
           await tx.payroll.create({
             data: {
               employeeId: e.id,
@@ -171,7 +181,7 @@ export async function POST(request: NextRequest) {
           });
         } else {
           const employmentGross = basic + overtimeAmount;
-          const stat = calculateStatutoryForPayroll(mode, employmentGross, lp, 0);
+          const stat = calculateStatutoryForPayroll(mode, employmentGross, lp, 0, rates);
           await tx.payroll.create({
             data: {
               employeeId: e.id,

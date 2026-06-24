@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
-import { calculateStatutoryForPayroll } from '@/lib/payroll-calc';
+import { calculateStatutoryForPayroll, getPayrollStatutoryRates } from '@/lib/payroll-calc';
 import { isBiweeklyClient } from '@/lib/biweekly-payroll';
 import { mapOutsourcingClientsToAccountsClients } from '@/lib/payroll-accounts-link';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
@@ -60,6 +60,11 @@ export async function POST(request: NextRequest) {
       payrolls.map((p) => p.employee.outsourcingClientId),
     );
 
+    const statutoryRates = await getPayrollStatutoryRates({
+      clientId,
+      organizationId: user.currentOrgId,
+    });
+
     let updated = 0;
     for (const p of payrolls) {
       const allowances = (p.allowances as { name: string; amount: number }[]) ?? [];
@@ -74,7 +79,7 @@ export async function POST(request: NextRequest) {
         isBiweeklyClient(p.employee.client.payrollFrequency) && p1 != null && p2 != null;
       const employmentGross = biweekly ? p1! + p2! + allowancesTotal : Number(p.basicPay) + allowancesTotal;
 
-      const calc = calculateStatutoryForPayroll(mode, employmentGross, leavePay, otherTotal);
+      const calc = calculateStatutoryForPayroll(mode, employmentGross, leavePay, otherTotal, statutoryRates);
 
       await prisma.payroll.update({
         where: { id: p.id },

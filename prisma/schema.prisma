@@ -2018,6 +2018,27 @@ model OrganizationMembership {
   @@index([organizationId])
 }
 
+/// Global reference data — no RLS. Versioned by country + effective date (RAV-65).
+enum CountryPackKind {
+  statutory
+  locale
+  holidays
+}
+
+model CountryConfig {
+  id            String          @id @default(uuid()) @db.Uuid
+  country       String
+  kind          CountryPackKind
+  effectiveFrom DateTime        @db.Date
+  effectiveTo   DateTime?       @db.Date
+  config        Json
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([country, kind, effectiveFrom])
+  @@map("country_config")
+}
+
 /// Internal staff persona for permissions (not used for external recruitment client logins).
 enum StaffUserType {
   operations

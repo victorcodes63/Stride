@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
-import { calculateStatutoryForPayroll } from '@/lib/payroll-calc';
+import { calculateStatutoryForPayroll, getPayrollStatutoryRates } from '@/lib/payroll-calc';
 import { allocateStatutoryBiweekly, isBiweeklyClient } from '@/lib/biweekly-payroll';
 import {
   normalizeAttendance,
@@ -186,6 +186,11 @@ export async function PATCH(
     });
     if (!existing) return NextResponse.json({ error: 'Payroll record not found' }, { status: 404 });
 
+    const statutoryRates = await getPayrollStatutoryRates({
+      clientId: existing.employee.outsourcingClientId,
+      organizationId: user.currentOrgId,
+    });
+
     const biweeklyMode =
       isBiweeklyClient(existing.employee.client.payrollFrequency) ||
       existing.period1Gross != null ||
@@ -266,7 +271,8 @@ export async function PATCH(
         leavePayMode,
         biweeklyMode && p1 != null && p2 != null ? p1 + p2 + allowancesTotal : Number(existing.basicPay) + allowancesTotal,
         leavePayNum,
-        otherDeductionsTotal
+        otherDeductionsTotal,
+        statutoryRates,
       );
       paye = toDecimal(calc.paye);
       nssf = toDecimal(calc.nssf);
@@ -299,7 +305,8 @@ export async function PATCH(
           leavePayMode,
           biweeklyMode && p1 != null && p2 != null ? p1 + p2 + allowancesTotal : Number(existing.basicPay) + allowancesTotal,
           leavePayNum,
-          0
+          0,
+          statutoryRates,
         ).grossPay
       : storedGrossPay;
 

@@ -79,7 +79,7 @@ In Stride/Prisma the equivalents are the global identity + the **country statuto
    table (Prisma migrations can include raw SQL). Mirror `platform`'s `0001_rls.sql` /
    `0002_rls_modules.sql` table-by-table.
 3. Add the Prisma `withOrgContext` helper (above) and route all tenant queries through it.
-4. Keep `users`, permissions catalogs, and `statutory_config` global (no RLS).
+4. Keep `users`, permissions catalogs, and `country_config` global (no RLS).
 5. **Data migration:** create one default `Organization`, stamp existing rows with its id (the current
    single workspace becomes "org 1"). This is the existing-data path RAV-62 calls out.
 

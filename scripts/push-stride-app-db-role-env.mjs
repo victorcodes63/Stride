@@ -33,9 +33,25 @@ function setEnv(name, value, { sensitive = false, targets = ['production'] } = {
   console.log(`✓ ${name}`);
 }
 
+function setPreviewEnv(name, value, { sensitive = false } = {}) {
+  spawnSync('vercel', ['env', 'rm', name, 'preview', '--yes'], { cwd: root, stdio: 'ignore' });
+  const args = ['env', 'add', name, 'preview', '*', '--value', value, '--force', '--yes'];
+  if (sensitive) args.push('--sensitive');
+  const result = spawnSync('vercel', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  if (result.status !== 0) {
+    throw new Error(
+      `vercel env add ${name} (preview *) failed: ${(result.stderr || result.stdout || '').trim()}`,
+    );
+  }
+  console.log(`✓ ${name} (preview)`);
+}
+
 console.log('Updating stride-platform Vercel DB env (stride_app runtime + owner migrations)…');
 setEnv('DATABASE_URL', stridePooledUrl, { sensitive: true });
 setEnv('DIRECT_DATABASE_URL', directUrl, { sensitive: true });
 setEnv('POSTGRES_PRISMA_URL', stridePooledUrl, { sensitive: true });
-console.log('Done. Redeploy stride-platform for changes to take effect.');
+setPreviewEnv('DATABASE_URL', stridePooledUrl, { sensitive: true });
+setPreviewEnv('DIRECT_DATABASE_URL', directUrl, { sensitive: true });
+setPreviewEnv('POSTGRES_PRISMA_URL', stridePooledUrl, { sensitive: true });
+console.log('Note: Vercel blocks sensitive vars on the development target — use .env.local for local dev.');
 unlinkSync(secretsPath);
