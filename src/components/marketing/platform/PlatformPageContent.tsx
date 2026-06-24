@@ -4,6 +4,7 @@ import { PlatformModulesShowcase } from '@/components/marketing/platform/Platfor
 import { PlatformArchitectureSection } from '@/components/marketing/platform/PlatformArchitectureSection';
 import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
 import { MarketingFinalCta } from '@/components/marketing/sections/MarketingFinalCta';
+import { MarketingModuleBadge, MarketingReadinessLegend } from '@/components/marketing/MarketingModuleBadge';
 import {
   MarketingOutlineLink,
   MarketingPrimaryLink,
@@ -105,10 +106,11 @@ function PlatformModulesSection() {
           Six modules. <span className="text-[var(--sc-coral)]">One platform.</span>
         </h2>
         <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
-          Sign up with HR & Payroll and Finance — your two included modules — then switch on procurement,
-          legal, projects or admin when your operations need them. Every module reads from the same org
-          chart and employee records.
+          Sign up with HR & Payroll and Finance — your two included modules — then switch on legal,
+          admin or vertical packs when your operations need them. Procurement and Projects are on the
+          roadmap; we badge every module honestly below.
         </p>
+        <MarketingReadinessLegend className="mt-6" />
 
         <div className="mt-12 space-y-5">
           {PLATFORM_MODULES.map((mod) => (
@@ -117,9 +119,12 @@ function PlatformModulesSection() {
               className="grid gap-5 rounded-2xl border border-[var(--sc-line)] bg-[var(--sc-paper-2)] p-5 sm:gap-6 sm:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10"
             >
               <div>
-                <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--sc-coral)]">
-                  {mod.num} — {mod.name}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--sc-coral)]">
+                    {mod.num} — {mod.name}
+                  </p>
+                  <MarketingModuleBadge readiness={mod.readiness} />
+                </div>
                 <h3 className="mt-2 text-xl font-medium tracking-tight text-[var(--sc-ink)] sm:text-2xl">
                   {mod.headline}
                 </h3>
@@ -225,7 +230,7 @@ function PlatformVerticalsSection() {
               className="group rounded-2xl border border-[var(--sc-coral)]/25 bg-[var(--sc-coral)]/[0.06] p-6 transition hover:border-[var(--sc-coral)]/40"
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-coral)]">
-                Available now
+                Live
               </p>
               <h3 className="mt-2 text-xl font-medium text-[var(--sc-ink)]">{vertical.name}</h3>
               <p className="mt-2 text-sm leading-relaxed text-[var(--sc-ink-muted)]">{vertical.description}</p>

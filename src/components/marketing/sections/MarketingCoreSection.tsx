@@ -1,4 +1,5 @@
 import { CORE_MODULES } from '@/lib/marketing-config';
+import { MarketingModuleBadge } from '@/components/marketing/MarketingModuleBadge';
 import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
 import { MarketingReveal } from '@/components/marketing/MarketingReveal';
 
@@ -18,8 +19,10 @@ export function MarketingCoreSection() {
         </MarketingReveal>
         <MarketingReveal delay={0.16}>
           <p className="mt-[18px] max-w-[540px] text-[17px] leading-relaxed text-pub-ink-muted">
-            Six universal modules, one data layer, one login. Start with what you need today and
-            switch on the rest as you grow.
+            Six universal modules, one data layer, one login. Each module is badged{' '}
+            <strong className="font-semibold text-pub-ink">Live</strong>,{' '}
+            <strong className="font-semibold text-pub-ink">Partial</strong>, or{' '}
+            <strong className="font-semibold text-pub-ink">Roadmap</strong> so you know what ships today.
           </p>
         </MarketingReveal>
 
@@ -30,9 +33,12 @@ export function MarketingCoreSection() {
                 <p className="mb-4 font-heading text-[13px] font-bold tracking-[0.04em] text-[var(--pub-primary)]">
                   {mod.num}
                 </p>
-                <h3 className="mb-2 font-heading text-[19px] font-bold tracking-[-0.4px] text-pub-ink">
-                  {mod.name}
-                </h3>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <h3 className="font-heading text-[19px] font-bold tracking-[-0.4px] text-pub-ink">
+                    {mod.name}
+                  </h3>
+                  <MarketingModuleBadge readiness={mod.readiness} />
+                </div>
                 <p className="text-sm leading-relaxed text-pub-ink-muted">{mod.description}</p>
               </article>
             </MarketingReveal>

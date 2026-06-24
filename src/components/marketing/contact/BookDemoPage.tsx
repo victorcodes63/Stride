@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, Loader2, Mail } from 'lucide-react';
 import { StrideLogo } from '@/components/marketing/StrideMark';
 import { MarketingCloseButton } from '@/components/marketing/MarketingCloseButton';
+import { MarketingModuleBadge } from '@/components/marketing/MarketingModuleBadge';
 import {
   CORE_MODULES,
   MARKETING_CTAS,
@@ -503,8 +504,9 @@ export function BookDemoPage() {
                                 onChange={() => toggleModule(mod.name)}
                               />
                               <span>
-                                <span className="block text-sm font-medium text-[#fbf8f4]">
-                                  {mod.name}
+                                <span className="flex flex-wrap items-center gap-2">
+                                  <span className="text-sm font-medium text-[#fbf8f4]">{mod.name}</span>
+                                  <MarketingModuleBadge readiness={mod.readiness} variant="dark" />
                                 </span>
                                 <span className="mt-0.5 block text-[12px] leading-relaxed text-[#fbf8f4]/55">
                                   {mod.description}

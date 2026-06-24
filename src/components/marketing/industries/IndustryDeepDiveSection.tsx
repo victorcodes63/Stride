@@ -42,7 +42,7 @@ export function IndustryDeepDiveSection({ industry, index }: IndustryDeepDiveSec
                       : 'text-[var(--sc-ink-subtle,#8A8076)]'
                   }
                 >
-                  {industry.status === 'available' ? 'Available' : 'Coming soon'}
+                  {industry.status === 'available' ? 'Live' : 'Roadmap'}
                 </span>
               </p>
             </Reveal>

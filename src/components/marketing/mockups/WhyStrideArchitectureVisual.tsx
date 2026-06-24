@@ -97,7 +97,7 @@ export function WhyStrideArchitectureVisual({ className = '' }: { className?: st
                       : 'shrink-0 text-[9px] font-medium uppercase tracking-[0.06em] text-[var(--sc-ink-muted)]'
                   }
                 >
-                  {isLive ? 'Live' : 'Soon'}
+                  {isLive ? 'Live' : 'Roadmap'}
                 </span>
               </div>
             );

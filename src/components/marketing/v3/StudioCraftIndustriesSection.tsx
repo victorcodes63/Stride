@@ -38,7 +38,7 @@ function IndustryCard({
             isAvailable ? 'text-[var(--sc-coral)]' : 'text-[var(--sc-ink-subtle,#8A8076)]'
           }`}
         >
-          {isAvailable ? 'Available' : 'Coming soon'}
+          {isAvailable ? 'Live' : 'Roadmap'}
         </span>
       </div>
 

@@ -70,7 +70,7 @@ export function PlatformModulesWireframe({ className = '' }: PlatformModulesWire
                 What needs you today, by module
               </p>
             </div>
-            <span className="hidden text-[9px] text-white/35 sm:inline">6 modules live</span>
+            <span className="hidden text-[9px] text-white/35 sm:inline">2 live · 3 partial · 2 roadmap</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">
             {modules.map((mod) => {

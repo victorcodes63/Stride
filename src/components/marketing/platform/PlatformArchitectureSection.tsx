@@ -60,8 +60,8 @@ const LAYERS: Layer[] = [
 
 function statusMeta(status: Layer['status']) {
   if (status === 'always') return { label: 'Always on', live: false };
-  if (status === 'available') return { label: 'Available', live: true };
-  return { label: 'Coming soon', live: false };
+  if (status === 'available') return { label: 'Live', live: true };
+  return { label: 'Roadmap', live: false };
 }
 
 /** One observer, one active index. Each step is a tall scroll section. */

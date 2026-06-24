@@ -19,8 +19,8 @@ export const DEMO_CORE_STATS = {
   payrollHint: 'This cycle',
   compliance: '100%',
   complianceHint: 'KRA · NSSF · SHIF',
-  modulesLive: 6,
-  modulesHint: 'One login',
+  modulesLive: 2,
+  modulesHint: 'Live · 3 partial · 2 roadmap',
 } as const;
 
 export const DEMO_CORE_EMPLOYEES = [

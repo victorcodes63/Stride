@@ -31,7 +31,7 @@ export function MarketingIndustriesBento() {
               <article className="pub-on-ink relative flex h-full min-h-[240px] flex-col justify-between overflow-hidden rounded-[18px] bg-pub-ink p-8 transition hover:-translate-y-1">
                 <div>
                   <span className="inline-flex rounded-full bg-[var(--pub-primary)]/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--pub-primary)]">
-                    Available now
+                    Live
                   </span>
                   <h3 className="mt-[18px] font-heading text-[30px] font-bold tracking-[-0.6px]">
                     {live.name}
@@ -55,7 +55,7 @@ export function MarketingIndustriesBento() {
               <article className="flex h-full min-h-[240px] flex-col justify-between rounded-[18px] border border-pub-border bg-white p-8 transition hover:-translate-y-1">
                 <div>
                   <span className="inline-flex rounded-full bg-pub-surface-muted px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-pub-ink-subtle">
-                    Coming soon
+                    Roadmap
                   </span>
                   <h3 className="mt-[18px] font-heading text-2xl font-bold tracking-[-0.6px] text-pub-ink">
                     {vertical.name}
