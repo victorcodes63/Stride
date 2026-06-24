@@ -759,13 +759,26 @@ export const ABOUT_ORIGIN = {
   paragraphs: [
     {
       text:
-        'Raven Tech Group runs Eagle HR Consultants — an HR, payroll and outsourcing practice for Kenyan businesses. Doing that work, we kept hitting the same wall: global platforms that approximated KRA rules, billed in dollars per seat and queued support in another timezone — or spreadsheets and disconnected tools holding the rest together.',
+        'Raven Tech Group builds software for East African businesses. Along the way we kept seeing the same gap in HR, payroll and operations: global platforms that approximated KRA rules, billed in dollars per seat and queued support in another timezone — or spreadsheets and disconnected tools holding the rest together.',
     },
     {
       text: 'So we built the system we wished existed, and ',
-      emphasis: 'ran our own clients on it first',
+      emphasis: 'put it in production with founding clients first',
       textAfter:
         '. Stride is what that became: a horizontal core for how East African businesses actually operate, with vertical packs for the sectors we know.',
+    },
+  ],
+} as const;
+
+/** /about — operators already on dedicated or enterprise Stride deployments. */
+export const ABOUT_PLATFORM_CLIENTS = {
+  badge: 'On the platform',
+  lead: 'Stride is live with founding clients on enterprise deployments — not just in demos.',
+  clients: [
+    {
+      name: 'Eagle HR Consultants',
+      description:
+        'HR, payroll and outsourcing for Kenyan businesses — running on a dedicated enterprise deployment of Stride.',
     },
   ],
 } as const;

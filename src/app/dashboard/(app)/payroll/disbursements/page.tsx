@@ -1,5 +1,5 @@
-import { ModuleRoadmapPage } from '@/components/dashboard/ModuleRoadmapPage';
+import { DisbursementsContent } from './DisbursementsContent';
 
-export default function PayrollDisbursementsRoadmapPage() {
-  return <ModuleRoadmapPage slug="payroll-disbursements" />;
+export default function PayrollDisbursementsPage() {
+  return <DisbursementsContent />;
 }

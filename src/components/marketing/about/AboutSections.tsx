@@ -13,6 +13,7 @@ import { SectionBadge, StudioCraftContainer } from '@/components/marketing/v3/st
 import {
   ABOUT_ORIGIN,
   ABOUT_PAGE,
+  ABOUT_PLATFORM_CLIENTS,
   ABOUT_PRINCIPLES,
   ABOUT_TRUST,
   MARKETING_ROUTES,
@@ -94,6 +95,26 @@ export function AboutOriginSection() {
             </StaggerItem>
           ))}
         </Stagger>
+
+        <Reveal delay={0.2} className="mt-12 max-w-3xl">
+          <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-[var(--sc-coral)]">
+            {ABOUT_PLATFORM_CLIENTS.badge}
+          </p>
+          <p className="mt-3 text-base leading-relaxed text-[var(--sc-ink-muted)] sm:text-[17px]">
+            {ABOUT_PLATFORM_CLIENTS.lead}
+          </p>
+          <ul className="mt-5 space-y-3">
+            {ABOUT_PLATFORM_CLIENTS.clients.map((client) => (
+              <li
+                key={client.name}
+                className="rounded-xl border border-[var(--sc-line)] bg-[var(--sc-paper)] px-5 py-4 sm:px-6"
+              >
+                <span className="font-medium text-[var(--sc-ink)]">{client.name}</span>
+                <span className="text-[var(--sc-ink-muted)]"> — {client.description}</span>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
       </StudioCraftContainer>
     </section>
   );

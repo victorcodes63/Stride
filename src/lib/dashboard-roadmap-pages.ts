@@ -162,14 +162,14 @@ export const ROADMAP_PAGES: Record<string, RoadmapPageConfig> = {
     slug: 'payroll-disbursements',
     title: 'M-Pesa & disbursements',
     icon: Smartphone,
-    readiness: 'planned',
+    readiness: 'partial',
     phase: 'Phase A1',
     summary:
-      'Bulk salary disbursement via M-Pesa and bank APIs, with per-employee payment status on the payroll run. Bank file export is available today.',
+      'M-Pesa sandbox bulk disbursement with per-employee payment status. Bank CSV export remains available for RTGS.',
     bullets: [
-      'M-Pesa B2C bulk disbursement',
-      'Payment reconciliation to payroll run',
-      'Failed payment retry workflow',
+      'Simulated M-Pesa B2C batch (Daraja-ready provider interface)',
+      'Per-employee payment status on the payroll run',
+      'Marks payroll as paid when disbursement completes',
     ],
     related: [
       { label: 'Payroll runs', href: '/dashboard/payroll' },

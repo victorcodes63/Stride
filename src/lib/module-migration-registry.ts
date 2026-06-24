@@ -89,7 +89,7 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'BiometricPunch',
     'Attendance',
   ],
-  payroll: ['Payroll', 'StatutoryReturn', 'StatutoryReturnItem'],
+  payroll: ['Payroll', 'StatutoryReturn', 'StatutoryReturnItem', 'PayrollDisbursementBatch', 'PayrollDisbursementLine'],
   ats: [
     'Job',
     'Candidate',
@@ -147,6 +147,14 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
       productPhase: def.phase === 1 ? 'A' : def.phase === 2 ? 'A–B' : 'C–E',
       prismaModels: MODULE_PRISMA_MODELS[def.key],
     };
+
+    if (def.key === 'payroll') {
+      return {
+        ...base,
+        phase: 'routes-partial',
+        notes: 'M-Pesa sandbox disbursement + bank export; migrate remaining payroll API routes to withTenant().',
+      };
+    }
 
     if (def.key === 'core') {
       return {

@@ -142,6 +142,7 @@ model OutsourcingClient {
   fleetSettlements        FleetSettlement[]
   fleetIncidents          FleetIncident[]
   purchaseRequests        PurchaseRequest[]
+  payrollDisbursementBatches PayrollDisbursementBatch[]
 
   @@index([name])
 }
@@ -279,6 +280,7 @@ model Employee {
   manager                     Employee?                    @relation("EmployeeManager", fields: [managerEmployeeId], references: [id], onDelete: SetNull)
   subordinates                Employee[]                   @relation("EmployeeManager")
   payrolls                    Payroll[]
+  payrollDisbursementLines    PayrollDisbursementLine[]
   leaveBalances               LeaveBalance[]
   leaveApplications           LeaveApplication[]
   attendances                 Attendance[]
@@ -1130,6 +1132,7 @@ model Payroll {
 
   employee       Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   accountsClient AccountsClient? @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
+  disbursementLines PayrollDisbursementLine[]
 
   @@unique([employeeId, month, year])
   @@index([employeeId])
@@ -1141,6 +1144,83 @@ enum PayrollStatus {
   draft
   approved
   paid
+}
+
+enum PayrollDisbursementChannel {
+  mpesa
+}
+
+enum PayrollDisbursementBatchStatus {
+  draft
+  submitting
+  processing
+  completed
+  partial_failure
+  failed
+}
+
+enum PayrollDisbursementLineStatus {
+  pending
+  submitted
+  processing
+  completed
+  failed
+  skipped
+}
+
+/// Bulk salary disbursement batch (M-Pesa B2C or future bank API).
+model PayrollDisbursementBatch {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  month               Int
+  year                Int
+  channel             PayrollDisbursementChannel     @default(mpesa)
+  status              PayrollDisbursementBatchStatus @default(draft)
+  providerRef         String?
+  pollCount           Int                            @default(0)
+  submittedAt         DateTime?
+  completedAt         DateTime?
+  initiatedByUserId   String?
+  failureSummary      String?
+  metadata            Json?
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+
+  outsourcingClient OutsourcingClient         @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  initiatedBy       User?                     @relation("PayrollDisbursementInitiator", fields: [initiatedByUserId], references: [id], onDelete: SetNull)
+  lines             PayrollDisbursementLine[]
+
+  @@index([organizationId, outsourcingClientId, year, month])
+  @@index([status])
+}
+
+model PayrollDisbursementLine {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  batchId       String
+  payrollId     String
+  employeeId    String
+  amount        Decimal                       @db.Decimal(12, 2)
+  phone         String?
+  status        PayrollDisbursementLineStatus @default(pending)
+  providerRef   String?
+  failureReason String?
+  submittedAt   DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime                      @default(now())
+  updatedAt     DateTime                      @updatedAt
+
+  batch    PayrollDisbursementBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  payroll  Payroll                  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  employee Employee                 @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, payrollId])
+  @@index([batchId])
+  @@index([employeeId])
+  @@index([status])
 }
 
 enum StatutoryReturnStatus {
@@ -1719,6 +1799,7 @@ model User {
   fleetTripDocumentsUploaded       FleetTripDocument[]        @relation("FleetTripDocumentUploader")
   purchaseRequestsRequested        PurchaseRequest[]          @relation("PurchaseRequestRequester")
   purchaseRequestsReviewed         PurchaseRequest[]          @relation("PurchaseRequestReviewer")
+  payrollDisbursementsInitiated    PayrollDisbursementBatch[] @relation("PayrollDisbursementInitiator")
 
   leaveApprover  User?  @relation("UserLeaveApprover", fields: [leaveApproverId], references: [id], onDelete: SetNull)
   leaveReportees User[] @relation("UserLeaveApprover")
