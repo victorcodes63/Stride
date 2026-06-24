@@ -42,3 +42,4 @@ prisma/migrations/**/migration_lock.toml
 # Uploads (optional: ignore so deploy doesn’t include local files)
 # public/uploads/
 .env*.local
+.stride-app-env.json

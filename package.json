@@ -26,6 +26,7 @@
     "db:migrate": "set -a; [ -f .env.local ] && . ./.env.local; set +a; prisma migrate dev",
     "db:migrate:deploy": "set -a; [ -f .env.local ] && . ./.env.local; set +a; prisma migrate deploy",
     "db:app-role": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx prisma db execute --file prisma/migrations/stride_app_role.sql --schema prisma/schema.prisma",
+    "db:stride-app-env": "node scripts/push-stride-app-db-role-env.mjs",
     "db:rls": "set -a; [ -f .env.local ] && . ./.env.local; set +a; node scripts/apply-rls.mjs",
     "db:tenancy:patch": "node scripts/patch-tenant-schema.mjs",
     "db:tenancy:migration": "node scripts/build-tenancy-migration.mjs",
