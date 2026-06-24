@@ -1,0 +1,2165 @@
+================================================================================
+STRIDE MARKETING HOMEPAGE — CONSOLIDATED REFERENCE EXPORT
+Generated: 2026-06-17
+NOT FOR USE IN THIS PROJECT — reference / copy elsewhere only.
+================================================================================
+
+FILE INDEX:
+  1.  src/styles/public-theme.css (tokens excerpt)
+  2.  src/lib/marketing-config.ts
+  3.  src/components/public/PublicAppShell.tsx
+  4.  src/components/marketing/StrideMark.tsx
+  5.  src/components/marketing/MarketingEyebrow.tsx
+  6.  src/components/marketing/MarketingReveal.tsx
+  7.  src/components/marketing/sections/MarketingProductShot.tsx
+  8.  src/components/marketing/MarketingNav.tsx
+  9.  src/components/marketing/MarketingFooter.tsx
+  10. src/components/marketing/MarketingShell.tsx
+  11. src/components/marketing/sections/MarketingHero.tsx
+  12. src/components/marketing/sections/MarketingTrustStrip.tsx
+  13. src/components/marketing/sections/MarketingCoreSection.tsx
+  14. src/components/marketing/sections/MarketingFeatureSplit.tsx
+  15. src/components/marketing/sections/MarketingIndustriesBento.tsx
+  16. src/components/marketing/sections/MarketingWhySection.tsx
+  17. src/components/marketing/sections/MarketingHowSection.tsx
+  18. src/components/marketing/sections/MarketingPricingSection.tsx
+  19. src/components/marketing/sections/MarketingFaq.tsx
+  20. src/components/marketing/sections/MarketingFinalCta.tsx
+  21. src/components/marketing/MarketingHomePage.tsx
+  22. src/app/page.tsx
+
+DEPENDENCIES (not inlined): framer-motion, next/link, next (Metadata), React
+Tailwind classes use pub-* tokens from public-theme.css + tailwind config.
+
+
+################################################################################
+# FILE: src/styles/public-theme.css
+################################################################################
+
+/**
+ * Stripe-inspired public surface theme.
+ * Scoped to `.public-app` so dashboard / ESS internals keep brand tokens.
+ */
+
+.public-app {
+  --pub-primary: #ff5436;
+  --pub-primary-hover: #e63e22;
+  --pub-primary-pressed: #c9341b;
+  --pub-primary-subtle: #ffe9e4;
+  --pub-primary-muted: #ffcfc4;
+
+  --pub-ink: #1a1714;
+  --pub-ink-muted: #3d3833;
+  --pub-ink-subtle: #8a8076;
+
+  --pub-surface: #fbf8f4;
+  --pub-surface-muted: #f4efe8;
+  --pub-surface-elevated: #fbf8f4;
+  --pub-border: #e6ded4;
+  --pub-border-strong: #d8cdbf;
+
+  --pub-gradient-start: #ff5436;
+  --pub-gradient-mid: #ffe9e4;
+  --pub-gradient-end: #e63e22;
+
+  /* Public chrome always uses Stride coral — not tenant dashboard colours from root layout. */
+  --color-primary-400: var(--pub-primary-muted);
+  --color-primary-500: var(--pub-primary);
+  --color-primary-600: var(--pub-primary-hover);
+  --color-primary-700: var(--pub-primary-pressed);
+
+  --pub-radius-sm: 6px;
+  --pub-radius-md: 8px;
+  --pub-radius-lg: 12px;
+  --pub-radius-xl: 16px;
+
+  --pub-shadow-sm: 0 1px 3px rgba(26, 23, 20, 0.04), 0 1px 2px rgba(26, 23, 20, 0.06);
+  --pub-shadow-md: 0 4px 6px -1px rgba(26, 23, 20, 0.08), 0 2px 4px -1px rgba(26, 23, 20, 0.04);
+  --pub-shadow-lg: 0 20px 25px -5px rgba(26, 23, 20, 0.1), 0 10px 10px -5px rgba(26, 23, 20, 0.04);
+
+  --pub-font-display: var(--font-bricolage), var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --pub-text-base: 16px;
+  --pub-line-base: 1.5;
+
+  font-family: var(--pub-font-display);
+  font-size: var(--pub-text-base);
+  line-height: var(--pub-line-base);
+  color: var(--pub-ink-muted);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.public-app ::selection {
+  background: var(--pub-primary-muted);
+  color: var(--pub-ink);
+}
+
+.public-app :where(h1, h2, h3, h4) {
+  color: var(--pub-ink);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/** Dark marketing bands — override default ink headings (e.g. Linear-style hero). */
+.public-app .pub-on-ink {
+  color: rgba(240, 239, 233, 0.7);
+}
+
+.public-app .pub-on-ink :where(h1, h2, h3, h4) {
+  color: #fbf8f4;
+}
+
+/* --- Typography utilities --- */
+
+.public-app .pub-display {
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--pub-ink);
+}
+
+.public-app .pub-heading-lg {
+  font-size: clamp(1.75rem, 3vw, 2rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.public-app .pub-heading-md {
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.public-app .pub-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.public-app .pub-eyebrow--dark {
+  color: var(--pub-primary);
+}
+
+.public-app .pub-body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--pub-ink-muted);
+}
+
+.public-app .pub-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--pub-ink-subtle);
+}
+
+/* --- Buttons --- */
+
+.public-app .pub-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+  background: var(--pub-primary);
+  border: none;
+  border-radius: var(--pub-radius-sm);
+  box-shadow:
+    0 0 0 1px rgba(255, 84, 54, 0.35),
+    0 2px 4px rgba(255, 84, 54, 0.18);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    box-shadow 150ms ease,
+    transform 80ms ease;
+}
+
+.public-app .pub-btn-primary:hover {
+  background: var(--pub-primary-hover);
+  box-shadow:
+    0 0 0 1px rgba(255, 84, 54, 0.45),
+    0 4px 8px rgba(255, 84, 54, 0.22);
+}
+
+.public-app .pub-btn-primary:active {
+  background: var(--pub-primary-pressed);
+  transform: scale(0.98);
+}
+
+.public-app .pub-btn-primary--sm {
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.public-app .pub-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--pub-ink);
+  background: var(--pub-surface);
+  border: 1px solid var(--pub-border);
+  border-radius: var(--pub-radius-sm);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.public-app .pub-btn-secondary:hover {
+  background: var(--pub-surface-muted);
+  border-color: var(--pub-border-strong);
+}
+
+/* --- Cards --- */
+
+.public-app .pub-card {
+  background: var(--pub-surface-elevated);
+  border: 1px solid var(--pub-border);
+  border-radius: var(--pub-radius-lg);
+  box-shadow: var(--pub-shadow-sm);
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.public-app .pub-card:hover {
+  box-shadow: var(--pub-shadow-md);
+  border-color: var(--pub-border-strong);
+}
+
+/* --- Generic input --- */
+
+.public-app .pub-input {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 0.875rem;
+  font-size: 0.875rem;
+  color: var(--pub-ink);
+  background: var(--pub-surface);
+  border: 1px solid var(--pub-border);
+  border-radius: var(--pub-radius-sm);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.public-app .pub-input:focus {
+  outline: none;
+  border-color: var(--pub-primary);
+  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+}
+
+/* --- Login-specific --- */
+
+.public-app .pub-login-card {
+  overflow: hidden;
+  border-radius: var(--pub-radius-lg);
+  border: 1px solid var(--pub-border);
+  background: var(--pub-surface);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 12px 40px rgba(0, 0, 0, 0.06);
+}
+
+.public-app .pub-login-input {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--pub-ink);
+  background: var(--pub-surface);
+  border: 1px solid var(--pub-border);
+  border-radius: var(--pub-radius-sm);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.public-app .pub-login-input::placeholder {
+  color: var(--pub-ink-subtle);
+}
+
+.public-app .pub-login-input:hover {
+  border-color: var(--pub-border-strong);
+}
+
+.public-app .pub-login-input:focus {
+  outline: none;
+  border-color: var(--pub-primary);
+  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+}
+
+.public-app .pub-login-oauth-btn {
+  display: flex;
+  height: 2.5rem;
+  width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--pub-radius-sm);
+  border: 1px solid var(--pub-border);
+  background: var(--pub-surface);
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--pub-ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.public-app .pub-login-oauth-btn:hover {
+  border-color: var(--pub-border-strong);
+  background: var(--pub-surface-muted);
+}
+
+.public-app .pub-login-oauth-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+}
+
+/* --- Autofill --- */
+
+.public-app input:-webkit-autofill,
+.public-app input:-webkit-autofill:hover,
+.public-app input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  -webkit-text-fill-color: var(--pub-ink);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* --- Gradient / brand panel --- */
+
+.public-app .pub-gradient-mesh {
+  position: relative;
+  overflow: hidden;
+  background: var(--pub-surface-muted);
+}
+
+.public-app .pub-gradient-mesh::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(255, 97, 24, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 15%, rgba(255, 224, 239, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 70% at 70% 80%, rgba(255, 84, 54, 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 30% 70%, rgba(230, 62, 34, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* --- Auth split login (staff / ESS / forgot password) --- */
+
+.public-app .auth-split-brand {
+  background: #1a1714;
+  color: rgba(255, 255, 255, 0.5);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.public-app .auth-split-shader {
+  overflow: hidden;
+}
+
+/* Stripe-style flowing gradient ribbon */
+.public-app .auth-split-ribbon {
+  position: absolute;
+  inset: -10% -20% -5%;
+  overflow: hidden;
+}
+
+.public-app .auth-split-ribbon-sweep {
+  position: absolute;
+  border-radius: 42% 58% 48% 52% / 46% 44% 56% 54%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.public-app .auth-split-ribbon-sweep--primary {
+  width: 165%;
+  height: 72%;
+  left: -38%;
+  top: -8%;
+  transform: rotate(-34deg);
+  background: linear-gradient(
+    102deg,
+    rgba(255, 84, 54, 0.98) 0%,
+    rgba(255, 120, 90, 0.95) 18%,
+    rgba(255, 180, 160, 0.92) 38%,
+    rgba(255, 233, 228, 0.9) 58%,
+    rgba(230, 62, 34, 0.88) 78%,
+    rgba(26, 23, 20, 0.85) 100%
+  );
+  filter: blur(52px) saturate(1.2);
+  opacity: 0.78;
+  animation: auth-ribbon-drift-a 24s ease-in-out infinite alternate;
+}
+
+.public-app .auth-split-ribbon-sweep--secondary {
+  width: 140%;
+  height: 58%;
+  left: -22%;
+  top: 34%;
+  transform: rotate(-20deg);
+  background: linear-gradient(
+    96deg,
+    rgba(255, 180, 140, 0.75) 0%,
+    rgba(255, 120, 90, 0.7) 38%,
+    rgba(255, 84, 54, 0.68) 72%,
+    rgba(26, 23, 20, 0.62) 100%
+  );
+  filter: blur(64px) saturate(1.1);
+  opacity: 0.5;
+  animation: auth-ribbon-drift-b 20s ease-in-out infinite alternate;
+}
+
+.public-app .auth-split-ribbon-sweep--accent {
+  width: 95%;
+  height: 42%;
+  right: -28%;
+  top: 8%;
+  transform: rotate(12deg);
+  background: linear-gradient(
+    118deg,
+    rgba(255, 220, 200, 0.55) 0%,
+    rgba(255, 120, 90, 0.5) 50%,
+    rgba(230, 62, 34, 0.45) 100%
+  );
+  filter: blur(72px);
+  opacity: 0.38;
+  animation: auth-ribbon-drift-c 28s ease-in-out infinite alternate;
+}
+
+.public-app .auth-split-brand-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    185deg,
+    rgba(26, 23, 20, 0.12) 0%,
+    rgba(26, 23, 20, 0.42) 42%,
+    rgba(26, 23, 20, 0.88) 78%,
+    rgba(20, 18, 16, 0.96) 100%
+  );
+}
+
+.public-app .auth-split-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 90% 60% at 50% 0%, transparent 0%, rgba(20, 18, 16, 0.35) 100%);
+  pointer-events: none;
+}
+
+@keyframes auth-ribbon-drift-a {
+  0% {
+    transform: rotate(-34deg) translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: rotate(-30deg) translate3d(3%, 2%, 0) scale(1.06);
+  }
+}
+
+@keyframes auth-ribbon-drift-b {
+  0% {
+    transform: rotate(-20deg) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: rotate(-16deg) translate3d(-2%, 3%, 0);
+  }
+}
+
+@keyframes auth-ribbon-drift-c {
+  0% {
+    transform: rotate(12deg) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: rotate(16deg) translate3d(-3%, 2%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-app .auth-split-ribbon-sweep {
+    animation: none;
+  }
+}
+
+.public-app .auth-split-brand h1,
+.public-app .auth-split-brand h2,
+.public-app .auth-split-brand h3,
+.public-app .auth-split-brand h4 {
+  color: #ffffff;
+}
+
+.public-app .auth-split-brand .auth-split-eyebrow {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.public-app .auth-split-brand .auth-split-subtitle {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.public-app .auth-split-brand .auth-split-footer {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.public-app .auth-split-brand .auth-split-footer a:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.public-app .auth-split-form {
+  background: linear-gradient(168deg, #fbf8f4 0%, #f4efe8 38%, #ede6dc 100%);
+}
+
+.public-app .auth-split-form-bg {
+  overflow: hidden;
+}
+
+/* Soft echo of the brand ribbon — keeps form side airy, not flat */
+.public-app .auth-split-form-mesh {
+  position: absolute;
+  inset: -15% -10%;
+  background:
+    radial-gradient(ellipse 65% 50% at 92% 6%, rgba(255, 84, 54, 0.11) 0%, transparent 58%),
+    radial-gradient(ellipse 55% 45% at 8% 88%, rgba(230, 62, 34, 0.09) 0%, transparent 52%),
+    radial-gradient(ellipse 50% 40% at 48% 42%, rgba(255, 180, 160, 0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 35% at 75% 72%, rgba(255, 120, 90, 0.06) 0%, transparent 50%);
+}
+
+.public-app .auth-split-form-glow {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(26, 23, 20, 0.045) 1px, transparent 1px);
+  background-size: 1.35rem 1.35rem;
+  mask-image: radial-gradient(ellipse 90% 85% at 50% 45%, black 0%, transparent 72%);
+  opacity: 0.65;
+}
+
+.public-app .auth-login-card {
+  border: 1px solid rgba(227, 232, 238, 0.95);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+    0 2px 4px rgba(15, 23, 42, 0.02),
+    0 8px 24px -4px rgba(15, 23, 42, 0.06),
+    0 24px 48px -12px rgba(255, 84, 54, 0.08);
+}
+
+/* --- Nav utilities --- */
+
+.public-app .pub-nav-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--pub-ink-muted);
+  transition: color 150ms ease;
+}
+
+.public-app .pub-nav-link:hover {
+  color: var(--pub-ink);
+}
+
+.public-app .pub-nav-cta,
+.pub-nav-cta {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--pub-primary, #ff5436);
+  border: none;
+  border-radius: var(--pub-radius-sm, 6px);
+  box-shadow:
+    0 0 0 1px rgba(255, 84, 54, 0.35),
+    0 2px 4px rgba(255, 84, 54, 0.18);
+  transition: background 150ms ease, box-shadow 150ms ease;
+  text-decoration: none;
+}
+
+.public-app .pub-nav-cta:hover,
+.pub-nav-cta:hover {
+  background: var(--pub-primary-hover, #e63e22);
+  box-shadow:
+    0 0 0 1px rgba(255, 84, 54, 0.45),
+    0 4px 8px rgba(255, 84, 54, 0.22);
+}
+
+.public-app .pub-nav-cta svg,
+.pub-nav-cta svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* --- Phosphor duotone --- */
+
+.public-app .pub-duotone-icon {
+  line-height: 0;
+}
+
+.public-app .pub-duotone-icon svg path[opacity='0.2'] {
+  fill: var(--pub-duotone-accent, var(--pub-ink));
+  opacity: 0.45;
+}
+
+/* --- Prose --- */
+
+.public-app .prose-pub h4 {
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: var(--pub-ink);
+  margin-bottom: 0.75rem;
+}
+
+.public-app .prose-pub p {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--pub-ink-muted);
+}
+
+.public-app .prose-pub a {
+  color: var(--pub-primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.public-app .prose-pub a:hover {
+  text-decoration: underline;
+}
+
+/* --- Careers page --- */
+
+.public-app .pub-careers-hero {
+  position: relative;
+}
+
+.public-app .pub-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border-radius: 9999px;
+  background: var(--pub-surface-muted);
+  color: var(--pub-ink-muted);
+  border: 1px solid var(--pub-border);
+  white-space: nowrap;
+}
+
+.public-app .pub-badge-new {
+  background: var(--pub-primary-subtle);
+  color: var(--pub-primary);
+  border-color: rgba(255, 84, 54, 0.22);
+  font-weight: 600;
+}
+
+.public-app .pub-job-list,
+.pub-job-list {
+  border: 1px solid var(--pub-border);
+  border-radius: var(--pub-radius-lg);
+  background: var(--pub-surface);
+  overflow: hidden;
+}
+
+.public-app .pub-job-row,
+.pub-job-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.125rem 1.25rem;
+  border-bottom: 1px solid var(--pub-border);
+  transition: background 120ms ease;
+}
+
+.public-app .pub-job-row:last-child,
+.pub-job-row:last-child {
+  border-bottom: none;
+}
+
+.public-app .pub-job-row:hover,
+.pub-job-row:hover {
+  background: var(--pub-surface-muted);
+}
+
+.public-app .pub-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--pub-primary);
+  background: var(--pub-primary-subtle);
+  border: 1px solid rgba(255, 84, 54, 0.15);
+  border-radius: 9999px;
+  transition: background 120ms ease;
+}
+
+.public-app .pub-filter-chip:hover {
+  background: var(--pub-primary-muted);
+}
+
+.public-app .pub-search-input {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.875rem 0 2.5rem;
+  font-size: 0.875rem;
+  color: var(--pub-ink);
+  background: var(--pub-surface);
+  border: 1px solid var(--pub-border);
+  border-radius: var(--pub-radius-sm);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.public-app .pub-search-input::placeholder {
+  color: var(--pub-ink-subtle);
+}
+
+.public-app .pub-search-input:focus {
+  outline: none;
+  border-color: var(--pub-primary);
+  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+}
+
+.public-app .pub-select {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.75rem 0 2.25rem;
+  font-size: 0.875rem;
+  color: var(--pub-ink-muted);
+  background: var(--pub-surface);
+  border: 1px solid var(--pub-border);
+  border-radius: var(--pub-radius-sm);
+  appearance: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.public-app .pub-select:focus {
+  outline: none;
+  border-color: var(--pub-primary);
+  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+}
+
+################################################################################
+# FILE: src/lib/marketing-config.ts
+################################################################################
+
+/** Stride public marketing site — content and routing config. */
+
+export const MARKETING_ROUTES = {
+  contact: '/contact',
+  login: '/dashboard/login',
+} as const;
+
+/** Sales-led CTAs — no public self-service signup until provisioning exists. */
+export const MARKETING_CTAS = {
+  bookDemo: 'Book a demo',
+  signIn: 'Sign in',
+  talkToSales: 'Talk to sales',
+  watchDemo: 'Watch demo',
+} as const;
+
+export const MARKETING_CANONICAL_DOMAIN =
+  process.env.NEXT_PUBLIC_MARKETING_DOMAIN?.trim() || '';
+
+export const TRUST_CLIENTS = [
+  'Nyati SACCO',
+  'SwiftFreight',
+  'Stabex',
+  'Cape Media',
+  "St. Paul's",
+] as const;
+
+export const CORE_MODULES = [
+  {
+    num: '01 — HR',
+    name: 'HR & Payroll',
+    description:
+      'Payroll, leave, onboarding and employee self-service — KRA, NSSF and SHIF compliance built right in.',
+  },
+  {
+    num: '02 — Finance',
+    name: 'Finance',
+    description:
+      'Accounts, budgets, approvals and M-Pesa disbursements in one ledger. Real numbers, in real time.',
+  },
+  {
+    num: '03 — Procurement',
+    name: 'Procurement',
+    description:
+      'Purchase requests, vendor management, LPO generation and spend tracking — structured from day one.',
+  },
+  {
+    num: '04 — Legal',
+    name: 'Legal & Documents',
+    description:
+      'Contract registers, compliance tracking and document workflows. Never miss a renewal or obligation.',
+  },
+  {
+    num: '05 — Projects',
+    name: 'Projects',
+    description:
+      'Track deliverables, assign tasks and watch budgets against real execution — tied to your real team.',
+  },
+  {
+    num: '06 — Admin',
+    name: 'Admin',
+    description:
+      'Asset registers, fleet, facilities and board resolutions — the operational layer most platforms skip.',
+  },
+] as const;
+
+export type IndustrySector =
+  | 'logistics'
+  | 'saccos'
+  | 'healthcare'
+  | 'energy'
+  | 'construction';
+
+export const INDUSTRY_VERTICALS: {
+  id: IndustrySector;
+  name: string;
+  status: 'available' | 'coming_soon';
+  description: string;
+  features: string[];
+  href: string;
+}[] = [
+  {
+    id: 'logistics',
+    name: 'Logistics & Cargo',
+    status: 'available',
+    description:
+      'Order intake, route & trip planning, vehicle and driver allocation, pre-trip compliance, in-transit monitoring, proof of delivery, settlement and billing — the full fleet workflow on one platform.',
+    features: [
+      'Fleet & vehicle register',
+      'Route & trip planning',
+      'Driver records & compliance',
+      'Fuel & maintenance logs',
+      'Delivery tracking & POD',
+    ],
+    href: '/industries/logistics',
+  },
+  {
+    id: 'saccos',
+    name: 'SACCOs',
+    status: 'coming_soon',
+    description: 'Member management, dividends, BOSA/FOSA and regulatory reporting — built for regulated cooperatives.',
+    features: ['Member management', 'Dividends', 'BOSA / FOSA', 'Regulatory reporting'],
+    href: '/industries/saccos',
+  },
+  {
+    id: 'healthcare',
+    name: 'Healthcare',
+    status: 'coming_soon',
+    description: 'Rota, biometric clock-in, and shift scheduling for clinical and non-clinical teams.',
+    features: ['Shift rota', 'Biometric clock-in', 'Licence tracking', 'NHIF-ready payroll'],
+    href: '/industries/healthcare',
+  },
+  {
+    id: 'energy',
+    name: 'Oil & Gas / Energy',
+    status: 'coming_soon',
+    description: 'HSE and compliance, incident reporting, and multi-entity operations for energy operators.',
+    features: ['HSE & compliance', 'Incident reporting', 'Multi-entity', 'Permit tracking'],
+    href: '/industries/energy',
+  },
+  {
+    id: 'construction',
+    name: 'Construction',
+    status: 'coming_soon',
+    description: 'Site and project management, plant tracking, and subcontractor workflows.',
+    features: ['Site management', 'Asset / plant tracking', 'Subcontractors', 'Project budgets'],
+    href: '/industries/construction',
+  },
+];
+
+export const PRICING_TIERS = [
+  {
+    id: 'starter',
+    name: 'Starter',
+    price: 'KES 18K',
+    unit: 'per month · up to 25 staff',
+    description: 'For small teams and consultancies getting their operations onto one platform.',
+    features: [
+      '2 core modules included',
+      'Up to 25 employees',
+      'M-Pesa disbursements',
+      'KRA / NSSF / SHIF compliance',
+      'Email support',
+    ],
+    cta: 'Book a demo',
+    featured: false,
+  },
+  {
+    id: 'growth',
+    name: 'Growth',
+    price: 'KES 55K',
+    unit: 'per month · up to 100 staff',
+    description: 'For growing organisations running multiple functions across one or more entities.',
+    features: [
+      '4 core modules included',
+      'Up to 100 employees',
+      'Multi-entity support',
+      'Advanced approvals & workflows',
+      'Priority support + onboarding',
+    ],
+    cta: 'Book a demo',
+    featured: true,
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    price: 'Custom',
+    unit: '100+ staff · multi-entity',
+    description: 'For SACCOs and regulated mid-market needing the full platform and bespoke rollout.',
+    features: [
+      'All six modules',
+      'Unlimited employees',
+      'Dedicated success manager',
+      'Custom integrations & SLAs',
+      'On-site implementation',
+    ],
+    cta: 'Talk to sales',
+    featured: false,
+  },
+] as const;
+
+export const FAQ_ITEMS = [
+  {
+    question: 'Is Stride compliant with Kenyan payroll regulations?',
+    answer:
+      'Yes. KRA PAYE, NSSF, SHIF and statutory deductions are built in from day one — not bolted on as an afterthought. Payslips, P9s and filing exports are included.',
+  },
+  {
+    question: 'Can we start with one module and add more later?',
+    answer:
+      'Absolutely. Most teams begin with HR and Finance, then turn on Procurement, Projects or vertical packs when they are ready. One login, one data layer throughout.',
+  },
+  {
+    question: 'Do you support M-Pesa for salary disbursements?',
+    answer:
+      'M-Pesa bulk disbursements and reconciliation are first-class — designed for how Kenyan businesses actually pay people.',
+  },
+  {
+    question: 'How long does onboarding take?',
+    answer:
+      'Most teams go live in days, not months. Guided onboarding, data import templates and local support are included on Growth and Enterprise plans.',
+  },
+  {
+    question: 'Where is our data stored? Is it secure?',
+    answer:
+      'Data is hosted on modern cloud infrastructure with encryption in transit and at rest. We follow Kenya Data Protection Act (ODPC) principles and provide audit trails for sensitive actions.',
+  },
+  {
+    question: 'Do you support my industry?',
+    answer:
+      'The horizontal core works for any business. Logistics & Cargo is available today as the first vertical pack; SACCOs, Healthcare, Energy and Construction are on the roadmap — join the waitlist for your sector.',
+  },
+] as const;
+
+export const HOW_IT_WORKS_STEPS = [
+  {
+    step: 'Step 01',
+    title: 'Start with what you need',
+    body: 'Turn on one module or all six. Most teams begin with HR and Finance, then expand. No forced bundles, no shelfware.',
+  },
+  {
+    step: 'Step 02',
+    title: 'Configure for your context',
+    body: 'Multi-entity, multi-currency, Kenya and Uganda compliance built in. Your structure, your accounts, your workflows.',
+  },
+  {
+    step: 'Step 03',
+    title: 'Live in days',
+    body: 'Guided onboarding, data import and local support from a team that knows your market — not a queue in another timezone.',
+  },
+] as const;
+
+
+################################################################################
+# FILE: src/components/public/PublicAppShell.tsx
+################################################################################
+
+type PublicAppShellProps = {
+  children: React.ReactNode;
+  className?: string;
+};
+
+export default function PublicAppShell({ children, className = '' }: PublicAppShellProps) {
+  return (
+    <div className={`public-app min-h-screen bg-pub-surface font-pub ${className}`.trim()}>
+      {children}
+    </div>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/StrideMark.tsx
+################################################################################
+
+type StrideMarkProps = {
+  className?: string;
+  variant?: 'coral' | 'white' | 'ink';
+};
+
+function cn(...parts: (string | false | undefined)[]) {
+  return parts.filter(Boolean).join(' ');
+}
+
+const WING_PATH =
+  'M 951.5,26.4 L 915.6,34.8 L 744.7,98.1 L 706.8,115.0 L 684.6,135.0 L 513.7,447.3 L 473.6,529.5 L 455.7,553.8 L 444.1,550.6 L 444.1,529.5 L 469.4,453.6 L 475.7,413.5 L 501.1,335.4 L 507.4,295.4 L 517.9,274.3 L 539.0,179.3 L 549.6,158.2 L 546.4,144.5 L 493.7,180.4 L 399.8,259.5 L 285.9,516.9 L 278.5,524.3 L 270.0,524.3 L 264.8,514.8 L 269.0,432.5 L 279.5,365.0 L 279.5,354.4 L 272.2,349.2 L 22.2,668.8 L 22.2,683.5 L 421.9,977.8 L 438.8,977.8 L 916.7,111.8 L 948.3,52.7 L 954.6,35.9 L 951.5,26.4 Z';
+
+const fillByVariant = {
+  coral: '#FF5436',
+  white: '#FFFFFF',
+  ink: '#1A1714',
+} as const;
+
+export function StrideMark({ className, variant = 'coral' }: StrideMarkProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 978.9 1000"
+      role="img"
+      aria-hidden
+      className={cn('aspect-[978.9/1000]', className)}
+    >
+      <path d={WING_PATH} fill={fillByVariant[variant]} />
+    </svg>
+  );
+}
+
+type StrideWordmarkProps = {
+  className?: string;
+  markClassName?: string;
+  wordClassName?: string;
+  variant?: 'coral' | 'white' | 'ink';
+  onDark?: boolean;
+};
+
+/** @deprecated Prefer {@link StrideWordmarkLockup} for headers, footers, and auth chrome. */
+export function StrideWordmark({
+  className,
+  markClassName = 'h-[26px]',
+  wordClassName,
+  variant = 'coral',
+  onDark = false,
+}: StrideWordmarkProps) {
+  return (
+    <span className={cn('inline-flex items-center gap-[11px]', className)}>
+      <StrideMark className={markClassName} variant={variant} />
+      <span
+        className={cn(
+          'font-heading text-[23px] font-bold tracking-[-0.5px]',
+          onDark ? 'text-pub-surface' : 'text-pub-ink',
+          wordClassName,
+        )}
+      >
+        Stride
+      </span>
+    </span>
+  );
+}
+
+/** Two-colour Stride lockups for chrome surfaces (not paper + coral + ink text). */
+export type StrideLockupTheme = 'on-ink' | 'on-coral';
+
+type StrideWordmarkLockupProps = {
+  theme?: StrideLockupTheme;
+  /** Rounded container like the brand reference chips */
+  boxed?: boolean;
+  className?: string;
+  markClassName?: string;
+  wordClassName?: string;
+};
+
+export function StrideWordmarkLockup({
+  theme = 'on-ink',
+  boxed = false,
+  className,
+  markClassName = 'h-[26px]',
+  wordClassName = 'text-[23px]',
+}: StrideWordmarkLockupProps) {
+  const markVariant = theme === 'on-ink' ? 'coral' : 'white';
+  const boxClass = theme === 'on-ink' ? 'bg-pub-ink' : 'bg-primary-500';
+
+  const lockup = (
+    <span className={cn('inline-flex items-center gap-[11px]', className)}>
+      <StrideMark className={markClassName} variant={markVariant} />
+      <span
+        className={cn(
+          'font-heading font-bold tracking-[-0.5px] text-white',
+          wordClassName,
+        )}
+      >
+        Stride
+      </span>
+    </span>
+  );
+
+  if (boxed) {
+    return <span className={cn('inline-flex rounded-xl px-5 py-3', boxClass)}>{lockup}</span>;
+  }
+
+  return lockup;
+}
+
+
+################################################################################
+# FILE: src/components/marketing/MarketingEyebrow.tsx
+################################################################################
+
+import type { ReactNode } from 'react';
+
+type MarketingEyebrowProps = {
+  children: ReactNode;
+  tone?: 'light' | 'dark';
+  /** Short coral rule before label — off for centred eyebrows. */
+  withRule?: boolean;
+  className?: string;
+};
+
+export function MarketingEyebrow({
+  children,
+  tone = 'light',
+  withRule = true,
+  className = '',
+}: MarketingEyebrowProps) {
+  return (
+    <p
+      className={`mb-[18px] text-xs font-semibold uppercase tracking-[0.1em] ${
+        withRule ? 'flex items-center gap-2.5 before:h-px before:w-6 before:shrink-0 before:bg-[var(--pub-primary)]' : ''
+      } ${
+        tone === 'dark' ? 'text-[var(--pub-primary)]' : 'text-[var(--pub-primary-hover)]'
+      } ${className}`.trim()}
+    >
+      {children}
+    </p>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/MarketingReveal.tsx
+################################################################################
+
+'use client';
+
+import type { ReactNode } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+
+type MarketingRevealProps = {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+};
+
+export function MarketingReveal({ children, className, delay = 0 }: MarketingRevealProps) {
+  const reduceMotion = useReducedMotion();
+
+  if (reduceMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '0px 0px -60px 0px' }}
+      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingProductShot.tsx
+################################################################################
+
+import type { ReactNode } from 'react';
+
+type MarketingProductShotProps = {
+  browserUrl?: string;
+  imageSrc?: string;
+  imageAlt?: string;
+  placeholderTitle: string;
+  placeholderSub: ReactNode;
+  aspectClassName?: string;
+  className?: string;
+};
+
+export function MarketingProductShot({
+  browserUrl = 'app.stride.co.ke/dashboard',
+  imageSrc,
+  imageAlt = 'Stride product screenshot',
+  placeholderTitle,
+  placeholderSub,
+  aspectClassName = 'aspect-[16/10]',
+  className = '',
+}: MarketingProductShotProps) {
+  return (
+    <div className={`relative ${className}`.trim()}>
+      <div
+        className="pointer-events-none absolute left-1/2 bottom-[-40px] h-[120px] w-[80%] -translate-x-1/2 rounded-full opacity-80"
+        style={{
+          background:
+            'radial-gradient(ellipse 50% 50% at 50% 0%, rgba(255,84,54,0.18) 0%, transparent 70%)',
+          filter: 'blur(28px)',
+        }}
+        aria-hidden
+      />
+      <div className="overflow-hidden rounded-t-[14px] border border-white/[0.08] bg-[#13100D] shadow-[0_-1px_0_rgba(255,255,255,0.04),0_40px_100px_-20px_rgba(0,0,0,0.7)]">
+        <div className="flex items-center gap-2 border-b border-white/[0.05] bg-[#1B1712] px-4 py-3">
+          <span className="h-[11px] w-[11px] rounded-full bg-[#FF5F57]" aria-hidden />
+          <span className="h-[11px] w-[11px] rounded-full bg-[#FEBC2E]" aria-hidden />
+          <span className="h-[11px] w-[11px] rounded-full bg-[#28C840]" aria-hidden />
+          <span className="ml-3.5 max-w-[340px] flex-1 rounded-md border border-white/[0.06] bg-[#0E0C0A] px-3 py-1.5 text-center text-xs text-pub-ink-subtle">
+            {browserUrl}
+          </span>
+        </div>
+        <div
+          className={`relative flex items-center justify-center bg-gradient-to-br from-[#1A1612] to-[#221C16] ${aspectClassName}`}
+        >
+          {imageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageSrc}
+              alt={imageAlt}
+              className="h-full w-full object-cover object-top"
+            />
+          ) : (
+            <div className="px-10 py-8 text-center text-pub-ink-subtle">
+              <p className="font-heading text-base font-semibold text-[#F0EFE9]/60">{placeholderTitle}</p>
+              <div className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed">{placeholderSub}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/MarketingNav.tsx
+################################################################################
+
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { MARKETING_CTAS, MARKETING_ROUTES } from '@/lib/marketing-config';
+import { StrideWordmarkLockup } from '@/components/marketing/StrideMark';
+
+const NAV_LINKS = [
+  { href: '/#core', label: 'Platform' },
+  { href: '/#industries', label: 'Industries' },
+  { href: '/#pricing', label: 'Pricing' },
+  { href: '/careers', label: 'Careers' },
+  { href: '/#faq', label: 'FAQ' },
+] as const;
+
+export function MarketingNav() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <header
+      className={`fixed inset-x-0 top-0 z-[100] h-[68px] border-b transition-colors duration-300 ${
+        scrolled
+          ? 'border-white/[0.08] bg-pub-ink/[0.85] backdrop-blur-[18px] backdrop-saturate-[1.4]'
+          : 'border-white/[0.06] bg-pub-ink/60 backdrop-blur-[18px] backdrop-saturate-[1.4]'
+      }`}
+    >
+      <div className="mx-auto flex h-full max-w-[1120px] items-center justify-between px-6 sm:px-10">
+        <Link href="/" aria-label="Stride home">
+          <StrideWordmarkLockup theme="on-ink" markClassName="h-6" wordClassName="text-[22px]" />
+        </Link>
+
+        <nav className="hidden items-center gap-[30px] lg:flex" aria-label="Primary">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-sm font-medium text-[#F0EFE9]/65 transition-colors hover:text-pub-surface"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2.5">
+          <Link
+            href={MARKETING_ROUTES.login}
+            className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-pub-surface/80 transition hover:text-pub-surface sm:inline-flex"
+          >
+            {MARKETING_CTAS.signIn}
+          </Link>
+          <Link
+            href={MARKETING_ROUTES.contact}
+            className="inline-flex rounded-lg bg-pub-surface px-[18px] py-2 text-sm font-semibold text-pub-ink transition hover:-translate-y-px hover:shadow-[0_8px_20px_rgba(0,0,0,0.25)]"
+          >
+            {MARKETING_CTAS.bookDemo}
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/MarketingFooter.tsx
+################################################################################
+
+import Link from 'next/link';
+import { StrideWordmarkLockup } from '@/components/marketing/StrideMark';
+
+const FOOTER_LINKS = [
+  { href: '/platform', label: 'Platform' },
+  { href: '/industries', label: 'Industries' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/careers', label: 'Careers' },
+  { href: '/about', label: 'About' },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/terms', label: 'Terms' },
+  { href: '/contact', label: 'Contact' },
+] as const;
+
+export function MarketingFooter() {
+  return (
+    <footer className="pub-on-ink border-t border-white/10 bg-pub-ink px-6 py-12 sm:px-12">
+      <div className="mx-auto flex max-w-[1100px] flex-col gap-8">
+        <div className="flex flex-wrap items-start justify-between gap-8">
+          <div>
+            <Link href="/">
+              <StrideWordmarkLockup theme="on-ink" markClassName="h-6" wordClassName="text-xl" />
+            </Link>
+            <p className="mt-3 text-sm italic text-[#8A8076]">Hit your stride.</p>
+          </div>
+          <ul className="flex flex-wrap gap-7">
+            {FOOTER_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="text-sm text-[#C9C0B6] transition-colors hover:text-primary-500"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-[#8A8076]">
+          <p>© {new Date().getFullYear()} Stride. A Raven Tech Group product.</p>
+          <p className="italic">Westlands, Nairobi</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/MarketingShell.tsx
+################################################################################
+
+import PublicAppShell from '@/components/public/PublicAppShell';
+import { MarketingFooter } from '@/components/marketing/MarketingFooter';
+import { MarketingNav } from '@/components/marketing/MarketingNav';
+
+type MarketingShellProps = {
+  children: React.ReactNode;
+  /** Ink for the Linear-style homepage; paper for inner marketing routes. */
+  tone?: 'ink' | 'paper';
+};
+
+export function MarketingShell({ children, tone = 'paper' }: MarketingShellProps) {
+  return (
+    <PublicAppShell
+      className={
+        tone === 'ink' ? 'bg-pub-ink text-pub-ink-muted' : 'bg-pub-surface text-pub-ink-muted'
+      }
+    >
+      <MarketingNav />
+      <main>{children}</main>
+      <MarketingFooter />
+    </PublicAppShell>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingHero.tsx
+################################################################################
+
+'use client';
+
+import Link from 'next/link';
+import { motion, useReducedMotion } from 'framer-motion';
+import { MARKETING_CTAS, MARKETING_ROUTES } from '@/lib/marketing-config';
+import { MarketingProductShot } from '@/components/marketing/sections/MarketingProductShot';
+
+const ease = [0.22, 1, 0.36, 1] as const;
+
+function HeroBlock({
+  children,
+  className,
+  delay,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay: number;
+}) {
+  const reduceMotion = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.9, ease, delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+export function MarketingHero() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <header className="pub-on-ink relative overflow-hidden bg-pub-ink pb-0 pt-[160px]">
+      <div
+        className="pointer-events-none absolute left-1/2 top-[-10%] h-[700px] w-[1100px] -translate-x-1/2"
+        style={{
+          background:
+            'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255,84,54,0.18) 0%, transparent 70%)',
+          filter: 'blur(20px)',
+        }}
+        aria-hidden
+      />
+
+      <div className="relative z-[2] mx-auto max-w-[920px] px-6 text-center sm:px-12">
+        <HeroBlock delay={0.1}>
+          <div className="mb-[30px] inline-flex rounded-full border border-[var(--pub-primary)]/25 bg-[var(--pub-primary)]/[0.08] px-3.5 py-1.5">
+            <span className="text-xs font-semibold tracking-wide text-[var(--pub-primary)]">
+              Operations platform · East Africa
+            </span>
+          </div>
+        </HeroBlock>
+
+        <HeroBlock delay={0.22}>
+          <h1 className="font-heading text-[clamp(2.75rem,6.5vw,5.375rem)] font-extrabold leading-[1] tracking-[-2.5px] text-[#FBF8F4]">
+            Move your business
+            <br />
+            <span className="bg-gradient-to-br from-[var(--pub-primary)] to-[#FF8A6E] bg-clip-text text-transparent">
+              forward.
+            </span>
+          </h1>
+        </HeroBlock>
+
+        <HeroBlock delay={0.34}>
+          <p className="mx-auto mt-[26px] max-w-[560px] text-[19px] font-light leading-relaxed text-[#F0EFE9]/70">
+            <strong className="font-medium text-[#FBF8F4]">
+              HR, Finance, Procurement, Legal, Projects and Admin
+            </strong>{' '}
+            — one platform built for East African business. M-Pesa native. Compliance first. Live from
+            day one.
+          </p>
+        </HeroBlock>
+
+        <HeroBlock delay={0.46}>
+          <div className="mt-[38px] flex flex-wrap justify-center gap-3.5">
+            <Link
+              href={MARKETING_ROUTES.contact}
+              className="inline-flex rounded-[10px] bg-[var(--pub-primary)] px-8 py-[15px] text-base font-semibold text-pub-ink transition hover:-translate-y-0.5 hover:bg-[var(--pub-primary-hover)] hover:shadow-[0_16px_36px_rgba(255,84,54,0.18)]"
+            >
+              {MARKETING_CTAS.bookDemo}
+            </Link>
+            <Link
+              href={MARKETING_ROUTES.contact}
+              className="inline-flex rounded-[10px] border border-white/[0.14] bg-white/[0.06] px-8 py-[15px] text-base font-semibold text-[#FBF8F4] transition hover:bg-white/[0.12]"
+            >
+              {MARKETING_CTAS.watchDemo}
+            </Link>
+          </div>
+          <p className="mt-[18px] text-[13px] text-[#F0EFE9]/55">
+            No setup fee · No lock-in · Free data migration
+          </p>
+        </HeroBlock>
+      </div>
+
+      <motion.div
+        className="relative z-[2] mx-auto mt-[70px] max-w-[1080px] px-6 sm:px-10"
+        initial={reduceMotion ? false : { opacity: 0, y: 50, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 1.1, ease, delay: 0.7 }}
+      >
+        <MarketingProductShot
+          placeholderTitle="Dashboard screenshot"
+          placeholderSub={
+            <>
+              Drop a 16:10 PNG into{' '}
+              <code className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[11px] text-[var(--pub-primary)]">
+                public/marketing/
+              </code>{' '}
+              when ready — recommended 1600×1000.
+            </>
+          }
+        />
+      </motion.div>
+    </header>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingTrustStrip.tsx
+################################################################################
+
+import { TRUST_CLIENTS } from '@/lib/marketing-config';
+import { MarketingReveal } from '@/components/marketing/MarketingReveal';
+
+export function MarketingTrustStrip() {
+  return (
+    <section className="relative z-[2] bg-pub-ink px-6 pb-20 pt-10 sm:px-10">
+      <p className="mb-6 text-center text-xs uppercase tracking-[0.12em] text-pub-ink-subtle">
+        Trusted by teams across East Africa
+      </p>
+      <div className="mx-auto flex max-w-[1100px] flex-wrap items-center justify-center gap-x-12 gap-y-4">
+        {TRUST_CLIENTS.map((name, i) => (
+          <MarketingReveal key={name} delay={i * 0.08}>
+            <span className="font-heading text-lg font-bold tracking-[-0.5px] text-[#F0EFE9]/40 transition-colors hover:text-[#F0EFE9]/75 md:text-[19px]">
+              {name}
+            </span>
+          </MarketingReveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingCoreSection.tsx
+################################################################################
+
+import { CORE_MODULES } from '@/lib/marketing-config';
+import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
+import { MarketingReveal } from '@/components/marketing/MarketingReveal';
+
+export function MarketingCoreSection() {
+  return (
+    <section id="core" className="bg-pub-surface px-6 py-[80px] sm:px-10 lg:py-[120px]">
+      <div className="mx-auto max-w-[1120px]">
+        <MarketingReveal>
+          <MarketingEyebrow>The platform</MarketingEyebrow>
+        </MarketingReveal>
+        <MarketingReveal delay={0.08}>
+          <h2 className="max-w-[640px] font-heading text-[clamp(1.875rem,4vw,3.125rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-pub-ink">
+            The foundation every
+            <br />
+            business <span className="text-[var(--pub-primary)]">runs on.</span>
+          </h2>
+        </MarketingReveal>
+        <MarketingReveal delay={0.16}>
+          <p className="mt-[18px] max-w-[540px] text-[17px] leading-relaxed text-pub-ink-muted">
+            Six universal modules, one data layer, one login. Start with what you need today and
+            switch on the rest as you grow.
+          </p>
+        </MarketingReveal>
+
+        <div className="mt-[60px] grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {CORE_MODULES.map((mod, i) => (
+            <MarketingReveal key={mod.name} delay={0.08 * (i + 1)}>
+              <article className="h-full rounded-2xl border border-pub-border bg-pub-surface p-7 transition hover:-translate-y-1 hover:border-pub-border-strong hover:shadow-[0_18px_44px_rgba(26,23,20,0.08)]">
+                <p className="mb-4 font-heading text-[13px] font-bold tracking-[0.04em] text-[var(--pub-primary)]">
+                  {mod.num}
+                </p>
+                <h3 className="mb-2 font-heading text-[19px] font-bold tracking-[-0.4px] text-pub-ink">
+                  {mod.name}
+                </h3>
+                <p className="text-sm leading-relaxed text-pub-ink-muted">{mod.description}</p>
+              </article>
+            </MarketingReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingFeatureSplit.tsx
+################################################################################
+
+import Link from 'next/link';
+import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
+import { MarketingReveal } from '@/components/marketing/MarketingReveal';
+import { MarketingProductShot } from '@/components/marketing/sections/MarketingProductShot';
+
+export function MarketingFeatureSplit() {
+  return (
+    <section className="bg-pub-surface-muted px-6 py-[80px] sm:px-10 lg:py-[120px]">
+      <div className="mx-auto grid max-w-[1120px] items-center gap-16 lg:grid-cols-2 lg:gap-16">
+        <div>
+          <MarketingReveal>
+            <MarketingEyebrow>One source of truth</MarketingEyebrow>
+          </MarketingReveal>
+          <MarketingReveal delay={0.08}>
+            <h2 className="font-heading text-[clamp(1.875rem,4vw,3.125rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-pub-ink">
+              Every module,
+              <br />
+              one login.
+            </h2>
+          </MarketingReveal>
+          <MarketingReveal delay={0.16}>
+            <p className="mt-[18px] max-w-[540px] text-[17px] leading-relaxed text-pub-ink-muted">
+              No more juggling spreadsheets, WhatsApp approvals and disconnected tools. Stride brings
+              your whole operation into one place — so your team stops switching context and starts
+              moving.
+            </p>
+            <Link
+              href="/platform"
+              className="mt-6 inline-block text-sm font-semibold text-[var(--pub-primary)] transition hover:text-[var(--pub-primary-hover)]"
+            >
+              Explore the platform →
+            </Link>
+          </MarketingReveal>
+        </div>
+        <MarketingReveal delay={0.12}>
+          <MarketingProductShot
+            aspectClassName="aspect-[4/3]"
+            browserUrl="app.stride.co.ke/payroll"
+            placeholderTitle="Feature screenshot"
+            placeholderSub="A focused module view (e.g. payroll run or approvals). 4:3 PNG."
+            className="overflow-hidden rounded-[14px] border border-pub-border shadow-[0_30px_70px_-25px_rgba(26,23,20,0.3)]"
+          />
+        </MarketingReveal>
+      </div>
+    </section>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingIndustriesBento.tsx
+################################################################################
+
+import Link from 'next/link';
+import { INDUSTRY_VERTICALS } from '@/lib/marketing-config';
+import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
+import { MarketingReveal } from '@/components/marketing/MarketingReveal';
+
+export function MarketingIndustriesBento() {
+  const live = INDUSTRY_VERTICALS.find((v) => v.status === 'available');
+  const comingSoon = INDUSTRY_VERTICALS.filter((v) => v.status === 'coming_soon');
+
+  return (
+    <section id="industries" className="bg-pub-surface px-6 py-[80px] sm:px-10 lg:py-[120px]">
+      <div className="mx-auto max-w-[1120px]">
+        <MarketingReveal>
+          <MarketingEyebrow>Built for your industry</MarketingEyebrow>
+        </MarketingReveal>
+        <MarketingReveal delay={0.08}>
+          <h2 className="max-w-[640px] font-heading text-[clamp(1.875rem,4vw,3.125rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-pub-ink">
+            Then it gets <span className="text-[var(--pub-primary)]">specific.</span>
+          </h2>
+        </MarketingReveal>
+        <MarketingReveal delay={0.16}>
+          <p className="mt-[18px] max-w-[540px] text-[17px] leading-relaxed text-pub-ink-muted">
+            The core runs every business. Vertical modules add the depth your sector actually needs
+            — starting with logistics, with more rolling out.
+          </p>
+        </MarketingReveal>
+
+        <div className="mt-[60px] grid gap-4 lg:grid-cols-3 lg:grid-rows-2">
+          {live ? (
+            <MarketingReveal className="lg:col-span-1 lg:row-span-2" delay={0.1}>
+              <article className="pub-on-ink relative flex h-full min-h-[240px] flex-col justify-between overflow-hidden rounded-[18px] bg-pub-ink p-8 transition hover:-translate-y-1">
+                <div>
+                  <span className="inline-flex rounded-full bg-[var(--pub-primary)]/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--pub-primary)]">
+                    Available now
+                  </span>
+                  <h3 className="mt-[18px] font-heading text-[30px] font-bold tracking-[-0.6px]">
+                    {live.name}
+                  </h3>
+                  <p className="mt-2.5 max-w-[340px] text-sm leading-relaxed text-[#F0EFE9]/70">
+                    {live.description}
+                  </p>
+                </div>
+                <Link
+                  href={live.href}
+                  className="mt-[18px] text-sm font-semibold text-[var(--pub-primary)] transition hover:text-[#FF8A6E]"
+                >
+                  See the fleet module →
+                </Link>
+              </article>
+            </MarketingReveal>
+          ) : null}
+
+          {comingSoon.map((vertical, i) => (
+            <MarketingReveal key={vertical.id} delay={0.12 + i * 0.06}>
+              <article className="flex h-full min-h-[240px] flex-col justify-between rounded-[18px] border border-pub-border bg-white p-8 transition hover:-translate-y-1">
+                <div>
+                  <span className="inline-flex rounded-full bg-pub-surface-muted px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-pub-ink-subtle">
+                    Coming soon
+                  </span>
+                  <h3 className="mt-[18px] font-heading text-2xl font-bold tracking-[-0.6px] text-pub-ink">
+                    {vertical.name}
+                  </h3>
+                  <p className="mt-2.5 text-sm leading-relaxed text-pub-ink-muted">
+                    {vertical.features.slice(0, 3).join(', ')}.
+                  </p>
+                </div>
+                <Link
+                  href={vertical.href}
+                  className="mt-4 text-sm font-semibold text-[var(--pub-primary)] transition hover:text-[var(--pub-primary-hover)]"
+                >
+                  Join waitlist →
+                </Link>
+              </article>
+            </MarketingReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingWhySection.tsx
+################################################################################
+
+import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
+import { MarketingReveal } from '@/components/marketing/MarketingReveal';
+
+const STATS = [
+  {
+    value: '6',
+    label: 'Business functions in one platform — HR, Finance, Procurement, Legal, Projects, Admin',
+  },
+  {
+    value: 'Day 1',
+    label: 'KRA, NSSF and SHIF compliance out of the box — zero configuration required',
+  },
+  {
+    value: '1',
+    label: 'Login for every team member, every module, every entity you run',
+  },
+] as const;
+
+export function MarketingWhySection() {
+  return (
+    <section className="pub-on-ink bg-pub-ink px-6 py-[80px] sm:px-10 lg:py-[120px]">
+      <div className="mx-auto grid max-w-[1120px] items-center gap-16 lg:grid-cols-2 lg:gap-[90px]">
+        <div>
+          <MarketingReveal>
+            <MarketingEyebrow tone="dark">Why Stride</MarketingEyebrow>
+          </MarketingReveal>
+          <MarketingReveal delay={0.08}>
+            <h2 className="font-heading text-[clamp(2rem,4vw,3.25rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-[#FBF8F4]">
+              Built for
+              <br />
+              <span className="text-[var(--pub-primary)]">East Africa.</span>
+              <br />
+              Not adapted for it.
+            </h2>
+          </MarketingReveal>
+          <MarketingReveal delay={0.16}>
+            <p className="mt-[18px] max-w-[540px] text-[17px] leading-relaxed text-[#F0EFE9]/65">
+              Global ERPs were designed for other markets and retrofitted for Kenya. Stride is built
+              from the ground up —{' '}
+              <strong className="font-semibold text-pub-surface">
+                M-Pesa disbursements, KRA compliance, multi-entity SACCO structures and East African
+                payroll logic
+              </strong>{' '}
+              are first-class features, not afterthoughts.
+            </p>
+            <div className="my-7 h-[3px] w-12 skew-x-[-14deg] rounded bg-[var(--pub-primary)]" />
+            <p className="max-w-[540px] text-[17px] leading-relaxed text-[#F0EFE9]/65">
+              A 12-person consultancy and a 300-staff SACCO pay for exactly what they use. No
+              enterprise sales cycle. No six-month rollout.
+            </p>
+          </MarketingReveal>
+        </div>
+
+        <div className="flex flex-col gap-[30px]">
+          {STATS.map((stat, i) => (
+            <MarketingReveal key={stat.value} delay={0.1 + i * 0.08}>
+              <div className="border-l-2 border-[var(--pub-primary)] pl-[22px]">
+                <p className="font-heading text-[54px] font-extrabold leading-none tracking-[-2px] text-[var(--pub-primary)]">
+                  {stat.value}
+                </p>
+                <p className="mt-2 max-w-xs text-sm leading-relaxed text-[#F0EFE9]/65">{stat.label}</p>
+              </div>
+            </MarketingReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingHowSection.tsx
+################################################################################
+
+import { HOW_IT_WORKS_STEPS } from '@/lib/marketing-config';
+import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
+import { MarketingReveal } from '@/components/marketing/MarketingReveal';
+
+export function MarketingHowSection() {
+  return (
+    <section id="how" className="bg-pub-surface px-6 py-[80px] sm:px-10 lg:py-[120px]">
+      <div className="mx-auto max-w-[1120px]">
+        <MarketingReveal>
+          <MarketingEyebrow>How it works</MarketingEyebrow>
+        </MarketingReveal>
+        <MarketingReveal delay={0.08}>
+          <h2 className="max-w-[640px] font-heading text-[clamp(1.875rem,4vw,3.125rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-pub-ink">
+            Three steps to <span className="text-[var(--pub-primary)]">full speed.</span>
+          </h2>
+        </MarketingReveal>
+
+        <div className="mt-[60px] grid gap-7 md:grid-cols-3">
+          {HOW_IT_WORKS_STEPS.map((step, i) => (
+            <MarketingReveal key={step.step} delay={0.1 + i * 0.08}>
+              <div
+                className="border-t-[3px] pt-[26px]"
+                style={{ borderColor: `rgba(255, 84, 54, ${1 - i * 0.25})` }}
+              >
+                <p className="mb-3.5 font-heading text-[13px] font-bold text-[var(--pub-primary)]">
+                  {step.step}
+                </p>
+                <h3 className="mb-2.5 font-heading text-[21px] font-bold leading-tight tracking-[-0.4px] text-pub-ink">
+                  {step.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-pub-ink-muted">{step.body}</p>
+              </div>
+            </MarketingReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingPricingSection.tsx
+################################################################################
+
+import Link from 'next/link';
+import { PRICING_TIERS } from '@/lib/marketing-config';
+import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
+import { MarketingReveal } from '@/components/marketing/MarketingReveal';
+
+export function MarketingPricingSection() {
+  return (
+    <section id="pricing" className="bg-pub-surface-muted px-6 py-[80px] sm:px-10 lg:py-[120px]">
+      <div className="mx-auto max-w-[1080px] text-center">
+        <MarketingReveal>
+          <MarketingEyebrow withRule={false} className="text-center">
+            Pricing
+          </MarketingEyebrow>
+        </MarketingReveal>
+        <MarketingReveal delay={0.08}>
+          <h2 className="mx-auto max-w-[640px] font-heading text-[clamp(1.875rem,4vw,3.125rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-pub-ink">
+            Priced for your <span className="text-[var(--pub-primary)]">size</span>, not per seat.
+          </h2>
+        </MarketingReveal>
+        <MarketingReveal delay={0.16}>
+          <p className="mx-auto mt-[18px] max-w-[520px] text-[17px] text-pub-ink-muted">
+            Platform tiers banded by organisation size, billed in Kenyan shillings. Add modules as you
+            grow.
+          </p>
+        </MarketingReveal>
+      </div>
+
+      <div className="mx-auto mt-14 grid max-w-[1080px] gap-[18px] text-left lg:grid-cols-3">
+        {PRICING_TIERS.map((tier, i) => (
+          <MarketingReveal key={tier.id} delay={0.1 + i * 0.08}>
+            <article
+              className={`relative flex h-full flex-col rounded-[20px] border p-[34px] transition hover:-translate-y-1 hover:shadow-[0_16px_44px_rgba(26,23,20,0.09)] ${
+                tier.featured
+                  ? 'pub-on-ink border-pub-ink bg-pub-ink'
+                  : 'border-pub-border bg-white'
+              }`}
+            >
+              {tier.featured ? (
+                <span className="absolute right-[18px] top-[18px] rounded-full bg-[var(--pub-primary)]/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--pub-primary)]">
+                  Most popular
+                </span>
+              ) : null}
+              <p className="font-heading text-sm font-bold uppercase tracking-wide text-[var(--pub-primary)]">
+                {tier.name}
+              </p>
+              <p
+                className={`mt-3.5 font-heading text-[40px] font-extrabold leading-none tracking-[-1.5px] ${
+                  tier.featured ? 'text-pub-surface' : 'text-pub-ink'
+                }`}
+              >
+                {tier.price}
+              </p>
+              <p className={`mt-1.5 text-[13px] ${tier.featured ? 'text-[#9C948A]' : 'text-pub-ink-subtle'}`}>
+                {tier.unit}
+              </p>
+              <p
+                className={`my-[22px] border-b pb-[22px] text-sm leading-relaxed ${
+                  tier.featured
+                    ? 'border-white/10 text-[#C9C0B6]'
+                    : 'border-pub-border text-pub-ink-muted'
+                }`}
+              >
+                {tier.description}
+              </p>
+              <ul className="mb-7 flex flex-1 flex-col gap-2.5 text-sm">
+                {tier.features.map((f) => (
+                  <li
+                    key={f}
+                    className={`leading-snug ${tier.featured ? 'text-[#D8D2C9]' : 'text-pub-ink-muted'}`}
+                  >
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/contact"
+                className={`rounded-[9px] py-3.5 text-center text-[15px] font-semibold transition ${
+                  tier.featured
+                    ? 'bg-[var(--pub-primary)] text-white hover:bg-[var(--pub-primary-hover)]'
+                    : 'border-[1.5px] border-pub-border-strong text-pub-ink hover:border-pub-ink'
+                }`}
+              >
+                {tier.cta}
+              </Link>
+            </article>
+          </MarketingReveal>
+        ))}
+      </div>
+
+      <MarketingReveal delay={0.2}>
+        <p className="mx-auto mt-[34px] max-w-[1080px] text-center text-[13px] text-pub-ink-subtle">
+          All plans include free data migration and no setup fee. Prices exclusive of VAT.
+          Illustrative — confirm before launch.{' '}
+          <Link href="/pricing" className="font-semibold text-[var(--pub-primary)] hover:underline">
+            View full pricing →
+          </Link>
+        </p>
+      </MarketingReveal>
+    </section>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingFaq.tsx
+################################################################################
+
+'use client';
+
+import { useState } from 'react';
+import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
+
+type FaqItem = { question: string; answer: string };
+
+export function MarketingFaq({ items }: { items: readonly FaqItem[] }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  return (
+    <section id="faq" className="bg-pub-surface px-6 py-[72px] sm:px-12 lg:py-[110px]">
+      <div className="mx-auto grid max-w-[1100px] gap-12 lg:grid-cols-[380px_1fr] lg:gap-20">
+        <div>
+          <MarketingEyebrow className="mb-5">FAQ</MarketingEyebrow>
+          <h2 className="font-heading text-[clamp(2rem,4vw,3rem)] font-extrabold tracking-[-1.5px] text-pub-ink">
+            Questions, answered.
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-pub-ink-muted">
+            Straight answers about compliance, modules, and getting started.
+          </p>
+        </div>
+
+        <div>
+          {items.map((item, index) => {
+            const open = openIndex === index;
+            return (
+              <div key={item.question} className="border-b border-pub-border first:border-t">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-5 py-6 text-left font-heading text-lg font-semibold tracking-tight text-pub-ink"
+                  aria-expanded={open}
+                  onClick={() => setOpenIndex(open ? null : index)}
+                >
+                  {item.question}
+                  <span
+                    className="relative h-[18px] w-[18px] shrink-0 text-[var(--pub-primary)]"
+                    aria-hidden
+                  >
+                    <span className="absolute left-0 top-[9px] h-0.5 w-5 rounded bg-current" />
+                    <span
+                      className={`absolute left-[9px] top-0 h-5 w-0.5 rounded bg-current transition-opacity ${
+                        open ? 'opacity-0' : 'opacity-100'
+                      }`}
+                    />
+                  </span>
+                </button>
+                <div
+                  className={`overflow-hidden transition-all ${
+                    open ? 'max-h-64 pb-6' : 'max-h-0'
+                  }`}
+                >
+                  <p className="text-[15px] leading-relaxed text-pub-ink-muted">{item.answer}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/sections/MarketingFinalCta.tsx
+################################################################################
+
+import Link from 'next/link';
+import { MARKETING_CTAS, MARKETING_ROUTES } from '@/lib/marketing-config';
+import { MarketingReveal } from '@/components/marketing/MarketingReveal';
+
+export function MarketingFinalCta() {
+  return (
+    <section className="pub-on-ink relative overflow-hidden bg-pub-ink px-6 py-[130px] text-center sm:px-10">
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/2"
+        style={{
+          background:
+            'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255,84,54,0.18) 0%, transparent 70%)',
+        }}
+        aria-hidden
+      />
+      <MarketingReveal>
+        <h2 className="relative z-[1] font-heading text-[clamp(2.375rem,5.5vw,4.5rem)] font-extrabold leading-none tracking-[-2px] text-[#FBF8F4]">
+          Ready to
+          <br />
+          hit your <span className="text-[var(--pub-primary)]">stride?</span>
+        </h2>
+      </MarketingReveal>
+      <MarketingReveal delay={0.08}>
+        <p className="relative z-[1] mx-auto mt-[22px] max-w-xl text-[17px] leading-relaxed text-[#F0EFE9]/70">
+          No setup fee. No lock-in. Local support from day one.
+          <br />
+          Your whole business, finally moving as one.
+        </p>
+      </MarketingReveal>
+      <MarketingReveal delay={0.16}>
+        <div className="relative z-[1] mt-11 flex flex-wrap justify-center gap-3.5">
+          <Link
+            href={MARKETING_ROUTES.contact}
+            className="inline-flex rounded-[10px] bg-[var(--pub-primary)] px-9 py-4 text-base font-semibold text-pub-ink transition hover:-translate-y-0.5 hover:bg-[var(--pub-primary-hover)] hover:shadow-[0_16px_36px_rgba(255,84,54,0.18)]"
+          >
+            {MARKETING_CTAS.bookDemo}
+          </Link>
+          <Link
+            href={MARKETING_ROUTES.login}
+            className="inline-flex rounded-[10px] border border-white/[0.14] bg-white/[0.06] px-9 py-4 text-base font-semibold text-pub-surface transition hover:bg-white/[0.12]"
+          >
+            {MARKETING_CTAS.signIn}
+          </Link>
+        </div>
+      </MarketingReveal>
+    </section>
+  );
+}
+
+
+################################################################################
+# FILE: src/components/marketing/MarketingHomePage.tsx
+################################################################################
+
+import { MarketingCoreSection } from '@/components/marketing/sections/MarketingCoreSection';
+import { MarketingFeatureSplit } from '@/components/marketing/sections/MarketingFeatureSplit';
+import { MarketingFinalCta } from '@/components/marketing/sections/MarketingFinalCta';
+import { MarketingHero } from '@/components/marketing/sections/MarketingHero';
+import { MarketingHowSection } from '@/components/marketing/sections/MarketingHowSection';
+import { MarketingIndustriesBento } from '@/components/marketing/sections/MarketingIndustriesBento';
+import { MarketingPricingSection } from '@/components/marketing/sections/MarketingPricingSection';
+import { MarketingTrustStrip } from '@/components/marketing/sections/MarketingTrustStrip';
+import { MarketingWhySection } from '@/components/marketing/sections/MarketingWhySection';
+import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
+import { FAQ_ITEMS } from '@/lib/marketing-config';
+
+export function MarketingHomePage() {
+  return (
+    <>
+      <MarketingHero />
+      <MarketingTrustStrip />
+      <MarketingCoreSection />
+      <MarketingFeatureSplit />
+      <MarketingIndustriesBento />
+      <MarketingWhySection />
+      <MarketingHowSection />
+      <MarketingPricingSection />
+      <MarketingFaq items={FAQ_ITEMS} />
+      <MarketingFinalCta />
+    </>
+  );
+}
+
+
+################################################################################
+# FILE: src/app/page.tsx
+################################################################################
+
+import type { Metadata } from 'next';
+import { MarketingHomePage } from '@/components/marketing/MarketingHomePage';
+import { MarketingShell } from '@/components/marketing/MarketingShell';
+
+export const metadata: Metadata = {
+  title: 'Stride — Move your business forward',
+  description:
+    'HR, finance, procurement, legal, projects and admin on one platform built for East African businesses. M-Pesa native. Compliance first.',
+};
+
+export default function Home() {
+  return (
+    <MarketingShell tone="ink">
+      <MarketingHomePage />
+    </MarketingShell>
+  );
+}
+

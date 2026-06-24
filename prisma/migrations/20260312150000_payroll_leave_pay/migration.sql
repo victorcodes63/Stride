@@ -1,0 +1,2 @@
+ALTER TABLE "OutsourcingClient" ADD COLUMN "leavePayMode" TEXT DEFAULT 'none';
+ALTER TABLE "Payroll" ADD COLUMN "leavePay" DECIMAL(12,2) NOT NULL DEFAULT 0;
