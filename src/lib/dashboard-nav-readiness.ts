@@ -37,7 +37,7 @@ export const NAV_READINESS_META: Record<
 export const NAV_ITEM_READINESS: Record<string, NavReadiness> = {
   // HR & Payroll
   '/dashboard/performance': 'live',
-  '/dashboard/payroll/disbursements': 'planned',
+  '/dashboard/payroll/disbursements': 'partial',
 
   // Finance
   '/dashboard/accounts/statements': 'partial',

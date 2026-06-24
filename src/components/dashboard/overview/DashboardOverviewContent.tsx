@@ -54,6 +54,8 @@ import { OverviewKpiMiniChart } from '@/components/dashboard/overview/OverviewKp
 import type { OverviewKpiChartSegment } from '@/lib/dashboard-overview-personalization';
 import { OverviewWidgetHeader } from '@/components/dashboard/overview/OverviewWidgetHeader';
 import { OverviewPinButton } from '@/components/dashboard/overview/OverviewPinButton';
+import { DemoWalkthroughCard } from '@/components/dashboard/DemoWalkthroughCard';
+import { isPublicDemoMode } from '@/lib/deployment-config';
 import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
 import type { ModuleKey } from '@/lib/modules';
 import type { UserSummary } from '@/types/dashboard';
@@ -612,6 +614,8 @@ export default function DashboardOverviewContent() {
         titleSuppressHydrationWarning
         metaSuppressHydrationWarning
       />
+
+      {isPublicDemoMode() ? <DemoWalkthroughCard /> : null}
 
       {isCustom ? (
         <p className="text-xs text-[var(--dash-text-subtle)]">

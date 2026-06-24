@@ -32,6 +32,7 @@ type GenerateDemoStaffOptions = {
   departments: readonly string[];
   startIndex?: number;
   baseSalary?: number;
+  roles?: readonly string[];
 };
 
 /** Synthetic workforce rows for vertical demos that need credible headcount KPIs. */
@@ -43,6 +44,7 @@ export function generateDemoStaffRows(options: GenerateDemoStaffOptions): DemoEm
     departments,
     startIndex = 11,
     baseSalary = 68000,
+    roles = ROLES,
   } = options;
 
   const rows: DemoEmployeeSeed[] = [];
@@ -53,7 +55,7 @@ export function generateDemoStaffRows(options: GenerateDemoStaffOptions): DemoEm
     const firstName = FIRST_NAMES[i % FIRST_NAMES.length]!;
     const lastName = LAST_NAMES[(i * 7) % LAST_NAMES.length]!;
     const department = departments[i % departments.length]!;
-    const role = ROLES[i % ROLES.length]!;
+    const role = roles[i % roles.length]!;
     const slug = `${firstName}.${lastName}`.toLowerCase().replace(/[^a-z.]/g, '');
 
     rows.push({

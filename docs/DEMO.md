@@ -1,4 +1,10 @@
-# Eagle HR — Internal leave demo
+# Demo environments
+
+For the **full Phase A HR & payroll walkthrough** (leave, payroll wizard, M-Pesa, performance), see **[DEMO-WALKTHROUGH.md](./DEMO-WALKTHROUGH.md)**.
+
+---
+
+# Eagle HR — Internal leave demo (legacy note)
 
 Polished demo environment for **Eagle HR’s internal team** (dashboard `User` accounts). Focus: staff leave balances, requests, approvals, and a leadership team overview.
 
