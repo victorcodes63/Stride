@@ -18,7 +18,7 @@ Legacy spreadsheet columns are preserved for exports. Copy to Notion or Google S
 |--------|--------|----------------|----------------|--------------|-------------------|-------------|------------------|---------------|-------|
 | Acme Ltd | Live | https://hr.acme.co.ke | acme-hris | acme-hris-prod | v0.3.0 | 2026-05-20 | — | hr@acme.co.ke | Kenya payroll |
 | Beta Corp | Pilot | https://hr.beta.co.ke | beta-hris | beta-hris-prod | v0.3.0 | 2026-05-18 | MODULE_ACCOUNTS | ops@beta.co.ke | Essentials bundle |
-| Internal demo | Demo | https://demo.hris.example.com | Stride | Stride-dev | main | 2026-05-26 | — | — | DEMO_MODE=true |
+| Internal demo | Demo | https://app.getstride.co.ke | stride-platform | Stride (Neon) | main | 2026-06-24 | — | — | Marketing: stride-app @ getstride.co.ke |
 
 ### Column definitions
 
