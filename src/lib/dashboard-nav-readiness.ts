@@ -36,7 +36,7 @@ export const NAV_READINESS_META: Record<
 /** Per-route readiness. Omitted routes default to live. */
 export const NAV_ITEM_READINESS: Record<string, NavReadiness> = {
   // HR & Payroll
-  '/dashboard/performance': 'mock',
+  '/dashboard/performance': 'live',
   '/dashboard/payroll/disbursements': 'planned',
 
   // Finance

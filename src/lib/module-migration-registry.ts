@@ -105,7 +105,13 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'Client',
     'RecruitmentClientPortalUser',
   ],
-  performance: [],
+  performance: [
+    'PerformanceCycle',
+    'PerformanceGoal',
+    'PerformanceReview',
+    'PerformanceReviewRating',
+    'PerformanceFeedback',
+  ],
   hse: [],
   accounts: [
     'AccountsClient',
@@ -164,11 +170,19 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
       };
     }
 
-    if (def.key === 'performance' || def.key === 'hse') {
+    if (def.key === 'performance') {
+      return {
+        ...base,
+        phase: 'routes-partial',
+        notes: 'Real cycles/reviews APIs + dashboard/ESS UI; migrate remaining legacy routes.',
+      };
+    }
+
+    if (def.key === 'hse') {
       return {
         ...base,
         phase: 'not-started',
-        notes: 'Mock UI or thin API — migrate when real module lands (Phase A/E).',
+        notes: 'Mock UI or thin API — migrate when real module lands (Phase E).',
       };
     }
 

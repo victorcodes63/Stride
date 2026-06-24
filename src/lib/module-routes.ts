@@ -83,6 +83,7 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/ess/attendance', module: 'time' },
 
   // —— Performance ——
+  { prefix: '/api/performance', module: 'performance' },
   { prefix: '/dashboard/performance', module: 'performance' },
   { prefix: '/dashboard/people/performance', module: 'performance' },
 
