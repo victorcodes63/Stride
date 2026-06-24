@@ -826,19 +826,6 @@ export const ABOUT_ORIGIN = {
   ],
 } as const;
 
-/** /about — operators already on dedicated or enterprise Stride deployments. */
-export const ABOUT_PLATFORM_CLIENTS = {
-  badge: 'On the platform',
-  lead: 'Stride is live with founding clients on enterprise deployments — not just in demos.',
-  clients: [
-    {
-      name: 'Eagle HR Consultants',
-      description:
-        'HR, payroll and outsourcing for Kenyan businesses — running on a dedicated enterprise deployment of Stride.',
-    },
-  ],
-} as const;
-
 /** /about — trust and data-handling signals (facts aligned with FAQ_ITEMS). */
 export const ABOUT_TRUST = {
   badge: 'Trust & data',
