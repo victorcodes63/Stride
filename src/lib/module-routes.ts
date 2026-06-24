@@ -25,9 +25,8 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/dashboard/schedule', module: 'ats' },
 
   // —— Payroll ——
-  { prefix: '/api/outsourcing/payroll/disbursements', module: 'payroll' },
-  { prefix: '/api/payroll', module: 'payroll' },
   { prefix: '/api/outsourcing/payroll', module: 'payroll' },
+  { prefix: '/api/payroll', module: 'payroll' },
   { prefix: '/dashboard/payroll', module: 'payroll' },
   { prefix: '/dashboard/people', module: 'core' },
   { prefix: '/dashboard/operations', module: 'reports' },
