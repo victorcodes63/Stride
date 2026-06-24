@@ -7,6 +7,10 @@ import {
   StudioCraftContainer,
 } from '@/components/marketing/v3/studio-craft-shared';
 import {
+  isDemoAccessPageEnabled,
+  getDemoAccessRows,
+} from '@/lib/demo-access';
+import {
   MARKETING_CTAS,
   MARKETING_LINKEDIN_URL,
   MARKETING_ROUTES,
@@ -53,7 +57,49 @@ function FooterNavColumn({
   );
 }
 
+function FooterDemoSandbox() {
+  const rows = getDemoAccessRows();
+
+  return (
+    <div className="mt-12 border-t border-white/10 pt-8">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/45">
+            Demo sandbox
+          </p>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-[#C9C0B6]">
+            Try the seeded Heritage Members SACCO walkthrough. Password shared on request — not
+            published here.
+          </p>
+        </div>
+        <dl className="grid w-full max-w-lg gap-3 sm:grid-cols-2 lg:gap-x-8">
+          {rows.map((row) => (
+            <div key={row.role}>
+              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-white/40">
+                {row.role}
+              </dt>
+              <dd className="mt-1">
+                <code className="break-all font-mono text-[0.8125rem] text-[#E8E2DA]">{row.email}</code>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      <p className="mt-5 text-xs text-[#8A8076]">
+        <Link
+          href={MARKETING_ROUTES.demoAccess}
+          className="text-[#8A8076] transition-colors hover:text-[var(--sc-coral)]"
+        >
+          Sandbox sign-in URLs and roles →
+        </Link>
+      </p>
+    </div>
+  );
+}
+
 export function MarketingFooter() {
+  const showDemoAccess = isDemoAccessPageEnabled();
+
   return (
     <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[var(--sc-ink,var(--pub-ink,#1a1714))] px-5 py-12 sm:px-8 sm:py-16 lg:px-12">
       <div
@@ -114,6 +160,8 @@ export function MarketingFooter() {
             </div>
           </div>
         </div>
+
+        {showDemoAccess ? <FooterDemoSandbox /> : null}
 
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-8 text-xs text-[#8A8076] sm:flex-row sm:items-center sm:justify-between">
           <p suppressHydrationWarning>

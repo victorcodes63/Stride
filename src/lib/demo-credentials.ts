@@ -9,14 +9,19 @@ function trimEnvValue(v: string | undefined): string | undefined {
   return t.length > 0 ? t : undefined;
 }
 
-const DEMO_PASSWORD =
+/** Demo tenant email domain — fictional orgs use subdomains, e.g. heritage.demo.getstride.co.ke */
+export const DEMO_EMAIL_DOMAIN =
+  trimEnvValue(process.env.DEMO_EMAIL_DOMAIN) ?? 'demo.getstride.co.ke';
+
+export const DEMO_PASSWORD =
   trimEnvValue(process.env.NEXT_PUBLIC_DEMO_PASSWORD) ?? 'Demo@2026!';
 
-const DEMO_ADMIN_EMAIL =
-  trimEnvValue(process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL) ?? 'admin@imara.co.ke';
+export const DEMO_ADMIN_EMAIL =
+  trimEnvValue(process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL) ?? `admin@${DEMO_EMAIL_DOMAIN}`;
 
-const DEMO_HR_EMAIL =
-  trimEnvValue(process.env.NEXT_PUBLIC_DEMO_HR_EMAIL) ?? 'hr@heritage.imara.co.ke';
+export const DEMO_HR_EMAIL =
+  trimEnvValue(process.env.NEXT_PUBLIC_DEMO_HR_EMAIL) ??
+  `hr.demo@heritage.${DEMO_EMAIL_DOMAIN}`;
 
 const DEMO_APPROVER_EMAIL =
   trimEnvValue(process.env.NEXT_PUBLIC_DEMO_APPROVER_EMAIL) ?? DEMO_HR_EMAIL;
@@ -24,11 +29,12 @@ const DEMO_APPROVER_EMAIL =
 const DEMO_STAFF_EMAIL =
   trimEnvValue(process.env.NEXT_PUBLIC_DEMO_STAFF_EMAIL) ?? 'james.otieno@eaglehr.co.ke';
 
-const DEMO_FINANCE_EMAIL =
-  trimEnvValue(process.env.NEXT_PUBLIC_DEMO_FINANCE_EMAIL) ?? 'finance@heritage.imara.co.ke';
+export const DEMO_FINANCE_EMAIL =
+  trimEnvValue(process.env.NEXT_PUBLIC_DEMO_FINANCE_EMAIL) ??
+  `finance.demo@heritage.${DEMO_EMAIL_DOMAIN}`;
 
-const DEMO_ESS_EMAIL =
-  trimEnvValue(process.env.NEXT_PUBLIC_DEMO_ESS_EMAIL) ?? 'employee@heritage.imara.co.ke';
+export const DEMO_ESS_EMAIL =
+  trimEnvValue(process.env.NEXT_PUBLIC_DEMO_ESS_EMAIL) ?? `employee@heritage.${DEMO_EMAIL_DOMAIN}`;
 
 export function getDemoPassword(): string {
   return DEMO_PASSWORD;

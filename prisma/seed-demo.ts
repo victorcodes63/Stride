@@ -25,8 +25,52 @@ import { d, daysFromToday } from './demo-packs/date-helpers';
 import { calculateStatutoryForPayroll } from '../src/lib/payroll-calc';
 import { ensureUniqueSlug, jobSlugBase } from '../src/lib/slug';
 
-const prisma = new PrismaClient();
+const basePrisma = new PrismaClient();
 type PrismaCompatClient = PrismaClient & Record<string, unknown>;
+
+/** Set in main() before any tenant-scoped seed writes. */
+let demoOrganizationId = '';
+
+const NON_TENANT_MODELS = new Set([
+  'User',
+  'Organization',
+  'SchedulerLock',
+  'PermissionDefinition',
+  'CountryConfig',
+  'RolePermission',
+]);
+
+function injectOrgId<T extends Record<string, unknown>>(data: T): T {
+  if (!demoOrganizationId) return data;
+  if (data.organizationId) return data;
+  return { ...data, organizationId: demoOrganizationId };
+}
+
+const prisma = basePrisma.$extends({
+  query: {
+    $allModels: {
+      create({ model, args, query }) {
+        if (!NON_TENANT_MODELS.has(model)) {
+          args.data = injectOrgId(args.data as Record<string, unknown>);
+        }
+        return query(args);
+      },
+      upsert({ model, args, query }) {
+        if (!NON_TENANT_MODELS.has(model) && args.create) {
+          args.create = injectOrgId(args.create as Record<string, unknown>);
+        }
+        return query(args);
+      },
+      createMany({ model, args, query }) {
+        if (!NON_TENANT_MODELS.has(model) && Array.isArray(args.data)) {
+          args.data = args.data.map((row) => injectOrgId(row as Record<string, unknown>));
+        }
+        return query(args);
+      },
+    },
+  },
+}) as unknown as PrismaClient;
+
 const prismaCompat = prisma as PrismaCompatClient;
 const PASSWORD_ROUNDS = 10;
 
@@ -37,6 +81,59 @@ type CompatibilityItem = {
 };
 
 const pack = loadDemoPack();
+
+async function tableExists(tableName: string): Promise<boolean> {
+  const rows = await basePrisma.$queryRaw<{ exists: boolean }[]>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = ${tableName}
+    ) AS "exists"
+  `;
+  return Boolean(rows[0]?.exists);
+}
+
+async function ensureDemoOrganization(): Promise<string> {
+  const hasOrgTable = await tableExists('Organization');
+  if (!hasOrgTable) {
+    console.log('→ Tenancy tables not present; seeding without organization scope.');
+    return '';
+  }
+
+  const slug = `demo-${pack.id}`;
+  const org = await basePrisma.organization.upsert({
+    where: { slug },
+    update: {
+      name: pack.workspace.name,
+      updatedAt: new Date(),
+    },
+    create: {
+      name: pack.workspace.name,
+      slug,
+      country: 'KE',
+      currency: 'KES',
+      timezone: 'Africa/Nairobi',
+      updatedAt: new Date(),
+    },
+  });
+  return org.id;
+}
+
+async function ensureStaffOrgMembership(userId: string, role: UserRole) {
+  if (!demoOrganizationId) return;
+  await basePrisma.organizationMembership.upsert({
+    where: {
+      userId_organizationId: { userId, organizationId: demoOrganizationId },
+    },
+    update: { role, updatedAt: new Date() },
+    create: {
+      userId,
+      organizationId: demoOrganizationId,
+      role,
+      updatedAt: new Date(),
+    },
+  });
+}
 
 async function seedPackCompanySetup() {
   const setup = buildCompanySetupFromPack(pack);
@@ -1602,6 +1699,9 @@ async function main() {
     throw new Error('DATABASE_URL is not set.');
   }
 
+  demoOrganizationId = await ensureDemoOrganization();
+  console.log(`→ Demo organization ready (${demoOrganizationId})`);
+
   await purgeStaleBrandAccounts();
 
   await seedPackCompanySetup();
@@ -2213,6 +2313,8 @@ async function main() {
           minHalfDayMinutes: 240,
           fullDayMinutes: 480,
           requireManualApproval: true,
+          mobileGeofenceEnabled: true,
+          rejectOutsideGeofence: true,
           isDefault: true,
           isActive: true,
         },
@@ -2226,6 +2328,8 @@ async function main() {
           minHalfDayMinutes: 240,
           fullDayMinutes: 480,
           requireManualApproval: true,
+          mobileGeofenceEnabled: true,
+          rejectOutsideGeofence: true,
           isDefault: true,
           isActive: true,
         },
@@ -2246,6 +2350,47 @@ async function main() {
           },
         });
       }
+    }
+  }
+
+  if (hasModel('attendanceWorkSite')) {
+    const demoSites: Array<{ clientId: string; id: string; name: string; lat: number; lng: number }> = [
+      {
+        clientId: keClient.id,
+        id: `worksite-hq-${keClient.id}`,
+        name: 'Heritage Nairobi HQ',
+        lat: -1.2674,
+        lng: 36.8116,
+      },
+      {
+        clientId: ugClient.id,
+        id: `worksite-hq-${ugClient.id}`,
+        name: 'Heritage Kampala Office',
+        lat: 0.3476,
+        lng: 32.5825,
+      },
+    ];
+    for (const site of demoSites) {
+      await prismaCompat.attendanceWorkSite.upsert({
+        where: { id: site.id },
+        update: {
+          outsourcingClientId: site.clientId,
+          name: site.name,
+          latitude: site.lat,
+          longitude: site.lng,
+          radiusMeters: 200,
+          isActive: true,
+        },
+        create: {
+          id: site.id,
+          outsourcingClientId: site.clientId,
+          name: site.name,
+          latitude: site.lat,
+          longitude: site.lng,
+          radiusMeters: 200,
+          isActive: true,
+        },
+      });
     }
   }
 
@@ -2465,8 +2610,11 @@ async function main() {
   });
   const seededUsers = await prisma.user.findMany({
     where: { email: { in: [demoAdmin, roleEmails.diana, roleEmails.james] } },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, role: true },
   });
+  for (const user of seededUsers) {
+    await ensureStaffOrgMembership(user.id, user.role);
+  }
   const userByEmail = new Map(seededUsers.map((u) => [u.email.toLowerCase(), u]));
   const paul = employeeByEmail.get(roleEmails.paul);
   const robert = employeeByEmail.get(roleEmails.robert);
@@ -2664,5 +2812,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await basePrisma.$disconnect();
   });

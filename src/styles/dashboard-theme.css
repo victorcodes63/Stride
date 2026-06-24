@@ -57,11 +57,11 @@
   --dash-danger-fg: #b91c1c;
   --dash-danger-border: #fecaca;
 
-  /* KPI swatches — light */
-  --swatch-sky-bg: #e0f2fe;
-  --swatch-sky-fg: #0369a1;
-  --swatch-sky-accent: #0ea5e9;
-  --swatch-sky-border: #bae6fd;
+  /* KPI swatches — warm ink (aligned with stride-palette; no legacy blue primaries) */
+  --swatch-sky-bg: var(--sc-paper-2, #f4efe8);
+  --swatch-sky-fg: var(--sc-ink-muted, #3d3833);
+  --swatch-sky-accent: var(--sc-ink-subtle, #8a8076);
+  --swatch-sky-border: var(--sc-line, #e6ded4);
   --swatch-emerald-bg: #dcfce7;
   --swatch-emerald-fg: #15803d;
   --swatch-emerald-accent: #10b981;
@@ -82,10 +82,10 @@
   --swatch-yellow-fg: #a16207;
   --swatch-yellow-accent: #eab308;
   --swatch-yellow-border: #fef08a;
-  --swatch-coral-bg: #ffe9e4;
-  --swatch-coral-fg: #c9341b;
-  --swatch-coral-accent: #ff5436;
-  --swatch-coral-border: #ffc9be;
+  --swatch-coral-bg: var(--brand-primary-subtle, #ffe9e4);
+  --swatch-coral-fg: var(--color-primary-800, #ad3925);
+  --swatch-coral-accent: var(--brand-primary, #ff5436);
+  --swatch-coral-border: var(--color-primary-200, #ffcfc7);
 
   /* Hero banner — flat Stride coral (matches btn-primary) */
   --dash-hero-border: rgba(255, 255, 255, 0.2);

@@ -19,7 +19,7 @@ export type VerticalPackConfig = {
   unifiedDemoPassword?: string;
 };
 
-const UNIFIED_ADMIN_EMAIL = 'admin@imara.co.ke';
+const UNIFIED_ADMIN_EMAIL = 'admin@demo.getstride.co.ke';
 
 export function buildVerticalPackFromGeneric(config: VerticalPackConfig): DemoPack {
   const {

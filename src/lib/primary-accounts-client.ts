@@ -22,6 +22,7 @@ export async function getOrCreatePrimaryAccountsClient(
 
   return prisma.accountsClient.create({
     data: {
+      organizationId: workspace.organizationId,
       type: 'outsourcing',
       outsourcingClientId: workspace.id,
       name: workspace.name,

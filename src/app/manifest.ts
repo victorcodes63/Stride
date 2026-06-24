@@ -1,6 +1,11 @@
 import type { MetadataRoute } from 'next';
 import { brand } from '@/lib/brand';
 
+import {
+  STRIDE_MANIFEST_BACKGROUND,
+  STRIDE_MANIFEST_THEME_COLOR,
+} from '@/lib/stride-palette';
+
 /** PWA manifest — icons follow `brand.logoSrc` (same asset as dashboard sidebar / metadata). */
 export default function manifest(): MetadataRoute.Manifest {
   const logoPath = brand.logoSrc.startsWith('/') ? brand.logoSrc : `/${brand.logoSrc}`;
@@ -11,8 +16,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: `${brand.orgName} — ${brand.tagline}`,
     start_url: '/',
     display: 'standalone',
-    background_color: '#FBF8F4',
-    theme_color: '#1A1714',
+    background_color: STRIDE_MANIFEST_BACKGROUND,
+    theme_color: STRIDE_MANIFEST_THEME_COLOR,
     icons: [
       {
         src: logoPath,

@@ -231,7 +231,9 @@ export function EssLoadingState({ label = 'Loading' }: { label?: string }) {
   );
 }
 
-export const essInputClass = 'ess-field';
-export const essPrimaryButtonClass = 'ess-btn-primary';
-export const essSecondaryButtonClass = 'ess-btn-secondary';
-export const essGhostButtonClass = 'ess-btn-ghost';
+export {
+  essGhostButtonClass,
+  essInputClass,
+  essPrimaryButtonClass,
+  essSecondaryButtonClass,
+} from '@/lib/stride-primitives';

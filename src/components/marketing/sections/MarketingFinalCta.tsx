@@ -2,6 +2,7 @@ import { MARKETING_CTAS, MARKETING_ROUTES } from '@/lib/marketing-config';
 import {
   MarketingPrimaryLink,
   MarketingSignInLink,
+  MarketingTrySandboxLink,
   StudioCraftContainer,
 } from '@/components/marketing/v3/studio-craft-shared';
 
@@ -41,6 +42,7 @@ export function MarketingFinalCta() {
             fullWidth
             className="sm:w-auto"
           />
+          <MarketingTrySandboxLink tone="dark" className="w-full sm:w-auto" />
           <MarketingSignInLink tone="dark" className="w-full sm:w-auto" />
         </div>
       </StudioCraftContainer>

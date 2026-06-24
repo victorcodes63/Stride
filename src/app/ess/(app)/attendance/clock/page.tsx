@@ -1,13 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { toast } from '@/components/ui/toast';
 import { EssAlert, EssCard } from '@/components/ess/EssUi';
 
+type ClockConfig = {
+  geofenceEnabled: boolean;
+  requireLocation: boolean;
+  rejectOutsideGeofence: boolean;
+  workSiteCount: number;
+};
+
 export default function EssClockPage() {
   const [busy, setBusy] = useState(false);
-  const [last, setLast] = useState<{ kind: string; at: string } | null>(null);
+  const [config, setConfig] = useState<ClockConfig | null>(null);
+  const [last, setLast] = useState<{ kind: string; at: string; siteName?: string | null } | null>(null);
+
+  useEffect(() => {
+    void fetch('/api/ess/attendance/clock', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => setConfig(data))
+      .catch(() => setConfig(null));
+  }, []);
 
   async function punch(kind: 'check_in' | 'check_out') {
     if (!navigator.onLine) {
@@ -17,14 +32,19 @@ export default function EssClockPage() {
     setBusy(true);
     let latitude: number | undefined;
     let longitude: number | undefined;
+    const requireLocation = config?.requireLocation ?? false;
     try {
       const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 });
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 12000, enableHighAccuracy: true });
       });
       latitude = pos.coords.latitude;
       longitude = pos.coords.longitude;
     } catch {
-      // geo optional
+      if (requireLocation) {
+        setBusy(false);
+        toast.error('Location is required to clock in at your work site.');
+        return;
+      }
     }
 
     const res = await fetch('/api/ess/attendance/clock', {
@@ -38,14 +58,24 @@ export default function EssClockPage() {
       toast.error(data.error || 'Clock failed.');
       return;
     }
-    setLast({ kind: data.kind, at: data.observedAt });
-    toast.success(kind === 'check_in' ? 'Clocked in' : 'Clocked out');
+    setLast({ kind: data.kind, at: data.observedAt, siteName: data.geofence?.siteName });
+    const siteLabel = data.geofence?.siteName ? ` at ${data.geofence.siteName}` : '';
+    toast.success(kind === 'check_in' ? `Clocked in${siteLabel}` : `Clocked out${siteLabel}`);
   }
 
   return (
     <div className="space-y-5">
-      <EssPageHeader title="Clock in / out" subtitle="Capture your attendance with optional location verification." backHref="/ess/attendance" />
+      <EssPageHeader
+        title="Clock in / out"
+        subtitle="Capture your attendance with GPS verification when your employer enables geofencing."
+        backHref="/ess/attendance"
+      />
       <EssCard className="flex flex-col items-center gap-6 py-8">
+        {config?.geofenceEnabled ? (
+          <p className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+            Geofence active · {config.workSiteCount} work site{config.workSiteCount === 1 ? '' : 's'}
+          </p>
+        ) : null}
         <button
           type="button"
           disabled={busy}
@@ -65,10 +95,15 @@ export default function EssClockPage() {
         {last ? (
           <p className="text-sm text-[var(--ess-muted)]">
             Last: {last.kind.replace('_', ' ')} at {new Date(last.at).toLocaleString()}
+            {last.siteName ? ` · ${last.siteName}` : ''}
           </p>
         ) : null}
         <p className="max-w-xs text-center text-xs text-[var(--ess-muted)]">
-          Location is captured when permitted. HR may configure geofencing in a future update.
+          {config?.geofenceEnabled
+            ? config.rejectOutsideGeofence
+              ? 'You must be within an approved work site to clock in. Ask your manager if you are working remotely.'
+              : 'Clock-ins outside a work site are flagged for manager review.'
+            : 'Location is captured when permitted to support attendance verification.'}
         </p>
       </EssCard>
       <EssAlert>Clock actions require a live connection so the timestamp reaches HR immediately.</EssAlert>

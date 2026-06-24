@@ -10,8 +10,8 @@ import {
   DEMO_ESS_EMAIL,
   DEMO_FINANCE_EMAIL,
   DEMO_HR_EMAIL,
-  DEMO_PASSWORD,
 } from '@/lib/demo-credentials';
+import { MARKETING_ROUTES } from '@/lib/marketing-config';
 
 const PERSONA_LABEL: Record<NonNullable<(typeof DEMO_WALKTHROUGH_STEPS)[number]['persona']>, string> = {
   admin: 'Admin',
@@ -70,7 +70,10 @@ export function DemoWalkthroughCard() {
           <div className="min-w-0">
             <p className="text-sm font-semibold text-primary-900">Demo walkthrough</p>
             <p className="text-xs text-primary-800/80 truncate">
-              {completedCount}/{DEMO_WALKTHROUGH_STEPS.length} steps · password {DEMO_PASSWORD}
+              {completedCount}/{DEMO_WALKTHROUGH_STEPS.length} steps ·{' '}
+              <Link href={MARKETING_ROUTES.demoAccess} className="underline-offset-2 hover:underline">
+                demo accounts
+              </Link>
             </p>
           </div>
         </div>

@@ -8,6 +8,8 @@ export const MARKETING_ROUTES = {
   about: '/about',
   contact: '/contact',
   login: '/dashboard/login',
+  /** Unlisted — linked from footer when demo access is enabled; no password on page. */
+  demoAccess: '/demo-access',
 } as const;
 
 /** Public marketing site hostname (no protocol). */
@@ -107,9 +109,15 @@ export const MARKETING_SALES_EMAIL = 'hello@getstride.co.ke';
  */
 export const MARKETING_LINKEDIN_URL = 'https://linkedin.com/company/raventechgroup';
 
-/** Sales-led CTAs — no public self-service signup until provisioning exists. */
+/** Self-serve sandbox — footer + hero when demo access is enabled. */
+export function getMarketingTryDemoUrl(): string {
+  return MARKETING_ROUTES.demoAccess;
+}
+
+/** Sales-led CTAs — book demo is sales; trySandbox is self-serve when enabled. */
 export const MARKETING_CTAS = {
   bookDemo: 'Book a demo',
+  trySandbox: 'Try the sandbox',
   signIn: 'Sign in',
   talkToSales: 'Talk to sales',
   watchDemo: 'Watch demo',
@@ -336,9 +344,9 @@ export const CORE_MODULES: {
   {
     num: '03 — Procurement',
     name: 'Procurement',
-    readiness: 'roadmap',
+    readiness: 'partial',
     description:
-      'Purchase requests, vendor management, LPO generation and spend tracking — on the roadmap. Early UI exists for demos; production workflows are not GA yet.',
+      'Purchase requests with approval workflow are live. LPO generation, GRN and three-way match into finance are on the roadmap.',
   },
   {
     num: '04 — Legal',
@@ -405,10 +413,10 @@ export const PLATFORM_MODULES: {
   {
     num: '03',
     name: 'Procurement',
-    readiness: 'roadmap',
+    readiness: 'partial',
     headline: 'Structured spend from request to payment.',
     description:
-      'Purchase requests, vendor records and LPOs with audit trails — on the product roadmap. We show early UI in demos; production PR → LPO → GRN workflows are not GA yet.',
+      'Purchase requests and vendor records with approval workflows are live today. LPO generation, goods received notes and finance matching are on the roadmap.',
     features: [
       'Purchase requests and multi-level approvals',
       'Vendor register and rate cards',
@@ -647,8 +655,9 @@ export const INDUSTRY_VERTICALS: {
   {
     id: 'saccos',
     name: 'SACCOs',
-    status: 'coming_soon',
-    description: 'Member management, dividends, BOSA/FOSA and regulatory reporting — built for regulated cooperatives.',
+    status: 'available',
+    description:
+      'Member-trusted payroll, workforce operations and board-ready reporting — our beachhead vertical with a live demo pack.',
     features: ['Member management', 'Dividends', 'BOSA / FOSA', 'Regulatory reporting'],
     href: '/industries/saccos',
   },

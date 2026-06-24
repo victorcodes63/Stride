@@ -264,7 +264,7 @@ export async function GET(request: NextRequest) {
             prisma.accountsInvoice.count({
               where: {
                 status: { in: ['unpaid', 'partial'] },
-                client: { outsourcingClientId: clientId },
+                accountsClient: { outsourcingClientId: clientId },
               },
             }),
           )

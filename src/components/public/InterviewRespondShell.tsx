@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { PublicDocumentShell } from '@/components/public/PublicDocumentShell';
+import { StrideButton } from '@/components/ui/stride-button';
 
 type InterviewRespondShellProps = {
   title: string;
@@ -37,9 +38,9 @@ export function InterviewRespondShell({
   if (done) {
     return (
       <PublicDocumentShell title="Thank you" description={done.message}>
-        <Link href="/careers" className="pub-btn-primary inline-flex w-full justify-center">
+        <StrideButton as={Link} href="/careers" surface="public" variant="primary" className="w-full">
           Back to careers
-        </Link>
+        </StrideButton>
       </PublicDocumentShell>
     );
   }
@@ -47,9 +48,9 @@ export function InterviewRespondShell({
   if (error && !children) {
     return (
       <PublicDocumentShell title="Invalid link" description={error}>
-        <Link href="/careers" className="pub-btn-primary inline-flex w-full justify-center">
+        <StrideButton as={Link} href="/careers" surface="public" variant="primary" className="w-full">
           Back to careers
-        </Link>
+        </StrideButton>
       </PublicDocumentShell>
     );
   }

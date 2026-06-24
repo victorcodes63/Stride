@@ -11,6 +11,7 @@ import { HeroDashboardShowcase } from './HeroDashboardShowcase';
 import {
   MarketingPrimaryLink,
   MarketingSignInLink,
+  MarketingTrySandboxLink,
   StudioCraftContainer,
 } from './studio-craft-shared';
 import './studio-craft-hero.css';
@@ -81,6 +82,7 @@ export function StudioCraftHero() {
                 label={MARKETING_CTAS.bookDemo}
                 variant="coral"
               />
+              <MarketingTrySandboxLink />
               <MarketingSignInLink />
             </div>
           </StudioCraftContainer>

@@ -30,7 +30,7 @@ const base = buildVerticalPackFromGeneric({
   id: 'imara-sacco',
   label: 'Stride — SACCO beachhead demo',
   orgName: 'Heritage Members SACCO Ltd',
-  emailDomain: 'heritage.imara.co.ke',
+  emailDomain: 'heritage.demo.getstride.co.ke',
   prefix: 'HMS',
   tagline: SACCO_TAGLINE,
   publicFooterText:
@@ -51,7 +51,7 @@ const base = buildVerticalPackFromGeneric({
 /** ~40 active staff — credible Kenyan SME / SACCO headcount for demo-ready walkthroughs. */
 const saccoStaff = generateDemoStaffRows({
   prefix: 'HMS',
-  emailDomain: 'heritage.imara.co.ke',
+  emailDomain: 'heritage.demo.getstride.co.ke',
   count: 30,
   departments: SACCO_DEPARTMENTS,
   startIndex: 11,

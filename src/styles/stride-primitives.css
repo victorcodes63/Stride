@@ -1,0 +1,277 @@
+/**
+ * Shared Stride UI primitives — buttons, inputs, cards.
+ * Consumes tokens from stride-palette.css. Surface-specific aliases:
+ *   dashboard → .btn-primary / .btn-secondary
+ *   public    → .pub-btn-primary / .pub-input / .pub-card
+ *   ESS       → .ess-btn-primary / .ess-field / .ess-card
+ */
+
+:root {
+  --stride-focus-ring: color-mix(in srgb, var(--stride-coral) 28%, transparent);
+  --stride-btn-primary-bg: var(--brand-primary);
+  --stride-btn-primary-hover: var(--brand-primary-hover);
+  --stride-btn-primary-pressed: var(--brand-primary-pressed);
+}
+
+/* --- Buttons (shared core) --- */
+
+:is(.stride-btn, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary, .ess-btn-secondary, .ess-btn-ghost) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: inherit;
+  line-height: 1.25;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    transform 80ms ease;
+}
+
+:is(.stride-btn, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary, .ess-btn-secondary, .ess-btn-ghost):focus-visible {
+  outline: 2px solid var(--stride-coral);
+  outline-offset: 2px;
+}
+
+:is(.stride-btn, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary, .ess-btn-secondary, .ess-btn-ghost):disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+:is(.stride-btn--primary, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary) {
+  border: 1px solid transparent;
+  color: #fff;
+  background-color: var(--stride-btn-primary-bg);
+}
+
+:is(.stride-btn--primary, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary):hover:not(:disabled) {
+  background-color: var(--stride-btn-primary-hover);
+}
+
+:is(.stride-btn--primary, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary):active:not(:disabled) {
+  background-color: var(--stride-btn-primary-pressed);
+}
+
+:is(.stride-btn--secondary, .btn-secondary, .public-app .pub-btn-secondary, .ess-btn-secondary) {
+  color: var(--brand-ink);
+  background-color: #fff;
+  border: 1px solid var(--neutral-200);
+}
+
+:is(.stride-btn--secondary, .btn-secondary, .public-app .pub-btn-secondary, .ess-btn-secondary):hover:not(:disabled) {
+  background-color: var(--neutral-50);
+}
+
+.stride-btn--ghost,
+.ess-btn-ghost {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ess-muted, var(--neutral-500));
+}
+
+/* Dashboard */
+.btn-primary,
+.btn-secondary {
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-4);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Public */
+.public-app .pub-btn-primary,
+.public-app .pub-btn-secondary {
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: var(--pub-radius-sm);
+}
+
+.public-app .pub-btn-primary {
+  border: none;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--stride-coral) 35%, transparent),
+    0 2px 4px color-mix(in srgb, var(--stride-coral) 18%, transparent);
+}
+
+.public-app .pub-btn-primary:hover:not(:disabled) {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--stride-coral) 45%, transparent),
+    0 4px 8px color-mix(in srgb, var(--stride-coral) 22%, transparent);
+}
+
+.public-app .pub-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.public-app .pub-btn-primary--sm,
+.stride-btn--sm.public-app .pub-btn-primary {
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.public-app .pub-btn-secondary {
+  font-weight: 500;
+  color: var(--pub-ink);
+  background: var(--pub-surface);
+  border-color: var(--pub-border);
+}
+
+.public-app .pub-btn-secondary:hover:not(:disabled) {
+  background: var(--pub-surface-muted);
+  border-color: var(--pub-border-strong);
+}
+
+/* ESS — pill + gradient primary */
+.ess-btn-primary,
+.ess-btn-secondary,
+.ess-btn-ghost {
+  min-height: 2.75rem;
+  border-radius: 9999px;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.ess-btn-primary {
+  border-color: color-mix(in srgb, var(--ess-primary, var(--stride-btn-primary-bg)) 92%, black);
+  background: linear-gradient(
+    135deg,
+    var(--ess-primary, var(--stride-btn-primary-bg)),
+    var(--ess-primary-strong, var(--stride-btn-primary-hover))
+  );
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--ess-primary, var(--stride-btn-primary-bg)) 24%, transparent);
+}
+
+.ess-btn-secondary {
+  border-color: var(--ess-border);
+  background: var(--ess-surface);
+  color: var(--ess-text);
+}
+
+/* Standalone stride-btn modifiers (React component) */
+.stride-btn--sm {
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  font-size: 0.8125rem;
+}
+
+.stride-btn--dashboard {
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-4);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stride-btn--public {
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: var(--pub-radius-sm, 6px);
+}
+
+.stride-btn--ess {
+  min-height: 2.75rem;
+  border-radius: 9999px;
+  padding: 0.625rem 1rem;
+  font-weight: 700;
+}
+
+/* --- Inputs (shared core) --- */
+
+:is(.stride-input, .public-app .pub-input, .ess-field) {
+  width: 100%;
+  font-family: inherit;
+  color: var(--brand-ink);
+  background: #fff;
+  border: 1px solid var(--neutral-200);
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+:is(.stride-input, .public-app .pub-input, .ess-field):focus {
+  outline: none;
+  border-color: var(--stride-btn-primary-bg);
+  box-shadow: 0 0 0 3px var(--stride-focus-ring);
+}
+
+.stride-input {
+  min-height: 2.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  border-radius: var(--radius-md);
+}
+
+.public-app .pub-input {
+  height: 2.75rem;
+  padding: 0 0.875rem;
+  font-size: 0.875rem;
+  color: var(--pub-ink);
+  background: var(--pub-surface);
+  border-color: var(--pub-border);
+  border-radius: var(--pub-radius-sm);
+}
+
+.ess-field {
+  min-height: 2.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 1rem;
+  border-radius: 0.875rem;
+  border-color: var(--ess-border-strong);
+  background: var(--ess-surface);
+  color: var(--ess-text);
+}
+
+.ess-field:focus {
+  border-color: var(--ess-primary);
+  box-shadow: 0 0 0 4px var(--ess-ring);
+}
+
+/* --- Cards (shared core) --- */
+
+:is(.stride-card, .public-app .pub-card) {
+  background: #fff;
+  border: 1px solid var(--neutral-200);
+  box-shadow: var(--shadow-sm);
+}
+
+.stride-card {
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.public-app .pub-card {
+  background: var(--pub-surface-elevated);
+  border-color: var(--pub-border);
+  border-radius: var(--pub-radius-lg);
+  box-shadow: var(--pub-shadow-sm);
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.public-app .pub-card:hover {
+  box-shadow: var(--pub-shadow-md);
+  border-color: var(--pub-border-strong);
+}
+
+.ess-card {
+  border: 1px solid var(--ess-border);
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, var(--ess-surface) 94%, transparent);
+  box-shadow: var(--ess-shadow-card);
+}
+
+.ess-card-flat {
+  border: 1px solid var(--ess-border);
+  border-radius: 1.35rem;
+  background: var(--ess-surface);
+}

@@ -66,6 +66,27 @@ export async function membershipForLogin(
   userRole: UserRole,
   preferredOrgId?: string | null,
 ): Promise<ResolvedMembership> {
+  if (preferredOrgId) {
+    const preferred = await resolveMembership(userId, preferredOrgId);
+    if (preferred) return preferred;
+  }
+
+  const demoPack = process.env.DEMO_PACK?.trim();
+  if (demoPack) {
+    const demoSlug = `demo-${demoPack}`;
+    const demoMembership = await prisma.organizationMembership.findFirst({
+      where: {
+        userId,
+        status: 'active',
+        organization: { slug: demoSlug },
+      },
+      include: {
+        organization: { select: { id: true, name: true, slug: true } },
+      },
+    });
+    if (demoMembership) return demoMembership;
+  }
+
   const resolved = await resolveMembership(userId, preferredOrgId);
   if (resolved) return resolved;
   return ensureDefaultMembership(userId, userRole);

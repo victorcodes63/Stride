@@ -1,4 +1,5 @@
 import { PRICING_TIERS } from '@/lib/marketing-config';
+import { marketingTierModuleSummary } from '@/lib/marketing-pricing-entitlements';
 import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
@@ -63,7 +64,7 @@ export default function PricingPage() {
                   tier.featured ? 'text-[#D8D2C9]' : 'text-pub-ink-muted'
                 }`}
               >
-                {tier.features.map((f) => (
+                {marketingTierModuleSummary(tier.id).map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <span className="mt-0.5 shrink-0 text-[var(--pub-primary)]">✓</span>
                     <span>{f}</span>

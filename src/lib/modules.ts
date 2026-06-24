@@ -36,7 +36,7 @@ export type ModuleDefinition = {
   label: string;
   envVar: string;
   description: string;
-  /** Roadmap phase (Imara Vertical BMS). */
+  /** Roadmap phase (Stride platform). */
   phase: ModulePhase;
   /** Independently billable add-on (platform base includes core). */
   billable: boolean;

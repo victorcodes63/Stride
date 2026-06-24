@@ -5,6 +5,7 @@ import { AlertTriangle, Clock, Plus } from 'lucide-react';
 import { useEntity } from '@/components/EntitySwitcher';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { AttendanceWorkSitesPanel } from '@/components/dashboard/AttendanceWorkSitesPanel';
 
 type Client = { id: string; name: string; label?: string };
 type Summary = {
@@ -123,6 +124,10 @@ export default function OutsourcingAttendancePage() {
  title="Attendance"
  description="Reconciled day summaries with manual override support."
  />
+
+ <div className="mb-4">
+ {selectedClientId ? <AttendanceWorkSitesPanel clientId={selectedClientId} /> : null}
+ </div>
 
  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 mb-4">
  <select

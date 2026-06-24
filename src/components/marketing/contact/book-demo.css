@@ -137,11 +137,11 @@
 }
 
 .auth-studio-form .dash-auth-link {
-  color: var(--sc-coral, #ff5436);
+  color: var(--sc-coral, var(--stride-coral));
 }
 
 .auth-studio-form .dash-auth-link:hover {
-  color: var(--sc-coral-deep, #e63e22);
+  color: var(--sc-coral-deep, var(--stride-coral-deep));
 }
 
 .auth-studio-form .dash-auth-input {
@@ -168,7 +168,7 @@
   height: 2.75rem;
   border-radius: 0.75rem;
   border: 1px solid rgba(255, 84, 54, 0.35);
-  background: var(--sc-coral, #ff5436);
+  background: var(--sc-coral, var(--stride-coral));
   color: #ffffff;
   font-weight: 600;
   box-shadow: 0 2px 6px rgba(255, 84, 54, 0.22);
@@ -178,7 +178,7 @@
 }
 
 .auth-studio-form .dash-auth-submit:hover:not(:disabled) {
-  background: var(--sc-coral-deep, #e63e22);
+  background: var(--sc-coral-deep, var(--stride-coral-deep));
   box-shadow: 0 4px 10px rgba(255, 84, 54, 0.28);
   transform: none;
 }
@@ -217,7 +217,7 @@
 .auth-studio-form .dash-auth-checkbox {
   border-color: rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.06);
-  accent-color: var(--sc-coral, #ff5436);
+  accent-color: var(--sc-coral, var(--stride-coral));
 }
 
 .auth-studio-form .dash-auth-footer {

@@ -1,6 +1,6 @@
 /**
  * Platform + Modules pricing bands (Illustrative — calibrate with first 3 logos).
- * Structural model from Imara Vertical BMS Strategy Roadmap §5.
+ * Structural model from Stride platform pricing bands.
  */
 
 import type { ModuleKey } from '@/lib/modules';

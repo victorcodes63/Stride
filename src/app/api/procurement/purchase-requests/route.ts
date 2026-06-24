@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
 
     const created = await prisma.purchaseRequest.create({
       data: {
+        organizationId: user.currentOrgId,
         outsourcingClientId: clientId,
         requestNumber,
         title,
@@ -144,7 +145,10 @@ export async function POST(request: NextRequest) {
         vendorId,
         requestedByUserId: user.id,
         lines: {
-          create: validLines,
+          create: validLines.map((line) => ({
+            ...line,
+            organizationId: user.currentOrgId,
+          })),
         },
       },
       select: { id: true, requestNumber: true },

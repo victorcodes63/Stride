@@ -1,0 +1,87 @@
+/**
+ * Canonical Stride palette — CSS custom properties.
+ * Source of truth (values): src/lib/stride-palette.ts — regenerate with:
+ *   npx tsx -e "import { stridePaletteCssVars } from './src/lib/stride-palette.ts'; ..."
+ */
+:root {
+  --brand-primary: #ff5436;
+  --brand-primary-hover: #e04a30;
+  --brand-primary-pressed: #c7422a;
+  --brand-primary-subtle: #ffeae7;
+  --brand-navy: #1a1714;
+  --brand-ink: #1a1714;
+  --color-primary-50: #fff5f3;
+  --color-primary-100: #ffeae7;
+  --color-primary-200: #ffcfc7;
+  --color-primary-300: #ffad9f;
+  --color-primary-400: #ff846e;
+  --color-primary-500: #ff5436;
+  --color-primary-600: #eb4d32;
+  --color-primary-700: #d1452c;
+  --color-primary-800: #ad3925;
+  --color-primary-900: #852c1c;
+  --color-secondary-50: #f1f1f1;
+  --color-secondary-100: #e4e3e3;
+  --color-secondary-200: #d8cdbf;
+  --color-secondary-300: #b8ada0;
+  --color-secondary-400: #8a8076;
+  --color-secondary-500: #1a1714;
+  --color-secondary-600: #181512;
+  --color-secondary-700: #151310;
+  --color-secondary-800: #12100e;
+  --color-secondary-900: #0e0c0a;
+
+  --stride-coral: var(--brand-primary);
+  --stride-coral-deep: #e63e22;
+  --stride-ink: var(--brand-ink);
+  --stride-paper: #fbf8f4;
+  --stride-logo: var(--brand-primary);
+
+  --sc-coral: var(--stride-coral);
+  --sc-coral-deep: var(--stride-coral-deep);
+  --sc-ink: var(--stride-ink);
+  --sc-ink-muted: #3d3833;
+  --sc-ink-subtle: #8a8076;
+  --sc-paper: var(--stride-paper);
+  --sc-paper-2: #f4efe8;
+  --sc-line: #e6ded4;
+
+  --brand-navy-subtle: var(--sc-paper-2);
+  --brand-canvas: var(--stride-paper);
+
+  --pub-primary: var(--brand-primary);
+  --pub-primary-hover: var(--brand-primary-hover);
+  --pub-primary-pressed: #c9341b;
+  --pub-primary-subtle: #ffe9e4;
+  --pub-primary-muted: #ffcfc4;
+  --pub-ink: var(--brand-ink);
+  --pub-ink-muted: var(--sc-ink-muted);
+  --pub-ink-subtle: var(--sc-ink-subtle);
+  --pub-surface: var(--stride-paper);
+  --pub-surface-muted: var(--sc-paper-2);
+  --pub-border: var(--sc-line);
+  --pub-border-strong: #d8cdbf;
+  --pub-gradient-start: var(--brand-primary);
+  --pub-gradient-mid: #ffe9e4;
+  --pub-gradient-end: var(--stride-coral-deep);
+
+  --neutral-50: var(--sc-paper-2);
+  --neutral-100: #ede6dc;
+  --neutral-200: var(--sc-line);
+  --neutral-400: var(--sc-ink-subtle);
+  --neutral-500: var(--sc-ink-subtle);
+  --neutral-700: var(--sc-ink-muted);
+  --neutral-900: var(--brand-ink);
+
+  --success: #15803d;
+  --success-subtle: #dcfce7;
+  --warning: #b45309;
+  --warning-subtle: #fef3c7;
+  --danger: #b91c1c;
+  --danger-subtle: #fee2e2;
+  --info: var(--brand-ink);
+
+  --shadow-sm: 0 1px 2px rgba(26, 23, 20, 0.04);
+  --shadow-md: 0 4px 12px rgba(26, 23, 20, 0.06);
+  --shadow-lg: 0 12px 32px rgba(26, 23, 20, 0.1);
+}

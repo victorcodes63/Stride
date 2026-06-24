@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { InterviewRespondShell } from '@/components/public/InterviewRespondShell';
+import { StrideButton } from '@/components/ui/stride-button';
 
 type InterviewInfo = {
   valid: boolean;
@@ -97,14 +98,15 @@ export default function InterviewConfirmPage() {
               You have already responded to this invite.
             </p>
           ) : (
-            <button
-              type="button"
+            <StrideButton
+              surface="public"
+              variant="primary"
+              className="mt-4 w-full disabled:opacity-60"
               onClick={handleConfirm}
               disabled={submitting}
-              className="pub-btn-primary mt-4 w-full disabled:opacity-60"
             >
               {submitting ? 'Confirming…' : "Confirm I'll attend"}
-            </button>
+            </StrideButton>
           )}
         </>
       ) : null}

@@ -1,39 +1,38 @@
 /**
- * Stripe-inspired public surface theme.
- * Scoped to `.public-app` so dashboard / ESS internals keep brand tokens.
+ * Public / marketing / careers / auth surfaces.
+ * Color tokens inherit from stride-palette.css (:root); scoped aliases keep
+ * public chrome on Stride coral even when tenant dashboard colours override :root.
  */
 
 .public-app {
-  /* Studio-craft tokens — shared by marketing footer/CTAs on all public pages */
-  --sc-coral: #ff5436;
-  --sc-coral-deep: #e63e22;
-  --sc-ink: #1a1714;
-  --sc-ink-muted: #3d3833;
-  --sc-ink-subtle: #8a8076;
-  --sc-paper: #fbf8f4;
-  --sc-paper-2: #f4efe8;
-  --sc-line: #e6ded4;
+  --sc-coral: var(--stride-coral);
+  --sc-coral-deep: var(--stride-coral-deep);
+  --sc-ink: var(--stride-ink);
+  --sc-ink-muted: var(--sc-ink-muted);
+  --sc-ink-subtle: var(--sc-ink-subtle);
+  --sc-paper: var(--stride-paper);
+  --sc-paper-2: var(--sc-paper-2);
+  --sc-line: var(--sc-line);
   --nav-h: 4.25rem;
 
-  --pub-primary: #ff5436;
-  --pub-primary-hover: #e63e22;
-  --pub-primary-pressed: #c9341b;
-  --pub-primary-subtle: #ffe9e4;
-  --pub-primary-muted: #ffcfc4;
+  --pub-primary: var(--stride-coral);
+  --pub-primary-hover: var(--brand-primary-hover);
+  --pub-primary-pressed: var(--brand-primary-pressed);
+  --pub-primary-subtle: var(--brand-primary-subtle);
+  --pub-primary-muted: var(--pub-primary-muted);
 
-  --pub-ink: #1a1714;
-  --pub-ink-muted: #3d3833;
-  --pub-ink-subtle: #8a8076;
+  --pub-ink: var(--stride-ink);
+  --pub-ink-muted: var(--sc-ink-muted);
+  --pub-ink-subtle: var(--sc-ink-subtle);
 
-  --pub-surface: #fbf8f4;
-  --pub-surface-muted: #f4efe8;
-  --pub-surface-elevated: #fbf8f4;
-  --pub-border: #e6ded4;
-  --pub-border-strong: #d8cdbf;
+  --pub-surface: var(--stride-paper);
+  --pub-surface-muted: var(--sc-paper-2);
+  --pub-surface-elevated: var(--stride-paper);
+  --pub-border: var(--sc-line);
 
-  --pub-gradient-start: #ff5436;
-  --pub-gradient-mid: #ffe9e4;
-  --pub-gradient-end: #e63e22;
+  --pub-gradient-start: var(--stride-coral);
+  --pub-gradient-mid: var(--brand-primary-subtle);
+  --pub-gradient-end: var(--stride-coral-deep);
 
   /* Public chrome always uses Stride coral — not tenant dashboard colours from root layout. */
   --color-primary-400: var(--pub-primary-muted);
@@ -76,7 +75,7 @@
 /** Studio-craft dark bands — cream headings on ink backgrounds. */
 .public-app.studio-craft-marketing .sc-on-ink :where(h1, h2, h3, h4, h5, h6),
 .public-app.studio-craft-marketing .pub-on-ink :where(h1, h2, h3, h4, h5, h6) {
-  color: #fbf8f4;
+  color: var(--stride-paper);
 }
 
 /** Dark marketing bands — override default ink headings (e.g. Linear-style hero). */
@@ -85,7 +84,7 @@
 }
 
 .public-app .pub-on-ink :where(h1, h2, h3, h4) {
-  color: #fbf8f4;
+  color: var(--stride-paper);
 }
 
 /* --- Typography utilities --- */
@@ -136,105 +135,7 @@
   color: var(--pub-ink-subtle);
 }
 
-/* --- Buttons --- */
-
-.public-app .pub-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  height: 2.75rem;
-  padding: 0 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: #fff;
-  background: var(--pub-primary);
-  border: none;
-  border-radius: var(--pub-radius-sm);
-  box-shadow:
-    0 0 0 1px rgba(255, 84, 54, 0.35),
-    0 2px 4px rgba(255, 84, 54, 0.18);
-  cursor: pointer;
-  transition:
-    background 150ms ease,
-    box-shadow 150ms ease,
-    transform 80ms ease;
-}
-
-.public-app .pub-btn-primary:hover {
-  background: var(--pub-primary-hover);
-  box-shadow:
-    0 0 0 1px rgba(255, 84, 54, 0.45),
-    0 4px 8px rgba(255, 84, 54, 0.22);
-}
-
-.public-app .pub-btn-primary:active {
-  background: var(--pub-primary-pressed);
-  transform: scale(0.98);
-}
-
-.public-app .pub-btn-primary--sm {
-  height: 2.25rem;
-  padding: 0 0.875rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-.public-app .pub-btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--pub-ink);
-  background: var(--pub-surface);
-  border: 1px solid var(--pub-border);
-  border-radius: var(--pub-radius-sm);
-  transition: background 150ms ease, border-color 150ms ease;
-}
-
-.public-app .pub-btn-secondary:hover {
-  background: var(--pub-surface-muted);
-  border-color: var(--pub-border-strong);
-}
-
-/* --- Cards --- */
-
-.public-app .pub-card {
-  background: var(--pub-surface-elevated);
-  border: 1px solid var(--pub-border);
-  border-radius: var(--pub-radius-lg);
-  box-shadow: var(--pub-shadow-sm);
-  transition: box-shadow 200ms ease, border-color 200ms ease;
-}
-
-.public-app .pub-card:hover {
-  box-shadow: var(--pub-shadow-md);
-  border-color: var(--pub-border-strong);
-}
-
-/* --- Generic input --- */
-
-.public-app .pub-input {
-  width: 100%;
-  height: 2.75rem;
-  padding: 0 0.875rem;
-  font-size: 0.875rem;
-  color: var(--pub-ink);
-  background: var(--pub-surface);
-  border: 1px solid var(--pub-border);
-  border-radius: var(--pub-radius-sm);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-
-.public-app .pub-input:focus {
-  outline: none;
-  border-color: var(--pub-primary);
-  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
-}
+/* Buttons, inputs, cards → stride-primitives.css */
 
 /* --- Login-specific --- */
 
@@ -316,7 +217,7 @@
 .public-app input:-webkit-autofill,
 .public-app input:-webkit-autofill:hover,
 .public-app input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  -webkit-box-shadow: 0 0 0 1000px var(--pub-surface-elevated) inset;
   -webkit-text-fill-color: var(--pub-ink);
   transition: background-color 5000s ease-in-out 0s;
 }
@@ -334,17 +235,17 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(255, 97, 24, 0.18) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 50% at 85% 15%, rgba(255, 224, 239, 0.45) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 70% at 70% 80%, rgba(255, 84, 54, 0.1) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 30% 70%, rgba(230, 62, 34, 0.06) 0%, transparent 50%);
+    radial-gradient(ellipse 80% 60% at 10% 20%, color-mix(in srgb, var(--stride-coral) 18%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 15%, color-mix(in srgb, var(--brand-primary-subtle) 45%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 70% at 70% 80%, color-mix(in srgb, var(--stride-coral) 10%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 30% 70%, color-mix(in srgb, var(--stride-coral-deep) 6%, transparent) 0%, transparent 50%);
   pointer-events: none;
 }
 
 /* --- Auth split login (staff / ESS / forgot password) --- */
 
 .public-app .auth-split-brand {
-  background: #1a1714;
+  background: var(--stride-ink);
   color: rgba(255, 255, 255, 0.5);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -498,7 +399,12 @@
 }
 
 .public-app .auth-split-form {
-  background: linear-gradient(168deg, #fbf8f4 0%, #f4efe8 38%, #ede6dc 100%);
+  background: linear-gradient(
+    168deg,
+    var(--stride-paper) 0%,
+    var(--sc-paper-2) 38%,
+    var(--neutral-100) 100%
+  );
 }
 
 .public-app .auth-split-form-bg {
@@ -526,15 +432,15 @@
 }
 
 .public-app .auth-login-card {
-  border: 1px solid rgba(227, 232, 238, 0.95);
-  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid color-mix(in srgb, var(--pub-border) 95%, white);
+  background: color-mix(in srgb, var(--pub-surface-elevated) 92%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.8) inset,
-    0 2px 4px rgba(15, 23, 42, 0.02),
-    0 8px 24px -4px rgba(15, 23, 42, 0.06),
-    0 24px 48px -12px rgba(255, 84, 54, 0.08);
+    0 2px 4px rgba(26, 23, 20, 0.02),
+    0 8px 24px -4px rgba(26, 23, 20, 0.06),
+    0 24px 48px -12px color-mix(in srgb, var(--stride-coral) 8%, transparent);
 }
 
 /* --- Nav utilities --- */
@@ -564,7 +470,7 @@
   line-height: 1;
   white-space: nowrap;
   color: #fff;
-  background: var(--pub-primary, #ff5436);
+  background: var(--pub-primary);
   border: none;
   border-radius: var(--pub-radius-sm, 6px);
   box-shadow:
@@ -576,7 +482,7 @@
 
 .public-app .pub-nav-cta:hover,
 .pub-nav-cta:hover {
-  background: var(--pub-primary-hover, #e63e22);
+  background: var(--pub-primary-hover);
   box-shadow:
     0 0 0 1px rgba(255, 84, 54, 0.45),
     0 4px 8px rgba(255, 84, 54, 0.22);
@@ -749,23 +655,23 @@
 
 /* Dashboard appearance toggle must not break marketing/careers (auth pages excluded) */
 html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-panel)) {
-  --sc-coral: #ff5436;
-  --sc-coral-deep: #e63e22;
-  --sc-ink: #1a1714;
-  --sc-ink-muted: #3d3833;
-  --sc-ink-subtle: #8a8076;
-  --sc-paper: #fbf8f4;
-  --sc-paper-2: #f4efe8;
-  --sc-line: #e6ded4;
+  --sc-coral: var(--stride-coral);
+  --sc-coral-deep: var(--stride-coral-deep);
+  --sc-ink: var(--stride-ink);
+  --sc-ink-muted: var(--sc-ink-muted);
+  --sc-ink-subtle: var(--sc-ink-subtle);
+  --sc-paper: var(--stride-paper);
+  --sc-paper-2: var(--sc-paper-2);
+  --sc-line: var(--sc-line);
 
-  --pub-surface: #fbf8f4;
-  --pub-surface-muted: #f4efe8;
-  --pub-surface-elevated: #fbf8f4;
-  --pub-ink: #1a1714;
-  --pub-ink-muted: #3d3833;
-  --pub-ink-subtle: #8a8076;
-  --pub-border: #e6ded4;
-  --pub-border-strong: #d8cdbf;
+  --pub-surface: var(--stride-paper);
+  --pub-surface-muted: var(--sc-paper-2);
+  --pub-surface-elevated: var(--stride-paper);
+  --pub-ink: var(--stride-ink);
+  --pub-ink-muted: var(--sc-ink-muted);
+  --pub-ink-subtle: var(--sc-ink-subtle);
+  --pub-border: var(--sc-line);
+  --pub-border-strong: var(--pub-border-strong);
   color: var(--pub-ink-muted);
 }
 
@@ -774,12 +680,12 @@ html.dark .public-app:not(.studio-craft-marketing):not(:has(.auth-split-form, .a
 }
 
 html.dark .public-app.studio-craft-marketing .sc-on-ink :where(h1, h2, h3, h4, h5, h6) {
-  color: #fbf8f4;
+  color: var(--stride-paper);
 }
 
 html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-panel)) .pub-on-ink,
 html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-panel)) .pub-on-ink :where(h1, h2, h3, h4, h5, h6) {
-  color: #fbf8f4;
+  color: var(--stride-paper);
 }
 
 html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-panel)) .pub-on-ink {

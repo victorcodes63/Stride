@@ -1,6 +1,6 @@
-# HRIS Demo
+# Stride
 
-Next.js **human resources information system** demo: workforce records, payroll, recruitment / ATS, leave, rota, outsourcing clients, accounts, and employee self-service (ESS).
+Next.js **Stride** operations platform demo: workforce records, payroll, recruitment / ATS, leave, rota, outsourcing clients, accounts, and employee self-service (ESS).
 
 Branding and public copy are managed in **Dashboard → Admin → Company setup** (stored in the database). Demo packs seed these values on reseed; admins can edit them without redeploying. Environment variables are only for infrastructure (database, auth, SMTP, site URL).
 

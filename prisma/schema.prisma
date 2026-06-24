@@ -126,6 +126,7 @@ model OutsourcingClient {
   biometricDevices        BiometricDevice[]
   statutoryReturns        StatutoryReturn[]
   attendancePolicies      AttendancePolicy[]
+  attendanceWorkSites     AttendanceWorkSite[]
   leavePolicies           LeavePolicy[]
   attendanceEvents        AttendanceEvent[]
   attendanceDaySummaries  AttendanceDaySummary[]
@@ -709,6 +710,10 @@ model AttendancePolicy {
   minHalfDayMinutes     Int                  @default(240)
   fullDayMinutes        Int                  @default(480)
   requireManualApproval Boolean              @default(true)
+  /// When true, ESS mobile clock-in requires GPS inside a configured work-site geofence.
+  mobileGeofenceEnabled Boolean              @default(false)
+  /// When true, clock-in outside all geofences is rejected (manager may override via dashboard).
+  rejectOutsideGeofence Boolean              @default(true)
   isDefault             Boolean              @default(false)
   isActive              Boolean              @default(true)
   createdAt             DateTime             @default(now())
@@ -809,7 +814,29 @@ model LeavePolicyAssignment {
 enum AttendanceEventSource {
   biometric
   manual
+  mobile_geo
   rota
+}
+
+/// Geofenced work site for mobile ESS clock-in (lat/lng + radius in metres).
+model AttendanceWorkSite {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  name                String
+  code                String?
+  latitude            Decimal @db.Decimal(10, 7)
+  longitude           Decimal @db.Decimal(10, 7)
+  radiusMeters        Int     @default(150)
+  isActive            Boolean @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+
+  @@index([outsourcingClientId, isActive])
+  @@index([organizationId])
 }
 
 enum AttendanceEventKind {
@@ -913,6 +940,7 @@ enum AttendanceExceptionType {
   mismatch_with_rota
   duplicate_events
   unapproved_manual_override
+  outside_geofence
 }
 
 enum AttendanceExceptionStatus {

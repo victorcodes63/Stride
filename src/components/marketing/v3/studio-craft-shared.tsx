@@ -3,7 +3,8 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from '@phosphor-icons/react';
-import { MARKETING_CTAS, getMarketingLoginUrl } from '@/lib/marketing-config';
+import { MARKETING_CTAS, MARKETING_ROUTES, getMarketingLoginUrl } from '@/lib/marketing-config';
+import { isDemoAccessPageEnabled } from '@/lib/demo-access';
 
 const ROLL_EASE = 'cubic-bezier(0.25,0.1,0.25,1)';
 
@@ -93,6 +94,28 @@ export function MarketingSignInLink({
       fullWidth={fullWidth}
       className={className}
       onClick={onClick}
+    />
+  );
+}
+
+/** Self-serve demo sandbox — only when /demo-access is enabled for this deploy. */
+export function MarketingTrySandboxLink({
+  tone = 'light',
+  className = '',
+  fullWidth = false,
+}: {
+  tone?: 'light' | 'dark';
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  if (!isDemoAccessPageEnabled()) return null;
+  return (
+    <MarketingOutlineLink
+      href={MARKETING_ROUTES.demoAccess}
+      label={MARKETING_CTAS.trySandbox}
+      tone={tone}
+      fullWidth={fullWidth}
+      className={className}
     />
   );
 }

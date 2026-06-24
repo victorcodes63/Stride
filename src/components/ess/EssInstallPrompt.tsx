@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Download, X } from 'lucide-react';
+import { StrideButton } from '@/components/ui/stride-button';
 
 const DISMISS_KEY = 'ess_install_prompt_dismissed';
 
@@ -44,9 +45,10 @@ export function EssInstallPrompt() {
           </Link>
         </p>
         {installEvent ? (
-          <button
-            type="button"
-            className="ess-btn-primary mt-3"
+          <StrideButton
+            surface="ess"
+            variant="primary"
+            className="mt-3"
             onClick={() => {
               const promptEvent = installEvent as Event & { prompt?: () => Promise<void> };
               void promptEvent.prompt?.();
@@ -54,7 +56,7 @@ export function EssInstallPrompt() {
             }}
           >
             Install app
-          </button>
+          </StrideButton>
         ) : null}
       </div>
       <button
