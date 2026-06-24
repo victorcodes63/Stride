@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseStaffSession } from '@/lib/auth-session';
 import { prisma } from '@/lib/prisma';
+import { resolveStaffSessionOrgId } from '@/lib/staff-session-org';
 
 export type AdminActor = {
   userId: string | null;
   email: string | null;
   name: string | null;
+  organizationId?: string | null;
 };
 
 export const SENSITIVE_AUTH_COOKIE = 'staff_sensitive_auth';
@@ -54,9 +56,16 @@ export async function requireAdminActor(
     return { error: NextResponse.json({ error: 'Only admins can perform this action.' }, { status: 403 }), actor: null };
   }
 
+  const organizationId = await resolveStaffSessionOrgId(parsed, currentUser.id);
+
   return {
     error: null,
-    actor: { userId: currentUser.id, email: currentUser.email, name: currentUser.name },
+    actor: {
+      userId: currentUser.id,
+      email: currentUser.email,
+      name: currentUser.name,
+      organizationId,
+    },
   };
 }
 
@@ -100,6 +109,7 @@ export function requireRecentSensitiveAuth(
 
 export async function enforceSodCheck(input: {
   actorUserId: string;
+  organizationId?: string;
   entityType: string;
   entityId: string;
   forbiddenActions: string[];
@@ -111,6 +121,7 @@ export async function enforceSodCheck(input: {
   const priorConflict = await prisma.auditEvent.findFirst({
     where: {
       actorUserId: input.actorUserId,
+      ...(input.organizationId ? { organizationId: input.organizationId } : {}),
       entityType: input.entityType,
       entityId: input.entityId,
       action: { in: input.forbiddenActions },

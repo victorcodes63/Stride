@@ -27,7 +27,24 @@ export async function withOrgContext<T>(orgId: string, fn: (tx: Prisma.Transacti
   });
 }
 ```
-Every tenant-scoped query must run inside `withOrgContext`. The middleware (RAV-64) enforces this.
+Every tenant-scoped query must run inside `withOrgContext`. API routes use **`withTenant()`**
+(`src/lib/tenant-api.ts`) which sets org context from the staff session, exposes `ctx.run()` /
+`ctx.where()` / `ctx.audit()`, and optional `can()` RBAC checks.
+
+```ts
+export async function GET(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
+    const rows = await ctx.run((tx) =>
+      tx.employee.findMany({ where: ctx.where({ outsourcingClientId: clientId }) }),
+    );
+    return NextResponse.json(rows);
+  });
+}
+```
+
+Mutations should call `ctx.audit()` (or `withTenantAudit()` for same-transaction audit) so
+`audit_events.organization_id` is always stamped. Legacy `logAuditEvent()` resolves org from the
+actor membership when routes have not migrated yet.
 
 **b) Every tenant table carries `organizationId` and has RLS policies.**
 The policy pattern (identical SQL for Prisma):
