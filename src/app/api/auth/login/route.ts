@@ -7,6 +7,7 @@ import { logAuditEvent } from '@/lib/audit-events';
 import { getStaffAllowedDomains, isStaffEmailDomainAllowed } from '@/lib/staff-allowed-domains';
 import { createAuthChallengeToken } from '@/lib/auth-challenge';
 import { assertAccountLoginAllowed } from '@/lib/account-login-guard';
+import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
 
 const STAFF_SESSION_COOKIE = 'staff_session';
 const COOKIE_MAX_AGE = getStaffSessionMaxAgeSeconds();
@@ -150,8 +151,14 @@ export async function POST(request: NextRequest) {
     });
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }).catch(() => null);
 
+    const sessionValue = await buildStaffSessionForUser({
+      provider: 'local',
+      userId: user.id,
+      userRole: user.role,
+      email: user.email,
+    });
     const response = NextResponse.json({ success: true });
-    response.cookies.set(STAFF_SESSION_COOKIE, `local:${user.id}:${user.role}:${Math.floor(Date.now() / 1000)}`, {
+    response.cookies.set(STAFF_SESSION_COOKIE, sessionValue, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

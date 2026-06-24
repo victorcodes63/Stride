@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseStaffSession } from '@/lib/auth-session';
 import { canApproveStaffLeave, canViewTeamLeaveQueue } from '@/lib/staff-permissions';
+import { resolveMembership } from '@/lib/org-membership';
+import { resolveStaffSessionOrgId } from '@/lib/staff-session-org';
 import type { StaffUserType } from '@/types/dashboard';
 
 const COOKIE = 'staff_session';
@@ -13,6 +15,7 @@ export type StaffUser = {
   role: 'admin' | 'staff' | 'viewer';
   staffUserType: StaffUserType;
   mfaEnabled: boolean;
+  currentOrgId: string;
 };
 
 export async function requireStaffUser(request: NextRequest): Promise<StaffUser | null> {
@@ -27,13 +30,21 @@ export async function requireStaffUser(request: NextRequest): Promise<StaffUser 
     user = await prisma.user.findUnique({ where: { email: parsed.email.toLowerCase() } });
   }
   if (!user?.isActive) return null;
+
+  const currentOrgId = await resolveStaffSessionOrgId(parsed, user.id);
+  if (!currentOrgId) return null;
+
+  const membership = await resolveMembership(user.id, currentOrgId);
+  const effectiveRole = (membership?.role ?? user.role) as StaffUser['role'];
+
   return {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role as StaffUser['role'],
+    role: effectiveRole,
     staffUserType: user.staffUserType as StaffUserType,
     mfaEnabled: Boolean((user as { mfaEnabled?: boolean }).mfaEnabled),
+    currentOrgId,
   };
 }
 

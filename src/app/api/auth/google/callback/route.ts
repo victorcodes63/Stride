@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getStaffSessionMaxAgeSeconds } from '@/lib/auth-session';
 import { reportApiError } from '@/lib/monitoring';
 import { getStaffAllowedDomains, isStaffEmailDomainAllowed } from '@/lib/staff-allowed-domains';
+import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
 
 const STAFF_SESSION_COOKIE = 'staff_session';
 const STAFF_SESSION_MAX_AGE = getStaffSessionMaxAgeSeconds();
@@ -213,7 +214,13 @@ export async function GET(request: NextRequest) {
     logOAuthDebug('login_success', { resolvedEmail: email, userId: user.id, role: user.role });
     const response = NextResponse.redirect(dashboardUrl);
     const cookieDomain = getCookieDomain(request.url);
-    response.cookies.set(STAFF_SESSION_COOKIE, `google:${user.id}:${user.role}:${email}`, {
+    const sessionValue = await buildStaffSessionForUser({
+      provider: 'google',
+      userId: user.id,
+      userRole: user.role,
+      email: user.email,
+    });
+    response.cookies.set(STAFF_SESSION_COOKIE, sessionValue, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

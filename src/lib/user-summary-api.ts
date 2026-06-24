@@ -1,18 +1,28 @@
 import { getAccountsAccess } from '@/lib/accounts-access';
 import { canApproveStaffLeave, canViewSystemAnalytics } from '@/lib/staff-permissions';
-import type { StaffUserType, UserRole, UserSummary } from '@/types/dashboard';
+import type { OrganizationSummary, StaffUserType, UserRole, UserSummary } from '@/types/dashboard';
 
-export async function userRowToSummary(user: {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  staffUserType: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}): Promise<UserSummary> {
-  const role = user.role as UserRole;
+type OrgContext = {
+  currentOrgId: string | null;
+  currentOrgName: string | null;
+  organizations: OrganizationSummary[];
+};
+
+export async function userRowToSummary(
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    staffUserType: string;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  orgContext?: OrgContext,
+): Promise<UserSummary> {
+  const role = (orgContext?.organizations.find((o) => o.id === orgContext.currentOrgId)?.role ??
+    user.role) as UserRole;
   const staffUserType = user.staffUserType as StaffUserType;
   const acc = await getAccountsAccess(user.id, role);
   return {
@@ -33,5 +43,8 @@ export async function userRowToSummary(user: {
       canManagePayments: acc.canManagePayments,
       canManageVendors: acc.canManageVendors,
     },
+    currentOrgId: orgContext?.currentOrgId ?? null,
+    currentOrgName: orgContext?.currentOrgName ?? null,
+    organizations: orgContext?.organizations ?? [],
   };
 }

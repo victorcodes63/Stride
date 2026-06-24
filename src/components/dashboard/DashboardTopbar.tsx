@@ -19,6 +19,7 @@ import { DashboardBreadcrumbs } from './DashboardBreadcrumbs';
 import { DashboardModuleSwitcher } from './DashboardModuleSwitcher';
 import { DashboardThemeToggle } from '@/components/dashboard/DashboardThemeToggle';
 import { EntitySwitcher } from '@/components/EntitySwitcher';
+import { OrgSwitcher } from '@/components/dashboard/OrgSwitcher';
 import type { UserSummary } from '@/types/dashboard';
 import type { ModuleKey } from '@/lib/modules';
 import { resolveDashboardBreadcrumbs } from '@/lib/dashboard-breadcrumbs';
@@ -224,6 +225,7 @@ export default function DashboardTopbar({
 
         {/* Right actions */}
         <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
+          <OrgSwitcher currentUser={currentUser} />
           <EntitySwitcher variant="topbar" />
 
           <TopbarDivider />

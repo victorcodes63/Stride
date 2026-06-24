@@ -255,6 +255,13 @@ export interface AccountsPermissionsSummary {
   canManageVendors: boolean;
 }
 
+export interface OrganizationSummary {
+  id: string;
+  name: string;
+  slug: string;
+  role: UserRole;
+}
+
 export interface UserSummary {
   id: string;
   email: string;
@@ -271,6 +278,11 @@ export interface UserSummary {
   accountsPermissions: AccountsPermissionsSummary;
   /** Executive system summary at /dashboard/analytics (admin or Director staff type). */
   canViewSystemAnalytics: boolean;
+  /** Active tenant organization (Phase 0 multi-tenant). */
+  currentOrgId: string | null;
+  currentOrgName: string | null;
+  /** Orgs this user can switch to. */
+  organizations: OrganizationSummary[];
 }
 
 export interface CreateUserBody {
