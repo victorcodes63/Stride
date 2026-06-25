@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, Loader2, AlertCircle, CheckCircle, Send, Ban } from 'lucide-react';
+import { FileText, Loader2, AlertCircle, Send, Ban, Download, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
@@ -79,6 +79,57 @@ export default function PurchaseOrdersContent() {
     }
   }
 
+  async function receiveAll(id: string) {
+    setActing(id);
+    try {
+      const detailRes = await fetch(`/api/procurement/purchase-orders/${id}`);
+      const detail = await detailRes.json().catch(() => ({}));
+      if (!detailRes.ok) throw new Error(detail.error || 'Failed to load LPO');
+
+      const lines = (detail.order?.lines ?? []).map((line: { id: string; quantity: number }) => ({
+        purchaseOrderLineId: line.id,
+        quantityReceived: line.quantity,
+      }));
+
+      const r = await fetch('/api/procurement/goods-receipts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purchaseOrderId: id,
+          receivedAt: new Date().toISOString().slice(0, 10),
+          lines,
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Receipt failed');
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Receipt failed');
+    } finally {
+      setActing(null);
+    }
+  }
+
+  async function linkBill(id: string) {
+    const vendorBillId = window.prompt('Enter vendor bill ID to link:');
+    if (!vendorBillId?.trim()) return;
+    setActing(id);
+    try {
+      const r = await fetch(`/api/procurement/purchase-orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'link_bill', vendorBillId: vendorBillId.trim() }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Link failed');
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Link failed');
+    } finally {
+      setActing(null);
+    }
+  }
+
   return (
     <DashboardPage>
       <DashboardPageHeader
@@ -151,6 +202,13 @@ export default function PurchaseOrdersContent() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`/api/procurement/purchase-orders/${o.id}/pdf`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
+                  >
+                    <Download className="h-4 w-4" />
+                    PDF
+                  </a>
                   {o.status === 'draft' && (
                     <button
                       type="button"
@@ -163,19 +221,31 @@ export default function PurchaseOrdersContent() {
                     </button>
                   )}
                   {o.status === 'issued' && (
-                    <button
-                      type="button"
-                      disabled={acting === o.id}
-                      onClick={() => runAction(o.id, 'fulfill')}
-                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      {acting === o.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4" />
+                    <>
+                      <button
+                        type="button"
+                        disabled={acting === o.id}
+                        onClick={() => receiveAll(o.id)}
+                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        {acting === o.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Package className="h-4 w-4" />
+                        )}
+                        Receive goods
+                      </button>
+                      {!o.vendorBill && (
+                        <button
+                          type="button"
+                          disabled={acting === o.id}
+                          onClick={() => linkBill(o.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+                        >
+                          Link bill
+                        </button>
                       )}
-                      Mark fulfilled
-                    </button>
+                    </>
                   )}
                   {(o.status === 'draft' || o.status === 'issued') && (
                     <button

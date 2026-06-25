@@ -144,6 +144,7 @@ model OutsourcingClient {
   fleetIncidents          FleetIncident[]
   purchaseRequests        PurchaseRequest[]
   purchaseOrders          PurchaseOrder[]
+  goodsReceipts           GoodsReceipt[]
   payrollDisbursementBatches PayrollDisbursementBatch[]
   performanceCycles          PerformanceCycle[]
 
@@ -1950,6 +1951,7 @@ model User {
   purchaseRequestsRequested        PurchaseRequest[]          @relation("PurchaseRequestRequester")
   purchaseRequestsReviewed         PurchaseRequest[]          @relation("PurchaseRequestReviewer")
   purchaseOrdersIssued             PurchaseOrder[]            @relation("PurchaseOrderIssuer")
+  goodsReceiptsReceived            GoodsReceipt[]             @relation("GoodsReceiptReceiver")
   payrollDisbursementsInitiated    PayrollDisbursementBatch[] @relation("PayrollDisbursementInitiator")
   performanceCyclesCreated         PerformanceCycle[]         @relation("PerformanceCycleCreator")
   performanceReviewsManaged        PerformanceReview[]        @relation("PerformanceReviewManager")
@@ -3743,6 +3745,7 @@ model PurchaseOrder {
   vendorBill      AccountsVendorBill?   @relation(fields: [vendorBillId], references: [id], onDelete: SetNull)
   issuedBy        User?                 @relation("PurchaseOrderIssuer", fields: [issuedByUserId], references: [id], onDelete: SetNull)
   lines           PurchaseOrderLine[]
+  goodsReceipts   GoodsReceipt[]
 
   @@index([outsourcingClientId])
   @@index([vendorId])
@@ -3763,8 +3766,54 @@ model PurchaseOrderLine {
   createdAt       DateTime @default(now())
 
   purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  goodsReceiptLines GoodsReceiptLine[]
 
   @@index([purchaseOrderId])
+}
+
+enum GoodsReceiptStatus {
+  draft
+  posted
+}
+
+model GoodsReceipt {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  purchaseOrderId     String
+  grnNumber           String              @unique
+  receivedAt          DateTime            @db.Date
+  receivedByUserId    String
+  status              GoodsReceiptStatus  @default(draft)
+  notes               String?             @db.Text
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  client        OutsourcingClient   @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  purchaseOrder PurchaseOrder       @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  receivedBy    User                @relation("GoodsReceiptReceiver", fields: [receivedByUserId], references: [id], onDelete: Restrict)
+  lines         GoodsReceiptLine[]
+
+  @@index([outsourcingClientId])
+  @@index([purchaseOrderId])
+  @@index([receivedAt])
+}
+
+model GoodsReceiptLine {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  goodsReceiptId      String
+  purchaseOrderLineId String
+  quantityReceived    Decimal  @db.Decimal(12, 2)
+  createdAt           DateTime @default(now())
+
+  goodsReceipt      GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderLine PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
+
+  @@index([goodsReceiptId])
+  @@index([purchaseOrderLineId])
 }
 
 // --- Performance management (RAV-69) ---

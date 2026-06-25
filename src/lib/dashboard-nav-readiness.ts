@@ -44,7 +44,7 @@ export const NAV_ITEM_READINESS: Record<string, NavReadiness> = {
   '/dashboard/accounts/budgets': 'partial',
 
   // Procurement
-  '/dashboard/procurement': 'partial',
+  '/dashboard/procurement': 'live',
   '/dashboard/procurement/purchase-requests': 'live',
   '/dashboard/procurement/lpos': 'live',
   '/dashboard/procurement/spend': 'partial',
