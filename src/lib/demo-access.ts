@@ -4,7 +4,6 @@ import {
   DEMO_FINANCE_EMAIL,
   DEMO_HR_EMAIL,
 } from '@/lib/demo-credentials';
-import { isPublicDemoMode } from '@/lib/deployment-config';
 import { isGenericPublicLogin } from '@/lib/marketing-site';
 
 function trimEnv(key: string): string | undefined {
@@ -25,19 +24,30 @@ function parseBoolean(v: string | undefined, defaultValue: boolean): boolean {
 export type DemoAccessRow = { role: string; email: string; note?: string };
 
 /**
- * Unlisted demo sandbox page — opt in via NEXT_PUBLIC_DEMO_ACCESS_PAGE or demo deploys
- * that are not using generic public login (no tenant emails on /dashboard/login).
+ * RAV-169: demo sandbox must never be advertised on public marketing or product login surfaces.
+ * Opt in only for local/staging via NEXT_PUBLIC_INTERNAL_DEMO_SANDBOX (never production).
  */
-export function isDemoAccessPageEnabled(): boolean {
-  if (parseBoolean(trimEnv('NEXT_PUBLIC_DEMO_ACCESS_PAGE'), false)) return true;
-  // Client components hydrate with NEXT_PUBLIC_* only — never gate UI on server-only DEMO_MODE.
-  if (isPublicDemoMode()) {
-    return !isGenericPublicLogin();
-  }
-  return false;
+export function isInternalDemoSandboxAdvertised(): boolean {
+  return parseBoolean(trimEnv('NEXT_PUBLIC_INTERNAL_DEMO_SANDBOX'), false);
 }
 
-/** Role / email rows for the demo-access page (password is never included). */
+/** @deprecated Use {@link isInternalDemoSandboxAdvertised} — kept for call sites. */
+export function isPublicDemoSandboxAdvertised(): boolean {
+  return isInternalDemoSandboxAdvertised();
+}
+
+/**
+ * Unlisted /demo-access page — internal tooling only (RAV-169).
+ * Disabled on all public deploys (marketing domain, generic login, default app).
+ */
+export function isDemoAccessPageEnabled(): boolean {
+  if (!isInternalDemoSandboxAdvertised()) return false;
+  if (trimEnv('NEXT_PUBLIC_MARKETING_DOMAIN')) return false;
+  if (isGenericPublicLogin()) return false;
+  return true;
+}
+
+/** Role / email rows for the internal-only demo-access page (password never included). */
 export function getDemoAccessRows(): DemoAccessRow[] {
   return [
     { role: 'Admin', email: DEMO_ADMIN_EMAIL },

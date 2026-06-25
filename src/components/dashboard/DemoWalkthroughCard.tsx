@@ -5,26 +5,12 @@ import { useMemo, useState } from 'react';
 import { CheckCircle2, Circle, ChevronDown, ChevronUp, Map } from 'lucide-react';
 
 import { DEMO_WALKTHROUGH_STEPS } from '@/lib/demo-walkthrough';
-import {
-  DEMO_ADMIN_EMAIL,
-  DEMO_ESS_EMAIL,
-  DEMO_FINANCE_EMAIL,
-  DEMO_HR_EMAIL,
-} from '@/lib/demo-credentials';
-import { MARKETING_ROUTES } from '@/lib/marketing-config';
 
 const PERSONA_LABEL: Record<NonNullable<(typeof DEMO_WALKTHROUGH_STEPS)[number]['persona']>, string> = {
   admin: 'Admin',
   hr: 'HR',
   finance: 'Finance',
   ess: 'ESS employee',
-};
-
-const PERSONA_EMAIL: Record<keyof typeof PERSONA_LABEL, string> = {
-  admin: DEMO_ADMIN_EMAIL,
-  hr: DEMO_HR_EMAIL,
-  finance: DEMO_FINANCE_EMAIL,
-  ess: DEMO_ESS_EMAIL,
 };
 
 const STORAGE_KEY = 'stride_demo_walkthrough_done';
@@ -65,15 +51,12 @@ export function DemoWalkthroughCard() {
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left sm:px-5"
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <Map className="h-4 w-4 shrink-0 text-primary-700" />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-primary-900">Demo walkthrough</p>
-            <p className="text-xs text-primary-800/80 truncate">
-              {completedCount}/{DEMO_WALKTHROUGH_STEPS.length} steps ·{' '}
-              <Link href={MARKETING_ROUTES.demoAccess} className="underline-offset-2 hover:underline">
-                demo accounts
-              </Link>
+            <p className="truncate text-xs text-primary-800/80">
+              {completedCount}/{DEMO_WALKTHROUGH_STEPS.length} steps — use your assigned demo account
             </p>
           </div>
         </div>
@@ -85,7 +68,7 @@ export function DemoWalkthroughCard() {
       </button>
 
       {open ? (
-        <ol className="border-t border-primary-200/50 px-3 py-3 sm:px-4 space-y-1">
+        <ol className="space-y-1 border-t border-primary-200/50 px-3 py-3 sm:px-4">
           {DEMO_WALKTHROUGH_STEPS.map((step, index) => {
             const isDone = Boolean(done[step.id]);
             const persona = step.persona;
@@ -118,11 +101,10 @@ export function DemoWalkthroughCard() {
                       <span className="text-[10px] text-primary-800/60">~{step.minutes} min</span>
                     ) : null}
                   </div>
-                  <p className="text-xs text-primary-900/75 mt-0.5">{step.description}</p>
+                  <p className="mt-0.5 text-xs text-primary-900/75">{step.description}</p>
                   {persona ? (
-                    <p className="text-[11px] text-primary-800/65 mt-1">
-                      As {PERSONA_LABEL[persona]}:{' '}
-                      <span className="font-mono">{PERSONA_EMAIL[persona]}</span>
+                    <p className="mt-1 text-[11px] text-primary-800/65">
+                      Suggested role: {PERSONA_LABEL[persona]}
                     </p>
                   ) : null}
                 </div>

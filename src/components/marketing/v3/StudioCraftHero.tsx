@@ -11,17 +11,11 @@ import { HeroDashboardShowcase } from './HeroDashboardShowcase';
 import {
   MarketingPrimaryLink,
   MarketingSignInLink,
-  MarketingTrySandboxLink,
   StudioCraftContainer,
 } from './studio-craft-shared';
 import './studio-craft-hero.css';
 
-type StudioCraftHeroProps = {
-  /** Resolved on the server — avoids DEMO_MODE vs NEXT_PUBLIC_DEMO_MODE hydration drift. */
-  demoAccessEnabled?: boolean;
-};
-
-export function StudioCraftHero({ demoAccessEnabled }: StudioCraftHeroProps) {
+export function StudioCraftHero() {
   return (
     <section className="sc-hero-section relative flex min-h-svh flex-col overflow-x-clip">
       <div
@@ -87,7 +81,6 @@ export function StudioCraftHero({ demoAccessEnabled }: StudioCraftHeroProps) {
                 label={MARKETING_CTAS.bookDemo}
                 variant="coral"
               />
-              <MarketingTrySandboxLink enabled={demoAccessEnabled} />
               <MarketingSignInLink />
             </div>
           </StudioCraftContainer>

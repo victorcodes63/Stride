@@ -45,8 +45,10 @@ const vars = [
   ['NEXT_PUBLIC_BRAND_LOGO_PNG', '/brand/stride-mark.svg'],
   ['DEMO_MODE', 'true'],
   ['NEXT_PUBLIC_DEMO_MODE', 'true'],
-  ['NEXT_PUBLIC_SHOW_DEMO_LOGIN_HINT', 'true'],
+  ['NEXT_PUBLIC_SHOW_DEMO_LOGIN_HINT', 'false'],
   ['NEXT_PUBLIC_TENANT_LOGIN_BRANDING', 'true'],
+  ['NEXT_PUBLIC_INTERNAL_DEMO_SANDBOX', 'false'],
+  ['NEXT_PUBLIC_DEMO_ACCESS_PAGE', 'false'],
   ['RUN_MIGRATIONS_ON_BUILD', 'true'],
 ];
 

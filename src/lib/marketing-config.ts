@@ -8,7 +8,7 @@ export const MARKETING_ROUTES = {
   about: '/about',
   contact: '/contact',
   login: '/dashboard/login',
-  /** Unlisted — linked from footer when demo access is enabled; no password on page. */
+  /** Internal-only — /demo-access 404s unless NEXT_PUBLIC_INTERNAL_DEMO_SANDBOX (RAV-169). */
   demoAccess: '/demo-access',
 } as const;
 
@@ -109,14 +109,15 @@ export const MARKETING_SALES_EMAIL = 'hello@getstride.co.ke';
  */
 export const MARKETING_LINKEDIN_URL = 'https://linkedin.com/company/raventechgroup';
 
-/** Self-serve sandbox — footer + hero when demo access is enabled. */
+/** @deprecated Self-serve sandbox removed (RAV-169) — use book demo CTA. */
 export function getMarketingTryDemoUrl(): string {
-  return MARKETING_ROUTES.demoAccess;
+  return MARKETING_ROUTES.contact;
 }
 
-/** Sales-led CTAs — book demo is sales; trySandbox is self-serve when enabled. */
+/** Sales-led CTAs — book demo only on public surfaces (RAV-169). */
 export const MARKETING_CTAS = {
   bookDemo: 'Book a demo',
+  /** @deprecated Public sandbox CTA removed — kept for copy references only. */
   trySandbox: 'Try the sandbox',
   signIn: 'Sign in',
   talkToSales: 'Talk to sales',

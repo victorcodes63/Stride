@@ -53,6 +53,8 @@ const vars = [
   ['NEXT_PUBLIC_DEMO_MODE', 'false'],
   ['NEXT_PUBLIC_SHOW_DEMO_LOGIN_HINT', 'false'],
   ['NEXT_PUBLIC_GENERIC_PUBLIC_LOGIN', 'true'],
+  ['NEXT_PUBLIC_INTERNAL_DEMO_SANDBOX', 'false'],
+  ['NEXT_PUBLIC_DEMO_ACCESS_PAGE', 'false'],
   ['RUN_MIGRATIONS_ON_BUILD', 'false'],
 ];
 
