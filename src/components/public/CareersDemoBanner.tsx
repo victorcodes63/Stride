@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { StrideMark } from '@/components/marketing/StrideMark';
+import { getMarketingPageUrl } from '@/lib/marketing-config';
 
 type CareersDemoBannerProps = {
   employerName: string;
@@ -9,7 +10,7 @@ type CareersDemoBannerProps = {
 export function CareersDemoBanner({ employerName }: CareersDemoBannerProps) {
   return (
     <div
-      className="sticky top-[68px] z-40 border-b border-[var(--pub-primary)]/25 bg-pub-ink/95 backdrop-blur-sm"
+      className="sticky top-14 z-40 border-b border-[var(--pub-primary)]/25 bg-pub-ink/95 backdrop-blur-sm"
       role="note"
     >
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-2.5 text-center sm:justify-between sm:px-8 sm:text-left">
@@ -23,7 +24,7 @@ export function CareersDemoBanner({ employerName }: CareersDemoBannerProps) {
           </span>
         </p>
         <Link
-          href="/platform"
+          href={getMarketingPageUrl('/platform')}
           className="shrink-0 text-sm font-semibold text-[var(--pub-primary)] transition hover:text-white"
         >
           How recruitment works →

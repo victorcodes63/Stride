@@ -108,9 +108,19 @@ async function main() {
     }
   });
 
+  await check('GET /api/procurement/purchase-orders', async () => {
+    const res = await fetch(`${BASE}/api/procurement/purchase-orders`, { headers: auth });
+    const body = await json(res);
+    if (res.status === 403) throw new Error('procurement module disabled');
+    if (!res.ok) throw new Error(JSON.stringify(body));
+    if (!Array.isArray(body.orders) && !Array.isArray(body.purchaseOrders)) {
+      throw new Error('expected purchase orders array');
+    }
+  });
+
   recordGap(
     'procurement',
-    'PR create/submit/approve works via API (fixed organizationId on create). No LPO model or /api/procurement/lpos — /dashboard/procurement/lpos is ModuleRoadmapPage only.',
+    'PR create/submit/approve + purchase-orders API live. /dashboard/procurement/lpos renders PurchaseOrdersContent (not roadmap shell).',
   );
 
   // --- Statements (RAV-76 / accounts) ---
@@ -150,15 +160,39 @@ async function main() {
     if (!Array.isArray(body.documents)) throw new Error('expected documents array');
   });
 
+  await check('GET /api/legal/obligations', async () => {
+    const res = await fetch(`${BASE}/api/legal/obligations`, { headers: auth });
+    const body = await json(res);
+    if (res.status === 403) throw new Error('legal module disabled');
+    if (!res.ok) throw new Error(JSON.stringify(body));
+    if (!Array.isArray(body.obligations) && !Array.isArray(body.items)) {
+      throw new Error('expected obligations array');
+    }
+  });
+
   recordGap(
     'legal',
-    '/dashboard/legal is ModuleHomeContent hub. Obligations register (/dashboard/legal/obligations) is roadmap. Live: credentials + company-documents APIs.',
+    'Hub + obligations register backed by /api/legal/obligations. Live: credentials + company-documents APIs.',
   );
 
-  // --- Projects (RAV-80/84) — static scope ---
+  // --- Projects (RAV-80/84) ---
+  await check('GET /api/projects', async () => {
+    const res = await fetch(`${BASE}/api/projects`, { headers: auth });
+    const body = await json(res);
+    if (res.status === 403) throw new Error('projects access denied');
+    if (!res.ok) throw new Error(JSON.stringify(body));
+    if (!Array.isArray(body.projects)) throw new Error('expected projects array');
+  });
+
+  await check('GET /api/projects/dashboard', async () => {
+    const res = await fetch(`${BASE}/api/projects/dashboard`, { headers: auth });
+    const body = await json(res);
+    if (!res.ok) throw new Error(JSON.stringify(body));
+  });
+
   recordGap(
     'projects',
-    'No /api/projects routes. /dashboard/projects uses ModuleHomeContent; board + tasks are ModuleRoadmapPage only — UI shell, no backend.',
+    '/api/projects + dashboard summary live. Board/tasks pages use ProjectBoardContent — not ModuleRoadmapPage.',
   );
 
   // --- Dashboard pages render (smoke GET) ---

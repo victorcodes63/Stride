@@ -8,13 +8,23 @@ import {
  ArrowRight,
  ExternalLink,
  Pencil,
- Search,
  SlidersHorizontal,
  Loader2,
  Users,
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import {
+  DashboardTable,
+  DashboardTableActionButton,
+  DashboardTableActions,
+  DashboardTableCard,
+  DashboardTableEmpty,
+  DashboardTableFooter,
+  DashboardTableSearchInput,
+  DashboardTableToolbar,
+  DashboardTableViewport,
+} from '@/components/dashboard/DashboardDataTable';
 import { JobListing } from '@/types/ats';
 
 export default function DashboardJobsPage() {
@@ -129,7 +139,42 @@ export default function DashboardJobsPage() {
  </div>
  )}
 
- {!loading && jobs.length > 0 && (
+ {loading ? (
+ <div className="dashboard-surface p-10 sm:p-14">
+ <div className="animate-pulse space-y-4 max-w-2xl mx-auto">
+ <div className="h-7 bg-neutral-100 rounded-lg w-1/3" />
+ <div className="h-4 bg-neutral-100 rounded-lg w-full" />
+ <div className="h-4 bg-neutral-100 rounded-lg w-5/6" />
+ <div className="h-32 bg-neutral-50 rounded-xl mt-6" />
+ </div>
+ </div>
+ ) : jobs.length === 0 ? (
+ <DashboardTableCard>
+ <DashboardTableEmpty
+ icon={<Briefcase className="mx-auto mb-3 h-10 w-10 text-neutral-400" strokeWidth={1.25} />}
+ title="No job postings yet"
+ description="Post your first role to show it on the careers page."
+ />
+ <div className="flex flex-col items-center gap-4 border-t border-neutral-200/80 px-4 py-5">
+ <Link
+ href="/dashboard/jobs/new"
+ className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-900 text-white rounded-xl text-sm font-semibold hover:bg-primary-800 transition-colors"
+ >
+ <Plus className="w-4 h-4" />
+ Post a job
+ </Link>
+ <Link
+ href="/careers"
+ target="_blank"
+ rel="noopener noreferrer"
+ className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-800 font-medium"
+ >
+ View job board
+ <ArrowRight className="w-4 h-4" />
+ </Link>
+ </div>
+ </DashboardTableCard>
+ ) : (
  <>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
  <div className="relative overflow-hidden dashboard-surface p-5 shadow-sm">
@@ -154,18 +199,15 @@ export default function DashboardJobsPage() {
  </div>
  </div>
 
- <div className="dashboard-surface p-4 sm:p-5 shadow-sm mb-6">
- <div className="flex flex-col lg:flex-row lg:items-center gap-4">
- <div className="relative flex-1 min-w-0">
- <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
- <input
- type="search"
- placeholder="Search by title or job ID…"
+ <DashboardTableCard>
+ <DashboardTableToolbar label={null}>
+ <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+ <DashboardTableSearchInput
  value={searchQuery}
- onChange={(e) => setSearchQuery(e.target.value)}
- className="w-full pl-10 pr-4 py-2.5 border border-neutral-200 rounded-xl text-sm bg-neutral-50/50 focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-300 transition-colors"
+ onChange={setSearchQuery}
+ placeholder="Search by title or job ID…"
+ className="flex-1"
  />
- </div>
  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
  <span className="flex items-center gap-2 text-xs font-semibold text-neutral-500 uppercase tracking-wide shrink-0">
  <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -183,101 +225,48 @@ export default function DashboardJobsPage() {
  </select>
  </div>
  </div>
- </div>
- </>
- )}
+ </DashboardTableToolbar>
 
- {loading ? (
- <div className="dashboard-surface p-10 sm:p-14">
- <div className="animate-pulse space-y-4 max-w-2xl mx-auto">
- <div className="h-7 bg-neutral-100 rounded-lg w-1/3" />
- <div className="h-4 bg-neutral-100 rounded-lg w-full" />
- <div className="h-4 bg-neutral-100 rounded-lg w-5/6" />
- <div className="h-32 bg-neutral-50 rounded-xl mt-6" />
- </div>
- </div>
- ) : jobs.length === 0 ? (
- <div className="dashboard-surface p-10 sm:p-14 text-center shadow-sm">
- <div className="inline-flex rounded-2xl bg-neutral-100 p-4 mb-5">
- <Briefcase className="w-10 h-10 text-neutral-400" strokeWidth={1.25} />
- </div>
- <p className="text-neutral-700 font-medium mb-1">No job postings yet</p>
- <p className="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
- Post your first role to show it on the careers page.
- </p>
- <Link
- href="/dashboard/jobs/new"
- className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-900 text-white rounded-xl text-sm font-semibold hover:bg-primary-800 transition-colors"
- >
- <Plus className="w-4 h-4" />
- Post a job
- </Link>
- <div className="mt-8 pt-6 border-t border-neutral-100">
- <Link
- href="/careers"
- target="_blank"
- rel="noopener noreferrer"
- className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-800 font-medium"
- >
- View job board
- <ArrowRight className="w-4 h-4" />
- </Link>
- </div>
- </div>
- ) : filteredJobs.length === 0 ? (
- <div className="dashboard-surface p-10 sm:p-12 text-center shadow-sm">
- <div className="inline-flex rounded-2xl bg-amber-50 p-4 mb-4 text-amber-700">
- <SlidersHorizontal className="w-8 h-8" />
- </div>
- <p className="text-neutral-800 font-medium mb-1">No matches</p>
- <p className="text-sm text-neutral-500 mb-5">Try adjusting search or filters.</p>
- <button
- type="button"
+ {filteredJobs.length === 0 ? (
+ <>
+ <DashboardTableEmpty
+ icon={<SlidersHorizontal className="mx-auto mb-3 h-10 w-10 text-amber-600" />}
+ title="No matches"
+ description="Try adjusting search or filters."
+ />
+ <div className="flex justify-center border-t border-neutral-200/80 px-4 py-4">
+ <DashboardTableActionButton
  onClick={() => {
  setSearchQuery('');
  setFilterStatus('all');
  }}
- className="inline-flex items-center gap-2 px-4 py-2.5 border border-neutral-200 rounded-xl text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
  >
  Clear filters
- </button>
+ </DashboardTableActionButton>
  </div>
+ </>
  ) : (
- <div className="dashboard-surface shadow-sm overflow-hidden min-w-0">
- <div className="overflow-x-auto">
- <table className="data-table dashboard-data-table w-full min-w-[720px] text-sm">
+ <>
+ <DashboardTableViewport minWidth={720}>
+ <DashboardTable>
  <thead>
- <tr className="bg-neutral-50/95 border-b border-neutral-200">
- <th className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 px-4 sm:px-5 py-3.5 w-[7rem]">
- Job ID
- </th>
- <th className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 px-4 sm:px-5 py-3.5 min-w-[12rem]">
- Role
- </th>
- <th className="col-center text-[11px] font-bold uppercase tracking-widest text-neutral-500 px-4 sm:px-5 py-3.5 min-w-[8rem]">
- Posted
- </th>
- <th className="col-center text-[11px] font-bold uppercase tracking-widest text-neutral-500 px-4 sm:px-5 py-3.5 whitespace-nowrap">
- Expires
- </th>
- <th className="col-center text-[11px] font-bold uppercase tracking-widest text-neutral-500 px-3 py-3.5 w-[5rem]">
- Apps
- </th>
- <th className="col-center text-[11px] font-bold uppercase tracking-widest text-neutral-500 px-4 sm:px-5 py-3.5 w-[8.5rem]">
- Status
- </th>
- <th className="col-right text-[11px] font-bold uppercase tracking-widest text-neutral-500 px-4 sm:px-5 py-3.5 w-[7.5rem]">
- Actions
- </th>
+ <tr>
+ <th className="w-[7rem]">Job ID</th>
+ <th className="min-w-[12rem]">Role</th>
+ <th className="col-center min-w-[8rem]">Posted</th>
+ <th className="col-center whitespace-nowrap">Expires</th>
+ <th className="col-center w-[5rem]">Apps</th>
+ <th className="col-center w-[8.5rem]">Status</th>
+ <th className="col-right w-[7.5rem]">Actions</th>
  </tr>
  </thead>
  <tbody>
  {filteredJobs.map((job) => (
  <tr key={job.id} className="group transition-colors">
- <td className="px-4 sm:px-5 py-3.5 text-neutral-500 font-mono text-xs whitespace-nowrap align-middle">
+ <td className="text-neutral-500 font-mono text-xs whitespace-nowrap align-middle">
  {job.referenceId ?? '—'}
  </td>
- <td className="px-4 sm:px-5 py-3.5 align-middle max-w-[20rem]">
+ <td className="align-middle max-w-[20rem]">
  <Link
  href={`/dashboard/jobs/${job.id}/edit`}
  className="font-semibold text-primary-800 hover:text-primary-600 hover:underline decoration-primary-300 underline-offset-2 line-clamp-2"
@@ -285,20 +274,20 @@ export default function DashboardJobsPage() {
  {job.title}
  </Link>
  </td>
- <td className="col-center px-4 sm:px-5 py-3.5 text-neutral-500 tabular-nums whitespace-nowrap align-middle text-xs sm:text-sm">
+ <td className="col-center text-neutral-500 tabular-nums whitespace-nowrap align-middle text-xs sm:text-sm">
  {formatDate(job.postedDate)}
  </td>
- <td className="col-center px-4 sm:px-5 py-3.5 text-neutral-500 tabular-nums whitespace-nowrap align-middle text-xs sm:text-sm">
+ <td className="col-center text-neutral-500 tabular-nums whitespace-nowrap align-middle text-xs sm:text-sm">
  {job.applicationDeadline ? (
  formatDateTime(job.applicationDeadline)
  ) : (
  <span className="text-neutral-300">—</span>
  )}
  </td>
- <td className="col-center px-3 py-3.5 tabular-nums font-medium text-neutral-700 align-middle">
+ <td className="col-center tabular-nums font-medium text-neutral-700 align-middle">
  {job.applicationCount ?? 0}
  </td>
- <td className="col-center px-4 sm:px-5 py-3.5 align-middle">
+ <td className="col-center align-middle">
  {getJobEffectiveStatus(job) === 'expired' ? (
  <span
  className="inline-flex px-2 py-1 rounded-lg text-[11px] font-semibold bg-neutral-100 text-neutral-600"
@@ -329,11 +318,11 @@ export default function DashboardJobsPage() {
  </button>
  )}
  </td>
- <td className="col-right px-4 sm:px-5 py-3.5 align-middle">
- <div className="flex items-center justify-end gap-1 opacity-90 group-hover:opacity-100">
+ <td className="col-right align-middle">
+ <DashboardTableActions>
  <Link
  href={`/dashboard/jobs/${job.id}/edit`}
- className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-600 hover:bg-white hover:text-primary-800 border border-transparent hover:border-neutral-200 transition-colors"
+ className="inline-flex h-8 items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-primary-800"
  >
  <Pencil className="w-3.5 h-3.5" />
  Edit
@@ -342,19 +331,19 @@ export default function DashboardJobsPage() {
  href={`/careers/apply/${job.slug ?? job.id}`}
  target="_blank"
  rel="noopener noreferrer"
- className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary-700 hover:bg-white border border-transparent hover:border-primary-100 transition-colors"
+ className="inline-flex h-8 items-center gap-1 rounded-lg border border-transparent px-2.5 text-xs font-medium text-primary-700 hover:bg-white hover:border-primary-100"
  >
  View
  <ExternalLink className="w-3.5 h-3.5" />
  </a>
- </div>
+ </DashboardTableActions>
  </td>
  </tr>
  ))}
  </tbody>
- </table>
- </div>
- <div className="px-4 sm:px-5 py-3 border-t border-neutral-100 bg-neutral-50/50 flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-500">
+ </DashboardTable>
+ </DashboardTableViewport>
+ <DashboardTableFooter>
  <span>
  Showing <strong className="text-neutral-700">{filteredJobs.length}</strong>
  {hasActiveFilters && jobs.length !== filteredJobs.length && (
@@ -371,14 +360,17 @@ export default function DashboardJobsPage() {
  Open careers page
  <ArrowRight className="w-3.5 h-3.5" />
  </Link>
- </div>
- </div>
+ </DashboardTableFooter>
+ </>
  )}
+ </DashboardTableCard>
 
- {!loading && jobs.length > 0 && filteredJobs.length > 0 && (
+ {filteredJobs.length > 0 ? (
  <p className="mt-4 text-center text-xs text-neutral-400 sm:hidden">
  Swipe horizontally to see all columns
  </p>
+ ) : null}
+ </>
  )}
  </DashboardPage>
  );

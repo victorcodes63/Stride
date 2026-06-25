@@ -26,6 +26,11 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import {
+ DashboardAsyncState,
+ DashboardEmptyState,
+ DashboardPageSkeleton,
+} from '@/components/dashboard/DashboardAsyncState';
 import type { CandidateListItem } from '@/types/dashboard';
 import type { CandidateWithDetails } from '@/app/api/candidates/[id]/route';
 import { WorkExperienceTab, EducationTab, CertificationsTab } from '@/components/dashboard/CandidateDetailTabs';
@@ -75,6 +80,7 @@ export default function DashboardCandidatesPage() {
  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
  const [downloadingResumes, setDownloadingResumes] = useState(false);
  const [bulkResult, setBulkResult] = useState<string | null>(null);
+ const [reloadNonce, setReloadNonce] = useState(0);
  const [dbStats, setDbStats] = useState<{
  total: number;
  withResume: number;
@@ -130,7 +136,7 @@ export default function DashboardCandidatesPage() {
  if (!cancelled) setLoading(false);
  });
  return () => { cancelled = true; };
- }, [jobFilter, minExperience, maxExperience, educationFilter, employerCompanyFilter, debouncedSearch, page]);
+ }, [jobFilter, minExperience, maxExperience, educationFilter, employerCompanyFilter, debouncedSearch, page, reloadNonce]);
 
  useEffect(() => {
  setPage(1);
@@ -407,30 +413,28 @@ export default function DashboardCandidatesPage() {
  </div>
  </div>
  </div>
-
- {loading ? (
- <div className="dashboard-surface p-14 flex flex-col items-center justify-center gap-4 shadow-sm">
- <Loader2 className="w-9 h-9 text-primary-600 animate-spin" />
- <p className="text-sm text-neutral-500">Loading candidates…</p>
- </div>
- ) : error ? (
- <div className="rounded-2xl border border-red-100 bg-red-50/50 p-8 sm:p-10 text-center shadow-sm">
- <p className="text-red-800 font-medium">{error}</p>
- </div>
- ) : candidates.length === 0 ? (
- <div className="dashboard-surface p-10 sm:p-14 text-center shadow-sm">
- <div className="inline-flex rounded-2xl bg-neutral-100 p-4 mb-5">
- <Users className="w-10 h-10 text-neutral-400" strokeWidth={1.25} />
- </div>
- <p className="text-neutral-800 font-medium mb-1">
- {hasActiveFilters ? 'No matches' : 'No candidates yet'}
- </p>
- <p className="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
- {hasActiveFilters
+ <DashboardAsyncState
+ status={
+ loading ? 'loading' : error ? 'error' : candidates.length === 0 ? 'empty' : 'success'
+ }
+ error={error}
+ onRetry={() => {
+ setError(null);
+ setLoading(true);
+ setReloadNonce((n) => n + 1);
+ }}
+ loading={<DashboardPageSkeleton />}
+ empty={
+ <DashboardEmptyState
+ icon={Users}
+ title={hasActiveFilters ? 'No matches' : 'No candidates yet'}
+ description={
+ hasActiveFilters
  ? 'Try clearing filters or broadening search.'
- : 'Candidates appear here after people apply.'}
- </p>
- {hasActiveFilters ? (
+ : 'Candidates appear here after people apply.'
+ }
+ action={
+ hasActiveFilters ? (
  <button
  type="button"
  onClick={clearFilters}
@@ -445,9 +449,11 @@ export default function DashboardCandidatesPage() {
  >
  View applications
  </Link>
- )}
- </div>
- ) : (
+ )
+ }
+ />
+ }
+ >
  <div className="dashboard-surface shadow-sm overflow-hidden min-w-0">
  <div className="overflow-x-auto">
  <table className="data-table dashboard-data-table w-full min-w-[760px] text-sm">
@@ -581,7 +587,7 @@ export default function DashboardCandidatesPage() {
  )}
  </div>
  </div>
- )}
+ </DashboardAsyncState>
 
  {selectedCandidate && (() => {
  const currentIndex = filtered.findIndex((c) => c.id === selectedCandidate.id);
@@ -600,7 +606,7 @@ export default function DashboardCandidatesPage() {
  onClick={() => setSelectedCandidate(null)}
  aria-hidden
  />
- <div className="fixed right-0 top-0 bottom-0 w-[66.666vw] min-w-[24rem] max-w-[56rem] bg-white border-l border-neutral-200 shadow-sm z-50 flex flex-col rounded-l-xl">
+ <div className="fixed inset-y-0 right-0 z-50 flex h-screen max-h-dvh w-full max-w-[56rem] flex-col rounded-l-xl border-l border-neutral-200 bg-white shadow-sm min-h-0 sm:w-[66vw]">
  <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 rounded-tl-xl">
  <div className="px-4 py-3 flex items-center justify-between gap-2">
  <h2 className="text-base font-semibold text-primary-900 truncate min-w-0">

@@ -81,10 +81,12 @@ Applied on all middleware responses (`src/lib/security-headers.ts`):
 
 | Check | Command | Launch status |
 |-------|---------|---------------|
+| **G1 quality bar** | `npm run quality:bar` | Orchestrates mock-route audit, RLS schema, build, optional smokes |
+| Dashboard mock routes | `npm run audit:dashboard-mock` | No `ModuleRoadmapPage` on live dashboard routes |
 | Dependency audit | `npm audit` | 31 known issues (Jun 2026) — run `npm audit fix` for safe updates; exceljs/uuid needs planned upgrade |
 | API auth scan | `npm run audit:api-auth` | Run in CI |
-| Tenant gate | `npm run audit:module-tenant` | Run before module releases |
-| TypeScript strict | `npm run typecheck` | ~800 errors remain — enable `STRICT_BUILD=true` on Vercel when cleared |
+| Tenant gate | `npm run audit:module-tenant` | 142 tenant tables — RLS policies generated via `node scripts/generate-rls-sql.mjs` |
+| TypeScript strict | `npm run typecheck` | ~359 errors remain (Jun 2026) — enable `STRICT_BUILD=true` on Vercel when cleared |
 | ESLint | `npm run lint` | Enable with `STRICT_BUILD=true` |
 
 `next.config.js` respects `STRICT_BUILD=true` to fail builds on TS/ESLint errors. Default remains permissive until debt is burned down.

@@ -1,4 +1,5 @@
 import { PRICING_TIERS } from '@/lib/marketing-config';
+import { marketingMetadata } from '@/lib/marketing-metadata';
 import { marketingTierModuleSummary } from '@/lib/marketing-pricing-entitlements';
 import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
@@ -9,10 +10,11 @@ import {
   MarketingPrimaryLink,
 } from '@/components/marketing/v3/studio-craft-shared';
 
-export const metadata = {
+export const metadata = marketingMetadata({
   title: 'Pricing',
   description: 'Stride platform pricing — size-banded tiers in KES, not per-seat.',
-};
+  path: '/pricing',
+});
 
 export default function PricingPage() {
   return (

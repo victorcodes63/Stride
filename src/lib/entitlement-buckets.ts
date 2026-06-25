@@ -11,17 +11,21 @@ export const MODULE_BUCKET: Record<ModuleKey, EntitlementBucket> = {
   ess: 'foundational',
   disciplinary: 'foundational',
   accounts: 'foundational',
+  reports: 'foundational',
+  documents: 'foundational',
   procurement: 'horizontal',
   legal: 'horizontal',
   ats: 'horizontal',
   performance: 'horizontal',
   training: 'horizontal',
-  documents: 'horizontal',
   communications: 'horizontal',
-  reports: 'horizontal',
   hse: 'vertical',
   assets: 'vertical',
   fleet: 'vertical',
+  sacco: 'vertical',
+  healthcare: 'vertical',
+  energy: 'vertical',
+  construction: 'vertical',
 };
 
 export function horizontalQuotaForTier(tier: DeploymentTier): number {

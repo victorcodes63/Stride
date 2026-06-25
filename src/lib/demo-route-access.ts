@@ -5,6 +5,37 @@ export function canAccessPayroll(user: StaffUser): boolean {
   return user.role === 'admin' || user.staffUserType === 'finance';
 }
 
+export function canAccessSacco(user: StaffUser): boolean {
+  return user.role === 'admin' || user.staffUserType === 'finance';
+}
+
+export function canAccessHealthcare(user: StaffUser): boolean {
+  return (
+    user.role === 'admin' ||
+    user.staffUserType === 'business_manager' ||
+    user.staffUserType === 'operations' ||
+    user.staffUserType === 'finance'
+  );
+}
+
+export function canAccessEnergy(user: StaffUser): boolean {
+  return (
+    user.role === 'admin' ||
+    user.staffUserType === 'business_manager' ||
+    user.staffUserType === 'operations' ||
+    user.staffUserType === 'finance'
+  );
+}
+
+export function canAccessConstruction(user: StaffUser): boolean {
+  return (
+    user.role === 'admin' ||
+    user.staffUserType === 'business_manager' ||
+    user.staffUserType === 'operations' ||
+    user.staffUserType === 'finance'
+  );
+}
+
 export function canAccessFleet(user: StaffUser): boolean {
   return (
     user.role === 'admin' ||

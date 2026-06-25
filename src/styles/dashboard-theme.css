@@ -32,8 +32,11 @@
   --dash-text-strong: #1a1714;
   --dash-text-body: #3d3833;
   --dash-text-muted: #8a8076;
-  --dash-text-subtle: #b8ada0;
-  --dash-text-faint: #d8cdbf;
+  --dash-text-subtle: #7a7168;
+  --dash-text-faint: #9a9188;
+
+  /* Brand accent — coral CTAs on overview / shell */
+  --dash-accent: var(--stride-coral);
 
   /* Interactive */
   --dash-hover: #f4efe8;
@@ -147,8 +150,8 @@ html.dark {
   --dash-text-strong: #ffffff;
   --dash-text-body: rgba(255, 255, 255, 0.85);
   --dash-text-muted: rgba(255, 255, 255, 0.58);
-  --dash-text-subtle: rgba(255, 255, 255, 0.42);
-  --dash-text-faint: rgba(255, 255, 255, 0.3);
+  --dash-text-subtle: rgba(255, 255, 255, 0.58);
+  --dash-text-faint: rgba(255, 255, 255, 0.45);
 
   --dash-hover: #1a1714;
   --dash-input-bg: #0a0908;
@@ -284,6 +287,15 @@ html.dark .dash-overview-hairline-grid > * {
 
 .dash-overview-module-link:hover {
   background: var(--dash-hover);
+}
+
+.dash-overview-module-link:focus-visible {
+  outline: 2px solid var(--dash-focus-ring);
+  outline-offset: -2px;
+}
+
+.dash-overview-module-accent {
+  color: var(--dash-accent);
 }
 
 .dash-overview-kpi-cell {

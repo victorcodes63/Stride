@@ -49,7 +49,7 @@ function CompareGroup({
     <div className="border-b border-pub-border last:border-b-0">
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pub-primary)]/30 focus-visible:ring-offset-2"
+        className="marketing-accordion-trigger flex w-full items-center justify-between gap-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pub-primary)]/30 focus-visible:ring-offset-2"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
@@ -65,7 +65,7 @@ function CompareGroup({
 
       {open ? (
         <div id={panelId} className="pb-4">
-          <div className="hidden overflow-x-auto rounded-xl border border-pub-border bg-white sm:block">
+          <div className="marketing-compare-table-wrap hidden overflow-x-auto rounded-xl border border-pub-border bg-white sm:block">
             <table className="w-full min-w-[640px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-pub-border bg-[var(--pub-paper-2,#FBF8F4)]">

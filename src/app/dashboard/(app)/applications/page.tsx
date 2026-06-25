@@ -1210,7 +1210,7 @@ export default function DashboardApplicationsPage() {
  aria-hidden
  />
  <div
- className="fixed right-0 top-0 bottom-0 h-screen max-h-dvh w-[66.666vw] min-w-[24rem] max-w-[56rem] bg-white border-l border-neutral-200 shadow-sm z-50 flex flex-col min-h-0 rounded-l-xl"
+ className="fixed inset-y-0 right-0 z-50 flex h-screen max-h-dvh w-full max-w-[56rem] flex-col rounded-l-xl border-l border-neutral-200 bg-white shadow-sm min-h-0 sm:w-[66vw]"
  >
  <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 rounded-tl-xl">
  <div className="px-4 py-3 flex items-center justify-between gap-2">

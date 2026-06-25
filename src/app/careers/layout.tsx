@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import CareersPublicChrome from '@/components/public/CareersPublicChrome';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
 import PublicAppShell from '@/components/public/PublicAppShell';
 
@@ -21,5 +22,10 @@ export default function CareersLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <PublicAppShell>{children}</PublicAppShell>;
+  return (
+    <PublicAppShell>
+      <CareersPublicChrome />
+      {children}
+    </PublicAppShell>
+  );
 }

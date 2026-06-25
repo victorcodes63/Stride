@@ -49,9 +49,9 @@ export function EssTabBar() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="relative -mt-5 flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-black leading-tight text-[var(--ess-secondary)]"
+                className="relative -mt-5 flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-black leading-tight text-[var(--ess-primary)]"
               >
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--ess-secondary)] text-white shadow-[0_16px_34px_rgba(15,23,42,0.25)] ring-4 ring-[var(--ess-surface)]">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--ess-primary)] text-white shadow-[0_16px_34px_color-mix(in_srgb,var(--ess-primary)_35%,transparent)] ring-4 ring-[var(--ess-surface)]">
                   <Icon className="h-7 w-7" strokeWidth={2.1} />
                 </span>
                 <span>{tab.label}</span>
@@ -64,8 +64,8 @@ export function EssTabBar() {
               href={tab.href}
               className={`flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.35rem] px-1 text-[10px] font-bold leading-tight transition-all sm:text-xs ${
                 active
-                  ? 'text-[var(--ess-secondary)]'
-                  : 'text-[var(--ess-muted)] hover:bg-[var(--ess-secondary-soft)]'
+                  ? 'text-[var(--ess-primary)]'
+                  : 'text-[var(--ess-muted)] hover:bg-[var(--ess-primary-soft)]'
               }`}
             >
               <Icon className="h-5 w-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} />

@@ -14,6 +14,11 @@ import {
   Phone,
 } from 'lucide-react';
 import { dashboardTableStripeClass } from '@/lib/dashboard-layout';
+import {
+  DashboardTable,
+  DashboardTableFooter,
+  DashboardTableViewport,
+} from '@/components/dashboard/DashboardDataTable';
 
 export type EmployeeDirectoryRecord = {
   id: string;
@@ -325,8 +330,8 @@ export default function EmployeeDirectoryTable({
 
   return (
     <>
-      <div className="overflow-x-auto">
-        <table className="data-table dashboard-data-table w-full min-w-[720px]">
+      <DashboardTableViewport minWidth={720}>
+        <DashboardTable>
           <thead>
             <tr className="border-b border-neutral-200">
               <th className="w-10 px-3 py-3">
@@ -501,10 +506,10 @@ export default function EmployeeDirectoryTable({
               );
             })}
           </tbody>
-        </table>
-      </div>
+        </DashboardTable>
+      </DashboardTableViewport>
 
-      <div className="flex flex-col gap-3 border-t border-neutral-100 px-4 py-3 text-sm text-neutral-500 sm:flex-row sm:items-center sm:justify-between md:px-5">
+      <DashboardTableFooter>
         <span>
           {selectedIds.size > 0 ? `${selectedIds.size} selected · ` : ''}
           Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, employees.length)} of{' '}
@@ -535,7 +540,7 @@ export default function EmployeeDirectoryTable({
             </button>
           </div>
         ) : null}
-      </div>
+      </DashboardTableFooter>
     </>
   );
 }

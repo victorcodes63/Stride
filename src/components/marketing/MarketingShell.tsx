@@ -1,4 +1,5 @@
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
+import { MarketingAnalytics } from '@/components/marketing/MarketingAnalytics';
 import { MarketingStickyScrollFix } from '@/components/marketing/MarketingStickyScrollFix';
 import { StudioCraftNav } from '@/components/marketing/v3/StudioCraftNav';
 import { StudioCraftShell } from '@/components/marketing/v3/StudioCraftShell';
@@ -13,12 +14,21 @@ type MarketingShellProps = {
 export function MarketingShell({ children, navOverlay = false }: MarketingShellProps) {
   return (
     <StudioCraftShell>
+      <MarketingAnalytics />
       <MarketingStickyScrollFix />
       <div className="[--nav-h:5.25rem] sm:[--nav-h:5.75rem]">
         <header className="marketing-fixed-header fixed inset-x-0 top-0 z-[100] pt-[max(0.5rem,env(safe-area-inset-top,0px))] sm:pt-3">
           <StudioCraftNav />
         </header>
-        <main className={navOverlay ? 'min-w-0' : 'min-w-0 pt-[var(--nav-h)]'}>{children}</main>
+        <main
+          className={
+            navOverlay
+              ? 'marketing-main min-w-0 overflow-x-clip'
+              : 'marketing-main min-w-0 overflow-x-clip pt-[var(--nav-h)]'
+          }
+        >
+          {children}
+        </main>
         <MarketingFooter />
       </div>
     </StudioCraftShell>

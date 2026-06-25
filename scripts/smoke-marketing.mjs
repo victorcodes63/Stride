@@ -15,7 +15,7 @@ const APP_ORIGIN = (process.env.SMOKE_MARKETING_APP_ORIGIN || 'https://app.getst
 );
 
 const NAV_PATHS = ['/', '/platform', '/industries', '/pricing', '/about', '/contact'];
-const FOOTER_PATHS = ['/privacy', '/terms', '/careers'];
+const FOOTER_PATHS = ['/privacy', '/terms'];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -45,23 +45,59 @@ async function main() {
   for (const path of FOOTER_PATHS) {
     await step(`Footer ${path}`, async () => {
       const { res } = await fetchRoute(path);
-      if (path === '/careers') {
-        assert(
-          res.status === 200 || (res.status >= 300 && res.status < 400),
-          `/careers returned ${res.status} (expected 200 or redirect to app)`,
-        );
-        if (res.status >= 300 && res.status < 400) {
-          const location = res.headers.get('location') ?? '';
-          assert(
-            location.includes('careers') || location.startsWith(APP_ORIGIN),
-            `/careers redirect unexpected: ${location}`,
-          );
-        }
-        return;
-      }
       assert(res.status === 200, `${path} returned ${res.status}`);
     });
   }
+
+  await step('/careers redirects to app', async () => {
+    const { res } = await fetchRoute('/careers');
+    assert(
+      res.status >= 300 && res.status < 400,
+      `/careers returned ${res.status} (expected redirect to app)`,
+    );
+    const location = res.headers.get('location') ?? '';
+    assert(
+      location.includes('careers') && location.startsWith(APP_ORIGIN),
+      `/careers redirect unexpected: ${location}`,
+    );
+  });
+
+  await step('robots.txt disallows app surfaces', async () => {
+    const { res } = await fetchRoute('/robots.txt');
+    assert(res.status === 200, `/robots.txt returned ${res.status}`);
+    const body = await res.text();
+    assert(body.includes('Disallow: /dashboard/'), 'robots.txt missing /dashboard/ disallow');
+    assert(body.includes('Disallow: /api/'), 'robots.txt missing /api/ disallow');
+    assert(body.includes('Disallow: /ess/'), 'robots.txt missing /ess/ disallow');
+    assert(body.includes('Sitemap:'), 'robots.txt missing sitemap reference');
+  });
+
+  await step('sitemap.xml lists core marketing routes', async () => {
+    const { res } = await fetchRoute('/sitemap.xml');
+    assert(res.status === 200, `/sitemap.xml returned ${res.status}`);
+    const body = await res.text();
+    for (const segment of [
+      '/platform',
+      '/industries',
+      '/industries/logistics',
+      '/pricing',
+      '/about',
+      '/contact',
+      '/privacy',
+      '/terms',
+    ]) {
+      assert(body.includes(segment), `sitemap.xml missing ${segment}`);
+    }
+    assert(!body.includes('/careers'), 'sitemap.xml must not list /careers (app-only)');
+    assert(!body.includes('/services'), 'sitemap.xml still lists legacy /services');
+    assert(!body.includes('/resources'), 'sitemap.xml still lists legacy /resources');
+    assert(!body.includes('/insights'), 'sitemap.xml still lists legacy /insights');
+  });
+
+  await step('Home OG image asset', async () => {
+    const { res } = await fetchRoute('/og/stride-default.png');
+    assert(res.status === 200, `/og/stride-default.png returned ${res.status}`);
+  });
 
   await step('Book demo API accepts lead', async () => {
     const res = await fetch(`${BASE_URL}/api/marketing/demo-request`, {
@@ -154,6 +190,21 @@ async function main() {
       const menuButton = page.getByRole('button', { name: /open menu|close menu/i });
       await menuButton.click();
       await page.getByLabel('Mobile').getByRole('link', { name: 'Platform' }).waitFor({ state: 'visible', timeout: 10_000 });
+      await context.close();
+    });
+
+    await step('Industries — no duplicate Platform architecture section', async () => {
+      const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const page = await context.newPage();
+      const res = await page.goto(`${BASE_URL}/industries`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60_000,
+      });
+      assert(res?.ok(), `/industries load failed: ${res?.status()}`);
+      const bodyText = await page.locator('body').innerText();
+      const archCount = (bodyText.match(/Platform architecture/gi) || []).length;
+      assert(archCount === 0, `Expected 0 "Platform architecture" on /industries, found ${archCount}`);
+      await page.getByText(/sectors we serve/i).waitFor({ state: 'visible', timeout: 15_000 });
       await context.close();
     });
 

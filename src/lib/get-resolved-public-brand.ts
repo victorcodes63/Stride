@@ -9,6 +9,17 @@ import {
   loadOperatingEntitiesSettings,
   resolveEntitySlugOrDefault,
 } from '@/lib/operating-entities';
+import { recruitmentEmployerNameFromEnv } from '@/lib/recruitment-workspace';
+import { getSiteMode } from '@/lib/site-mode';
+
+/** Stale outsourcing demo rows that must not drive public careers branding. */
+const LEGACY_CAREERS_EMPLOYER = /nyati\s+sacco/i;
+
+function shouldPreferEnvCareersEmployer(operatingEntityLegalName: string | undefined): boolean {
+  if (getSiteMode() === 'app') return true;
+  const legal = operatingEntityLegalName?.trim();
+  return Boolean(legal && LEGACY_CAREERS_EMPLOYER.test(legal));
+}
 
 export async function getResolvedPublicBrand(): Promise<PublicBrand> {
   const cookieStore = await cookies();
@@ -23,6 +34,17 @@ export async function getResolvedPublicBrand(): Promise<PublicBrand> {
   const brand = resolvePublicBrand(setup);
 
   const orgName = operatingEntity?.legalName?.trim();
+
+  if (shouldPreferEnvCareersEmployer(orgName)) {
+    const envEmployer = recruitmentEmployerNameFromEnv();
+    return {
+      ...brand,
+      orgName: envEmployer,
+      payslipLegalName: envEmployer,
+      careersEmployerName: envEmployer,
+    };
+  }
+
   if (!orgName) return brand;
 
   return {

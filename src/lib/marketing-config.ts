@@ -226,6 +226,13 @@ export const MARKETING_PLATFORM_MODULES_SCREENSHOT = {
 
 /** Product screenshots for industry / architecture vertical previews. */
 export const MARKETING_VERTICAL_SCREENSHOTS = {
+  hr_consultancy: {
+    src: '/marketing/stride-vertical-hr-consultancy.png',
+    alt: 'Stride recruitment pipeline with AssessIQ candidate assessments',
+    moduleLabel: 'Talent & recruitment',
+    screenTitle: 'Pipeline & assessments',
+    path: '/dashboard/applications',
+  },
   logistics: {
     src: '/marketing/stride-vertical-logistics.png',
     alt: 'Stride logistics trip board — fleet workflow kanban',
@@ -670,11 +677,12 @@ export const PLATFORM_FAQ = [
   {
     question: 'What industry verticals are available today?',
     answer:
-      'Logistics & Cargo and Construction are live now — fleet, trips, POD, settlement, and site project budgets on the core. SACCOs, Healthcare and Energy are on the roadmap; join the waitlist for your sector while using the horizontal core today.',
+      'HR Consultancy, Logistics & Cargo, Construction, SACCOs, and Healthcare are live vertical packs today. Energy is on the roadmap.',
   },
 ] as const;
 
 export type IndustrySector =
+  | 'hr_consultancy'
   | 'logistics'
   | 'saccos'
   | 'healthcare'
@@ -689,6 +697,21 @@ export const INDUSTRY_VERTICALS: {
   features: string[];
   href: string;
 }[] = [
+  {
+    id: 'hr_consultancy',
+    name: 'HR Consultancy',
+    status: 'available',
+    description:
+      'Careers site, recruitment ATS, built-in AssessIQ candidate assessments, and Kenya-compliant payroll for client workforces — built for boutique HR firms and outsourcing operators.',
+    features: [
+      'Careers site & job posts',
+      'Applicant tracking pipeline',
+      'AssessIQ skills & aptitude assessments',
+      'Interview scheduling',
+      'Client payroll & finance',
+    ],
+    href: '/industries#hr-consultancy',
+  },
   {
     id: 'logistics',
     name: 'Logistics & Cargo',
@@ -724,7 +747,7 @@ export const INDUSTRY_VERTICALS: {
   {
     id: 'energy',
     name: 'Oil & Gas / Energy',
-    status: 'coming_soon',
+    status: 'available',
     description: 'HSE and compliance, incident reporting, and multi-entity operations for energy operators.',
     features: ['HSE & compliance', 'Incident reporting', 'Multi-entity', 'Permit tracking'],
     href: '/industries/energy',
@@ -732,7 +755,7 @@ export const INDUSTRY_VERTICALS: {
   {
     id: 'construction',
     name: 'Construction',
-    status: 'coming_soon',
+    status: 'available',
     description: 'Site and project management, plant tracking, and subcontractor workflows.',
     features: ['Site management', 'Asset / plant tracking', 'Subcontractors', 'Project budgets'],
     href: '/industries/construction',
@@ -948,7 +971,7 @@ export const FAQ_ITEMS = [
   {
     question: 'Do you support my industry?',
     answer:
-      'The horizontal core works for any business. Logistics & Cargo and Construction are available today as vertical packs; SACCOs, Healthcare and Energy are on the roadmap — join the waitlist for your sector.',
+      'The horizontal core works for any business. Logistics, Construction, SACCOs, and Healthcare are available today as vertical packs; Energy is on the roadmap.',
   },
 ] as const;
 

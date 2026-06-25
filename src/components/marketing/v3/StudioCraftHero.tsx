@@ -73,7 +73,7 @@ export function StudioCraftHero() {
             </p>
 
             <div
-              className="sc-animate-fade-up mt-4 flex flex-wrap items-center justify-center gap-3 sm:mt-5"
+              className="sc-hero-cta-row marketing-cta-stack sc-animate-fade-up mt-4 flex flex-wrap items-center justify-center gap-3 sm:mt-5"
               style={{ animationDelay: '400ms' }}
             >
               <MarketingPrimaryLink

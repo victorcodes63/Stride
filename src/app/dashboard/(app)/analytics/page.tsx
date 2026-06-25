@@ -14,6 +14,10 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import {
+ DashboardAsyncState,
+ DashboardPageSkeleton,
+} from '@/components/dashboard/DashboardAsyncState';
 import type { ApplicationWithDetails, ApplicationStatus, UserSummary } from '@/types/dashboard';
 import type { InterviewWithDetails } from '@/types/dashboard';
 
@@ -102,6 +106,7 @@ export default function DashboardAnalyticsPage() {
  });
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
+ const [reloadNonce, setReloadNonce] = useState(0);
 
  useEffect(() => {
  let cancelled = false;
@@ -162,7 +167,7 @@ export default function DashboardAnalyticsPage() {
  if (!cancelled) setLoading(false);
  });
  return () => { cancelled = true; };
- }, [access]);
+ }, [access, reloadNonce]);
 
  const statusBreakdown = useMemo(() => {
  const counts: Record<ApplicationStatus, number> = {
@@ -273,21 +278,20 @@ export default function DashboardAnalyticsPage() {
  );
  }
 
- if (loading) {
- return (
- <div className="w-full min-w-0 flex items-center justify-center py-24">
- <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
- </div>
- );
- }
-
- if (error) {
+ if (loading || error) {
  return (
  <DashboardPage>
  <DashboardPageHeader title="Reports" />
- <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800 text-sm">
- {error}
- </div>
+ <DashboardAsyncState
+ status={loading ? 'loading' : 'error'}
+ error={error}
+ onRetry={() => {
+ setError(null);
+ setLoading(true);
+ setReloadNonce((n) => n + 1);
+ }}
+ loading={<DashboardPageSkeleton variant="stats" />}
+ />
  </DashboardPage>
  );
  }

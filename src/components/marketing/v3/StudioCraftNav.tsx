@@ -59,7 +59,7 @@ export function StudioCraftNav() {
               </button>
             </div>
 
-            <nav className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-6" aria-label="Mobile">
+            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 py-6 sm:px-6" aria-label="Mobile">
               <ul className="space-y-1">
                 {MARKETING_NAV_LINKS.map((link) => (
                   <li key={link.href}>

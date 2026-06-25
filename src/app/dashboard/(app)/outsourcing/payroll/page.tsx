@@ -10,6 +10,13 @@ import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { useEntity } from '@/components/EntitySwitcher';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import {
+  DashboardTable,
+  DashboardTableCard,
+  DashboardTableEmpty,
+  DashboardTableMeta,
+  DashboardTableViewport,
+} from '@/components/dashboard/DashboardDataTable';
 
 interface PayrollRecord {
  id: string;
@@ -624,10 +631,8 @@ export default function OutsourcingPayrollPage() {
  </div>
  </div>
 
- <div className="data-table-wrap">
- <h2 className="text-base font-semibold text-primary-900 px-4 sm:px-6 py-4 border-b border-neutral-100">
- Payroll records ({month}/{year})
- </h2>
+ <DashboardTableCard>
+ <DashboardTableMeta title={`Payroll records (${month}/${year})`} />
  {loading ? (
  <div className="p-8 animate-pulse">
  <div className="h-4 bg-neutral-100 rounded w-full mb-4" />
@@ -635,30 +640,31 @@ export default function OutsourcingPayrollPage() {
  <div className="h-4 bg-neutral-100 rounded w-4/6" />
  </div>
  ) : payrolls.length === 0 ? (
- <div className="p-8 text-center text-neutral-500 text-sm">
- No payroll records for this period. Use &quot;Generate payroll&quot; to create draft records for employees in scope.
- </div>
+ <DashboardTableEmpty
+ title="No payroll records for this period"
+ description='Use "Generate payroll" to create draft records for employees in scope.'
+ />
  ) : (
- <div className="overflow-x-auto">
- <table className="data-table dashboard-data-table min-w-[760px]">
+ <DashboardTableViewport minWidth={760}>
+ <DashboardTable>
  <thead>
  <tr>
  <th className="text-left">Employee</th>
  <th className="text-left">Facility</th>
  <th className="text-left">Dept</th>
- <th className="text-right">Basic</th>
- <th className="text-right">Gross</th>
- <th className="text-right">{entityConfig.payroll.deductionColumnHeaders.paye}</th>
- <th className="text-right">{entityConfig.payroll.deductionColumnHeaders.nssf}</th>
- <th className="text-right">{entityConfig.payroll.deductionColumnHeaders.nhif}</th>
- <th className="text-right">{entityConfig.payroll.deductionColumnHeaders.ahl}</th>
- <th className="text-right" title="Employer levy (not from net pay)">
+ <th className="col-right">Basic</th>
+ <th className="col-right">Gross</th>
+ <th className="col-right">{entityConfig.payroll.deductionColumnHeaders.paye}</th>
+ <th className="col-right">{entityConfig.payroll.deductionColumnHeaders.nssf}</th>
+ <th className="col-right">{entityConfig.payroll.deductionColumnHeaders.nhif}</th>
+ <th className="col-right">{entityConfig.payroll.deductionColumnHeaders.ahl}</th>
+ <th className="col-right" title="Employer levy (not from net pay)">
  {entityConfig.payroll.deductionColumnHeaders.nita}
  </th>
- <th className="text-right">Net pay</th>
+ <th className="col-right">Net pay</th>
  <th className="text-left">Status</th>
- <th className="w-10 text-center">Edit</th>
- <th className="w-10 text-right">Send</th>
+ <th className="w-10 col-center">Edit</th>
+ <th className="w-10 col-right">Send</th>
  </tr>
  </thead>
  <tbody>
@@ -729,10 +735,10 @@ export default function OutsourcingPayrollPage() {
  </tr>
  ))}
  </tbody>
- </table>
- </div>
+ </DashboardTable>
+ </DashboardTableViewport>
  )}
- </div>
+ </DashboardTableCard>
 
  {editPayrollId && (
  <PayrollEditModal

@@ -12,6 +12,7 @@ import { CoreDashboardWireframe } from './CoreDashboardWireframe';
 import { EnergyWireframe } from './EnergyWireframe';
 import { FleetBoardWireframe } from './FleetBoardWireframe';
 import { HealthcareWireframe } from './HealthcareWireframe';
+import { HrConsultancyWireframe } from './HrConsultancyWireframe';
 import { SaccosWireframe } from './SaccosWireframe';
 
 type MarketingScreenshotFrameProps = {
@@ -122,6 +123,7 @@ const INDUSTRY_WIREFRAMES: Record<
   MarketingVerticalScreenshotId,
   (props: { className?: string }) => ReactNode
 > = {
+  hr_consultancy: HrConsultancyWireframe,
   logistics: FleetBoardWireframe,
   saccos: SaccosWireframe,
   healthcare: HealthcareWireframe,

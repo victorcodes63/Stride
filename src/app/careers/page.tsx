@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import DynamicJobListings from '@/components/ats/DynamicJobListings';
-import PublicPageLayout from '@/components/public/PublicPageLayout';
 import { CareersDemoBanner } from '@/components/public/CareersDemoBanner';
 import CareersHighlights from '@/components/public/CareersHighlights';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
 import { isPublicDemoMode } from '@/lib/deployment-config';
+import { getMarketingPageUrl } from '@/lib/marketing-config';
 
 type CareersPageProps = {
   searchParams?: Promise<{
@@ -29,8 +29,7 @@ export default async function CareersPage({ searchParams }: CareersPageProps) {
         : '';
 
   return (
-    <PublicPageLayout>
-      <main className="min-h-screen bg-pub-surface pb-4">
+    <main className="min-h-screen bg-pub-surface pb-4">
         {demoMode ? <CareersDemoBanner employerName={employerName} /> : null}
 
         <section className="pub-careers-hero border-b border-pub-border">
@@ -64,7 +63,7 @@ export default async function CareersPage({ searchParams }: CareersPageProps) {
                     See recruiter dashboard
                   </Link>
                   <Link
-                    href="/platform"
+                    href={getMarketingPageUrl('/platform')}
                     className="inline-flex h-11 items-center px-1 text-sm font-semibold text-[var(--pub-primary)] hover:underline"
                   >
                     Recruitment on Stride →
@@ -100,7 +99,6 @@ export default async function CareersPage({ searchParams }: CareersPageProps) {
           />
         </div>
       </section>
-      </main>
-    </PublicPageLayout>
+    </main>
   );
 }

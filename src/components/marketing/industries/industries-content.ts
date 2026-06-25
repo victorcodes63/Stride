@@ -20,7 +20,7 @@ export type IndustryDeepDive = {
   stats: IndustryStat[];
   href: string;
   ctaLabel: string;
-  mediaKey: 'logistics' | 'saccos' | 'healthcare' | 'energy' | 'construction';
+  mediaKey: 'logistics' | 'hr_consultancy' | 'saccos' | 'healthcare' | 'energy' | 'construction';
 };
 
 /** Hero copy */
@@ -28,7 +28,7 @@ export const INDUSTRIES_HERO = {
   eyebrow: 'Industries',
   title: 'Built for your industry.',
   subhead:
-    'The core runs your business. Vertical packs add sector-specific workflows on top — without a separate system or integration project.',
+    'Sector-specific workflows on Stride — from HR consultancies running recruitment and client payroll to fleets, SACCOs, and construction sites. Explore what is live today and what is on the roadmap.',
 } as const;
 
 /** Shared core platform capabilities */
@@ -48,14 +48,20 @@ export const CORE_PACKS_EXPLAINER = {
 } as const;
 
 export const VERTICAL_PACKS = [
-  { id: 'logistics', label: 'Logistics & Cargo', color: '#FF5436' },
-  { id: 'saccos', label: 'SACCOs', color: '#E63E22' },
-  { id: 'healthcare', label: 'Healthcare', color: '#FF7A5C' },
-  { id: 'energy', label: 'Oil & Gas / Energy', color: '#C9341B' },
-  { id: 'construction', label: 'Construction', color: '#FF8A6E' },
+  { id: 'hr_consultancy', label: 'HR Consultancy', color: '#FF5436' },
+  { id: 'logistics', label: 'Logistics & Cargo', color: '#E63E22' },
+  { id: 'saccos', label: 'SACCOs', color: '#FF7A5C' },
+  { id: 'healthcare', label: 'Healthcare', color: '#C9341B' },
+  { id: 'energy', label: 'Oil & Gas / Energy', color: '#FF8A6E' },
+  { id: 'construction', label: 'Construction', color: '#E63E22' },
 ] as const;
 
 /** Illustrative industry metrics for marketing pages — not verified figures. */
+export const HR_CONSULTANCY_STATS: IndustryStat[] = [
+  { value: 1, label: 'ATS from careers site to offer' },
+  { value: 3, suffix: '×', label: 'faster shortlist with scored assessments' },
+  { value: 40, suffix: '%', label: 'less tool-switching for boutique firms' },
+];
 export const LOGISTICS_STATS: IndustryStat[] = [
   { value: 1, label: 'timeline for every trip' },
   { value: 40, suffix: '%', label: 'faster settlement cycles' },
@@ -88,6 +94,22 @@ export const CONSTRUCTION_STATS: IndustryStat[] = [
 
 export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
   {
+    id: 'hr-consultancy',
+    name: 'HR Consultancy',
+    status: 'available',
+    positioning: 'Recruitment, assessments, and client workforce ops — one login.',
+    pain:
+      'Boutique HR firms juggle separate ATS tools, spreadsheet shortlists, and payroll for each client — assessments live outside the pipeline and client billing is manual.',
+    strideRuns:
+      'Careers site and job posts → applicant pipeline → built-in AssessIQ candidate assessments (skills & aptitude, auto-scored) → interviews → hire → payroll and finance for client workforces on the same platform.',
+    opportunity:
+      'Thousands of East African HR consultancies outgrow spreadsheets but cannot afford enterprise talent suites — Stride bundles ATS, assessments, and Kenya-compliant payroll at SaaS pricing.',
+    stats: HR_CONSULTANCY_STATS,
+    href: MARKETING_ROUTES.contact,
+    ctaLabel: MARKETING_CTAS.bookDemo,
+    mediaKey: 'hr_consultancy',
+  },
+  {
     id: 'logistics',
     name: 'Logistics & Cargo',
     status: 'available',
@@ -106,7 +128,7 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
   {
     id: 'saccos',
     name: 'SACCOs',
-    status: 'coming_soon',
+    status: 'available',
     positioning: 'Built for regulated cooperatives.',
     pain:
       'Legacy core systems are rigid and costly; member servicing and statutory reporting are manual.',
@@ -116,13 +138,13 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
       'Thousands of regulated SACCOs need modern, affordable digital operations — an underserved, compliance-heavy market.',
     stats: SACCO_STATS,
     href: '/industries/saccos',
-    ctaLabel: MARKETING_CTAS.joinWaitlist,
+    ctaLabel: 'See the demo',
     mediaKey: 'saccos',
   },
   {
     id: 'healthcare',
     name: 'Healthcare',
-    status: 'coming_soon',
+    status: 'available',
     positioning: 'Workforce operations for clinical and non-clinical teams.',
     pain:
       'Rota and shift scheduling live in spreadsheets; clock-in and compliance are hard to verify.',
@@ -131,7 +153,7 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
       'Growing private facilities need affordable, reliable workforce ops without enterprise HRIS cost.',
     stats: HEALTHCARE_STATS,
     href: '/industries/healthcare',
-    ctaLabel: MARKETING_CTAS.joinWaitlist,
+    ctaLabel: 'See the demo',
     mediaKey: 'healthcare',
   },
   {

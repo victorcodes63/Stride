@@ -72,7 +72,8 @@ export function marketingTierModuleSummary(tierId: MarketingPricingTierId): stri
   switch (tierId) {
     case 'starter':
       return [
-        'HR & Payroll and Finance (core, leave, time, payroll, accounts)',
+        'HR & Payroll and Finance always included',
+        'Choose 2 horizontal plug-in modules (e.g. Procurement, Legal)',
         `Up to ${tier.maxEmployees} employees`,
         'Employee self-service (ESS)',
         'M-Pesa disbursements',
@@ -81,9 +82,10 @@ export function marketingTierModuleSummary(tierId: MarketingPricingTierId): stri
       ];
     case 'growth':
       return [
-        'HR, Finance, Procurement, Legal & Admin modules',
-        `Up to ${tier.maxEmployees} employees`,
+        'HR & Payroll and Finance always included',
+        '4 horizontal plug-in modules included',
         'One vertical pack (e.g. Logistics fleet)',
+        `Up to ${tier.maxEmployees} employees`,
         'Multi-entity support',
         'Advanced approvals & workflows',
         'Priority support + onboarding',

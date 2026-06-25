@@ -33,7 +33,7 @@ export function DemoAccessPageContent() {
           </Link>
         </p>
 
-        <div className="mt-8 overflow-hidden rounded-xl border border-pub-border">
+        <div className="marketing-compare-table-wrap mt-8 overflow-x-auto rounded-xl border border-pub-border">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-pub-border bg-pub-surface-muted">

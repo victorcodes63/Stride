@@ -7,6 +7,7 @@ import {
   sanitizeHexColor,
 } from '@/lib/brand-theme';
 import type { CompanySetupSettings } from '@/lib/company-setup';
+import { recruitmentEmployerNameFromEnv } from '@/lib/recruitment-workspace';
 
 function pickString(dbValue: string | undefined, envValue: string): string {
   return dbValue?.trim() ? dbValue.trim() : envValue;
@@ -58,7 +59,7 @@ export function resolvePublicBrand(setup: CompanySetupSettings): PublicBrand {
     termsUrl: setup.termsUrl?.trim() || '/terms',
     supportUrl: setup.supportUrl?.trim() || '',
     emailFromName: pickString(setup.emailFromName, `${brandConfig.productName} HR`),
-    careersEmployerName: pickString(setup.careersEmployerName, orgName),
+    careersEmployerName: pickString(setup.careersEmployerName, recruitmentEmployerNameFromEnv()),
     careersTagline: pickString(setup.careersTagline, pickString(setup.tagline, productTagline)),
     careersHeroImageUrl: pickString(setup.careersHeroImageUrl, ''),
     essPortalTitle: pickString(setup.essPortalTitle, 'Employee Self Service'),

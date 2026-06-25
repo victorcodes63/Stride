@@ -22,6 +22,10 @@ export type ModuleKey =
   | 'reports'
   | 'assets'
   | 'fleet'
+  | 'sacco'
+  | 'healthcare'
+  | 'energy'
+  | 'construction'
   | 'ess'
   | 'communications'
   | 'training'
@@ -154,6 +158,42 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     canDisable: true,
   },
   {
+    key: 'sacco',
+    label: 'SACCO',
+    envVar: 'MODULE_SACCO',
+    description: 'Member ledger, BOSA/FOSA accounts, dividend runs, and SASRA reporting templates.',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+  },
+  {
+    key: 'healthcare',
+    label: 'Healthcare',
+    envVar: 'MODULE_HEALTHCARE',
+    description: 'Clinical rota rules, licence gates on shifts, and NHIF/SHIF compliance hooks.',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+  },
+  {
+    key: 'energy',
+    label: 'Energy',
+    envVar: 'MODULE_ENERGY',
+    description: 'Permit tracking, site register, and multi-entity HSE rollup for energy operators.',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+  },
+  {
+    key: 'construction',
+    label: 'Construction',
+    envVar: 'MODULE_CONSTRUCTION',
+    description: 'Site hierarchy, plant asset tracking, and subcontractor accounts payable.',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+  },
+  {
     key: 'ess',
     label: 'Employee Self-Service',
     envVar: 'MODULE_ESS',
@@ -245,7 +285,7 @@ export const MODULE_UI_GROUPS: ModuleUiGroup[] = [
     id: 'extended',
     label: 'Phase 2–3 — Expansion modules',
     description: 'Talent, safety, assets, and vertical engines.',
-    keys: ['ats', 'hse', 'assets', 'fleet'],
+    keys: ['ats', 'hse', 'assets', 'fleet', 'sacco', 'healthcare', 'energy', 'construction'],
   },
 ];
 
@@ -278,7 +318,15 @@ export function defaultModuleAdminFlags(): Record<ModuleKey, boolean> {
   return MODULE_DEFINITIONS.reduce(
     (acc, def) => {
       if (def.key === 'core' || def.key === 'accounts') acc[def.key] = true;
-      else if (def.key === 'assets' || def.key === 'fleet') acc[def.key] = false;
+      else if (
+        def.key === 'assets' ||
+        def.key === 'fleet' ||
+        def.key === 'sacco' ||
+        def.key === 'healthcare' ||
+        def.key === 'energy' ||
+        def.key === 'construction'
+      )
+        acc[def.key] = false;
       else acc[def.key] = true;
       return acc;
     },
@@ -296,6 +344,10 @@ export function hrEssentialsModuleAdminFlags(
     assets: false,
     ats: false,
     fleet: false,
+    sacco: false,
+    healthcare: false,
+    energy: false,
+    construction: false,
   };
 }
 
@@ -374,7 +426,13 @@ export function resolveEffectiveModules(
       const envOk = licensed[def.key];
       const entitled = isSubscribed(def.key, subscription?.subscribedModules);
       const verticalOk =
-        def.key !== 'fleet' && def.key !== 'assets' && def.key !== 'hse'
+        def.key !== 'fleet' &&
+        def.key !== 'assets' &&
+        def.key !== 'hse' &&
+        def.key !== 'sacco' &&
+        def.key !== 'healthcare' &&
+        def.key !== 'energy' &&
+        def.key !== 'construction'
           ? true
           : subscription?.verticalEnginesAllowed !== false;
 

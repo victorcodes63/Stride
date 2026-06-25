@@ -51,7 +51,7 @@ function ModuleRow({
             </li>
           ))}
           {items.length > 2 ? (
-            <li className="text-[11px] font-medium text-primary-700">+{items.length - 2} more</li>
+            <li className="dash-overview-module-accent text-[11px] font-medium">+{items.length - 2} more</li>
           ) : null}
         </ul>
       ) : (
@@ -59,7 +59,7 @@ function ModuleRow({
           {snapshotLines[0] ?? 'Open module'}
         </p>
       )}
-      <span className="mt-auto inline-flex items-center gap-1 pl-[2.625rem] text-[11px] font-medium text-primary-700 opacity-0 transition group-hover:opacity-100">
+      <span className="dash-overview-module-accent mt-auto inline-flex items-center gap-1 pl-[2.625rem] text-[11px] font-medium opacity-0 transition group-hover:opacity-100">
         Open
         <ArrowRight className="h-3 w-3" />
       </span>

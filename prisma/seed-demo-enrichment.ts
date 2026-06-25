@@ -484,6 +484,26 @@ async function enrichShowcaseVerticals() {
     await seedSectorContent(entityCode, client.name, employees, hrUser.id);
     await seedBiometricForClient(client.id, entityCode);
 
+    if (entityCode.startsWith('imara-sacco')) {
+      const { seedSaccoDemo } = await import('../scripts/seed-sacco-demo');
+      await seedSaccoDemo(prisma, client.organizationId, client.id);
+    }
+
+    if (entityCode.startsWith('hospital-healthcare')) {
+      const { seedHealthcareDemo } = await import('../scripts/seed-healthcare-demo');
+      await seedHealthcareDemo(prisma, client.organizationId, client.id);
+    }
+
+    if (entityCode.startsWith('petroleum-retail')) {
+      const { seedEnergyDemo } = await import('../scripts/seed-energy-demo');
+      await seedEnergyDemo(prisma, client.organizationId, client.id);
+    }
+
+    if (entityCode.startsWith('construction')) {
+      const { seedConstructionVerticalDemo } = await import('../scripts/seed-construction-demo');
+      await seedConstructionVerticalDemo(prisma, client.organizationId, client.id);
+    }
+
     const accountsClient = await prisma.accountsClient.findUnique({
       where: { outsourcingClientId: client.id },
     });

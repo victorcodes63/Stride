@@ -42,9 +42,10 @@ export async function POST(request: Request) {
 
   const result = await notifyDemoRequest(payload);
 
-  if (!result.sent) {
-    console.warn('[marketing/demo-request] Lead captured but email not sent:', {
+  if (!result.sent && !result.webhookSent) {
+    console.warn('[marketing/demo-request] Lead captured but notifications failed:', {
       payload,
+      leadId: result.leadId,
       reason: result.reason,
       error: result.error,
     });
@@ -52,6 +53,8 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    notified: result.sent,
+    leadId: result.leadId,
+    notified: result.sent || result.webhookSent,
+    emailSent: result.sent,
   });
 }

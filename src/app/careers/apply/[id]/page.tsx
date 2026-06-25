@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import PublicPageLayout from '@/components/public/PublicPageLayout';
 import JobApplicationForm from '@/components/ats/JobApplicationForm';
 import { JobListing } from '@/types/ats';
 import { useATS } from '@/lib/use-ats';
@@ -81,8 +80,7 @@ export default function JobApplicationPage() {
 
   if (loading) {
     return (
-      <PublicPageLayout>
-        <main className="min-h-screen min-w-0 overflow-x-hidden bg-pub-surface">
+      <main className="min-h-screen min-w-0 overflow-x-hidden bg-pub-surface">
         <div className="pt-8 pb-20">
           <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
             <div className="max-w-2xl mx-auto">
@@ -97,15 +95,13 @@ export default function JobApplicationPage() {
             </div>
           </div>
         </div>
-        </main>
-      </PublicPageLayout>
+      </main>
     );
   }
 
   if (!job) {
     return (
-      <PublicPageLayout>
-        <main className="min-h-screen min-w-0 overflow-x-hidden bg-pub-surface">
+      <main className="min-h-screen min-w-0 overflow-x-hidden bg-pub-surface">
         <div className="pt-8 pb-20">
           <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
             <div className="max-w-4xl mx-auto text-center">
@@ -126,14 +122,12 @@ export default function JobApplicationPage() {
             </div>
           </div>
         </div>
-        </main>
-      </PublicPageLayout>
+      </main>
     );
   }
 
   return (
-    <PublicPageLayout>
-      <main className="min-h-screen min-w-0 overflow-x-hidden bg-pub-surface">
+    <main className="min-h-screen min-w-0 overflow-x-hidden bg-pub-surface">
       <section className="pb-16 pt-8">
         <div className="mx-auto w-full max-w-[1200px] px-5 sm:px-8">
           <Link
@@ -369,7 +363,6 @@ export default function JobApplicationPage() {
         />
       )}
 
-      </main>
-    </PublicPageLayout>
+    </main>
   );
 }

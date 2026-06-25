@@ -68,6 +68,23 @@ export const NAV_ITEM_READINESS: Record<string, NavReadiness> = {
   '/dashboard/admin/governance': 'live',
   '/dashboard/fleet/vehicles': 'live',
   '/dashboard/fleet/registers': 'live',
+  '/dashboard/sacco': 'live',
+  '/dashboard/sacco/members': 'live',
+  '/dashboard/sacco/accounts': 'live',
+  '/dashboard/sacco/dividends': 'live',
+  '/dashboard/sacco/reports': 'live',
+  '/dashboard/healthcare': 'live',
+  '/dashboard/healthcare/wards': 'live',
+  '/dashboard/healthcare/rota': 'live',
+  '/dashboard/healthcare/nhif': 'live',
+  '/dashboard/energy': 'live',
+  '/dashboard/energy/sites': 'live',
+  '/dashboard/energy/permits': 'live',
+  '/dashboard/energy/hse': 'live',
+  '/dashboard/construction': 'live',
+  '/dashboard/construction/sites': 'live',
+  '/dashboard/construction/plant': 'live',
+  '/dashboard/construction/subcontractors': 'live',
 };
 
 export function getNavItemReadiness(href: string): NavReadiness {

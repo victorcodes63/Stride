@@ -61,7 +61,9 @@ function PlatformHero() {
             </p>
           </div>
 
-          <PlatformModulesShowcase />
+          <div className="min-w-0">
+            <PlatformModulesShowcase />
+          </div>
         </div>
       </StudioCraftContainer>
     </header>
@@ -118,7 +120,7 @@ function PlatformModulesSection() {
               key={mod.num}
               className="grid gap-5 rounded-2xl border border-[var(--sc-line)] bg-[var(--sc-paper-2)] p-5 sm:gap-6 sm:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10"
             >
-              <div>
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--sc-coral)]">
                     {mod.num} — {mod.name}
@@ -132,7 +134,7 @@ function PlatformModulesSection() {
                   {mod.description}
                 </p>
               </div>
-              <ul className="grid gap-2.5 sm:grid-cols-1">
+              <ul className="grid min-w-0 gap-2.5 sm:grid-cols-1">
                 {mod.features.map((feature) => (
                   <li
                     key={feature}

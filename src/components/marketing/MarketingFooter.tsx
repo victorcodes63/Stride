@@ -20,7 +20,6 @@ const FOOTER_PRODUCT_LINKS = [
 ] as const;
 
 const FOOTER_COMPANY_LINKS = [
-  { href: '/careers', label: 'Careers' },
   { href: MARKETING_ROUTES.about, label: 'About' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
@@ -104,7 +103,7 @@ export function MarketingFooter() {
               See how Stride fits your team — we&apos;ll walk through core modules and any vertical
               packs you need.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center lg:flex-col lg:items-stretch">
+            <div className="marketing-footer-cta mt-6 flex flex-col gap-3 sm:flex-row sm:items-center lg:flex-col lg:items-stretch">
               <MarketingPrimaryLink
                 href={MARKETING_ROUTES.contact}
                 label={MARKETING_CTAS.bookDemo}

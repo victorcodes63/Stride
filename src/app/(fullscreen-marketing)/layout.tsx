@@ -1,4 +1,5 @@
 import PublicAppShell from '@/components/public/PublicAppShell';
+import { MarketingAnalytics } from '@/components/marketing/MarketingAnalytics';
 import { MARKETING_BRAND } from '@/lib/marketing-config';
 import '@/styles/marketing-mobile.css';
 
@@ -18,6 +19,7 @@ export default function FullscreenMarketingLayout({ children }: { children: Reac
       className="studio-craft-marketing max-w-[100vw] overflow-x-clip bg-[var(--sc-ink)] font-[var(--font-inter)] text-[var(--sc-paper)] antialiased"
       style={brandVars}
     >
+      <MarketingAnalytics />
       {children}
     </PublicAppShell>
   );

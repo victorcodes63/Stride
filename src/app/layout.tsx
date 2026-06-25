@@ -30,7 +30,7 @@ import { BrandProvider } from '@/components/BrandProvider';
 import { DashboardThemeProvider } from '@/components/dashboard/DashboardThemeProvider';
 import { DashboardThemeScript } from '@/components/dashboard/DashboardThemeScript';
 import { brand, getSiteUrl } from '@/lib/brand';
-import { STRIDE_WORDMARK_SRC } from '@/lib/brand-constants';
+import { MARKETING_OG_IMAGE } from '@/lib/marketing-metadata';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
 import { brandThemeStyle } from '@/lib/brand-theme-style';
 
@@ -65,10 +65,10 @@ export const metadata: Metadata = {
     siteName: brand.appName,
     images: [
       {
-        url: STRIDE_WORDMARK_SRC,
-        width: 1200,
-        height: 630,
-        alt: brand.orgName,
+        url: MARKETING_OG_IMAGE.url,
+        width: MARKETING_OG_IMAGE.width,
+        height: MARKETING_OG_IMAGE.height,
+        alt: MARKETING_OG_IMAGE.alt,
       },
     ],
     locale: 'en_US',
@@ -78,7 +78,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: brand.appName,
     description: defaultDescription,
-    images: [STRIDE_WORDMARK_SRC],
+    images: [MARKETING_OG_IMAGE.url],
   },
   robots: {
     index: true,

@@ -157,6 +157,15 @@ model OutsourcingClient {
   governanceActionItems      GovernanceActionItem[]
   hseIncidents               HseIncident[]
   hseActions                 HseAction[]
+  saccoMembers               SaccoMember[]
+  saccoDividendRuns          SaccoDividendRun[]
+  healthcareWards            HealthcareWard[]
+  healthcareClinicalAssignments HealthcareClinicalAssignment[]
+  energySites                EnergySite[]
+  energyPermits              EnergyPermit[]
+  constructionSites          ConstructionSite[]
+  constructionPlantAssets    ConstructionPlantAsset[]
+  constructionSubcontractors ConstructionSubcontractor[]
 
   @@index([name])
 }
@@ -232,6 +241,7 @@ model ShiftAssignment {
   employee         Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   shiftTemplate    ShiftTemplate?    @relation(fields: [shiftTemplateId], references: [id], onDelete: SetNull)
   attendanceEvents AttendanceEvent[]
+  clinicalLink     HealthcareClinicalAssignment?
 
   @@index([rotaPeriodId])
   @@index([employeeId, workDate])
@@ -321,6 +331,8 @@ model Employee {
   performanceGoals            PerformanceGoal[]
   performanceReviews          PerformanceReview[]
   hseIncidentsReported        HseIncident[]
+  saccoMemberProfile          SaccoMember?
+  healthcareClinicalAssignments HealthcareClinicalAssignment[]
 
   /// One national ID maps to at most one employee record system-wide (multiple NULL allowed).
   @@unique([idNumber])
@@ -1083,6 +1095,7 @@ model CompanyAsset {
   client           OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
   assignedEmployee Employee?         @relation(fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
   assignedByUser   User?             @relation("AssetAssignedByUser", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+  constructionPlantLinks ConstructionPlantAsset[]
 
   @@unique([outsourcingClientId, assetTag])
   @@index([outsourcingClientId, status])
@@ -1985,6 +1998,8 @@ model User {
   hseIncidentsCreated              HseIncident[]               @relation("HseIncidentCreator")
   hseActionsAssigned               HseAction[]                 @relation("HseActionAssignee")
   hseActionsCreated                HseAction[]                 @relation("HseActionCreator")
+  saccoLedgerEntriesCreated        SaccoLedgerEntry[]          @relation("SaccoLedgerCreator")
+  saccoDividendRunsCreated         SaccoDividendRun[]          @relation("SaccoDividendRunCreator")
 
   leaveApprover  User?  @relation("UserLeaveApprover", fields: [leaveApproverId], references: [id], onDelete: SetNull)
   leaveReportees User[] @relation("UserLeaveApprover")
@@ -4088,6 +4103,7 @@ model Project {
   createdBy   User                @relation("ProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   milestones  ProjectMilestone[]
   tasks       ProjectTask[]
+  constructionSites ConstructionSite[]
 
   @@unique([outsourcingClientId, projectCode])
   @@index([outsourcingClientId])
@@ -4476,4 +4492,355 @@ model HseAction {
   @@index([status])
   @@index([assigneeUserId])
   @@index([dueDate])
+}
+
+// --- SACCO vertical (Phase F1 / RAV-93) ---
+
+enum SaccoMemberStatus {
+  active
+  dormant
+  withdrawn
+  deceased
+}
+
+enum SaccoAccountType {
+  shares
+  bosa
+  fosa
+}
+
+enum SaccoLedgerEntryType {
+  contribution
+  withdrawal
+  transfer
+  dividend
+  interest
+  adjustment
+}
+
+enum SaccoDividendRunStatus {
+  draft
+  approved
+  posted
+  cancelled
+}
+
+model SaccoMember {
+  id                  String            @id @default(cuid())
+  organizationId      String            @db.Uuid
+  outsourcingClientId String
+  memberNumber        String
+  firstName           String
+  lastName            String
+  nationalId          String?
+  phone               String?
+  email               String?
+  employeeId          String?           @unique
+  joinedAt            DateTime          @db.Date
+  status              SaccoMemberStatus @default(active)
+  notes               String?           @db.Text
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  client        OutsourcingClient   @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  employee      Employee?           @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  accounts      SaccoAccount[]
+  dividendLines SaccoDividendLine[]
+
+  @@unique([outsourcingClientId, memberNumber])
+  @@index([outsourcingClientId, status])
+  @@index([employeeId])
+}
+
+model SaccoAccount {
+  id             String           @id @default(cuid())
+  organizationId String           @db.Uuid
+  memberId       String
+  accountType    SaccoAccountType
+  balance        Decimal          @default(0) @db.Decimal(14, 2)
+  currency       String           @default("KES")
+  openedAt       DateTime         @default(now())
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  member  SaccoMember        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  entries SaccoLedgerEntry[]
+
+  @@unique([memberId, accountType])
+  @@index([memberId])
+}
+
+model SaccoLedgerEntry {
+  id              String               @id @default(cuid())
+  organizationId  String               @db.Uuid
+  accountId       String
+  entryType       SaccoLedgerEntryType
+  amount          Decimal              @db.Decimal(14, 2)
+  balanceAfter    Decimal              @db.Decimal(14, 2)
+  reference       String?
+  description     String?
+  entryDate       DateTime             @db.Date
+  createdByUserId String?
+  createdAt       DateTime             @default(now())
+
+  account   SaccoAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation("SaccoLedgerCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([accountId, entryDate])
+  @@index([entryType])
+}
+
+model SaccoDividendRun {
+  id                  String                 @id @default(cuid())
+  organizationId      String                 @db.Uuid
+  outsourcingClientId String
+  label               String
+  periodStart         DateTime               @db.Date
+  periodEnd           DateTime               @db.Date
+  ratePercent         Decimal                @db.Decimal(8, 4)
+  status              SaccoDividendRunStatus @default(draft)
+  totalAmount         Decimal?               @db.Decimal(14, 2)
+  approvedAt          DateTime?
+  postedAt            DateTime?
+  createdByUserId     String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  client    OutsourcingClient   @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  createdBy User?               @relation("SaccoDividendRunCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  lines     SaccoDividendLine[]
+
+  @@index([outsourcingClientId, status])
+  @@index([periodEnd])
+}
+
+model SaccoDividendLine {
+  id              String   @id @default(cuid())
+  organizationId  String   @db.Uuid
+  runId           String
+  memberId        String
+  sharesBalance   Decimal  @db.Decimal(14, 2)
+  dividendAmount  Decimal  @db.Decimal(14, 2)
+  createdAt       DateTime @default(now())
+
+  run    SaccoDividendRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  member SaccoMember      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, memberId])
+  @@index([memberId])
+}
+
+// --- Healthcare vertical (Phase F2 / RAV-94) ---
+
+enum HealthcareClinicalRole {
+  nurse
+  medical_officer
+  anaesthetist
+  clinical_officer
+  support
+}
+
+model HealthcareWard {
+  id                  String   @id @default(cuid())
+  organizationId      String   @db.Uuid
+  outsourcingClientId String
+  code                String
+  name                String
+  /// CredentialCategory values required to work this ward (JSON string array).
+  requiredCredentials Json     @default("[]")
+  /// Minimum rest hours between shifts for staff assigned to this ward.
+  minRestHours        Int      @default(11)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  client      OutsourcingClient              @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  assignments HealthcareClinicalAssignment[]
+
+  @@unique([outsourcingClientId, code])
+  @@index([outsourcingClientId, isActive])
+}
+
+model HealthcareClinicalAssignment {
+  id                  String                 @id @default(cuid())
+  organizationId      String                 @db.Uuid
+  outsourcingClientId String
+  wardId              String
+  shiftAssignmentId   String?                @unique
+  employeeId          String
+  clinicalRole        HealthcareClinicalRole @default(nurse)
+  workDate            DateTime               @db.Date
+  startsAt            DateTime
+  endsAt              DateTime
+  licenseOk           Boolean                @default(false)
+  licenseWarnings     Json?
+  notes               String?                @db.Text
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  client            OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  ward              HealthcareWard    @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  employee          Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shiftAssignment   ShiftAssignment?  @relation(fields: [shiftAssignmentId], references: [id], onDelete: SetNull)
+
+  @@index([outsourcingClientId, workDate])
+  @@index([wardId, workDate])
+  @@index([employeeId, workDate])
+}
+
+// --- Energy vertical (Phase F3 / RAV-95) ---
+
+enum EnergyPermitStatus {
+  active
+  expiring_soon
+  expired
+  revoked
+  pending
+}
+
+enum EnergyPermitType {
+  environmental
+  operating
+  safety
+  transport
+  other
+}
+
+model EnergySite {
+  id                   String   @id @default(cuid())
+  organizationId       String   @db.Uuid
+  outsourcingClientId  String
+  code                 String
+  name                 String
+  region               String?
+  /// Label for multi-entity HSE rollup (e.g. subsidiary or JV name).
+  operatingEntityLabel String?
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  client  OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  permits EnergyPermit[]
+
+  @@unique([outsourcingClientId, code])
+  @@index([outsourcingClientId, isActive])
+}
+
+model EnergyPermit {
+  id                  String             @id @default(cuid())
+  organizationId      String             @db.Uuid
+  outsourcingClientId String
+  siteId              String
+  permitNumber        String
+  permitType          EnergyPermitType     @default(operating)
+  issuingAuthority    String
+  issuedAt            DateTime           @db.Date
+  expiresAt           DateTime           @db.Date
+  status              EnergyPermitStatus @default(active)
+  notes               String?            @db.Text
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  site   EnergySite        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([outsourcingClientId, permitNumber])
+  @@index([outsourcingClientId, expiresAt])
+  @@index([siteId, status])
+}
+
+// --- Construction vertical (Phase F4 / RAV-96) ---
+
+enum ConstructionSiteStatus {
+  planning
+  active
+  suspended
+  completed
+}
+
+enum ConstructionPlantStatus {
+  on_site
+  off_hire
+  maintenance
+  retired
+}
+
+enum ConstructionSubcontractorStatus {
+  active
+  on_hold
+  completed
+}
+
+model ConstructionSite {
+  id                  String                 @id @default(cuid())
+  organizationId      String                 @db.Uuid
+  outsourcingClientId String
+  projectId           String?
+  parentSiteId        String?
+  code                String
+  name                String
+  status              ConstructionSiteStatus @default(planning)
+  location            String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  client           OutsourcingClient           @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  project          Project?                    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentSite       ConstructionSite?           @relation("ConstructionSiteHierarchy", fields: [parentSiteId], references: [id], onDelete: SetNull)
+  childSites       ConstructionSite[]          @relation("ConstructionSiteHierarchy")
+  plantAssets      ConstructionPlantAsset[]
+  subcontractors   ConstructionSubcontractor[]
+
+  @@unique([outsourcingClientId, code])
+  @@index([outsourcingClientId, status])
+  @@index([parentSiteId])
+  @@index([projectId])
+}
+
+model ConstructionPlantAsset {
+  id                  String                  @id @default(cuid())
+  organizationId      String                  @db.Uuid
+  outsourcingClientId String
+  siteId              String
+  companyAssetId      String?
+  assetTag            String
+  name                String
+  category            String?
+  status              ConstructionPlantStatus @default(on_site)
+  dailyHireRate       Decimal?                @db.Decimal(12, 2)
+  onSiteSince         DateTime?               @db.Date
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  client       OutsourcingClient  @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  site         ConstructionSite   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  companyAsset CompanyAsset?      @relation(fields: [companyAssetId], references: [id], onDelete: SetNull)
+
+  @@unique([outsourcingClientId, assetTag])
+  @@index([siteId, status])
+}
+
+model ConstructionSubcontractor {
+  id                  String                        @id @default(cuid())
+  organizationId      String                        @db.Uuid
+  outsourcingClientId String
+  siteId              String?
+  name                String
+  trade               String?
+  contactName         String?
+  contactPhone        String?
+  retentionPct        Decimal?                      @db.Decimal(5, 2)
+  contractValue       Decimal?                      @db.Decimal(14, 2)
+  amountInvoiced      Decimal                       @default(0) @db.Decimal(14, 2)
+  amountPaid          Decimal                       @default(0) @db.Decimal(14, 2)
+  status              ConstructionSubcontractorStatus @default(active)
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+
+  client OutsourcingClient  @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  site   ConstructionSite?    @relation(fields: [siteId], references: [id], onDelete: SetNull)
+
+  @@index([outsourcingClientId, status])
+  @@index([siteId])
 }

@@ -11,7 +11,7 @@ import {
 } from '@/components/marketing/v3/studio-craft-shared';
 
 function tierCardClass(featured: boolean) {
-  return `relative flex h-full flex-col rounded-[20px] border p-5 text-center transition hover:-translate-y-1 hover:shadow-[0_16px_44px_rgba(26,23,20,0.09)] sm:p-8 lg:p-9 ${
+  return `relative marketing-hover-lift flex h-full flex-col rounded-[20px] border p-5 text-center transition hover:shadow-[0_16px_44px_rgba(26,23,20,0.09)] sm:p-8 lg:p-9 ${
     featured
       ? 'sc-on-ink border-[var(--sc-ink)] bg-[var(--sc-ink)]'
       : 'border-[var(--sc-line)] bg-white'
@@ -20,7 +20,7 @@ function tierCardClass(featured: boolean) {
 
 export function MarketingPricingSection() {
   return (
-    <section id="pricing" className="bg-[var(--sc-paper-2)] py-16 sm:py-20 lg:py-28">
+    <section id="pricing" className="scroll-anchor bg-[var(--sc-paper-2)] py-16 sm:py-20 lg:py-28">
       <StudioCraftContainer>
         <div className="text-center">
           <Reveal className="flex justify-center">

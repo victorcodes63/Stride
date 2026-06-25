@@ -45,6 +45,9 @@ import {
   Route,
   ShoppingCart,
   Gavel,
+  Stethoscope,
+  Fuel,
+  HardHat,
 } from 'lucide-react';
 import type { UserRole } from '@/types/dashboard';
 import { isDashboardNavItemVisible, isNavSectionVisible, type EnabledModulesMap } from '@/lib/nav-modules';
@@ -186,12 +189,69 @@ const hseNavItems: DashboardNavItem[] = [
   { href: '/dashboard/hse', label: 'Incidents', icon: ShieldAlert },
 ];
 
+const saccoNavItems: DashboardNavItem[] = [
+  { href: '/dashboard/sacco', label: 'Overview', icon: LayoutGrid },
+  { href: '/dashboard/sacco/members', label: 'Members', icon: Users },
+  { href: '/dashboard/sacco/accounts', label: 'BOSA & FOSA', icon: Wallet },
+  { href: '/dashboard/sacco/dividends', label: 'Dividends', icon: Banknote },
+  { href: '/dashboard/sacco/reports', label: 'SASRA reports', icon: FileText },
+];
+
 /** Fleet, assets, and HSE — grouped for Admin & Operations sidebar. */
 const operationsSection: DashboardNavSection = {
   id: 'operations',
   label: 'Operations',
   icon: Truck,
   items: [...fleetNavItems, ...assetsNavItems, ...hseNavItems],
+};
+
+const saccoSection: DashboardNavSection = {
+  id: 'sacco',
+  label: 'SACCO',
+  icon: Landmark,
+  items: saccoNavItems,
+};
+
+const healthcareNavItems: DashboardNavItem[] = [
+  { href: '/dashboard/healthcare', label: 'Overview', icon: LayoutGrid },
+  { href: '/dashboard/healthcare/wards', label: 'Wards & rules', icon: Building2 },
+  { href: '/dashboard/healthcare/rota', label: 'Clinical rota', icon: CalendarDays },
+  { href: '/dashboard/healthcare/nhif', label: 'NHIF / SHIF', icon: BadgeCheck },
+];
+
+const healthcareSection: DashboardNavSection = {
+  id: 'healthcare',
+  label: 'Healthcare',
+  icon: Stethoscope,
+  items: healthcareNavItems,
+};
+
+const energyNavItems: DashboardNavItem[] = [
+  { href: '/dashboard/energy', label: 'Overview', icon: LayoutGrid },
+  { href: '/dashboard/energy/sites', label: 'Sites', icon: Building2 },
+  { href: '/dashboard/energy/permits', label: 'Permits', icon: FileSignature },
+  { href: '/dashboard/energy/hse', label: 'HSE rollup', icon: ShieldAlert },
+];
+
+const energySection: DashboardNavSection = {
+  id: 'energy',
+  label: 'Energy',
+  icon: Fuel,
+  items: energyNavItems,
+};
+
+const constructionNavItems: DashboardNavItem[] = [
+  { href: '/dashboard/construction', label: 'Overview', icon: LayoutGrid },
+  { href: '/dashboard/construction/sites', label: 'Sites', icon: Building2 },
+  { href: '/dashboard/construction/plant', label: 'Plant assets', icon: Truck },
+  { href: '/dashboard/construction/subcontractors', label: 'Subcontractors', icon: Briefcase },
+];
+
+const constructionSection: DashboardNavSection = {
+  id: 'construction',
+  label: 'Construction',
+  icon: HardHat,
+  items: constructionNavItems,
 };
 
 const essSelfServiceSection: DashboardNavSection = {
@@ -317,6 +377,18 @@ export function buildDashboardNavSections(options: DashboardNavBuildOptions): Da
     chunks.push(financeSection);
   }
   chunks.push(procurementSection, legalDocumentsSection, projectsSection);
+  if (isNavSectionVisible('sacco', enabledModules)) {
+    chunks.push(saccoSection);
+  }
+  if (isNavSectionVisible('healthcare', enabledModules)) {
+    chunks.push(healthcareSection);
+  }
+  if (isNavSectionVisible('energy', enabledModules)) {
+    chunks.push(energySection);
+  }
+  if (isNavSectionVisible('construction', enabledModules)) {
+    chunks.push(constructionSection);
+  }
   chunks.push(
     operationsSection,
     buildCommunicationsInsightSection(options.canViewSystemAnalytics),
@@ -368,6 +440,10 @@ export const ALL_MODULES_ENABLED = {
   reports: true,
   assets: true,
   fleet: true,
+  sacco: true,
+  healthcare: true,
+  energy: true,
+  construction: true,
   ess: true,
   communications: true,
   training: true,
@@ -383,6 +459,10 @@ export const DASHBOARD_NAV_EXPANDABLE_SECTION_IDS = [
   procurementSection.id,
   legalDocumentsSection.id,
   projectsSection.id,
+  saccoSection.id,
+  healthcareSection.id,
+  energySection.id,
+  constructionSection.id,
   operationsSection.id,
   'communications-insight',
   adminSection.id,

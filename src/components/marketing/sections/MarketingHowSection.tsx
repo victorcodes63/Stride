@@ -6,7 +6,7 @@ import { SectionBadge, StudioCraftContainer } from '@/components/marketing/v3/st
 
 export function MarketingHowSection() {
   return (
-    <section id="how" className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
+    <section id="how" className="scroll-anchor bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
       <StudioCraftContainer>
         <Reveal>
           <SectionBadge number="5" label="How it works" />

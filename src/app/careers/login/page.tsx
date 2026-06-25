@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import PublicPageLayout from '@/components/public/PublicPageLayout';
 
 type CareersLoginPageProps = {
   searchParams?: {
@@ -17,8 +16,7 @@ export default function CareersLoginPage({ searchParams }: CareersLoginPageProps
   }
 
   return (
-    <PublicPageLayout>
-      <main className="min-h-[60vh] bg-pub-surface px-6 py-16 sm:px-12">
+    <main className="min-h-[60vh] bg-pub-surface px-6 py-16 sm:px-12">
         <div className="mx-auto w-full max-w-xl rounded-2xl border border-pub-border bg-white p-8 shadow-sm">
           <h1 className="font-heading text-2xl font-bold text-pub-ink">Staff sign in</h1>
           <p className="mt-3 text-sm leading-relaxed text-pub-ink-muted">
@@ -34,7 +32,6 @@ export default function CareersLoginPage({ searchParams }: CareersLoginPageProps
             </Link>
           </div>
         </div>
-      </main>
-    </PublicPageLayout>
+    </main>
   );
 }

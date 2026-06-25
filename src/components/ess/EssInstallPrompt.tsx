@@ -61,7 +61,7 @@ export function EssInstallPrompt() {
       </div>
       <button
         type="button"
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--ess-muted)] hover:bg-[var(--ess-secondary-soft)]"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--ess-muted)] hover:bg-[var(--ess-primary-soft)]"
         aria-label="Dismiss"
         onClick={() => {
           localStorage.setItem(DISMISS_KEY, '1');

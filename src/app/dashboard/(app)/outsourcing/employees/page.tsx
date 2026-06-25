@@ -16,6 +16,11 @@ import {
 import { useEntity } from '@/components/EntitySwitcher';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import {
+ DashboardAsyncState,
+ DashboardEmptyState,
+ DashboardPageSkeleton,
+} from '@/components/dashboard/DashboardAsyncState';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import EmployeeDirectoryTable from '@/components/dashboard/EmployeeDirectoryTable';
 
@@ -407,10 +412,6 @@ function EmployeesPageInner() {
  }
  />
 
- {error ? (
- <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
- ) : null}
-
  {importResult ? (
  <div className="rounded-lg border border-primary-200 bg-primary-50/80 px-4 py-3 text-sm">
  <p className="font-medium text-primary-900">Operation complete</p>
@@ -431,15 +432,12 @@ function EmployeesPageInner() {
  </div>
  ) : null}
 
- {loading ? (
- <div className="dashboard-surface p-10 shadow-sm">
- <div className="mx-auto max-w-md animate-pulse space-y-3">
- <div className="h-5 w-32 rounded bg-neutral-200" />
- <div className="h-4 w-full rounded bg-neutral-100" />
- <div className="h-4 w-4/5 rounded bg-neutral-100" />
- </div>
- </div>
- ) : (
+ <DashboardAsyncState
+ status={loading ? 'loading' : error ? 'error' : 'success'}
+ error={error}
+ onRetry={() => fetchEmployees()}
+ loading={<DashboardPageSkeleton variant="stats" />}
+ >
  <>
  <DashboardStatGrid>
  <DashboardStatCard
@@ -734,7 +732,7 @@ function EmployeesPageInner() {
  )}
  </div>
  </>
- )}
+ </DashboardAsyncState>
  </DashboardPage>
  );
 }

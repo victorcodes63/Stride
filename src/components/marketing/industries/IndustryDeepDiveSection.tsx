@@ -17,7 +17,7 @@ export function IndustryDeepDiveSection({ industry, index }: IndustryDeepDiveSec
   return (
     <section
       id={industry.id}
-      className={`scroll-mt-28 py-16 sm:py-20 lg:py-28 ${
+      className={`scroll-anchor scroll-mt-28 py-16 sm:py-20 lg:py-28 ${
         altBg ? 'bg-[var(--sc-paper-2)]' : 'bg-[var(--sc-paper)]'
       }`}
       aria-labelledby={`industry-${industry.id}-title`}

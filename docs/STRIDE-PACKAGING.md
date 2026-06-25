@@ -60,8 +60,11 @@ Negotiated modules need a price. Proposed model — **Victor to confirm the numb
 
 ## 6. Build status
 - Models exist (PlanModuleMatrix, SubscriptionModule, Subscription, UsageSnapshot).
-- To do (Linear, Commercial Control Plane project): seed the matrix (§2), per-customer toggle UI (§3),
-  add-on pricing (§4), seat enforcement (§5.1), override audit (§5.2). See RAV issues.
+- **Done:** PlanModuleMatrix seed from §2 (`plan-standard-packages.ts` + `seed-plans.ts`).
+- **Done:** Per-customer module toggle UI on customer subscription tab (§3).
+- **Done (placeholder rates):** Monthly estimate with horizontal/vertical/seat add-ons (§4 — confirm KES amounts).
+- **Done (soft):** Seat-band warning on customer overview when over limit (§5.1).
+- **Done (light):** Module toggle audit log via `systemMeta` (§5.2 — upgrade to dedicated table if needed).
 
 ## 7. Marketing "Compare Features" matrix (pricing page)
 A public, grouped feature table (SeamlessHR-style: collapsible category rows, ✓ per tier) so

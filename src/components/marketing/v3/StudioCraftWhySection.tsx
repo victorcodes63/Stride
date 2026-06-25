@@ -17,8 +17,8 @@ export function StudioCraftWhySection() {
           <SectionBadge number="01" label={MARKETING_WHY_STRIDE.badge} />
         </Reveal>
 
-        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
-          <div>
+        <div className="grid min-w-0 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
+          <div className="min-w-0">
             <Reveal delay={0.06}>
               <h2 className="text-[clamp(2rem,4.5vw,3.5rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
                 <span className="block">{MARKETING_WHY_STRIDE.titleLines[0]}</span>
@@ -47,8 +47,8 @@ export function StudioCraftWhySection() {
             </Reveal>
           </div>
 
-          <Reveal delay={0.1}>
-            <WhyStrideStatutoryVisual className="w-full" />
+          <Reveal delay={0.1} className="min-w-0">
+            <WhyStrideStatutoryVisual className="w-full max-w-full" />
           </Reveal>
         </div>
       </StudioCraftContainer>

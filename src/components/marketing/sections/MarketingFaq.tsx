@@ -12,7 +12,7 @@ export function MarketingFaq({ items }: { items: readonly FaqItem[] }) {
   const reduceMotion = useReducedMotion();
 
   return (
-    <section id="faq" className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
+    <section id="faq" className="scroll-anchor bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
       <StudioCraftContainer>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,340px)_1fr] lg:gap-20">
           <div className="min-w-0">
@@ -39,7 +39,7 @@ export function MarketingFaq({ items }: { items: readonly FaqItem[] }) {
                   <div className="border-b border-[var(--sc-line)] first:border-t">
                     <button
                       type="button"
-                      className="flex w-full items-center justify-between gap-4 py-5 text-left text-base font-medium tracking-tight text-[var(--sc-ink)] sm:gap-5 sm:py-6 sm:text-lg"
+                      className="marketing-accordion-trigger flex w-full items-center justify-between gap-4 py-5 text-left text-base font-medium tracking-tight text-[var(--sc-ink)] sm:gap-5 sm:py-6 sm:text-lg"
                       aria-expanded={open}
                       onClick={() => setOpenIndex(open ? null : index)}
                     >

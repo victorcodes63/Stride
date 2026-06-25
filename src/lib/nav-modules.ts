@@ -36,6 +36,22 @@ export function isDashboardNavItemVisible(
     return enabled.core;
   }
 
+  if (sectionId === 'healthcare') {
+    return enabled.healthcare;
+  }
+
+  if (sectionId === 'sacco') {
+    return enabled.sacco;
+  }
+
+  if (sectionId === 'energy') {
+    return enabled.energy;
+  }
+
+  if (sectionId === 'construction') {
+    return enabled.construction;
+  }
+
   if (sectionId === 'operations') {
     if (href.startsWith('/dashboard/fleet')) return enabled.fleet;
     if (href.startsWith('/dashboard/assets')) return enabled.assets;

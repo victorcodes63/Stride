@@ -8,6 +8,12 @@ import useEntityConfig, { useDisplayMoney } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import {
+  DashboardTable,
+  DashboardTableCard,
+  DashboardTableFooter,
+  DashboardTableViewport,
+} from '@/components/dashboard/DashboardDataTable';
 import { BillingAutomationPanel } from '@/components/dashboard/accounts/BillingAutomationPanel';
 
 type InvoiceRow = {
@@ -174,19 +180,19 @@ function AccountsInvoicesPageInner() {
  )}
 
  {!loading && !error && invoices && invoices.length > 0 && (
- <div className="dashboard-surface shadow-sm overflow-hidden">
- <div className="overflow-x-auto">
- <table className="data-table dashboard-data-table w-full min-w-[720px] text-sm">
+ <DashboardTableCard>
+ <DashboardTableViewport minWidth={720}>
+ <DashboardTable>
  <thead>
- <tr className="border-b border-neutral-200 bg-neutral-50/90">
- <th className="px-4 py-3 font-semibold text-neutral-700 col-center">#</th>
- <th className="px-4 py-3 font-semibold text-neutral-700">Client</th>
- <th className="px-4 py-3 font-semibold text-neutral-700 col-center">Issue</th>
- <th className="px-4 py-3 font-semibold text-neutral-700 col-center">Due</th>
- <th className="px-4 py-3 font-semibold text-neutral-700 col-center">Ex-VAT</th>
- <th className="px-4 py-3 font-semibold text-neutral-700 col-center">{entityConfig.tax.vatLabel}</th>
- <th className="px-4 py-3 font-semibold text-neutral-700 col-center">Total</th>
- <th className="px-4 py-3 font-semibold text-neutral-700 col-center">Status</th>
+ <tr>
+ <th className="col-center">#</th>
+ <th>Client</th>
+ <th className="col-center">Issue</th>
+ <th className="col-center">Due</th>
+ <th className="col-center">Ex-VAT</th>
+ <th className="col-center">{entityConfig.tax.vatLabel}</th>
+ <th className="col-center">Total</th>
+ <th className="col-center">Status</th>
  </tr>
  </thead>
  <tbody>
@@ -235,9 +241,15 @@ function AccountsInvoicesPageInner() {
  </tr>
  ))}
  </tbody>
- </table>
- </div>
- </div>
+ </DashboardTable>
+ </DashboardTableViewport>
+ <DashboardTableFooter>
+ <span>
+ {invoices.length} invoice{invoices.length !== 1 ? 's' : ''}
+ {filterClientId ? ' for this client' : ''}
+ </span>
+ </DashboardTableFooter>
+ </DashboardTableCard>
  )}
  </DashboardPage>
  );

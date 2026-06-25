@@ -18,14 +18,14 @@
   --ess-primary: var(--color-primary-600, var(--stride-coral));
   --ess-primary-strong: var(--color-primary-700, var(--stride-coral-deep));
   --ess-primary-soft: color-mix(in srgb, var(--ess-primary) 10%, transparent);
-  --ess-secondary: var(--color-secondary-500);
-  --ess-secondary-strong: var(--color-secondary-700);
-  --ess-secondary-soft: color-mix(in srgb, var(--ess-secondary) 10%, transparent);
+  --ess-secondary: var(--stride-ink, var(--brand-ink));
+  --ess-secondary-strong: var(--stride-ink, var(--brand-ink));
+  --ess-secondary-soft: color-mix(in srgb, var(--ess-primary) 10%, transparent);
   --ess-hero: linear-gradient(
     135deg,
     var(--ess-secondary) 0%,
-    var(--ess-secondary-strong) 56%,
-    color-mix(in srgb, var(--ess-secondary) 78%, black) 100%
+    color-mix(in srgb, var(--ess-secondary) 88%, black) 56%,
+    #000000 100%
   );
   --ess-accent: var(--ess-primary);
   --ess-accent-soft: color-mix(in srgb, var(--ess-primary) 12%, transparent);

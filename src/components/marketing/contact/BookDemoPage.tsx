@@ -15,6 +15,7 @@ import {
   MARKETING_SALES_EMAIL,
   getMarketingLoginUrl,
 } from '@/lib/marketing-config';
+import { trackMarketingEvent } from '@/lib/marketing-analytics';
 import './book-demo.css';
 
 const TOTAL_STEPS = MARKETING_DEMO_STEPS.length;
@@ -314,11 +315,12 @@ export function BookDemoPage() {
         }),
       });
 
-      const data = (await response.json()) as { ok?: boolean; error?: string };
+      const data = (await response.json()) as { ok?: boolean; error?: string; notified?: boolean };
       if (!response.ok || !data.ok) {
         throw new Error(data.error || 'Unable to send your request right now.');
       }
 
+      trackMarketingEvent('book_demo_submit', { company });
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to send your request right now.');
