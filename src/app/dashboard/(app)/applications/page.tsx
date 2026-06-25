@@ -35,6 +35,7 @@ import type {
  ApplicationFormData,
 } from '@/types/dashboard';
 import { sortEmploymentByRecency, yearsBetweenEmploymentDates } from '@/lib/employment-sort';
+import { ApplicationAssessmentsPanel } from '@/components/dashboard/ApplicationAssessmentsPanel';
 
 /** Bundled demo PDF — used when an application has no uploaded CV yet. */
 const STANDARD_DEMO_CV_URL = '/uploads/resumes/amara_njoroge_cv.pdf';
@@ -1402,6 +1403,8 @@ export default function DashboardApplicationsPage() {
  )}
  </p>
  </div>
+
+ <ApplicationAssessmentsPanel applicationId={selectedApp.id} />
 
  <div>
  <h3 className="text-sm font-medium text-neutral-500 uppercase tracking-wider mb-2">

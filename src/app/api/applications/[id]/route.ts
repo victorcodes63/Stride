@@ -7,6 +7,7 @@ import {
 } from '@/lib/applications-store';
 import { reportApiError } from '@/lib/monitoring';
 import type { ApplicationWithDetails, ApplicationStatus } from '@/types/dashboard';
+import { createAssessmentAttemptsForApplication } from '@/lib/assessment-attempts';
 
 function jobToSummary(job: {
   id: string;
@@ -196,6 +197,14 @@ export async function PATCH(
           requiredCertifications: application.job.requiredCertifications ?? null,
         }),
       };
+      if (status) {
+        await createAssessmentAttemptsForApplication(prisma, {
+          applicationId: application.id,
+          jobId: application.jobId,
+          organizationId: application.job.organizationId,
+          applicationStatus: application.status,
+        });
+      }
       return NextResponse.json(result);
     }
   } catch (e) {

@@ -10,6 +10,7 @@ import type {
   ApplicationsListApiResponse,
 } from '@/types/dashboard';
 import { yearsBetweenEmploymentDates } from '@/lib/employment-sort';
+import { createAssessmentAttemptsForApplication } from '@/lib/assessment-attempts';
 
 const STAFF_SESSION_COOKIE = 'staff_session';
 
@@ -501,7 +502,20 @@ export async function POST(request: NextRequest) {
         applicationId: application.id,
       });
 
-      return NextResponse.json(result);
+      const assessmentAttempts = await createAssessmentAttemptsForApplication(prisma, {
+        applicationId: application.id,
+        jobId,
+        organizationId: job.organizationId,
+        applicationStatus: application.status,
+      });
+
+      return NextResponse.json({
+        ...result,
+        assessments: assessmentAttempts.map((row) => ({
+          name: row.templateName,
+          url: `/careers/assessment/${row.accessToken}`,
+        })),
+      });
   } catch (e) {
     await reportApiError({
       route: 'POST /api/applications',

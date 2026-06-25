@@ -331,6 +331,70 @@ async function seedPackRecruitmentJobs(now: Date) {
   );
 }
 
+async function seedPackRecruitmentAssessments(prismaCompat: PrismaCompatClient) {
+  if (!prismaCompat.assessmentTemplate || !prismaCompat.jobAssessmentAssignment) return;
+
+  const clientId = await getOrCreatePackRecruitmentClientId();
+  if (!clientId) return;
+
+  const firstJob = await prisma.job.findFirst({
+    where: { clientId },
+    orderBy: { postedDate: 'desc' },
+    select: { id: true },
+  });
+  if (!firstJob) return;
+
+  const templateId = `demo-assessment-${pack.id}`;
+  const template = await prismaCompat.assessmentTemplate.upsert({
+    where: { id: templateId },
+    update: {
+      name: 'HR & payroll fundamentals',
+      description: 'Short screen for shortlisted candidates — auto-scored MCQ + numeric.',
+      timeLimitMinutes: 20,
+      isActive: true,
+    },
+    create: {
+      id: templateId,
+      name: 'HR & payroll fundamentals',
+      description: 'Short screen for shortlisted candidates — auto-scored MCQ + numeric.',
+      timeLimitMinutes: 20,
+      isActive: true,
+    },
+  });
+  await prismaCompat.assessmentQuestion.deleteMany({ where: { templateId: template.id } });
+  await prismaCompat.assessmentQuestion.createMany({
+    data: [
+      {
+        templateId: template.id,
+        type: 'mcq',
+        prompt: 'Which deduction is primarily used for Pay As You Earn in Kenya?',
+        options: ['PAYE', 'VAT', 'WHT', 'NHIF'] as unknown as Prisma.JsonArray,
+        correctAnswer: { value: 'PAYE' } as Prisma.InputJsonValue,
+        maxPoints: 1,
+        orderIndex: 0,
+      },
+      {
+        templateId: template.id,
+        type: 'numeric',
+        prompt: 'Standard annual leave days commonly benchmarked for Kenyan employees?',
+        correctAnswer: { value: 21 } as Prisma.InputJsonValue,
+        maxPoints: 1,
+        orderIndex: 1,
+      },
+    ],
+  });
+  await prismaCompat.jobAssessmentAssignment.upsert({
+    where: { jobId_templateId: { jobId: firstJob.id, templateId: template.id } },
+    update: { triggerStatus: null },
+    create: {
+      jobId: firstJob.id,
+      templateId: template.id,
+      triggerStatus: null,
+    },
+  });
+  console.log(`→ Assessments: demo template linked to job ${firstJob.id.slice(0, 8)}…`);
+}
+
 
 
 function utcAtOffsetDaysHour(daysFromUtcToday: number, hourUtc: number, minuteUtc = 0): Date {
@@ -1890,6 +1954,7 @@ async function main() {
   }
 
   await seedPackRecruitmentJobs(now);
+  await seedPackRecruitmentAssessments(prismaCompat);
   await seedPackRecruitmentApplicationsAndInterviews();
 
   const deptByClientId = new Map<string, Map<string, string>>();
@@ -2734,6 +2799,11 @@ async function main() {
       key: 'leavePolicyAssignment',
       available: hasModel('leavePolicyAssignment'),
       reasonIfSkipped: 'Per-employee leave policy assignment skipped.',
+    },
+    {
+      key: 'assessmentTemplate',
+      available: hasModel('assessmentTemplate'),
+      reasonIfSkipped: 'ATS assessment templates and job assignments skipped.',
     },
   );
 

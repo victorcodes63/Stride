@@ -97,6 +97,7 @@ const primarySections: DashboardNavSection[] = [
     items: [
       { href: '/dashboard/jobs', label: 'Job openings', icon: Briefcase },
       { href: '/dashboard/applications', label: 'Applications', icon: FileText },
+      { href: '/dashboard/assessments', label: 'Assessments', icon: FileQuestion },
       { href: '/dashboard/candidates', label: 'Talent pool', icon: UserSearch },
       { href: '/dashboard/interviews', label: 'Interviews', icon: CalendarDays },
       { href: '/dashboard/interviews/schedule', label: 'Interview calendar', icon: Clock4 },

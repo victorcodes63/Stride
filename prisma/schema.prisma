@@ -1528,6 +1528,7 @@ model Job {
   applications         Application[]
   scheduleBreaks       InterviewScheduleBreak[]
   requisitionApprovals JobRequisitionApproval[]
+  assessmentAssignments JobAssessmentAssignment[]
 
   @@index([isActive, postedDate(sort: Desc)])
   @@index([category])
@@ -1585,6 +1586,7 @@ model Application {
   views          ApplicationView[]
   offerApprovals JobOfferApproval[]
   hireConversion ApplicationHireConversion?
+  assessmentAttempts ApplicationAssessmentAttempt[]
 
   @@index([jobId])
   @@index([status])
@@ -1765,6 +1767,122 @@ model ApplicationHireConversion {
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@index([convertedAt(sort: Desc)])
+}
+
+enum AssessmentQuestionType {
+  mcq
+  numeric
+  file
+}
+
+enum AssessmentAttemptStatus {
+  pending
+  in_progress
+  submitted
+  expired
+}
+
+/// Reusable assessment template (MCQ, numeric, file upload questions).
+model AssessmentTemplate {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name             String
+  description      String? @db.Text
+  timeLimitMinutes Int     @default(30)
+  isActive         Boolean @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  questions          AssessmentQuestion[]
+  jobAssignments     JobAssessmentAssignment[]
+  applicationAttempts ApplicationAssessmentAttempt[]
+
+  @@index([organizationId, isActive])
+}
+
+model AssessmentQuestion {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  templateId    String
+  type          AssessmentQuestionType
+  prompt        String                 @db.Text
+  options       Json?
+  correctAnswer Json?
+  maxPoints     Int                    @default(1)
+  orderIndex    Int                    @default(0)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  template AssessmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  answers  ApplicationAssessmentAnswer[]
+
+  @@index([templateId, orderIndex])
+}
+
+/// Links an assessment template to a job; optional gate on application status.
+model JobAssessmentAssignment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  jobId          String
+  templateId     String
+  /// When set, attempt is created when application reaches this status; otherwise on apply.
+  triggerStatus  ApplicationStatus?
+  createdAt      DateTime @default(now())
+
+  job      Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  template AssessmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, templateId])
+  @@index([jobId])
+}
+
+model ApplicationAssessmentAttempt {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  applicationId  String
+  templateId     String
+  accessToken    String                  @unique
+  status         AssessmentAttemptStatus @default(pending)
+  startedAt      DateTime?
+  submittedAt    DateTime?
+  expiresAt      DateTime?
+  clientIp       String?
+  scorePercent   Decimal?                @db.Decimal(5, 2)
+  earnedPoints   Int?
+  maxPoints      Int?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  application Application                  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  template    AssessmentTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  answers     ApplicationAssessmentAnswer[]
+
+  @@unique([applicationId, templateId])
+  @@index([applicationId])
+  @@index([accessToken])
+}
+
+model ApplicationAssessmentAnswer {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  attemptId  String
+  questionId String
+  answer     Json?
+  filePath   String?
+  isCorrect  Boolean?
+  pointsAwarded Int?
+  createdAt  DateTime @default(now())
+
+  attempt  ApplicationAssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question AssessmentQuestion         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
 }
 
 // Staff members who can access the dashboard

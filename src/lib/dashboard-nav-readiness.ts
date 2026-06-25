@@ -40,7 +40,7 @@ export const NAV_ITEM_READINESS: Record<string, NavReadiness> = {
   '/dashboard/payroll/disbursements': 'partial',
 
   // Finance
-  '/dashboard/accounts/statements': 'partial',
+  '/dashboard/accounts/statements': 'live',
   '/dashboard/accounts/budgets': 'partial',
 
   // Procurement

@@ -1055,3 +1055,72 @@ export async function sendPayslipEmail(params: {
     };
   }
 }
+
+/** Send debtor/creditor statement PDF via accounts SMTP (same channel as payslips). */
+export async function sendAccountStatementEmail(params: {
+  to: string;
+  partyName: string;
+  partyType: 'client' | 'vendor';
+  currency: string;
+  closingBalance: number;
+  pdfBuffer: Buffer;
+  pdfFilename: string;
+}): Promise<EmailSendResult> {
+  const transporter = getAccountsTransporter();
+  if (!transporter) {
+    return {
+      sent: false,
+      reason: 'smtp_not_configured',
+      error: 'Accounts SMTP not configured. Set ACCOUNTS_SMTP_USER and ACCOUNTS_SMTP_PASS.',
+      diagnostics: { provider: 'smtp', ...getSmtpDiagnostics() },
+    };
+  }
+  const from = process.env.ACCOUNTS_SMTP_USER?.trim();
+  if (!from) {
+    return {
+      sent: false,
+      reason: 'from_email_missing',
+      error: 'ACCOUNTS_SMTP_USER is required as the from address.',
+      diagnostics: { provider: 'smtp', ...getSmtpDiagnostics() },
+    };
+  }
+
+  const label = params.partyType === 'client' ? 'debtor' : 'creditor';
+  const subject = `${emailSubjectTag} Statement of account — ${params.partyName}`;
+  const balanceFmt = params.closingBalance.toLocaleString('en-KE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const html = `
+    <p>Dear ${params.partyName},</p>
+    <p>Please find attached your ${label} statement of account.</p>
+    <p><strong>Closing balance:</strong> ${balanceFmt} ${params.currency}</p>
+    <p>If you have any questions, reply to this email.</p>
+    ${getEmailFooterPlain()}
+  `;
+
+  try {
+    const info = (await transporter.sendMail({
+      from: `"${ACCOUNTS_FROM_NAME}" <${from}>`,
+      to: params.to,
+      subject,
+      html,
+      attachments: [
+        {
+          filename: params.pdfFilename,
+          content: params.pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    })) as { messageId?: string };
+    return { sent: true, messageId: info.messageId };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      sent: false,
+      reason: 'smtp_error',
+      error: message,
+      diagnostics: { provider: 'smtp', ...getSmtpDiagnostics() },
+    };
+  }
+}
