@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseStaffSession } from '@/lib/auth-session';
 import { canApproveStaffLeave, canViewTeamLeaveQueue } from '@/lib/staff-permissions';
-import { resolveMembership } from '@/lib/org-membership';
+import { resolveMembershipWithLoginScope } from '@/lib/org-membership';
 import { resolveStaffSessionOrgId } from '@/lib/staff-session-org';
 import type { StaffUserType } from '@/types/dashboard';
 
@@ -34,7 +34,7 @@ export async function requireStaffUser(request: NextRequest): Promise<StaffUser 
   const currentOrgId = await resolveStaffSessionOrgId(parsed, user.id);
   if (!currentOrgId) return null;
 
-  const membership = await resolveMembership(user.id, currentOrgId);
+  const membership = await resolveMembershipWithLoginScope(user.id, currentOrgId);
   const effectiveRole = (membership?.role ?? user.role) as StaffUser['role'];
 
   return {

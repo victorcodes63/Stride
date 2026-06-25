@@ -1,5 +1,5 @@
 import type { ParsedStaffSession } from '@/lib/auth-session';
-import { resolveMembership } from '@/lib/org-membership';
+import { resolveMembershipWithLoginScope } from '@/lib/org-membership';
 
 /** Resolve tenant org from session cookie (supports legacy cookies without org id). */
 export async function resolveStaffSessionOrgId(
@@ -7,9 +7,9 @@ export async function resolveStaffSessionOrgId(
   userId: string,
 ): Promise<string | null> {
   if (parsed.currentOrgId) {
-    const match = await resolveMembership(userId, parsed.currentOrgId);
+    const match = await resolveMembershipWithLoginScope(userId, parsed.currentOrgId);
     if (match) return match.organizationId;
   }
-  const fallback = await resolveMembership(userId);
+  const fallback = await resolveMembershipWithLoginScope(userId);
   return fallback?.organizationId ?? null;
 }

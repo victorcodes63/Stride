@@ -6,7 +6,7 @@ import {
 } from '@/lib/auth-session';
 import { userRowToSummary } from '@/lib/user-summary-api';
 import { reportApiError } from '@/lib/monitoring';
-import { listActiveMemberships } from '@/lib/org-membership';
+import { listActiveMembershipsWithLoginScope } from '@/lib/org-membership';
 import { resolveStaffSessionOrgId } from '@/lib/staff-session-org';
 import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
 
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    const memberships = await listActiveMemberships(user.id);
+    const memberships = await listActiveMembershipsWithLoginScope(user.id);
     const currentOrgId = await resolveStaffSessionOrgId(parsed, user.id);
     const current =
       memberships.find((m) => m.organizationId === currentOrgId) ?? memberships[0] ?? null;

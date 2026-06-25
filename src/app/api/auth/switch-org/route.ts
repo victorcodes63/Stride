@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStaffSessionMaxAgeSeconds, parseStaffSession } from '@/lib/auth-session';
 import { requireStaffUser } from '@/lib/staff-api-auth';
-import { resolveMembership } from '@/lib/org-membership';
+import { resolveMembershipWithLoginScope } from '@/lib/org-membership';
 import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
 import { logAuditEvent } from '@/lib/audit-events';
 
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'organizationId is required.' }, { status: 400 });
   }
 
-  const membership = await resolveMembership(staff.id, organizationId);
+  const membership = await resolveMembershipWithLoginScope(staff.id, organizationId);
   if (!membership) {
     return NextResponse.json({ error: 'You are not a member of that organization.' }, { status: 403 });
   }

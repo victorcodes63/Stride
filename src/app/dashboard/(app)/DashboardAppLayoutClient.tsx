@@ -155,7 +155,7 @@ export default function DashboardAppLayoutClient({
  if (cancelled) return;
  setCurrentUser(null);
  if (error instanceof Error && error.message === 'unauthorized') {
- router.replace('/dashboard/login?error=inactive');
+ router.replace('/dashboard/login');
  }
  });
  };

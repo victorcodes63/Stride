@@ -55,6 +55,20 @@ export async function resolveMembership(
   return rows[0] ?? null;
 }
 
+/** Read memberships before app.current_org is set (session validation, /api/auth/me). */
+export async function listActiveMembershipsWithLoginScope(
+  userId: string,
+): Promise<ResolvedMembership[]> {
+  return withLoginUserScope(userId, (db) => listActiveMemberships(userId, db));
+}
+
+export async function resolveMembershipWithLoginScope(
+  userId: string,
+  preferredOrgId?: string | null,
+): Promise<ResolvedMembership | null> {
+  return withLoginUserScope(userId, (db) => resolveMembership(userId, preferredOrgId, db));
+}
+
 /** Attach user to default org when no membership exists (legacy single-tenant users). */
 export async function ensureDefaultMembership(
   userId: string,
