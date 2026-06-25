@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { PlatformRouteLoading } from '@/components/platform/PlatformRouteLoading';
 import { GRIEVANCE_STATUSES, getJurisdictionPolicy } from '@/lib/east-africa-hr-policy';
 
 type GrievanceDetail = {
@@ -80,7 +81,7 @@ export default function AdminGrievanceDetailPage() {
  );
  }
 
- if (!data) return <p className="text-sm text-neutral-500">Loading...</p>;
+ if (!data) return <PlatformRouteLoading />;
 
  const policy = getJurisdictionPolicy('KE');
 

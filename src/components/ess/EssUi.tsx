@@ -2,7 +2,8 @@
 
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react';
 import Link from 'next/link';
-import { AlertCircle, ArrowRight, Inbox, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, Inbox } from 'lucide-react';
+import { PlatformContentLoader } from '@/components/platform/PlatformContentLoader';
 
 type PolymorphicProps<T extends ElementType> = {
   as?: T;
@@ -222,13 +223,8 @@ export function EssAlert({
   );
 }
 
-export function EssLoadingState({ label = 'Loading' }: { label?: string }) {
-  return (
-    <div className="ess-card-flat flex items-center justify-center gap-2 px-4 py-8 text-sm text-[var(--ess-muted)]">
-      <Loader2 className="h-4 w-4 animate-spin" />
-      {label}
-    </div>
-  );
+export function EssLoadingState({ label }: { label?: string }) {
+  return <PlatformContentLoader label={label} compact />;
 }
 
 export {

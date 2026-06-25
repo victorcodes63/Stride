@@ -1,7 +1,8 @@
 'use client';
 
-import { AlertCircle, Loader2, type LucideIcon } from 'lucide-react';
+import { AlertCircle, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { PlatformContentLoader } from '@/components/platform/PlatformContentLoader';
 
 function cn(...parts: (string | false | undefined)[]) {
   return parts.filter(Boolean).join(' ');
@@ -128,11 +129,6 @@ export function DashboardAsyncState({
 }
 
 /** Inline loading indicator for sections inside an already-rendered page. */
-export function DashboardInlineLoading({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div className="flex items-center justify-center gap-2 py-12 text-sm text-neutral-500">
-      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-      <span>{label}</span>
-    </div>
-  );
+export function DashboardInlineLoading({ label }: { label?: string }) {
+  return <PlatformContentLoader label={label} compact />;
 }

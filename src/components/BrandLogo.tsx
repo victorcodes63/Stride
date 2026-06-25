@@ -9,14 +9,18 @@ import {
 
 type BrandLogoProps = {
   className?: string;
-  variant?: 'mark' | 'markSm' | 'markLg' | 'header' | 'sidebarExpanded' | 'sidebarCollapsed' | 'compact' | 'auth' | 'authPanel';
+  variant?: 'mark' | 'markSm' | 'markLg' | 'header' | 'sidebarExpanded' | 'sidebarCollapsed' | 'compact' | 'auth' | 'authPanel' | 'sidebarWordmark';
   priority?: boolean;
   alt?: string;
   /** Override URL — use when parent already has brand snapshot */
   src?: string;
 };
 
-const WORDMARK_VARIANTS = new Set<NonNullable<BrandLogoProps['variant']>>(['auth', 'authPanel']);
+const WORDMARK_VARIANTS = new Set<NonNullable<BrandLogoProps['variant']>>([
+  'auth',
+  'authPanel',
+  'sidebarWordmark',
+]);
 
 const markVariantClass: Record<NonNullable<BrandLogoProps['variant']>, string> = {
   mark: 'h-10 w-10 object-contain',
@@ -28,6 +32,7 @@ const markVariantClass: Record<NonNullable<BrandLogoProps['variant']>, string> =
   compact: 'h-8 w-8 object-contain',
   auth: 'h-11 w-auto max-w-[160px] object-contain object-left',
   authPanel: 'h-11 w-auto max-w-[11rem] object-contain object-left',
+  sidebarWordmark: 'mx-auto h-9 w-auto max-w-[9rem] object-contain object-center',
 };
 
 const variantSize: Record<NonNullable<BrandLogoProps['variant']>, number> = {
@@ -40,6 +45,7 @@ const variantSize: Record<NonNullable<BrandLogoProps['variant']>, number> = {
   compact: 32,
   auth: 44,
   authPanel: 44,
+  sidebarWordmark: 36,
 };
 
 /**
@@ -56,7 +62,9 @@ export default function BrandLogo({
   const cls = className ?? markVariantClass[variant];
   const useWordmark = WORDMARK_VARIANTS.has(variant);
   const defaultSrc = useWordmark ? STRIDE_WORDMARK_SRC : STRIDE_MARK_SRC;
-  const logoSrc = normalizeLogoSrc(src ?? brandLogoSrc ?? defaultSrc);
+  const logoSrc = normalizeLogoSrc(
+    src ?? (useWordmark ? STRIDE_WORDMARK_SRC : (brandLogoSrc ?? defaultSrc)),
+  );
   const resolvedSrc =
     !src && !useWordmark && logoSrc.includes('stride-wordmark')
       ? STRIDE_MARK_SRC

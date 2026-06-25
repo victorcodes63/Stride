@@ -12,6 +12,8 @@ import { EssEmptyState, EssListItem } from '@/components/ess/EssUi';
 import BrandLogo from '@/components/BrandLogo';
 import { SkipToMain } from '@/components/a11y/SkipToMain';
 import { DashboardThemeToggle } from '@/components/dashboard/DashboardThemeToggle';
+import { PlatformLoadingOverlay } from '@/components/platform/PlatformLoadingOverlay';
+import { PlatformNavigationLoader } from '@/components/platform/PlatformNavigationLoader';
 
 type EssShellBrand = {
   orgName: string;
@@ -58,6 +60,8 @@ function EssShellInner({ children, brand, themeStyle }: { children: ReactNode; b
 
   return (
     <div className="min-h-screen ess-app" style={themeStyle}>
+      <PlatformNavigationLoader />
+      {meLoading ? <PlatformLoadingOverlay /> : null}
       <SkipToMain />
       <EssOfflineBanner />
       <header className="sticky top-0 z-20 px-3 pt-2 ess-safe-top">

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { brand } from '@/lib/brand';
 import { DEFAULT_SECONDARY_COLOR } from '@/lib/brand-theme';
+import '@/styles/platform-loader.css';
 
 export const metadata: Metadata = {
   title: {

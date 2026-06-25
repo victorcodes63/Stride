@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getJurisdictionPolicy } from '@/lib/east-africa-hr-policy';
+import { PlatformRouteLoading } from '@/components/platform/PlatformRouteLoading';
 
 type ActionRow = {
   id: string;
@@ -85,7 +86,7 @@ export default function EssDisciplinaryCasePage() {
     );
   }
 
-  if (!data) return <p className="text-sm text-neutral-500">Loading...</p>;
+  if (!data) return <PlatformRouteLoading />;
 
   const policy = getJurisdictionPolicy(data.laborJurisdiction);
 

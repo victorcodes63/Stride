@@ -18,8 +18,7 @@ import CommandPalette from './CommandPalette';
 import { DashboardBreadcrumbs } from './DashboardBreadcrumbs';
 import { DashboardModuleSwitcher } from './DashboardModuleSwitcher';
 import { DashboardThemeToggle } from '@/components/dashboard/DashboardThemeToggle';
-import { EntitySwitcher, useEntity } from '@/components/EntitySwitcher';
-import { OrgSwitcher } from '@/components/dashboard/OrgSwitcher';
+import { EntitySwitcher } from '@/components/EntitySwitcher';
 import type { UserSummary } from '@/types/dashboard';
 import type { ModuleKey } from '@/lib/modules';
 import { resolveDashboardBreadcrumbs } from '@/lib/dashboard-breadcrumbs';
@@ -75,14 +74,6 @@ function TopbarDivider() {
   return (
     <div className="hidden h-6 w-px shrink-0 bg-[var(--dash-border-subtle)] sm:block" aria-hidden />
   );
-}
-
-function TopbarContextSwitcher({ currentUser }: { currentUser: UserSummary | null }) {
-  const { showSwitcher: showEntitySwitcher, loading: entityLoading } = useEntity();
-  // Operating entities (e.g. Kenya / Uganda) and org tenancy are separate concepts —
-  // when the entity switcher is active, hide the org badge to avoid two duplicate controls.
-  if (entityLoading || showEntitySwitcher) return null;
-  return <OrgSwitcher currentUser={currentUser} />;
 }
 
 export default function DashboardTopbar({
@@ -235,7 +226,6 @@ export default function DashboardTopbar({
 
         {/* Right actions */}
         <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-          <TopbarContextSwitcher currentUser={currentUser} />
           <EntitySwitcher variant="topbar" />
 
           <TopbarDivider />

@@ -24,6 +24,8 @@ import { DashboardDomainProvider } from '@/contexts/dashboard-domain';
 import { DashboardOverviewLayoutProvider } from '@/contexts/dashboard-overview-layout';
 import { DashboardModuleOrderProvider } from '@/contexts/dashboard-module-order';
 import { SkipToMain } from '@/components/a11y/SkipToMain';
+import { PlatformLoadingOverlay } from '@/components/platform/PlatformLoadingOverlay';
+import { PlatformNavigationLoader } from '@/components/platform/PlatformNavigationLoader';
 import {
  DASHBOARD_MAIN_PADDING_BOTTOM,
  DASHBOARD_MAIN_PADDING_TOP,
@@ -100,6 +102,7 @@ export default function DashboardAppLayoutClient({
   graceDaysRemaining: number | null;
  }>({ visible: false, graceDaysRemaining: null });
  const [canAccessCompanySetup, setCanAccessCompanySetup] = useState(false);
+ const [sessionBootstrapping, setSessionBootstrapping] = useState(true);
  const [sidebarOpen, setSidebarOpen] = useState(true);
  const [hasMounted, setHasMounted] = useState(false);
  const [isMobileNav, setIsMobileNav] = useState(false);
@@ -157,6 +160,9 @@ export default function DashboardAppLayoutClient({
  if (error instanceof Error && error.message === 'unauthorized') {
  router.replace('/dashboard/login');
  }
+ })
+ .finally(() => {
+ if (!cancelled) setSessionBootstrapping(false);
  });
  };
 
@@ -228,6 +234,8 @@ export default function DashboardAppLayoutClient({
  }
  >
  <div className="dashboard-canvas h-screen overflow-hidden">
+ <PlatformNavigationLoader />
+ {sessionBootstrapping ? <PlatformLoadingOverlay /> : null}
  <SkipToMain />
  {showBackdrop ? (
  <button
@@ -261,7 +269,7 @@ export default function DashboardAppLayoutClient({
  aria-hidden={hasMounted && !sidebarOpen}
  >
  <div
- className="dash-sidebar-brand flex-shrink-0 border-b px-3.5 py-3"
+ className="dash-sidebar-brand flex flex-shrink-0 items-center justify-center border-b px-3.5 py-3"
  onClick={closeSidebarOnMobile}
  >
  {sidebarBrand}

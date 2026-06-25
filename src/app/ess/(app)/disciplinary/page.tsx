@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssAlert, EssEmptyState, EssListItem } from '@/components/ess/EssUi';
+import { PlatformRouteLoading } from '@/components/platform/PlatformRouteLoading';
 import { EssStatusPill } from '@/components/ess/EssStatusPill';
 import { getJurisdictionPolicy } from '@/lib/east-africa-hr-policy';
 
@@ -66,7 +67,7 @@ export default function EssDisciplinaryPage() {
 
       <div className="space-y-2">
         {loading ? (
-          <p className="ess-card-flat px-4 py-8 text-center text-sm text-[var(--ess-muted)]">Loading...</p>
+          <PlatformRouteLoading />
         ) : rows.length === 0 ? (
           <EssEmptyState title="No disciplinary cases" message="You have no disciplinary cases on file." />
         ) : (

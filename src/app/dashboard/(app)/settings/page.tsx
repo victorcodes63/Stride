@@ -9,6 +9,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { ModuleOrderSettings } from '@/components/dashboard/settings/ModuleOrderSettings';
 import { DashboardOverviewSettings } from '@/components/dashboard/settings/DashboardOverviewSettings';
 import { AppearanceSettings } from '@/components/dashboard/settings/AppearanceSettings';
+import { PlatformContentLoader } from '@/components/platform/PlatformContentLoader';
 
 const DEFAULTS: SystemSettingsPayload = {
  companyName: 'HRIS',
@@ -109,9 +110,7 @@ export default function SettingsPage() {
 
  <form onSubmit={save} className="dashboard-surface shadow-sm p-5 sm:p-6 space-y-5">
  {loading ? (
- <div className="py-16 flex items-center justify-center">
- <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
- </div>
+ <PlatformContentLoader />
  ) : (
  <>
  <div className="grid sm:grid-cols-2 gap-4">
