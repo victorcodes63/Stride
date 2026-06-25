@@ -12,13 +12,36 @@ CREATE POLICY "Organization_insert_bootstrap" ON "Organization"
 DROP POLICY IF EXISTS "Organization_tenant_select" ON "Organization";
 CREATE POLICY "Organization_tenant_select" ON "Organization"
   FOR SELECT
-  USING (id = current_setting('app.current_org', true)::uuid);
+  USING (
+    coalesce(current_setting('app.current_org', true), '') <> ''
+    AND id = current_setting('app.current_org', true)::uuid
+  );
+
+DROP POLICY IF EXISTS "Organization_login_read" ON "Organization";
+CREATE POLICY "Organization_login_read" ON "Organization"
+  FOR SELECT
+  USING (
+    current_setting('app.login_user_id', true) <> ''
+    AND EXISTS (
+      SELECT 1
+      FROM "OrganizationMembership" om
+      WHERE om."organizationId" = "Organization".id
+        AND om."userId" = current_setting('app.login_user_id', true)
+        AND om.status = 'active'
+    )
+  );
 
 DROP POLICY IF EXISTS "Organization_tenant_update" ON "Organization";
 CREATE POLICY "Organization_tenant_update" ON "Organization"
   FOR UPDATE
-  USING (id = current_setting('app.current_org', true)::uuid)
-  WITH CHECK (id = current_setting('app.current_org', true)::uuid);
+  USING (
+    coalesce(current_setting('app.current_org', true), '') <> ''
+    AND id = current_setting('app.current_org', true)::uuid
+  )
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') <> ''
+    AND id = current_setting('app.current_org', true)::uuid
+  );
 
 ALTER TABLE "Client" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Client" FORCE ROW LEVEL SECURITY;
@@ -1199,8 +1222,14 @@ ALTER TABLE "OrganizationMembership" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "OrganizationMembership_tenant_rw" ON "OrganizationMembership";
 CREATE POLICY "OrganizationMembership_tenant_rw" ON "OrganizationMembership"
   FOR ALL
-  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
-  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+  USING (
+    coalesce(current_setting('app.current_org', true), '') <> ''
+    AND "organizationId" = current_setting('app.current_org', true)::uuid
+  )
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') <> ''
+    AND "organizationId" = current_setting('app.current_org', true)::uuid
+  );
 
 DROP POLICY IF EXISTS "OrganizationMembership_insert_bootstrap" ON "OrganizationMembership";
 CREATE POLICY "OrganizationMembership_insert_bootstrap" ON "OrganizationMembership"

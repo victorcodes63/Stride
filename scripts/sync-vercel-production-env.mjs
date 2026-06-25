@@ -65,13 +65,14 @@ addEnv('DIRECT_DATABASE_URL', unpooled, { sensitive: true });
 addEnv('RUN_MIGRATIONS_ON_BUILD', 'true');
 addEnv('PRISMA_MIGRATE_ADVISORY_LOCK_TIMEOUT', '120000');
 
-// Full-platform sales demo — every module and capability visible to prospects
+// Single-tenant SwiftFreight on app.getstride.co.ke — use apply-app-getstride-production-env.mjs instead.
+// This script only syncs DB URLs + migration flags; do not re-enable multi-vertical demo here.
 addEnv('DEMO_MODE', 'true');
 addEnv('NEXT_PUBLIC_DEMO_MODE', 'true');
-addEnv('MULTI_ENTITY_ENABLED', 'true');
-addEnv('DEMO_MULTI_CONTEXT', 'true');
-addEnv('DEMO_UNIFIED_ADMIN_EMAIL', 'demo@demo.imara.co.ke');
-addEnv('NEXT_PUBLIC_DEMO_ADMIN_EMAIL', 'demo@demo.imara.co.ke');
+addEnv('MULTI_ENTITY_ENABLED', 'false');
+addEnv('DEMO_PACK', 'cargo-logistics');
+addEnv('DEMO_UNIFIED_ADMIN_EMAIL', 'admin@imara.co.ke');
+addEnv('NEXT_PUBLIC_DEMO_ADMIN_EMAIL', 'admin@imara.co.ke');
 addEnv('NEXT_PUBLIC_DEMO_PASSWORD', 'Demo@2026!');
 
 // Best-in-class paths (attendance reconciliation, leave policy engine, biometric ops)

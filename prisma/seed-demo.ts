@@ -277,12 +277,10 @@ async function seedPackRecruitmentJobs(now: Date) {
 
   await prisma.job.deleteMany({ where: { clientId } });
 
-  // Multi-vertical reseeds can leave jobs on renamed recruitment clients — clear by reference prefix.
-  if (process.env.DEMO_MULTI_CONTEXT === 'true') {
-    await prisma.job.deleteMany({
-      where: { referenceId: { startsWith: referencePrefix } },
-    });
-  }
+  // Clear stale jobs from prior reseeds (other recruitment clients / packs).
+  await prisma.job.deleteMany({
+    where: { referenceId: { startsWith: referencePrefix } },
+  });
 
   for (let idx = 0; idx < pack.careersJobs.length; idx += 1) {
     const def = pack.careersJobs[idx];

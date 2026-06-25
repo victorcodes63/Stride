@@ -24,7 +24,8 @@ const THEME_STORAGE_KEY = 'hris-dashboard:theme';
 function loadEnvLocal() {
   const env = {};
   const path = join(ROOT, '.env.local');
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
+  try {
+    for (const line of readFileSync(path, 'utf8').split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
     const eq = trimmed.indexOf('=');
@@ -34,7 +35,10 @@ function loadEnvLocal() {
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
-    env[key] = val;
+      env[key] = val;
+    }
+  } catch {
+    /* optional when CAPTURE_EMAIL / CAPTURE_PASSWORD are set */
   }
   return env;
 }
@@ -108,7 +112,7 @@ async function main() {
   const email = process.env.CAPTURE_EMAIL ?? env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL;
   const password = process.env.CAPTURE_PASSWORD ?? env.NEXT_PUBLIC_DEMO_PASSWORD;
   if (!email || !password) {
-    throw new Error('Missing demo credentials in .env.local');
+    throw new Error('Missing demo credentials — set CAPTURE_EMAIL/CAPTURE_PASSWORD or .env.local');
   }
 
   mkdir(IMAGES_DIR, { recursive: true }, () => {});

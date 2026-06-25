@@ -17,17 +17,21 @@ export type ResolvedMembership = {
 export const DEFAULT_ORGANIZATION_ID = '00000000-0000-4000-8000-000000000001';
 
 /** Set RLS login scope so membership rows for this user are readable pre-session. */
-async function withLoginUserScope<T>(userId: string, fn: () => Promise<T>): Promise<T> {
-  await prisma.$executeRaw`SELECT set_config('app.login_user_id', ${userId}, true)`;
-  try {
-    return await fn();
-  } finally {
-    await prisma.$executeRaw`SELECT set_config('app.login_user_id', '', true)`;
-  }
+async function withLoginUserScope<T>(
+  userId: string,
+  fn: (db: typeof prisma) => Promise<T>,
+): Promise<T> {
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.login_user_id', ${userId}, true)`;
+    return fn(tx as typeof prisma);
+  });
 }
 
-export async function listActiveMemberships(userId: string): Promise<ResolvedMembership[]> {
-  return prisma.organizationMembership.findMany({
+export async function listActiveMemberships(
+  userId: string,
+  db: typeof prisma = prisma,
+): Promise<ResolvedMembership[]> {
+  return db.organizationMembership.findMany({
     where: { userId, status: 'active' },
     include: {
       organization: { select: { id: true, name: true, slug: true } },
@@ -40,8 +44,9 @@ export async function listActiveMemberships(userId: string): Promise<ResolvedMem
 export async function resolveMembership(
   userId: string,
   preferredOrgId?: string | null,
+  db: typeof prisma = prisma,
 ): Promise<ResolvedMembership | null> {
-  const rows = await listActiveMemberships(userId);
+  const rows = await listActiveMemberships(userId, db);
   if (rows.length === 0) return null;
   if (preferredOrgId) {
     const match = rows.find((row) => row.organizationId === preferredOrgId);
@@ -79,16 +84,16 @@ export async function membershipForLogin(
   userRole: UserRole,
   preferredOrgId?: string | null,
 ): Promise<ResolvedMembership> {
-  return withLoginUserScope(userId, async () => {
+  return withLoginUserScope(userId, async (db) => {
     if (preferredOrgId) {
-      const preferred = await resolveMembership(userId, preferredOrgId);
+      const preferred = await resolveMembership(userId, preferredOrgId, db);
       if (preferred) return preferred;
     }
 
     const demoPack = process.env.DEMO_PACK?.trim();
     if (demoPack) {
       const demoSlug = `demo-${demoPack}`;
-      const demoMembership = await prisma.organizationMembership.findFirst({
+      const demoMembership = await db.organizationMembership.findFirst({
         where: {
           userId,
           status: 'active',
@@ -101,7 +106,7 @@ export async function membershipForLogin(
       if (demoMembership) return demoMembership;
     }
 
-    const resolved = await resolveMembership(userId, preferredOrgId);
+    const resolved = await resolveMembership(userId, preferredOrgId, db);
     if (resolved) return resolved;
     return ensureDefaultMembership(userId, userRole);
   });
