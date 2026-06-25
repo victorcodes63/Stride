@@ -1,8 +1,32 @@
 /**
  * Staff password + OAuth login may only accept emails whose domain is listed in
  * `STAFF_ALLOWED_DOMAIN` (comma-separated). When unset, allow generic demo seeds.
+ * In demo mode, always merges `DEMO_EMAIL_DOMAIN` (and heritage subdomain) so local
+ * shell exports of STAFF_ALLOWED_DOMAIN cannot block demo logins.
  */
 export const DEFAULT_STAFF_ALLOWED_DOMAIN_ENV = 'example.com';
+
+function parseDomainList(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((d) => d.trim().toLowerCase().replace(/^["']|["']$/g, ''))
+    .filter(Boolean);
+}
+
+function isDemoModeEnabled(): boolean {
+  return (
+    process.env.DEMO_MODE === 'true' ||
+    process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+  );
+}
+
+function getDemoStaffDomains(): string[] {
+  if (!isDemoModeEnabled()) return [];
+  const base =
+    process.env.DEMO_EMAIL_DOMAIN?.trim().replace(/^["']|["']$/g, '') ||
+    'demo.getstride.co.ke';
+  return [base, `heritage.${base}`];
+}
 
 function expandParentDomains(domains: string[]): string[] {
   const set = new Set(domains);
@@ -17,11 +41,9 @@ function expandParentDomains(domains: string[]): string[] {
 }
 
 export function getStaffAllowedDomains(): string[] {
-  const raw = (process.env.STAFF_ALLOWED_DOMAIN || DEFAULT_STAFF_ALLOWED_DOMAIN_ENV)
-    .split(',')
-    .map((d) => d.trim().toLowerCase())
-    .filter(Boolean);
-  return expandParentDomains(raw);
+  const raw = process.env.STAFF_ALLOWED_DOMAIN || DEFAULT_STAFF_ALLOWED_DOMAIN_ENV;
+  const merged = [...parseDomainList(raw), ...getDemoStaffDomains()];
+  return expandParentDomains([...new Set(merged)]);
 }
 
 /** True when the email domain equals or is a subdomain of an allowed domain. */

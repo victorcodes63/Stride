@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import { Bricolage_Grotesque, IBM_Plex_Mono, Inter } from 'next/font/google';
+import '@/styles/stride-palette.css';
+import '@/styles/stride-primitives.css';
+import '@/styles/ess-theme.css';
 import './globals.css';
 import '@/styles/dashboard-theme.css';
 

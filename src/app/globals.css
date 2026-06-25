@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import '../styles/stride-palette.css';
-@import '../styles/stride-primitives.css';
-@import '../styles/ess-theme.css';
-
 :root {
   /* Dashboard KPI swatches — warm ink scale (no legacy blue/teal primaries) */
   --swatch-sky-bg: #f4efe8;
