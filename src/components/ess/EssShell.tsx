@@ -10,6 +10,7 @@ import { EssOfflineBanner } from '@/components/ess/EssOfflineBanner';
 import { EssServiceWorkerRegister } from '@/components/ess/EssServiceWorkerRegister';
 import { EssEmptyState, EssListItem } from '@/components/ess/EssUi';
 import BrandLogo from '@/components/BrandLogo';
+import { SkipToMain } from '@/components/a11y/SkipToMain';
 import { DashboardThemeToggle } from '@/components/dashboard/DashboardThemeToggle';
 
 type EssShellBrand = {
@@ -57,6 +58,7 @@ function EssShellInner({ children, brand, themeStyle }: { children: ReactNode; b
 
   return (
     <div className="min-h-screen ess-app" style={themeStyle}>
+      <SkipToMain />
       <EssOfflineBanner />
       <header className="sticky top-0 z-20 px-3 pt-2 ess-safe-top">
         <div className="ess-glass mx-auto flex w-full max-w-lg items-center justify-between gap-2 rounded-[1.35rem] px-3 py-2 shadow-sm">
@@ -108,6 +110,7 @@ function EssShellInner({ children, brand, themeStyle }: { children: ReactNode; b
               type="button"
               onClick={() => setNotificationsOpen(false)}
               className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--ess-muted)] hover:bg-[var(--ess-secondary-soft)]"
+              aria-label="Close notifications"
             >
               <X className="h-5 w-5" />
             </button>
@@ -156,7 +159,9 @@ function EssShellInner({ children, brand, themeStyle }: { children: ReactNode; b
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-lg px-4 py-6 ess-main-pad">{children}</main>
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-lg px-4 py-6 ess-main-pad">
+        {children}
+      </main>
       <EssTabBar />
     </div>
   );

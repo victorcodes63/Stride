@@ -90,45 +90,71 @@ export default function EssProcurementPage() {
       />
 
       <EssCard>
-        <p className="text-sm font-black text-[var(--ess-text)]">New request</p>
-        <div className="mt-2 space-y-2">
+        <p className="text-sm font-black text-[var(--ess-text)]" id="pr-form-title">
+          New request
+        </p>
+        <div className="mt-2 space-y-2" aria-labelledby="pr-form-title">
+          <label className="block text-xs font-semibold text-[var(--ess-muted)]" htmlFor="pr-title">
+            Title
+          </label>
           <input
+            id="pr-title"
             className={essInputClass}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What do you need?"
           />
+          <label className="block text-xs font-semibold text-[var(--ess-muted)]" htmlFor="pr-justification">
+            Justification
+          </label>
           <textarea
+            id="pr-justification"
             className={`${essInputClass} min-h-24`}
             value={justification}
             onChange={(e) => setJustification(e.target.value)}
             placeholder="Why is this needed?"
           />
+          <label className="block text-xs font-semibold text-[var(--ess-muted)]" htmlFor="pr-item">
+            Line item
+          </label>
           <input
+            id="pr-item"
             className={essInputClass}
             value={item}
             onChange={(e) => setItem(e.target.value)}
-            placeholder="Line item description"
+            placeholder="Item description"
           />
           <div className="grid grid-cols-2 gap-2">
-            <input
-              className={essInputClass}
-              type="number"
-              min="0"
-              step="any"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder="Qty"
-            />
-            <input
-              className={essInputClass}
-              type="number"
-              min="0"
-              step="any"
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(e.target.value)}
-              placeholder="Unit price (KES)"
-            />
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-[var(--ess-muted)]" htmlFor="pr-qty">
+                Quantity
+              </label>
+              <input
+                id="pr-qty"
+                className={essInputClass}
+                type="number"
+                min="0"
+                step="any"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="Qty"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-[var(--ess-muted)]" htmlFor="pr-price">
+                Unit price (KES)
+              </label>
+              <input
+                id="pr-price"
+                className={essInputClass}
+                type="number"
+                min="0"
+                step="any"
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(e.target.value)}
+                placeholder="Unit price"
+              />
+            </div>
           </div>
           {error ? <EssAlert tone="danger">{error}</EssAlert> : null}
           <div className="flex flex-wrap gap-2">

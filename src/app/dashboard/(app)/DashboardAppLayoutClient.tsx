@@ -23,6 +23,7 @@ import { DashboardSessionProvider } from '@/contexts/dashboard-session';
 import { DashboardDomainProvider } from '@/contexts/dashboard-domain';
 import { DashboardOverviewLayoutProvider } from '@/contexts/dashboard-overview-layout';
 import { DashboardModuleOrderProvider } from '@/contexts/dashboard-module-order';
+import { SkipToMain } from '@/components/a11y/SkipToMain';
 import {
  DASHBOARD_MAIN_PADDING_BOTTOM,
  DASHBOARD_MAIN_PADDING_TOP,
@@ -227,6 +228,7 @@ export default function DashboardAppLayoutClient({
  }
  >
  <div className="dashboard-canvas h-screen overflow-hidden">
+ <SkipToMain />
  {showBackdrop ? (
  <button
  type="button"
@@ -314,7 +316,7 @@ export default function DashboardAppLayoutClient({
  enabledModules={enabledModules}
  contentGutterClass={DASHBOARD_SHELL_GUTTER}
  />
- <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+ <main id="main-content" tabIndex={-1} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
  {pastDueBanner.visible ? (
   <PastDueBanner graceDaysRemaining={pastDueBanner.graceDaysRemaining} />
  ) : null}
