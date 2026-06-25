@@ -7,7 +7,7 @@
  *
  * Outputs:
  *   public/images/dashboard_home.png      — SwiftFreight operations overview
- *   public/images/payroll_screenshot.png  — Heritage Members SACCO statutory compliance
+ *   public/images/payroll_screenshot.png  — SwiftFreight statutory compliance
  */
 
 import { chromium } from 'playwright';
@@ -45,14 +45,14 @@ const SHOTS = [
     file: 'dashboard_home.png',
     path: '/dashboard',
     entityMatch: /SwiftFreight/i,
-    waitFor: /Across your business|Operations overview|Business snapshot/i,
+    waitFor: /Good (morning|afternoon|evening)|Across your business|Operations overview|Business snapshot|Dashboard/i,
     clip: { width: 1440, height: 900 },
   },
   {
     id: 'statutory',
     file: 'payroll_screenshot.png',
     path: '/dashboard/payroll/statutory',
-    entityMatch: /Heritage Members|Nyati/i,
+    entityMatch: /SwiftFreight/i,
     waitFor: /Statutory|KRA PAYE|Employer/i,
     clip: { width: 1440, height: 900 },
   },
@@ -66,7 +66,7 @@ const ENTITY_STORAGE_KEY = 'hris_active_entity';
 
 const ENTITY_SLUG_FALLBACKS = {
   hero: 'cargo-logistics__ke',
-  statutory: 'imara-sacco__ke',
+  statutory: 'cargo-logistics__ke',
 };
 
 async function resolveEntityId(page, shotId, entityMatch) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { Reveal, Stagger, StaggerItem } from '@/components/marketing/motion';
+import { MarketingModuleBadge } from '@/components/marketing/MarketingModuleBadge';
 import { SectionBadge, StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import { PLATFORM_PAGE, PLATFORM_WORKFLOWS } from '@/lib/marketing-config';
 
@@ -32,7 +33,10 @@ export function HomeConnectedSection() {
               as="article"
               className="rounded-2xl border border-white/10 bg-white/[0.04] p-6"
             >
-              <h3 className="text-lg font-medium text-[var(--sc-on-ink-fg)]">{workflow.title}</h3>
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-lg font-medium text-[var(--sc-on-ink-fg)]">{workflow.title}</h3>
+                <MarketingModuleBadge readiness={workflow.status} variant="dark" className="shrink-0" />
+              </div>
               <p className="mt-3 break-words font-mono text-[10px] uppercase leading-relaxed tracking-[0.06em] text-[var(--sc-coral)] sm:text-[11px] sm:tracking-[0.08em]">
                 {workflow.flow}
               </p>

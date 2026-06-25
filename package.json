@@ -95,6 +95,8 @@
     "provision:check:demo": "node scripts/provision-check.mjs --profile demo",
     "smoke:test": "node scripts/smoke-test.mjs",
     "smoke:platform": "node scripts/smoke-platform.mjs",
+    "smoke:marketing": "node scripts/smoke-marketing.mjs",
+    "audit:marketing-imagery": "node scripts/audit-marketing-imagery.mjs",
     "demo:happy-path": "node scripts/demo-happy-path.mjs",
     "payroll:verify-statutory": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/verify-payroll-statutory.ts",
     "verify:module-scope": "node scripts/verify-module-scope.mjs",

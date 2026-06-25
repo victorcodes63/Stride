@@ -12,7 +12,7 @@ import {
   ShieldCheck,
 } from '@phosphor-icons/react';
 import { animate, motion, useInView, useReducedMotion } from 'motion/react';
-import { PLATFORM_COMPLIANCE, PLATFORM_COMPLIANCE_FLOW } from '@/lib/marketing-config';
+import { PLATFORM_COMPLIANCE, PLATFORM_COMPLIANCE_FLOW, PLATFORM_COMPLIANCE_HOMEPAGE } from '@/lib/marketing-config';
 
 // Illustrative figures — replace before publish.
 const EMPLOYEE_COUNT = 1240;
@@ -417,6 +417,146 @@ function CardInlineFigure({
   return null;
 }
 
+function PayRunConsole({
+  activeStep,
+  isComplete,
+  reduceMotion,
+  className = '',
+}: {
+  activeStep: number;
+  isComplete: boolean;
+  reduceMotion: boolean;
+  className?: string;
+}) {
+  const state = getCardState('paye', activeStep);
+  const isActive = state === 'active';
+  const isDone = state === 'done';
+  const tagsDone = isComplete && activeStep >= FINAL_STEP;
+  const activeShadow = isActive
+    ? 'shadow-[0_16px_40px_-16px_rgba(255,84,54,0.28)]'
+    : 'shadow-none';
+  const borderClass = isActive ? 'border-[var(--sc-coral)]' : 'border-[var(--sc-line)]';
+
+  return (
+    <motion.article
+      className={`relative flex flex-col rounded-2xl border bg-[var(--sc-ink)] p-7 transition-[box-shadow,border-color] duration-300 ${borderClass} ${activeShadow} ${className}`}
+      animate={reduceMotion ? undefined : { y: isActive ? -3 : 0 }}
+      transition={CARD_SPRING}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <p className="font-mono text-[11px] uppercase tracking-wide text-[var(--sc-coral)]">Live pay run</p>
+        <div className="flex shrink-0 items-center gap-2">
+          {isComplete ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--sc-coral)] bg-[var(--sc-coral)]/15 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-[var(--sc-coral)]">
+              <Check size={11} weight="bold" aria-hidden />
+              Filed
+            </span>
+          ) : (
+            <>
+              <StatusPill state={state} />
+              <IconChip icon={Receipt} variant="dark" done={isDone} />
+            </>
+          )}
+        </div>
+      </div>
+
+      <h3 className="mt-4 font-heading text-2xl font-bold tracking-[-0.02em] text-white">
+        KRA PAYE · NSSF · SHIF
+      </h3>
+      <p className="sr-only">PAYE calculations, payslips, P9s and filing-ready exports</p>
+
+      <div className="mt-4 min-h-[9.5rem] space-y-1.5">
+        {reduceMotion
+          ? CONSOLE_LINES.map((line) =>
+              line.filed ? (
+                <div
+                  key={line.text}
+                  className="mt-2 rounded-lg border border-[var(--sc-coral)]/50 bg-[var(--sc-coral)]/15 px-3 py-2.5"
+                  role="status"
+                >
+                  <p className="font-mono text-[13px] font-semibold leading-snug tracking-wide text-white sm:text-sm">
+                    {line.text}
+                  </p>
+                </div>
+              ) : (
+                <p key={line.text} className="font-mono text-[13px] leading-relaxed text-white/70">
+                  {line.text}
+                </p>
+              ),
+            )
+          : CONSOLE_LINES.map((line) => (
+              <ConsoleLine key={line.text} line={line} visible={activeStep >= line.step} />
+            ))}
+      </div>
+
+      {isComplete ? (
+        <div className="mt-3 flex flex-wrap gap-1.5" aria-hidden>
+          {['KRA', 'NSSF', 'SHIF'].map((chip) => (
+            <span
+              key={chip}
+              className="rounded-md border border-[var(--sc-coral)]/40 bg-[var(--sc-coral)]/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-[var(--sc-coral)]"
+            >
+              {chip} done
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="mt-auto flex flex-wrap gap-1.5 pt-6" aria-hidden>
+        {['PAYE', 'P9', 'iTax'].map((tag) => (
+          <span
+            key={tag}
+            className={`rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
+              tagsDone
+                ? 'border-[var(--sc-coral)]/35 bg-[var(--sc-coral)]/10 text-[var(--sc-coral)]'
+                : 'border-white/15 bg-white/5 text-white/80'
+            }`}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+    </motion.article>
+  );
+}
+
+type HomeComplianceItem = (typeof PLATFORM_COMPLIANCE_HOMEPAGE)[number];
+
+const HOME_COMPLIANCE_ICONS: Record<HomeComplianceItem['id'], Icon> = {
+  statutory: ShieldCheck,
+  mpesa: DeviceMobile,
+  'multi-region': GlobeHemisphereWest,
+};
+
+function ComplianceHomeCard({ item }: { item: HomeComplianceItem }) {
+  const IconComponent = HOME_COMPLIANCE_ICONS[item.id];
+
+  return (
+    <article className="flex h-full flex-col rounded-2xl border border-[var(--sc-line)] bg-white p-6">
+      <div className="flex items-start justify-between gap-4">
+        <p className="font-mono text-[11px] uppercase tracking-wide text-[var(--sc-coral)]">
+          {item.category}
+        </p>
+        <IconChip icon={IconComponent} variant="light" />
+      </div>
+      <h3 className="mt-4 font-heading text-xl font-bold tracking-[-0.02em] text-[var(--sc-ink)]">
+        {item.label}
+      </h3>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--sc-ink-muted)]">{item.detail}</p>
+      <div className="mt-auto flex flex-wrap gap-1.5 pt-6">
+        {item.tags.map((tag) => (
+          <span
+            key={tag}
+            className="rounded-md border border-[var(--sc-line)] bg-[var(--sc-paper-2)] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-[var(--sc-ink-muted)]"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+    </article>
+  );
+}
+
 type ComplianceCardProps = {
   item: ComplianceItem;
   index: number;
@@ -598,13 +738,55 @@ function ComplianceCard({
 
 type ComplianceBentoProps = {
   showFlowStrip?: boolean;
+  variant?: 'full' | 'homepage';
   className?: string;
 };
 
-export function ComplianceBento({ showFlowStrip = true, className = '' }: ComplianceBentoProps) {
+export function ComplianceBento({
+  showFlowStrip = true,
+  variant = 'full',
+  className = '',
+}: ComplianceBentoProps) {
   const reduceMotionPref = useReducedMotion();
   const { demoRef, activeStep, isComplete, replay, reduceMotion } =
     usePayRunStepper(reduceMotionPref);
+
+  if (variant === 'homepage') {
+    return (
+      <div
+        ref={demoRef}
+        role="region"
+        aria-label="Demonstration: a Kenyan pay run executing end to end"
+        className={className}
+      >
+        <PayRunPipeline activeStep={activeStep} reduceMotion={reduceMotion} />
+        <PayRunConsole
+          activeStep={activeStep}
+          isComplete={isComplete}
+          reduceMotion={reduceMotion}
+          className="mt-4"
+        />
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          {PLATFORM_COMPLIANCE_HOMEPAGE.map((item) => (
+            <ComplianceHomeCard key={item.id} item={item} />
+          ))}
+        </div>
+
+        {!reduceMotion ? (
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={replay}
+              className="rounded-full border border-[var(--sc-line)] bg-white px-4 py-2 font-mono text-[11px] uppercase tracking-wide text-[var(--sc-ink-muted)] transition-colors hover:border-[var(--sc-coral)] hover:text-[var(--sc-coral)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sc-coral)]/30 focus-visible:ring-offset-2"
+              aria-label="Replay pay run demonstration"
+            >
+              Replay
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   const orderedCards = CARD_ORDER.map((id) => {
     const index = PLATFORM_COMPLIANCE.findIndex((item) => item.id === id);

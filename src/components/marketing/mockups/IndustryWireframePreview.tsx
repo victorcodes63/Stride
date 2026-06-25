@@ -7,7 +7,12 @@ import {
   marketingAppHostLabel,
   type MarketingVerticalScreenshotId,
 } from '@/lib/marketing-config';
+import { ConstructionWireframe } from './ConstructionWireframe';
 import { CoreDashboardWireframe } from './CoreDashboardWireframe';
+import { EnergyWireframe } from './EnergyWireframe';
+import { FleetBoardWireframe } from './FleetBoardWireframe';
+import { HealthcareWireframe } from './HealthcareWireframe';
+import { SaccosWireframe } from './SaccosWireframe';
 
 type MarketingScreenshotFrameProps = {
   moduleLabel: string;
@@ -113,9 +118,21 @@ type IndustryWireframePreviewProps = {
   className?: string;
 };
 
-/** Live product screengrab inside the marketing chrome frame. */
+const INDUSTRY_WIREFRAMES: Record<
+  MarketingVerticalScreenshotId,
+  (props: { className?: string }) => ReactNode
+> = {
+  logistics: FleetBoardWireframe,
+  saccos: SaccosWireframe,
+  healthcare: HealthcareWireframe,
+  energy: EnergyWireframe,
+  construction: ConstructionWireframe,
+};
+
+/** Branded product wireframe inside the marketing chrome frame — no live screenshots. */
 export function IndustryWireframePreview({ industryId, className = '' }: IndustryWireframePreviewProps) {
   const shot = MARKETING_VERTICAL_SCREENSHOTS[industryId];
+  const Wireframe = INDUSTRY_WIREFRAMES[industryId];
 
   return (
     <MarketingScreenshotFrame
@@ -124,14 +141,7 @@ export function IndustryWireframePreview({ industryId, className = '' }: Industr
       path={shot.path}
       className={className}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={shot.src}
-        alt={shot.alt}
-        className="absolute inset-0 h-full w-full object-cover object-top"
-        decoding="async"
-        loading="lazy"
-      />
+      <Wireframe className="h-full p-2" />
     </MarketingScreenshotFrame>
   );
 }

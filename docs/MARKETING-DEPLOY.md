@@ -49,10 +49,31 @@ Home (`/`) renders the studio-craft v3 homepage. `/v3` redirects to `/`.
 
 ## Smoke test (RAV-46)
 
-- `/`, `/platform`, `/industries`, `/pricing`, `/about`, `/contact`
-- Footer: `/privacy`, `/terms`, `/careers`
-- Book demo form on `/contact`
-- Mobile nav (studio-craft drawer)
+```bash
+SMOKE_MARKETING_BASE_URL=https://getstride.co.ke npm run smoke:marketing
+```
+
+Local (unified `SITE_MODE`):
+
+```bash
+SITE_MODE=unified npm run build && SITE_MODE=unified npm start
+SMOKE_MARKETING_BASE_URL=http://localhost:3000 npm run smoke:marketing
+```
+
+Checks: nav + footer routes, book-demo API, mobile drawer, console errors on `/` and `/contact`, hero LCP element.
+
+Manual spot-check: `/`, `/platform`, `/industries`, `/pricing`, `/about`, `/contact`, footer `/privacy` `/terms` `/careers`, book demo form on `/contact`, mobile nav.
+
+## Marketing screenshots (RAV-167)
+
+```bash
+# Local capture (requires unified SITE_MODE + seeded DB)
+SITE_MODE=unified npm start
+MARKETING_CAPTURE_BASE_URL=http://localhost:3000 npm run capture:marketing-hero
+npm run audit:marketing-imagery
+```
+
+Production capture needs working `app.getstride.co.ke` demo login (`CAPTURE_EMAIL` / `CAPTURE_PASSWORD`).
 
 ## Reference
 

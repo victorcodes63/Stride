@@ -8,6 +8,18 @@ export const DEMO_TENANT = {
   currency: 'KES',
 } as const;
 
+export const DEMO_STATUTORY = {
+  tenantName: DEMO_TENANT.name,
+  period: 'May 2026',
+  employeeCount: 248,
+  rows: [
+    { label: 'PAYE', amount: 'KES 3,842,160', status: 'Filed' },
+    { label: 'NSSF', amount: 'KES 1,860,000', status: 'Filed' },
+    { label: 'SHIF', amount: 'KES 446,400', status: 'Filed' },
+    { label: 'Housing Levy', amount: 'KES 372,000', status: 'Filed' },
+  ],
+} as const;
+
 export const DEMO_CORE_STATS = {
   activeStaff: 248,
   activeStaffHint: 'Across 3 entities',

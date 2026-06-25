@@ -1,0 +1,182 @@
+#!/usr/bin/env node
+/**
+ * RAV-46 — Marketing site smoke test (getstride.co.ke).
+ *
+ * Usage:
+ *   SMOKE_MARKETING_BASE_URL=https://getstride.co.ke npm run smoke:marketing
+ */
+
+import { chromium, devices } from 'playwright';
+
+const BASE_URL = (process.env.SMOKE_MARKETING_BASE_URL || 'https://getstride.co.ke').replace(/\/$/, '');
+const APP_ORIGIN = (process.env.SMOKE_MARKETING_APP_ORIGIN || 'https://app.getstride.co.ke').replace(
+  /\/$/,
+  '',
+);
+
+const NAV_PATHS = ['/', '/platform', '/industries', '/pricing', '/about', '/contact'];
+const FOOTER_PATHS = ['/privacy', '/terms', '/careers'];
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+async function step(label, fn) {
+  await fn();
+  console.log(`✓ ${label}`);
+}
+
+async function fetchRoute(path) {
+  const url = `${BASE_URL}${path}`;
+  const res = await fetch(url, { redirect: 'manual' });
+  return { url, res };
+}
+
+async function main() {
+  console.log(`\nMarketing smoke test → ${BASE_URL}\n`);
+
+  for (const path of NAV_PATHS) {
+    await step(`Nav ${path}`, async () => {
+      const { res } = await fetchRoute(path);
+      assert(res.status === 200, `${path} returned ${res.status}`);
+    });
+  }
+
+  for (const path of FOOTER_PATHS) {
+    await step(`Footer ${path}`, async () => {
+      const { res } = await fetchRoute(path);
+      if (path === '/careers') {
+        assert(
+          res.status === 200 || (res.status >= 300 && res.status < 400),
+          `/careers returned ${res.status} (expected 200 or redirect to app)`,
+        );
+        if (res.status >= 300 && res.status < 400) {
+          const location = res.headers.get('location') ?? '';
+          assert(
+            location.includes('careers') || location.startsWith(APP_ORIGIN),
+            `/careers redirect unexpected: ${location}`,
+          );
+        }
+        return;
+      }
+      assert(res.status === 200, `${path} returned ${res.status}`);
+    });
+  }
+
+  await step('Book demo API accepts lead', async () => {
+    const res = await fetch(`${BASE_URL}/api/marketing/demo-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: 'Smoke',
+        lastName: 'Test',
+        email: `smoke+${Date.now()}@example.com`,
+        company: 'Stride QA',
+        teamSize: '11–50',
+        interest: 'Booking a demo',
+        modules: ['HR & Payroll'],
+        message: 'Automated marketing smoke test — safe to discard.',
+      }),
+    });
+    const data = await res.json();
+    assert(res.ok && data.ok === true, `Demo API failed: ${JSON.stringify(data)}`);
+  });
+
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const consoleErrors = [];
+
+    await step('Home — no console errors', async () => {
+      const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const page = await context.newPage();
+      page.on('console', (msg) => {
+        if (msg.type() === 'error') consoleErrors.push(`home: ${msg.text()}`);
+      });
+      page.on('pageerror', (err) => consoleErrors.push(`home: ${err.message}`));
+
+      const res = await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+      assert(res?.ok(), `Home load failed: ${res?.status()}`);
+      await page.getByRole('navigation', { name: 'Primary' }).waitFor({ state: 'visible', timeout: 15_000 });
+      await page.waitForTimeout(800);
+      await context.close();
+
+      const filtered = consoleErrors.filter(
+        (line) => !line.includes('favicon') && !line.includes('404'),
+      );
+      assert(filtered.length === 0, `Console errors on home:\n${filtered.join('\n')}`);
+    });
+
+    await step('Contact — no console errors', async () => {
+      const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const page = await context.newPage();
+      const contactErrors = [];
+      page.on('console', (msg) => {
+        if (msg.type() === 'error') contactErrors.push(msg.text());
+      });
+      page.on('pageerror', (err) => contactErrors.push(err.message));
+
+      const res = await page.goto(`${BASE_URL}/contact`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60_000,
+      });
+      assert(res?.ok(), `Contact load failed: ${res?.status()}`);
+      await page.getByLabel(/first name/i).waitFor({ state: 'visible', timeout: 20_000 });
+      await context.close();
+
+      const filtered = contactErrors.filter(
+        (line) => !line.includes('favicon') && !line.includes('404'),
+      );
+      assert(filtered.length === 0, `Console errors on contact:\n${filtered.join('\n')}`);
+    });
+
+    await step('Mobile nav opens (iPhone width)', async () => {
+      const iphone = devices['iPhone 13'];
+      const context = await browser.newContext({ ...iphone });
+      const page = await context.newPage();
+      await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+
+      const menuButton = page.getByRole('button', { name: /open menu|close menu/i });
+      await menuButton.click();
+      await page.getByLabel('Mobile').getByRole('link', { name: 'Pricing' }).waitFor({ state: 'visible', timeout: 10_000 });
+      await context.close();
+    });
+
+    await step('Mobile nav opens (Android width)', async () => {
+      const context = await browser.newContext({
+        viewport: { width: 412, height: 915 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      const page = await context.newPage();
+      await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+
+      const menuButton = page.getByRole('button', { name: /open menu|close menu/i });
+      await menuButton.click();
+      await page.getByLabel('Mobile').getByRole('link', { name: 'Platform' }).waitFor({ state: 'visible', timeout: 10_000 });
+      await context.close();
+    });
+
+    await step('Home LCP element present (hero)', async () => {
+      const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const page = await context.newPage();
+      await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle', timeout: 60_000 });
+
+      const heroHeading = page.getByRole('heading', { level: 1 });
+      await heroHeading.waitFor({ state: 'visible', timeout: 15_000 });
+      const box = await heroHeading.boundingBox();
+      assert(box && box.height > 0, 'Hero heading not visible for LCP check');
+      await context.close();
+    });
+  } finally {
+    await browser.close();
+  }
+
+  console.log('\nMarketing smoke test: PASS\n');
+}
+
+main().catch((err) => {
+  console.error('\nMarketing smoke test: FAIL');
+  console.error(err.message || err);
+  process.exit(1);
+});

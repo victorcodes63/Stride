@@ -28,27 +28,23 @@ export function HomeComplianceBand() {
       />
 
       <StudioCraftContainer className="relative">
-        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-14 xl:gap-16">
-          <div className="lg:sticky lg:top-[var(--nav-h)] lg:col-span-1 lg:self-start">
-            <Reveal>
-              <SectionBadge number="4" label={compliance.badge} />
-            </Reveal>
-            <Reveal delay={0.06}>
-              <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.06] tracking-[-0.03em] text-[var(--sc-ink)]">
-                <span className="block">Compliance is not</span>
-                <span className="block text-[var(--sc-coral)]">an add-on.</span>
-              </h2>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <p className="mt-5 max-w-[480px] text-base leading-relaxed text-[var(--sc-ink-muted)] sm:text-lg">
-                {compliance.body}
-              </p>
-            </Reveal>
-          </div>
+        <Reveal>
+          <SectionBadge number="4" label={compliance.badge} />
+        </Reveal>
+        <Reveal delay={0.06}>
+          <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.06] tracking-[-0.03em] text-[var(--sc-ink)]">
+            <span className="block">Compliance is not</span>
+            <span className="block text-[var(--sc-coral)]">an add-on.</span>
+          </h2>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <p className="mt-5 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)] sm:text-lg">
+            {compliance.body}
+          </p>
+        </Reveal>
 
-          <div className="min-w-0 lg:col-span-1">
-            <ComplianceBento />
-          </div>
+        <div className="mt-10 min-w-0">
+          <ComplianceBento variant="homepage" />
         </div>
       </StudioCraftContainer>
     </section>

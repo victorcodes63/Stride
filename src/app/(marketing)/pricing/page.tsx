@@ -3,6 +3,7 @@ import { marketingTierModuleSummary } from '@/lib/marketing-pricing-entitlements
 import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
+import { PricingCompareMatrix } from '@/components/marketing/pricing/PricingCompareMatrix';
 import {
   MarketingOutlineLink,
   MarketingPrimaryLink,
@@ -89,6 +90,8 @@ export default function PricingPage() {
         <p className="mt-10 text-center text-sm text-pub-ink-subtle">
           All plans include data migration support.
         </p>
+
+        <PricingCompareMatrix />
       </MarketingPageBody>
 
       <MarketingCtaBand

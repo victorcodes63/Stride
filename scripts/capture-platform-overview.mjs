@@ -76,7 +76,7 @@ async function main() {
 
   await page.goto(`${BASE_URL}${PATH}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
-  await page.getByText('Across your business').first().waitFor({ state: 'visible', timeout: 30_000 });
+  await page.getByText(/Good (morning|afternoon|evening)|Across your business|Operations overview|Business snapshot/i).first().waitFor({ state: 'visible', timeout: 30_000 });
   await page.waitForTimeout(800);
 
   await page.evaluate(() => {

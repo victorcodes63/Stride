@@ -515,7 +515,7 @@ export const PLATFORM_PAGE = {
   connected: {
     badge: 'One data layer',
     title: 'Modules that actually talk to each other.',
-    body: 'Employee records, org structure and approvals are shared — so a trip settlement, purchase order or payslip never needs to be re-keyed in another system.',
+    body: 'One employee record, one approval chain, one ledger — so a payslip, purchase order or trip settlement is never re-keyed in a second system.',
   },
   compliance: {
     badge: 'East Africa native',
@@ -542,16 +542,19 @@ export const PLATFORM_AUDIENCE = [
 export const PLATFORM_WORKFLOWS = [
   {
     title: 'Hire to pay',
+    status: 'live' as const,
     flow: 'Recruit → onboard → payroll run → M-Pesa disbursement → ledger',
     body: 'New hires move from offer letter to first payslip on shared employee records — no duplicate profiles across HR and finance.',
   },
   {
     title: 'Request to pay',
+    status: 'roadmap' as const,
     flow: 'Purchase request → approval → LPO → GRN → vendor payment',
     body: 'Procurement is on the roadmap — the intended flow is approvals feeding finance when goods are received, with a full audit trail from who asked to who paid.',
   },
   {
     title: 'Trip to invoice',
+    status: 'live' as const,
     flow: 'Order → dispatch → POD → settlement → customer invoice',
     body: 'With the Logistics vertical, completed trips flow into billing and collections on the same finance module as payroll.',
   },
@@ -600,6 +603,32 @@ export const PLATFORM_COMPLIANCE = [
     detail: 'Payroll and statutory configs for cross-border operators',
     category: 'Region',
     tags: ['Kenya', 'Uganda'],
+  },
+] as const;
+
+/** Homepage Section 4 — three supporting cards (full platform page keeps six). */
+export const PLATFORM_COMPLIANCE_HOMEPAGE = [
+  {
+    id: 'statutory',
+    label: 'Statutory native',
+    detail: 'PAYE, NSSF, SHIF and Housing Levy — P9 and iTax-ready exports every pay run',
+    category: 'Statutory',
+    tags: ['PAYE', 'NSSF', 'SHIF', 'P9', 'iTax'],
+  },
+  {
+    id: 'mpesa',
+    label: 'M-Pesa bulk disburse',
+    detail: 'Bulk salary disbursements with reconciliation against payroll',
+    category: 'Disbursements',
+    tags: ['Bulk pay', 'Reconcile'],
+  },
+  {
+    id: 'multi-region',
+    label: 'Multi-entity KE+UG & ODPC-ready',
+    detail:
+      'Kenya and Uganda entities in one account — audit trails, access controls and data export on exit',
+    category: 'Governance',
+    tags: ['KE + UG', 'ODPC'],
   },
 ] as const;
 
@@ -760,6 +789,120 @@ export const PRICING_TIERS = [
     featured: false,
   },
 ] as const;
+
+/** Compare-features matrix cells for /pricing (see docs/STRIDE-PACKAGING.md §7). */
+export type PricingCompareMark = 'included' | 'addon' | 'none';
+
+export type PricingCompareCell =
+  | { type: 'mark'; value: PricingCompareMark }
+  | { type: 'text'; value: string };
+
+export type PricingCompareRow = {
+  label: string;
+  starter: PricingCompareCell;
+  growth: PricingCompareCell;
+  enterprise: PricingCompareCell;
+};
+
+export type PricingCompareGroup = {
+  id: string;
+  title: string;
+  rows: PricingCompareRow[];
+};
+
+const inc: PricingCompareCell = { type: 'mark', value: 'included' };
+const add: PricingCompareCell = { type: 'mark', value: 'addon' };
+const none: PricingCompareCell = { type: 'mark', value: 'none' };
+const txt = (value: string): PricingCompareCell => ({ type: 'text', value });
+
+export const PRICING_COMPARE_GROUPS: PricingCompareGroup[] = [
+  {
+    id: 'core-hr',
+    title: 'Core HR (HRIS)',
+    rows: [
+      {
+        label: 'Records, profiles, org structure, custom fields, document storage, company branding, unique URL',
+        starter: inc,
+        growth: inc,
+        enterprise: inc,
+      },
+      { label: 'Employee self-service (ESS) + mobile PWA', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Notifications, email alerts, announcements', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Workflows & approvals', starter: txt('✓ (basic)'), growth: txt('✓ (advanced)'), enterprise: txt('✓ (advanced)') },
+      { label: 'Audit trail', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Standard + custom reporting', starter: inc, growth: inc, enterprise: inc },
+    ],
+  },
+  {
+    id: 'leave',
+    title: 'Leave & time-off',
+    rows: [
+      {
+        label: 'Policies, balances, calendar/planner, approvals',
+        starter: inc,
+        growth: inc,
+        enterprise: inc,
+      },
+    ],
+  },
+  {
+    id: 'time',
+    title: 'Time & attendance',
+    rows: [
+      { label: 'Rota/scheduling, attendance', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Biometric device integration', starter: add, growth: inc, enterprise: inc },
+      { label: 'Geo mobile clock-in', starter: add, growth: inc, enterprise: inc },
+    ],
+  },
+  {
+    id: 'payroll',
+    title: 'Payroll (Kenya)',
+    rows: [
+      { label: 'Runs, payslips, KRA/NSSF/SHIF/Housing', starter: inc, growth: inc, enterprise: inc },
+      { label: 'M-Pesa disbursements', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Multi-entity payroll', starter: none, growth: inc, enterprise: inc },
+    ],
+  },
+  {
+    id: 'finance',
+    title: 'Finance',
+    rows: [
+      {
+        label: 'Invoicing (AR), vendor bills (AP), expenses, petty cash, budgets',
+        starter: inc,
+        growth: inc,
+        enterprise: inc,
+      },
+      { label: 'Statements / ageing, M-Pesa reconciliation', starter: add, growth: inc, enterprise: inc },
+    ],
+  },
+  {
+    id: 'modules',
+    title: 'People & operations modules',
+    rows: [
+      { label: 'Disciplinary & grievance', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Recruitment / ATS — jobs, pipeline, interviews, careers', starter: add, growth: inc, enterprise: inc },
+      { label: 'Candidate assessments', starter: add, growth: inc, enterprise: inc },
+      { label: 'Performance — goals, reviews, cycles', starter: add, growth: inc, enterprise: inc },
+      { label: 'Training / learning', starter: add, growth: inc, enterprise: inc },
+      { label: 'Procurement — PR → LPO → GRN, spend', starter: add, growth: inc, enterprise: inc },
+      { label: 'Legal & compliance — contracts, credentials, obligations', starter: add, growth: inc, enterprise: inc },
+      { label: 'Communications', starter: add, growth: inc, enterprise: inc },
+    ],
+  },
+  {
+    id: 'platform',
+    title: 'Platform & scale',
+    rows: [
+      { label: 'Horizontal modules included', starter: txt('up to 2'), growth: txt('up to 4'), enterprise: txt('all') },
+      { label: 'Vertical packs — Fleet, Assets, HSE', starter: add, growth: txt('1 included'), enterprise: txt('full suite') },
+      { label: 'Multi-entity / regional cells', starter: none, growth: inc, enterprise: inc },
+      { label: 'Dedicated instance + custom integrations + SLAs', starter: none, growth: none, enterprise: inc },
+      { label: 'Staff band', starter: txt('up to 25'), growth: txt('up to 100'), enterprise: txt('100+ / unlimited') },
+      { label: 'Support', starter: txt('Email'), growth: txt('Priority + onboarding'), enterprise: txt('Dedicated success mgr + on-site') },
+    ],
+  },
+];
 
 export const FAQ_ITEMS = [
   {
