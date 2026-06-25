@@ -68,6 +68,7 @@ const SKIP = new Set([
 ]);
 
 const OVERRIDES = {
+  SITE_MODE: 'app',
   NEXT_PUBLIC_SITE_URL: APP_URL,
   NEXT_PUBLIC_APP_ORIGIN: APP_URL,
   NEXTAUTH_URL: APP_URL,

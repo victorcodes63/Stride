@@ -5,7 +5,7 @@ import { type ReactNode } from 'react';
 import { StrideLogo } from '@/components/marketing/StrideMark';
 import { MarketingCloseButton } from '@/components/marketing/MarketingCloseButton';
 import { brandConfig } from '@/lib/brand.config';
-import { getMarketingSiteUrl } from '@/lib/marketing-config';
+import { getMarketingHomeUrl, getMarketingPageUrl, getAppPageUrl } from '@/lib/marketing-config';
 import { usePublicBrand } from '@/components/BrandProvider';
 import '@/components/marketing/contact/book-demo.css';
 
@@ -26,7 +26,7 @@ export function AuthSplitShell({
 }: AuthSplitShellProps) {
   const { privacyPolicyUrl, termsUrl } = usePublicBrand();
   const year = new Date().getFullYear();
-  const marketingHome = getMarketingSiteUrl();
+  const marketingHome = getMarketingHomeUrl();
 
   return (
     <main className="flex min-h-[100dvh] w-full max-w-[100vw] flex-col gap-2 overflow-x-clip bg-[var(--sc-ink)] p-2 selection:bg-[var(--sc-coral)]/25 sm:gap-3 sm:p-3 lg:grid lg:h-screen lg:grid-cols-2 lg:overflow-hidden lg:p-4">
@@ -66,13 +66,13 @@ export function AuthSplitShell({
               © {year} {brandConfig.productName}
             </p>
             <nav className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#fbf8f4]/50">
-              <Link href="/careers" className="transition-colors hover:text-[#fbf8f4]">
+              <Link href={getAppPageUrl('/careers')} className="transition-colors hover:text-[#fbf8f4]">
                 Careers
               </Link>
-              <Link href={privacyPolicyUrl || '/privacy'} className="transition-colors hover:text-[#fbf8f4]">
+              <Link href={getMarketingPageUrl(privacyPolicyUrl || '/privacy')} className="transition-colors hover:text-[#fbf8f4]">
                 Privacy
               </Link>
-              <Link href={termsUrl || '/terms'} className="transition-colors hover:text-[#fbf8f4]">
+              <Link href={getMarketingPageUrl(termsUrl || '/terms')} className="transition-colors hover:text-[#fbf8f4]">
                 Terms
               </Link>
             </nav>

@@ -96,6 +96,26 @@ export function getMarketingHomeUrl(): string {
   return MARKETING_ROUTES.home;
 }
 
+/** Absolute or relative URL for a marketing page (privacy, terms, etc.) from any deploy. */
+export function getMarketingPageUrl(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const home = getMarketingHomeUrl();
+  if (home === '/' || (home.startsWith('/') && !home.startsWith('//'))) {
+    return normalized;
+  }
+  return `${home.replace(/\/$/, '')}${normalized}`;
+}
+
+/** Product routes (careers, dashboard) — app origin when marketing/app are split. */
+export function getAppPageUrl(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const home = getMarketingHomeUrl();
+  if (home === '/' || (home.startsWith('/') && !home.startsWith('//'))) {
+    return normalized;
+  }
+  return `${MARKETING_APP_ORIGIN.replace(/\/$/, '')}${normalized}`;
+}
+
 /**
  * Public sales inbox — footer, contact page mailto links, and book-demo CTAs.
  * TODO(launch): Confirm hello@getstride.co.ke is live and monitored before shipping.

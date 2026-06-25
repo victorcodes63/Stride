@@ -10,6 +10,14 @@ import { enforceAccountAccess } from '@/lib/account-access-middleware';
 import { enforcePastDueReadOnly } from '@/lib/account-readonly-middleware';
 import { applySecurityHeaders } from '@/lib/security-headers';
 import { enforceAuthRateLimit } from '@/lib/auth-rate-limit-response';
+import {
+  buildCrossOriginUrl,
+  getAppOrigin,
+  getMarketingOrigin,
+  getSiteMode,
+  isAppPath,
+  isMarketingPath,
+} from '@/lib/site-mode';
 
 const STAFF_SESSION_COOKIE = 'staff_session';
 const ESS_SESSION_COOKIE = 'ess_session';
@@ -21,6 +29,41 @@ function redirectPermanent(pathname: string, request: NextRequest) {
   const u = new URL(request.url);
   u.pathname = pathname;
   return NextResponse.redirect(u, 308);
+}
+
+function redirectCrossOrigin(
+  origin: string,
+  pathname: string,
+  request: NextRequest,
+  status: 301 | 302 | 307 | 308 = 301,
+) {
+  const target = buildCrossOriginUrl(origin, pathname, request.nextUrl.search);
+  return NextResponse.redirect(target, status);
+}
+
+/** RAV-170 — marketing ↔ app domain split. */
+function enforceSiteMode(request: NextRequest): NextResponse | null {
+  const mode = getSiteMode();
+  if (mode === 'unified') return null;
+
+  const { pathname } = request.nextUrl;
+
+  if (mode === 'app') {
+    if (pathname === '/') {
+      return NextResponse.rewrite(new URL(LOGIN_PATH, request.url));
+    }
+    if (isMarketingPath(pathname)) {
+      return redirectCrossOrigin(getMarketingOrigin(), pathname, request);
+    }
+    return null;
+  }
+
+  // marketing deploy
+  if (isAppPath(pathname)) {
+    return redirectCrossOrigin(getAppOrigin(), pathname, request);
+  }
+
+  return null;
 }
 
 function enforceModuleLicense(request: NextRequest): NextResponse | null {
@@ -53,6 +96,9 @@ function enforceModuleLicense(request: NextRequest): NextResponse | null {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const siteModeBlock = enforceSiteMode(request);
+  if (siteModeBlock) return applySecurityHeaders(siteModeBlock);
 
   if (pathname === '/api/auth/login' || pathname === '/api/ess/auth/login') {
     const rateLimited = enforceAuthRateLimit(pathname, request);
@@ -103,10 +149,20 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
+    '/platform/:path*',
+    '/industries/:path*',
+    '/pricing/:path*',
+    '/about/:path*',
+    '/contact/:path*',
+    '/demo-access/:path*',
+    '/v3/:path*',
+    '/privacy/:path*',
+    '/terms/:path*',
     '/dashboard/:path*',
     '/ess/:path*',
-    '/api/:path*',
     '/careers/:path*',
     '/interview/:path*',
+    '/api/:path*',
   ],
 };

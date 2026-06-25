@@ -37,6 +37,7 @@ function addEnv(name, value, { sensitive = false, targets = TARGETS } = {}) {
 
 const vars = [
   ['NEXT_PUBLIC_SITE_URL', appUrl],
+  ['SITE_MODE', 'app'],
   ['NEXT_PUBLIC_APP_ORIGIN', appUrl],
   ['NEXT_PUBLIC_APP_NAME', 'Stride'],
   ['NEXT_PUBLIC_ORG_NAME', 'Stride'],
