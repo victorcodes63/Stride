@@ -73,9 +73,41 @@
 }
 
 /** Studio-craft dark bands — cream headings on ink backgrounds. */
+.public-app.studio-craft-marketing .sc-on-ink,
+.public-app.studio-craft-marketing .pub-on-ink {
+  --sc-paper: var(--sc-on-ink-fg);
+  color: var(--sc-on-ink-fg-muted);
+}
+
 .public-app.studio-craft-marketing .sc-on-ink :where(h1, h2, h3, h4, h5, h6),
 .public-app.studio-craft-marketing .pub-on-ink :where(h1, h2, h3, h4, h5, h6) {
-  color: var(--stride-paper);
+  color: var(--sc-on-ink-fg);
+}
+
+/**
+ * Studio-craft marketing keeps its light palette when the dashboard dark toggle is on.
+ * Only intentional sc-on-ink / pub-on-ink bands stay dark with cream foreground text.
+ */
+html.dark .public-app.studio-craft-marketing {
+  --stride-paper: #fbf8f4;
+  --sc-paper: #fbf8f4;
+  --sc-paper-2: #f4efe8;
+  --sc-line: #e6ded4;
+  --sc-ink: #1a1714;
+  --sc-ink-muted: #3d3833;
+  --sc-ink-subtle: #8a8076;
+  --pub-surface: #fbf8f4;
+  --pub-surface-muted: #f4efe8;
+  --pub-surface-elevated: #fbf8f4;
+  --pub-ink: #1a1714;
+  --pub-ink-muted: #3d3833;
+  --pub-ink-subtle: #8a8076;
+  --pub-border: #e6ded4;
+  color: var(--sc-ink-muted);
+}
+
+html.dark .public-app.studio-craft-marketing :where(h1, h2, h3, h4, h5, h6) {
+  color: var(--pub-ink);
 }
 
 /** Dark marketing bands — override default ink headings (e.g. Linear-style hero). */
@@ -84,7 +116,7 @@
 }
 
 .public-app .pub-on-ink :where(h1, h2, h3, h4) {
-  color: var(--stride-paper);
+  color: var(--sc-on-ink-fg);
 }
 
 /* --- Typography utilities --- */
@@ -679,13 +711,20 @@ html.dark .public-app:not(.studio-craft-marketing):not(:has(.auth-split-form, .a
   color: var(--pub-ink);
 }
 
-html.dark .public-app.studio-craft-marketing .sc-on-ink :where(h1, h2, h3, h4, h5, h6) {
-  color: var(--stride-paper);
+html.dark .public-app.studio-craft-marketing .sc-on-ink,
+html.dark .public-app.studio-craft-marketing .pub-on-ink {
+  --sc-paper: var(--sc-on-ink-fg);
+  color: var(--sc-on-ink-fg-muted);
+}
+
+html.dark .public-app.studio-craft-marketing .sc-on-ink :where(h1, h2, h3, h4, h5, h6),
+html.dark .public-app.studio-craft-marketing .pub-on-ink :where(h1, h2, h3, h4, h5, h6) {
+  color: var(--sc-on-ink-fg);
 }
 
 html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-panel)) .pub-on-ink,
 html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-panel)) .pub-on-ink :where(h1, h2, h3, h4, h5, h6) {
-  color: var(--stride-paper);
+  color: var(--sc-on-ink-fg);
 }
 
 html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-panel)) .pub-on-ink {

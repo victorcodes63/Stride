@@ -317,7 +317,7 @@ export const MARKETING_READINESS_META: Record<
   roadmap: {
     label: 'Roadmap',
     title: 'Planned — not yet available for production use',
-    badgeClass: 'border-neutral-200 bg-neutral-100 text-neutral-600',
+    badgeClass: 'border-[var(--sc-line)] bg-[var(--sc-paper-2)] text-[var(--sc-ink-muted)]',
   },
 };
 
@@ -618,7 +618,7 @@ export const PLATFORM_FAQ = [
   {
     question: 'What industry verticals are available today?',
     answer:
-      'Logistics & Cargo is live now — fleet, trips, POD and settlement on the core. SACCOs, Healthcare, Energy and Construction are on the roadmap; join the waitlist for your sector while using the horizontal core today.',
+      'Logistics & Cargo and Construction are live now — fleet, trips, POD, settlement, and site project budgets on the core. SACCOs, Healthcare and Energy are on the roadmap; join the waitlist for your sector while using the horizontal core today.',
   },
 ] as const;
 
@@ -680,7 +680,7 @@ export const INDUSTRY_VERTICALS: {
   {
     id: 'construction',
     name: 'Construction',
-    status: 'coming_soon',
+    status: 'available',
     description: 'Site and project management, plant tracking, and subcontractor workflows.',
     features: ['Site management', 'Asset / plant tracking', 'Subcontractors', 'Project budgets'],
     href: '/industries/construction',
@@ -782,7 +782,7 @@ export const FAQ_ITEMS = [
   {
     question: 'Do you support my industry?',
     answer:
-      'The horizontal core works for any business. Logistics & Cargo is available today as the first vertical pack; SACCOs, Healthcare, Energy and Construction are on the roadmap — join the waitlist for your sector.',
+      'The horizontal core works for any business. Logistics & Cargo and Construction are available today as vertical packs; SACCOs, Healthcare and Energy are on the roadmap — join the waitlist for your sector.',
   },
 ] as const;
 

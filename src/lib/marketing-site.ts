@@ -39,6 +39,6 @@ export function getLegacyHomeRedirectPath(): string {
 export function isGenericPublicLogin(): boolean {
   if (parseBoolean(trimEnv('NEXT_PUBLIC_GENERIC_PUBLIC_LOGIN'), false)) return true;
   if (parseBoolean(trimEnv('NEXT_PUBLIC_TENANT_LOGIN_BRANDING'), false)) return false;
-  if (isDemoMode() || isPublicDemoMode()) return false;
+  if (isPublicDemoMode()) return false;
   return Boolean(trimEnv('NEXT_PUBLIC_MARKETING_DOMAIN'));
 }

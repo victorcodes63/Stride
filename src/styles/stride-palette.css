@@ -45,6 +45,10 @@
   --sc-paper: var(--stride-paper);
   --sc-paper-2: #f4efe8;
   --sc-line: #e6ded4;
+  /** Foreground on ink bands — fixed cream; not remapped when html.dark flips --stride-paper */
+  --sc-on-ink-fg: #fbf8f4;
+  --sc-on-ink-fg-muted: rgba(251, 248, 244, 0.7);
+  --sc-on-ink-fg-subtle: rgba(251, 248, 244, 0.65);
 
   --brand-navy-subtle: var(--sc-paper-2);
   --brand-canvas: var(--stride-paper);

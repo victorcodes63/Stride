@@ -181,7 +181,7 @@ export function AboutTrustSection() {
 
 export function AboutStatsBand() {
   return (
-    <section className="bg-[var(--sc-ink)] py-14 text-[var(--sc-paper)] sm:py-16 lg:py-20">
+    <section className="sc-on-ink bg-[var(--sc-ink)] py-14 text-[var(--sc-on-ink-fg-muted)] sm:py-16 lg:py-20">
       <StudioCraftContainer>
         <Stagger
           className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6"
@@ -190,7 +190,7 @@ export function AboutStatsBand() {
           {ABOUT_PAGE.stats.map((stat) => (
             <StaggerItem key={stat.label} className="border-t border-white/10 pt-5">
               <StatValue value={stat.value} />
-              <p className="mt-3 text-sm leading-relaxed text-[var(--sc-paper)]/65">{stat.label}</p>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--sc-on-ink-fg-subtle)]">{stat.label}</p>
             </StaggerItem>
           ))}
         </Stagger>

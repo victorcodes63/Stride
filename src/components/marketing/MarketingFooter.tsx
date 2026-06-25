@@ -40,7 +40,7 @@ function FooterNavColumn({
 }) {
   return (
     <nav aria-label={title}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/45">{title}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/60">{title}</p>
       <ul className="mt-4 space-y-3">
         {links.map((link) => (
           <li key={link.href}>
@@ -64,7 +64,7 @@ function FooterDemoSandbox() {
     <div className="mt-12 border-t border-white/10 pt-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/45">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/60">
             Demo sandbox
           </p>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-[#C9C0B6]">
@@ -143,7 +143,7 @@ export function MarketingFooter() {
           </div>
 
           <div className="lg:col-span-4 lg:justify-self-end">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/60">
               Get started
             </p>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#C9C0B6]">

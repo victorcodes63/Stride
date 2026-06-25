@@ -35,6 +35,7 @@
     "test:tenant-audit": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-tenant-audit.ts",
     "audit:module-tenant": "npx tsx scripts/audit-module-tenant-gate.ts",
     "audit:api-auth": "npx tsx scripts/audit-api-auth.ts",
+    "audit:a11y": "node scripts/axe-audit.mjs",
     "typecheck": "tsc --noEmit",
     "db:seed-performance": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/seed-performance-cycle.ts",
     "setup:cell-provision-key": "node scripts/setup-cell-provision-key.mjs",
@@ -131,6 +132,7 @@
     "shaders": "^2.5.131"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/eslintrc": "^3",
     "@types/archiver": "^7.0.0",
     "@types/bcryptjs": "^2.4.6",

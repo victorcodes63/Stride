@@ -55,7 +55,7 @@ export function MarketingPricingSection() {
               </p>
               <p
                 className={`mt-3 text-[2rem] font-medium leading-none tracking-[-0.03em] sm:mt-4 sm:text-[2.5rem] ${
-                  tier.featured ? 'text-[var(--sc-paper)]' : 'text-[var(--sc-ink)]'
+                  tier.featured ? 'text-[var(--sc-on-ink-fg)]' : 'text-[var(--sc-ink)]'
                 }`}
               >
                 {tier.price}

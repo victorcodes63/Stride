@@ -156,7 +156,7 @@ export function StrideHeroDashboardMockup() {
                 <p className="text-[15px] font-semibold leading-tight text-white">
                   Operations overview
                 </p>
-                <p className="text-[11px] text-white/45">
+                <p className="text-[11px] text-white/60">
                   {DEMO_TENANT.hq} HQ · {DEMO_TENANT.region}
                 </p>
               </div>
@@ -198,7 +198,7 @@ export function StrideHeroDashboardMockup() {
                   className="flex items-center justify-between gap-2 rounded-md border border-white/[0.04] bg-white/[0.02] px-2 py-1.5 text-[10px]"
                 >
                   <span className="font-medium text-white/80">{person.name}</span>
-                  <span className="text-white/45">{person.role}</span>
+                  <span className="text-white/60">{person.role}</span>
                 </li>
               ))}
             </ul>

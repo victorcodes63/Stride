@@ -1,3 +1,4 @@
+import { isDemoAccessPageEnabled } from '@/lib/demo-access';
 import { MARKETING_CTAS, MARKETING_ROUTES } from '@/lib/marketing-config';
 import {
   MarketingPrimaryLink,
@@ -7,6 +8,8 @@ import {
 } from '@/components/marketing/v3/studio-craft-shared';
 
 export function MarketingFinalCta() {
+  const demoAccessEnabled = isDemoAccessPageEnabled();
+
   return (
     <section className="pub-on-ink sc-on-ink relative overflow-hidden bg-[var(--sc-ink)] py-16 text-center text-[#FBF8F4] sm:py-24 lg:py-32">
       <div
@@ -42,7 +45,7 @@ export function MarketingFinalCta() {
             fullWidth
             className="sm:w-auto"
           />
-          <MarketingTrySandboxLink tone="dark" className="w-full sm:w-auto" />
+          <MarketingTrySandboxLink enabled={demoAccessEnabled} tone="dark" className="w-full sm:w-auto" />
           <MarketingSignInLink tone="dark" className="w-full sm:w-auto" />
         </div>
       </StudioCraftContainer>

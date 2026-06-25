@@ -153,7 +153,7 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
   {
     id: 'construction',
     name: 'Construction',
-    status: 'coming_soon',
+    status: 'available',
     positioning: 'Sites, plant and subcontractors in one view.',
     pain:
       'Plant utilization is invisible; subcontractor and site-labor payments are manual and disputed.',
@@ -162,7 +162,7 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
       'Project-based firms lack affordable tools to control plant, labor and subcontractor spend.',
     stats: CONSTRUCTION_STATS,
     href: '/industries/construction',
-    ctaLabel: MARKETING_CTAS.joinWaitlist,
+    ctaLabel: 'See the demo',
     mediaKey: 'construction',
   },
 ];

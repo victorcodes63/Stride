@@ -168,7 +168,7 @@
   height: 2.75rem;
   border-radius: 0.75rem;
   border: 1px solid rgba(255, 84, 54, 0.35);
-  background: var(--sc-coral, var(--stride-coral));
+  background: var(--color-primary-800, var(--pub-primary-pressed, #ad3925));
   color: #ffffff;
   font-weight: 600;
   box-shadow: 0 2px 6px rgba(255, 84, 54, 0.22);
@@ -178,7 +178,7 @@
 }
 
 .auth-studio-form .dash-auth-submit:hover:not(:disabled) {
-  background: var(--sc-coral-deep, var(--stride-coral-deep));
+  background: var(--color-primary-900, #852c1c);
   box-shadow: 0 4px 10px rgba(255, 84, 54, 0.28);
   transform: none;
 }
@@ -210,7 +210,7 @@
 }
 
 .auth-studio-form .dash-auth-divider-label {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(251, 248, 244, 0.72);
   background: var(--sc-ink, #1a1714);
 }
 

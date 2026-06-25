@@ -264,7 +264,7 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
                         {' '}· {meta.label}
                       </span>
                     </p>
-                    <h3 className="mt-1 text-xl font-medium tracking-tight text-[var(--sc-paper)]">
+                    <h3 className="mt-1 text-xl font-medium tracking-tight text-[var(--sc-on-ink-fg)]">
                       {layer.label}
                     </h3>
                     <p className="mt-3 text-sm leading-relaxed text-white/70">{layer.positioning}</p>

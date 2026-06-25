@@ -100,15 +100,19 @@ export function MarketingSignInLink({
 
 /** Self-serve demo sandbox — only when /demo-access is enabled for this deploy. */
 export function MarketingTrySandboxLink({
+  enabled,
   tone = 'light',
   className = '',
   fullWidth = false,
 }: {
+  /** Pass from a Server Component so SSR and hydration agree. */
+  enabled?: boolean;
   tone?: 'light' | 'dark';
   className?: string;
   fullWidth?: boolean;
 }) {
-  if (!isDemoAccessPageEnabled()) return null;
+  const show = enabled ?? isDemoAccessPageEnabled();
+  if (!show) return null;
   return (
     <MarketingOutlineLink
       href={MARKETING_ROUTES.demoAccess}
@@ -149,7 +153,7 @@ export function MarketingPrimaryLink({
       className={`group inline-flex min-h-11 items-center gap-2 rounded-full py-2 pl-5 pr-2 text-sm font-semibold text-white transition-colors duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${
         isInk
           ? 'bg-[var(--sc-ink)] hover:bg-[var(--sc-ink)]'
-          : 'bg-[var(--sc-coral)] hover:bg-[var(--sc-coral-deep)]'
+          : 'bg-[var(--color-primary-800)] hover:bg-[var(--color-primary-900)]'
       } ${fullWidth ? 'w-full justify-center px-5' : ''} ${className}`.trim()}
     >
       <span className={showArrow ? 'relative h-5 overflow-hidden' : undefined}>
@@ -212,7 +216,7 @@ export function TextRollButton({
       className={`group inline-flex min-h-11 items-center gap-2 rounded-full py-2 pl-5 pr-2 text-sm font-semibold text-white transition-colors duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${
         isInk
           ? 'bg-[var(--sc-ink)] hover:bg-[var(--sc-ink)]'
-          : 'bg-[var(--sc-coral)] hover:bg-[var(--sc-coral-deep)]'
+          : 'bg-[var(--color-primary-800)] hover:bg-[var(--color-primary-900)]'
       } ${className}`.trim()}
     >
       <span className="relative h-5 overflow-hidden">
