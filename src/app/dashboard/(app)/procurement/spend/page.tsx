@@ -1,5 +1,5 @@
-import { ModuleRoadmapPage } from '@/components/dashboard/ModuleRoadmapPage';
+import ProcurementSpendContent from './ProcurementSpendContent';
 
-export default function ProcurementSpendRoadmapPage() {
-  return <ModuleRoadmapPage slug="procurement-spend" />;
+export default function ProcurementSpendPage() {
+  return <ProcurementSpendContent />;
 }

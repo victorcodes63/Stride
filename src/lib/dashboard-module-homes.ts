@@ -127,29 +127,17 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         eyebrow: domain.marketingLabel,
         title: 'Procurement',
         description:
-          'Purchase-to-pay: requests, LPOs, goods receipt, and spend visibility. Vendor master lives in Finance; purchase requests are live.',
-        phase: 'Phase C — in progress',
-        plannedBullets: [
-          'LPO generation and vendor dispatch',
-          'Goods receipt and three-way match',
-          'Department spend vs budget',
-        ],
+          'Purchase-to-pay: requests, LPOs, goods receipt, and spend visibility. Vendor master lives in Finance.',
         workspaces: [
           {
-            title: 'Use today',
+            title: 'Procurement',
             links: [
               { href: '/dashboard/procurement/purchase-requests', label: 'Purchase requests', note: 'Approval workflow', icon: ClipboardList },
-              { href: '/dashboard/accounts/vendors', label: 'Vendors', note: 'Live in Finance', icon: Building2 },
+              { href: '/dashboard/procurement/lpos', label: 'LPO register', note: 'Issue & receive', icon: FileSignature },
+              { href: '/dashboard/procurement/spend', label: 'Spend dashboard', note: 'Dept & vendor analytics', icon: ShoppingCart },
+              { href: '/dashboard/accounts/vendors', label: 'Vendors', note: 'Finance master', icon: Building2 },
               { href: '/dashboard/accounts/vendor-bills', label: 'Vendor bills', note: 'AP queue', icon: Wallet },
-              { href: '/dashboard/accounts/expenses', label: 'Expense claims', note: 'Approval pattern', icon: FileText },
               { href: '/dashboard/accounts/budgets', label: 'Budgets', note: 'Spend control', icon: Scale },
-            ],
-          },
-          {
-            title: 'Coming soon',
-            links: [
-              { href: '/dashboard/procurement/lpos', label: 'LPO register', note: 'Roadmap', icon: FileSignature },
-              { href: '/dashboard/procurement/spend', label: 'Spend dashboard', note: 'Roadmap', icon: ShoppingCart },
             ],
           },
         ],
