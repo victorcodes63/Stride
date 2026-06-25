@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireEssUser } from '@/lib/ess-api-auth';
 import { getHrUserIds, sendNotification } from '@/lib/notifications';
+import { logSensitiveFieldAccess } from '@/lib/sensitive-access-log';
 
 export async function GET(request: NextRequest) {
   if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
@@ -12,6 +13,14 @@ export async function GET(request: NextRequest) {
   const emp = await prisma.employee.findUnique({
     where: { id: user.employeeId },
     select: { bankName: true, bankBranch: true, bankAccountNumber: true },
+  });
+
+  await logSensitiveFieldAccess({
+    actor: { userId: user.id, email: user.email, name: user.name },
+    fieldGroup: 'bank_details',
+    entityType: 'Employee',
+    entityId: user.employeeId,
+    route: 'GET /api/ess/pay/bank-change',
   });
 
   const mask = (v: string | null) => {

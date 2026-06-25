@@ -8,6 +8,8 @@ import {
 } from '@/lib/module-access';
 import { enforceAccountAccess } from '@/lib/account-access-middleware';
 import { enforcePastDueReadOnly } from '@/lib/account-readonly-middleware';
+import { applySecurityHeaders } from '@/lib/security-headers';
+import { enforceAuthRateLimit } from '@/lib/auth-rate-limit-response';
 
 const STAFF_SESSION_COOKIE = 'staff_session';
 const ESS_SESSION_COOKIE = 'ess_session';
@@ -52,6 +54,11 @@ function enforceModuleLicense(request: NextRequest): NextResponse | null {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === '/api/auth/login' || pathname === '/api/ess/auth/login') {
+    const rateLimited = enforceAuthRateLimit(pathname, request);
+    if (rateLimited) return applySecurityHeaders(rateLimited);
+  }
+
   if (pathname === '/dashboard/outsourcing/payroll') {
     return redirectPermanent('/dashboard/accounts/payroll', request);
   }
@@ -91,7 +98,7 @@ export function middleware(request: NextRequest) {
 
   const response = NextResponse.next();
   response.headers.set('x-pathname', pathname);
-  return response;
+  return applySecurityHeaders(response);
 }
 
 export const config = {

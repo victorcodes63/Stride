@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const strictBuild = process.env.STRICT_BUILD === 'true';
+
 const nextConfig = {
   transpilePackages: ['shaders'],
   async redirects() {
@@ -96,10 +98,10 @@ const nextConfig = {
     ];
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: !strictBuild,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: !strictBuild,
   },
   images: {
     unoptimized: true

@@ -34,6 +34,8 @@
     "test:rls": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-rls.ts",
     "test:tenant-audit": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-tenant-audit.ts",
     "audit:module-tenant": "npx tsx scripts/audit-module-tenant-gate.ts",
+    "audit:api-auth": "npx tsx scripts/audit-api-auth.ts",
+    "typecheck": "tsc --noEmit",
     "db:seed-performance": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/seed-performance-cycle.ts",
     "setup:cell-provision-key": "node scripts/setup-cell-provision-key.mjs",
     "db:studio": "prisma studio",

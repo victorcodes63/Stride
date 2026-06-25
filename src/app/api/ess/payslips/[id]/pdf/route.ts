@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireEssUser } from '@/lib/ess-api-auth';
 import { generatePayslipPdf } from '@/lib/payslip-pdf';
+import { logSensitiveFieldAccess } from '@/lib/sensitive-access-log';
 
 function asNumber(value: unknown) {
   return Number(value ?? 0);
@@ -30,6 +31,15 @@ export async function GET(
   });
 
   if (!payroll) return NextResponse.json({ error: 'Payslip not found.' }, { status: 404 });
+
+  await logSensitiveFieldAccess({
+    actor: { userId: user.id, email: user.email, name: user.name },
+    fieldGroup: 'payslip',
+    entityType: 'Payroll',
+    entityId: payroll.id,
+    route: 'GET /api/ess/payslips/[id]/pdf',
+    metadata: { month: payroll.month, year: payroll.year },
+  });
 
   const employeeName = `${payroll.employee.firstName} ${payroll.employee.lastName}`.trim();
   const allowances = Array.isArray(payroll.allowances) ? (payroll.allowances as { name: string; amount: number }[]) : [];

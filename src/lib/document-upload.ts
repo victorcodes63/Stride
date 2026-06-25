@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { put } from '@vercel/blob';
+import { FileValidationError, validatePdfUpload } from '@/lib/file-upload-validation';
 
-const ALLOWED_TYPES = new Set(['application/pdf']);
 const MAX_SIZE = 4.5 * 1024 * 1024;
 
 export class DocumentUploadError extends Error {
@@ -22,23 +22,29 @@ export async function uploadEmployeeDocument(file: File): Promise<{
   fileSize: number;
   mimeType: string;
 }> {
-  if (!ALLOWED_TYPES.has(file.type)) {
-    throw new DocumentUploadError('Only PDF files are accepted for certificates and documents.');
-  }
-  if (file.size > MAX_SIZE) {
-    throw new DocumentUploadError(`File too large (max ${Math.round(MAX_SIZE / 1024 / 1024)}MB).`);
+  let validated;
+  try {
+    validated = await validatePdfUpload(file, {
+      maxBytes: MAX_SIZE,
+      fieldLabel: 'Document',
+    });
+  } catch (err) {
+    if (err instanceof FileValidationError) {
+      throw new DocumentUploadError(err.message, err.status);
+    }
+    throw err;
   }
 
   const ext = '.pdf';
   const safeName = `documents/${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = validated.buffer;
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const blob = await put(safeName, buffer, {
       access: 'public',
       contentType: file.type,
     });
-    return { url: blob.url, path: blob.url, fileName: file.name, fileSize: file.size, mimeType: file.type };
+    return { url: blob.url, path: blob.url, fileName: validated.fileName, fileSize: validated.size, mimeType: validated.mimeType };
   }
 
   const dir = path.join(process.cwd(), 'public', 'uploads', 'documents');
@@ -46,5 +52,5 @@ export async function uploadEmployeeDocument(file: File): Promise<{
   const filePath = path.join(dir, path.basename(safeName));
   await writeFile(filePath, buffer);
   const url = `/uploads/documents/${path.basename(safeName)}`;
-  return { url, path: url, fileName: file.name, fileSize: file.size, mimeType: file.type };
+  return { url, path: url, fileName: validated.fileName, fileSize: validated.size, mimeType: validated.mimeType };
 }
