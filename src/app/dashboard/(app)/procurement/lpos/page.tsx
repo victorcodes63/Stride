@@ -1,5 +1,5 @@
-import { ModuleRoadmapPage } from '@/components/dashboard/ModuleRoadmapPage';
+import PurchaseOrdersContent from './PurchaseOrdersContent';
 
-export default function ProcurementLposRoadmapPage() {
-  return <ModuleRoadmapPage slug="procurement-lpos" />;
+export default function ProcurementLposPage() {
+  return <PurchaseOrdersContent />;
 }

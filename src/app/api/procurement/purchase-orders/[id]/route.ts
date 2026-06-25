@@ -5,8 +5,6 @@ import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client'
 import { requireStaffUser } from '@/lib/staff-api-auth';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
 
-import { createLpoFromPurchaseRequest } from '@/lib/procurement/lpo';
-
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -20,34 +18,38 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const clientId = await resolvePrimaryWorkspaceClientId(prisma, undefined, request);
-    const row = await prisma.purchaseRequest.findFirst({
+    const row = await prisma.purchaseOrder.findFirst({
       where: { id, outsourcingClientId: clientId },
       include: {
         lines: { orderBy: { sortOrder: 'asc' } },
         vendor: { select: { id: true, name: true } },
-        requestedBy: { select: { id: true, name: true, email: true } },
-        reviewedBy: { select: { id: true, name: true } },
+        purchaseRequest: { select: { id: true, requestNumber: true, title: true } },
+        vendorBill: { select: { id: true, billRef: true, status: true, issueDate: true } },
+        issuedBy: { select: { id: true, name: true } },
       },
     });
 
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     return NextResponse.json({
-      request: {
+      order: {
         id: row.id,
-        requestNumber: row.requestNumber,
+        lpoNumber: row.lpoNumber,
         title: row.title,
-        department: row.department,
-        justification: row.justification,
         currency: row.currency,
         totalAmount: Number(row.totalAmount),
         status: row.status,
+        notes: row.notes,
         vendor: row.vendor,
-        requestedBy: row.requestedBy,
-        reviewedBy: row.reviewedBy,
-        submittedAt: row.submittedAt?.toISOString() ?? null,
-        reviewedAt: row.reviewedAt?.toISOString() ?? null,
-        rejectionReason: row.rejectionReason,
+        purchaseRequest: row.purchaseRequest,
+        vendorBill: row.vendorBill
+          ? {
+              ...row.vendorBill,
+              issueDate: row.vendorBill.issueDate.toISOString().slice(0, 10),
+            }
+          : null,
+        issuedBy: row.issuedBy,
+        issuedAt: row.issuedAt?.toISOString() ?? null,
         createdAt: row.createdAt.toISOString(),
         lines: row.lines.map((line) => ({
           id: line.id,
@@ -61,10 +63,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error) {
     await reportApiError({
-      route: `GET /api/procurement/purchase-requests/${id}`,
+      route: `GET /api/procurement/purchase-orders/${id}`,
       message: error instanceof Error ? error.message : String(error),
     });
-    return NextResponse.json({ error: 'Failed to load purchase request.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to load purchase order.' }, { status: 500 });
   }
 }
 
@@ -86,71 +88,65 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const clientId = await resolvePrimaryWorkspaceClientId(prisma, undefined, request);
-    const row = await prisma.purchaseRequest.findFirst({
+    const row = await prisma.purchaseOrder.findFirst({
       where: { id, outsourcingClientId: clientId },
     });
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const action = typeof body.action === 'string' ? body.action : '';
 
-    if (action === 'submit') {
+    if (action === 'issue') {
       if (row.status !== 'draft') {
-        return NextResponse.json({ error: 'Can only submit draft requests.' }, { status: 400 });
+        return NextResponse.json({ error: 'Can only issue draft LPOs.' }, { status: 400 });
       }
-      await prisma.purchaseRequest.update({
+      await prisma.purchaseOrder.update({
         where: { id },
-        data: { status: 'submitted', submittedAt: new Date() },
+        data: {
+          status: 'issued',
+          issuedAt: new Date(),
+          issuedByUserId: user.id,
+        },
       });
       return NextResponse.json({ ok: true });
     }
 
-    if (action === 'approve') {
-      if (row.status !== 'submitted') {
-        return NextResponse.json({ error: 'Can only approve submitted requests.' }, { status: 400 });
+    if (action === 'fulfill') {
+      if (row.status !== 'issued') {
+        return NextResponse.json({ error: 'Can only fulfill issued LPOs.' }, { status: 400 });
       }
-      if (!row.vendorId) {
-        return NextResponse.json({ error: 'Assign a vendor before approving.' }, { status: 400 });
-      }
-      await prisma.purchaseRequest.update({
+      await prisma.purchaseOrder.update({
         where: { id },
-        data: {
-          status: 'approved',
-          reviewedAt: new Date(),
-          reviewedByUserId: user.id,
-        },
-      });
-      const lpo = await createLpoFromPurchaseRequest(prisma, {
-        organizationId: user.currentOrgId,
-        purchaseRequestId: id,
-        outsourcingClientId: clientId,
-      });
-      return NextResponse.json({ ok: true, lpo });
-    }
-
-    if (action === 'reject') {
-      if (row.status !== 'submitted') {
-        return NextResponse.json({ error: 'Can only reject submitted requests.' }, { status: 400 });
-      }
-      const reason = typeof body.reason === 'string' ? body.reason.trim() || null : null;
-      await prisma.purchaseRequest.update({
-        where: { id },
-        data: {
-          status: 'rejected',
-          reviewedAt: new Date(),
-          reviewedByUserId: user.id,
-          rejectionReason: reason,
-        },
+        data: { status: 'fulfilled' },
       });
       return NextResponse.json({ ok: true });
     }
 
     if (action === 'cancel') {
-      if (row.status !== 'draft' && row.status !== 'submitted') {
-        return NextResponse.json({ error: 'Can only cancel draft or submitted requests.' }, { status: 400 });
+      if (row.status === 'fulfilled' || row.status === 'cancelled') {
+        return NextResponse.json({ error: 'Cannot cancel this LPO.' }, { status: 400 });
       }
-      await prisma.purchaseRequest.update({
+      await prisma.purchaseOrder.update({
         where: { id },
         data: { status: 'cancelled' },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'link_bill') {
+      const vendorBillId = typeof body.vendorBillId === 'string' ? body.vendorBillId.trim() : '';
+      if (!vendorBillId) {
+        return NextResponse.json({ error: 'vendorBillId is required.' }, { status: 400 });
+      }
+      const bill = await prisma.accountsVendorBill.findFirst({
+        where: { id: vendorBillId, vendorId: row.vendorId },
+        select: { id: true },
+      });
+      if (!bill) {
+        return NextResponse.json({ error: 'Vendor bill not found for this vendor.' }, { status: 400 });
+      }
+      await prisma.purchaseOrder.update({
+        where: { id },
+        data: { vendorBillId },
       });
       return NextResponse.json({ ok: true });
     }
@@ -158,9 +154,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
   } catch (error) {
     await reportApiError({
-      route: `PATCH /api/procurement/purchase-requests/${id}`,
+      route: `PATCH /api/procurement/purchase-orders/${id}`,
       message: error instanceof Error ? error.message : String(error),
     });
-    return NextResponse.json({ error: 'Failed to update purchase request.' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to update purchase order.';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

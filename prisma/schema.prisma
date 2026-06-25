@@ -143,6 +143,7 @@ model OutsourcingClient {
   fleetSettlements        FleetSettlement[]
   fleetIncidents          FleetIncident[]
   purchaseRequests        PurchaseRequest[]
+  purchaseOrders          PurchaseOrder[]
   payrollDisbursementBatches PayrollDisbursementBatch[]
   performanceCycles          PerformanceCycle[]
 
@@ -1948,6 +1949,7 @@ model User {
   fleetTripDocumentsUploaded       FleetTripDocument[]        @relation("FleetTripDocumentUploader")
   purchaseRequestsRequested        PurchaseRequest[]          @relation("PurchaseRequestRequester")
   purchaseRequestsReviewed         PurchaseRequest[]          @relation("PurchaseRequestReviewer")
+  purchaseOrdersIssued             PurchaseOrder[]            @relation("PurchaseOrderIssuer")
   payrollDisbursementsInitiated    PayrollDisbursementBatch[] @relation("PayrollDisbursementInitiator")
   performanceCyclesCreated         PerformanceCycle[]         @relation("PerformanceCycleCreator")
   performanceReviewsManaged        PerformanceReview[]        @relation("PerformanceReviewManager")
@@ -2606,6 +2608,7 @@ model AccountsVendor {
   bills            AccountsVendorBill[]
   payments         AccountsVendorPayment[]
   purchaseRequests PurchaseRequest[]
+  purchaseOrders   PurchaseOrder[]
 
   @@index([name])
 }
@@ -2628,6 +2631,7 @@ model AccountsVendorBill {
   vendor      AccountsVendor                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   lines       AccountsVendorBillLine[]
   allocations AccountsVendorPaymentAllocation[]
+  purchaseOrders PurchaseOrder[]
 
   @@index([vendorId])
   @@index([issueDate])
@@ -3682,6 +3686,7 @@ model PurchaseRequest {
   requestedBy User                  @relation("PurchaseRequestRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
   reviewedBy  User?                 @relation("PurchaseRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   lines       PurchaseRequestLine[]
+  purchaseOrder PurchaseOrder?
 
   @@index([outsourcingClientId])
   @@index([status])
@@ -3704,6 +3709,62 @@ model PurchaseRequestLine {
   request PurchaseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   @@index([requestId])
+}
+
+enum PurchaseOrderStatus {
+  draft
+  issued
+  fulfilled
+  cancelled
+}
+
+model PurchaseOrder {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  purchaseRequestId   String?               @unique
+  lpoNumber           String                @unique
+  title               String
+  currency            String                @default("KES")
+  totalAmount         Decimal               @default(0) @db.Decimal(14, 2)
+  status              PurchaseOrderStatus   @default(draft)
+  vendorId            String
+  vendorBillId        String?
+  issuedAt            DateTime?
+  issuedByUserId      String?
+  notes               String?               @db.Text
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  client          OutsourcingClient     @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  purchaseRequest PurchaseRequest?      @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
+  vendor          AccountsVendor        @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  vendorBill      AccountsVendorBill?   @relation(fields: [vendorBillId], references: [id], onDelete: SetNull)
+  issuedBy        User?                 @relation("PurchaseOrderIssuer", fields: [issuedByUserId], references: [id], onDelete: SetNull)
+  lines           PurchaseOrderLine[]
+
+  @@index([outsourcingClientId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([issuedAt])
+}
+
+model PurchaseOrderLine {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  purchaseOrderId String
+  item            String
+  description     String?  @db.Text
+  quantity        Decimal  @default(1) @db.Decimal(12, 2)
+  unitPrice       Decimal  @db.Decimal(14, 2)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
 }
 
 // --- Performance management (RAV-69) ---

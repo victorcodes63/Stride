@@ -45,8 +45,8 @@ export const NAV_ITEM_READINESS: Record<string, NavReadiness> = {
 
   // Procurement
   '/dashboard/procurement': 'partial',
-  '/dashboard/procurement/purchase-requests': 'partial',
-  '/dashboard/procurement/lpos': 'planned',
+  '/dashboard/procurement/purchase-requests': 'live',
+  '/dashboard/procurement/lpos': 'live',
   '/dashboard/procurement/spend': 'partial',
 
   // Legal
