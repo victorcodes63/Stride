@@ -23,6 +23,7 @@ import { planIdToTier } from '@/lib/entitlements-resolver';
 import { getDeploymentTier } from '@/lib/deployment-tier';
 import { withTenant } from '@/lib/tenant-api';
 import { listActiveMemberships } from '@/lib/org-membership';
+import { prisma } from '@/lib/prisma';
 import { userRowToSummary } from '@/lib/user-summary-api';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
         ctx.run((tx) => tx.user.findUnique({ where: { id: ctx.staff.id } })),
         loadCompanySetupSettings(),
         loadOperatingEntitiesSettings(),
-        listActiveMemberships(ctx.staff.id),
+        ctx.run((tx) => listActiveMemberships(ctx.staff.id, tx as typeof prisma)),
       ]);
 
       if (!fullUser) {

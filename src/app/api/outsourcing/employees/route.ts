@@ -31,7 +31,12 @@ export async function GET(request: NextRequest) {
       }
       const { searchParams } = new URL(request.url);
       const requestedClientId = searchParams.get('clientId') || undefined;
-      const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+      const clientId = await resolvePrimaryWorkspaceClientId(
+        prisma,
+        requestedClientId,
+        request,
+        ctx.organizationId,
+      );
       const departmentId = searchParams.get('departmentId') || undefined;
       const jobTitle = searchParams.get('jobTitle') || undefined;
       const managerEmployeeId = searchParams.get('managerEmployeeId') || undefined;
@@ -150,7 +155,12 @@ export async function POST(request: NextRequest) {
       const firstName = strField(body, 'firstName') ?? '';
       const lastName = strField(body, 'lastName') ?? '';
       const emailRaw = strField(body, 'email');
-      const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+      const clientId = await resolvePrimaryWorkspaceClientId(
+        prisma,
+        requestedClientId,
+        request,
+        ctx.organizationId,
+      );
 
       const seatCheck = await checkSeatLimitForNewEmployee(clientId, request);
       if (!seatCheck.ok) {

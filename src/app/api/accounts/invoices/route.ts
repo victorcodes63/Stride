@@ -9,6 +9,7 @@ import { reportApiError } from '@/lib/monitoring';
 import { getOrCreatePrimaryAccountsClient } from '@/lib/primary-accounts-client';
 import { requireRecentSensitiveAuth } from '@/lib/admin-security';
 import { logAuditEvent } from '@/lib/audit-events';
+import { withTenant } from '@/lib/tenant-api';
 import {
   paymentBankForAccountId,
   resolvePaymentAccountId,
@@ -36,130 +37,132 @@ function str(v: unknown): string | null {
 }
 
 export async function GET(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const access = await getAccountsAccess(user.id, user.role);
-  if (!access.hasAccountsAccess) {
-    return NextResponse.json({ error: 'No access to Accounts.' }, { status: 403 });
-  }
-
-  try {
-    let clientId = request.nextUrl.searchParams.get('clientId')?.trim() || undefined;
-    if (!clientId) {
-      const ac = await getOrCreatePrimaryAccountsClient(prisma, request);
-      clientId = ac.id;
+  return withTenant(request, async (ctx) => {
+    const access = await getAccountsAccess(ctx.staff.id, ctx.staff.role);
+    if (!access.hasAccountsAccess) {
+      return NextResponse.json({ error: 'No access to Accounts.' }, { status: 403 });
     }
-    const openOnly = ['1', 'true', 'yes'].includes(
-      request.nextUrl.searchParams.get('openOnly')?.toLowerCase() ?? '',
-    );
-    const withBalance = ['1', 'true', 'yes'].includes(
-      request.nextUrl.searchParams.get('withBalance')?.toLowerCase() ?? '',
-    );
 
-    // List view: avoid loading every line row (was slow with many invoices × lines). Totals via one groupBy.
-    const invoices = await prisma.accountsInvoice.findMany({
-      where: {
-        ...(clientId ? { clientId } : {}),
-        ...(openOnly ? { status: { in: ['unpaid', 'partial'] } } : {}),
-      },
-      select: {
-        id: true,
-        invoiceNumber: true,
-        clientId: true,
-        issueDate: true,
-        dueDate: true,
-        taxDate: true,
-        currency: true,
-        vatRateBps: true,
-        totalOverrideIncVat: true,
-        status: true,
-        notes: true,
-        accountsClient: { select: { id: true, name: true } },
-        _count: { select: { lines: true } },
-      },
-      orderBy: [{ issueDate: 'desc' }, { invoiceNumber: 'desc' }],
-      take: 200,
-    });
+    try {
+      const list = await ctx.run(async (tx) => {
+        let clientId = request.nextUrl.searchParams.get('clientId')?.trim() || undefined;
+        if (!clientId) {
+          const ac = await getOrCreatePrimaryAccountsClient(tx, ctx.organizationId, request);
+          clientId = ac.id;
+        }
+        const openOnly = ['1', 'true', 'yes'].includes(
+          request.nextUrl.searchParams.get('openOnly')?.toLowerCase() ?? '',
+        );
+        const withBalance = ['1', 'true', 'yes'].includes(
+          request.nextUrl.searchParams.get('withBalance')?.toLowerCase() ?? '',
+        );
 
-    const ids = invoices.map((i) => i.id);
-    const aggregates =
-      ids.length === 0
-        ? []
-        : await prisma.accountsInvoiceLine.groupBy({
+        const invoices = await tx.accountsInvoice.findMany({
+          where: {
+            organizationId: ctx.organizationId,
+            ...(clientId ? { clientId } : {}),
+            ...(openOnly ? { status: { in: ['unpaid', 'partial'] } } : {}),
+          },
+          select: {
+            id: true,
+            invoiceNumber: true,
+            clientId: true,
+            issueDate: true,
+            dueDate: true,
+            taxDate: true,
+            currency: true,
+            vatRateBps: true,
+            totalOverrideIncVat: true,
+            status: true,
+            notes: true,
+            accountsClient: { select: { id: true, name: true } },
+            _count: { select: { lines: true } },
+          },
+          orderBy: [{ issueDate: 'desc' }, { invoiceNumber: 'desc' }],
+          take: 200,
+        });
+
+        const ids = invoices.map((i) => i.id);
+        const aggregates =
+          ids.length === 0
+            ? []
+            : await tx.accountsInvoiceLine.groupBy({
+                by: ['invoiceId'],
+                where: { invoiceId: { in: ids }, organizationId: ctx.organizationId },
+                _sum: { amountExVat: true },
+              });
+
+        const subtotalByInvoice = new Map<string, number>();
+        for (const row of aggregates) {
+          subtotalByInvoice.set(row.invoiceId, Number(row._sum.amountExVat ?? 0));
+        }
+
+        const allocatedByInvoice = new Map<string, number>();
+        const creditByInvoice = new Map<string, number>();
+        if (withBalance && ids.length > 0) {
+          const allocRows = await tx.accountsInvoicePaymentAllocation.groupBy({
             by: ['invoiceId'],
-            where: { invoiceId: { in: ids } },
-            _sum: { amountExVat: true },
+            where: { invoiceId: { in: ids }, organizationId: ctx.organizationId },
+            _sum: { amount: true },
           });
+          for (const row of allocRows) {
+            allocatedByInvoice.set(row.invoiceId, Number(row._sum.amount ?? 0));
+          }
+          const creditMap = await sumCreditTotalsByInvoiceIds(tx, ids);
+          creditMap.forEach((v, k) => creditByInvoice.set(k, v));
+        }
 
-    const subtotalByInvoice = new Map<string, number>();
-    for (const row of aggregates) {
-      subtotalByInvoice.set(row.invoiceId, Number(row._sum.amountExVat ?? 0));
-    }
-
-    const allocatedByInvoice = new Map<string, number>();
-    const creditByInvoice = new Map<string, number>();
-    if (withBalance && ids.length > 0) {
-      const allocRows = await prisma.accountsInvoicePaymentAllocation.groupBy({
-        by: ['invoiceId'],
-        where: { invoiceId: { in: ids } },
-        _sum: { amount: true },
+        return invoices.map((inv) => {
+          const subtotalExVat = subtotalByInvoice.get(inv.id) ?? 0;
+          const { vatAmount, totalIncVat: computedTotalIncVat } = computeInvoiceVatFromSubtotal(
+            subtotalExVat,
+            inv.vatRateBps,
+          );
+          const totalIncVat =
+            inv.totalOverrideIncVat != null ? Number(inv.totalOverrideIncVat) : computedTotalIncVat;
+          const allocatedTotal = withBalance ? allocatedByInvoice.get(inv.id) ?? 0 : undefined;
+          const creditTotal = withBalance ? creditByInvoice.get(inv.id) ?? 0 : undefined;
+          const balanceDue =
+            withBalance && allocatedTotal !== undefined && creditTotal !== undefined
+              ? Math.round((totalIncVat - allocatedTotal - creditTotal) * 100) / 100
+              : undefined;
+          return {
+            id: inv.id,
+            invoiceNumber: inv.invoiceNumber,
+            clientId: inv.clientId,
+            clientName: inv.accountsClient.name,
+            issueDate: inv.issueDate.toISOString().slice(0, 10),
+            dueDate: inv.dueDate ? inv.dueDate.toISOString().slice(0, 10) : null,
+            taxDate: inv.taxDate ? inv.taxDate.toISOString().slice(0, 10) : null,
+            currency: inv.currency,
+            vatRateBps: inv.vatRateBps,
+            status: inv.status,
+            subtotalExVat,
+            vatAmount,
+            totalIncVat,
+            totalOverrideIncVat: inv.totalOverrideIncVat != null ? Number(inv.totalOverrideIncVat) : null,
+            lineCount: inv._count.lines,
+            notes: inv.notes,
+            ...(withBalance
+              ? {
+                  allocatedTotal,
+                  creditTotal,
+                  balanceDue,
+                }
+              : {}),
+          };
+        });
       });
-      for (const row of allocRows) {
-        allocatedByInvoice.set(row.invoiceId, Number(row._sum.amount ?? 0));
-      }
-      const creditMap = await sumCreditTotalsByInvoiceIds(prisma, ids);
-      creditMap.forEach((v, k) => creditByInvoice.set(k, v));
+
+      return NextResponse.json({ invoices: list });
+    } catch (error) {
+      await reportApiError({
+        route: 'GET /api/accounts/invoices',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to load invoices.' }, { status: 500 });
     }
-
-    const list = invoices.map((inv) => {
-      const subtotalExVat = subtotalByInvoice.get(inv.id) ?? 0;
-      const { vatAmount, totalIncVat: computedTotalIncVat } = computeInvoiceVatFromSubtotal(
-        subtotalExVat,
-        inv.vatRateBps,
-      );
-      const totalIncVat = inv.totalOverrideIncVat != null ? Number(inv.totalOverrideIncVat) : computedTotalIncVat;
-      const allocatedTotal = withBalance ? allocatedByInvoice.get(inv.id) ?? 0 : undefined;
-      const creditTotal = withBalance ? creditByInvoice.get(inv.id) ?? 0 : undefined;
-      const balanceDue =
-        withBalance && allocatedTotal !== undefined && creditTotal !== undefined
-          ? Math.round((totalIncVat - allocatedTotal - creditTotal) * 100) / 100
-          : undefined;
-      return {
-        id: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        clientId: inv.clientId,
-        clientName: inv.accountsClient.name,
-        issueDate: inv.issueDate.toISOString().slice(0, 10),
-        dueDate: inv.dueDate ? inv.dueDate.toISOString().slice(0, 10) : null,
-        taxDate: inv.taxDate ? inv.taxDate.toISOString().slice(0, 10) : null,
-        currency: inv.currency,
-        vatRateBps: inv.vatRateBps,
-        status: inv.status,
-        subtotalExVat,
-        vatAmount,
-        totalIncVat,
-        totalOverrideIncVat: inv.totalOverrideIncVat != null ? Number(inv.totalOverrideIncVat) : null,
-        lineCount: inv._count.lines,
-        notes: inv.notes,
-        ...(withBalance
-          ? {
-              allocatedTotal,
-              creditTotal,
-              balanceDue,
-            }
-          : {}),
-      };
-    });
-
-    return NextResponse.json({ invoices: list });
-  } catch (error) {
-    await reportApiError({
-      route: 'GET /api/accounts/invoices',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to load invoices.' }, { status: 500 });
-  }
+  });
 }
 
 /** Create invoice; uses global sequential invoiceNumber across all clients. */

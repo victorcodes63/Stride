@@ -1,60 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireStaffUser } from '@/lib/staff-api-auth';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { reportApiError } from '@/lib/monitoring';
 import { allocateProjectCode } from '@/lib/projects/project-code';
 import { serializeProject } from '@/lib/projects/serialize';
+import { withTenant } from '@/lib/tenant-api';
 
 export async function GET(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return withTenant(request, async (ctx) => {
+    try {
+      const [clientId, projects, openTasks, activeCount] = await ctx.run(async (tx) => {
+        const resolvedClientId = await resolvePrimaryWorkspaceClientId(
+          tx,
+          undefined,
+          request,
+          ctx.organizationId,
+        );
+        const status = request.nextUrl.searchParams.get('status')?.trim() || undefined;
 
-  try {
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, undefined, request);
-    const status = request.nextUrl.searchParams.get('status')?.trim() || undefined;
+        const [projectRows, openTaskCount, activeProjectCount] = await Promise.all([
+          tx.project.findMany({
+            where: {
+              organizationId: ctx.organizationId,
+              outsourcingClientId: resolvedClientId,
+              ...(status ? { status: status as never } : {}),
+            },
+            include: {
+              owner: { select: { id: true, name: true, email: true } },
+              createdBy: { select: { id: true, name: true, email: true } },
+              budget: { select: { id: true, name: true } },
+              _count: { select: { tasks: true, milestones: true } },
+            },
+            orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
+            take: 200,
+          }),
+          tx.projectTask.count({
+            where: {
+              organizationId: ctx.organizationId,
+              project: { outsourcingClientId: resolvedClientId },
+              status: { not: 'done' },
+            },
+          }),
+          tx.project.count({
+            where: {
+              organizationId: ctx.organizationId,
+              outsourcingClientId: resolvedClientId,
+              status: 'active',
+            },
+          }),
+        ]);
 
-    const [projects, openTasks, activeCount] = await Promise.all([
-      prisma.project.findMany({
-        where: {
-          outsourcingClientId: clientId,
-          ...(status ? { status: status as never } : {}),
-        },
-        include: {
-          owner: { select: { id: true, name: true, email: true } },
-          createdBy: { select: { id: true, name: true, email: true } },
-          budget: { select: { id: true, name: true } },
-          _count: { select: { tasks: true, milestones: true } },
-        },
-        orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
-        take: 200,
-      }),
-      prisma.projectTask.count({
-        where: {
-          project: { outsourcingClientId: clientId },
-          status: { not: 'done' },
-        },
-      }),
-      prisma.project.count({
-        where: { outsourcingClientId: clientId, status: 'active' },
-      }),
-    ]);
+        return [resolvedClientId, projectRows, openTaskCount, activeProjectCount] as const;
+      });
 
-    return NextResponse.json({
-      projects: projects.map(serializeProject),
-      summary: {
-        total: projects.length,
-        active: activeCount,
-        openTasks,
-      },
-    });
-  } catch (error) {
-    await reportApiError({
-      route: 'GET /api/projects',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to load projects.' }, { status: 500 });
-  }
+      return NextResponse.json({
+        projects: projects.map(serializeProject),
+        summary: {
+          total: projects.length,
+          active: activeCount,
+          openTasks,
+        },
+      });
+    } catch (error) {
+      await reportApiError({
+        route: 'GET /api/projects',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to load projects.' }, { status: 500 });
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -91,40 +105,49 @@ export async function POST(request: NextRequest) {
     typeof body.dueDate === 'string' && body.dueDate.trim() ? new Date(body.dueDate) : null;
   const ownerUserId = typeof body.ownerUserId === 'string' ? body.ownerUserId.trim() : null;
 
-  try {
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, undefined, request);
-    const projectCode = await allocateProjectCode(prisma, clientId);
+  return withTenant(request, async (ctx) => {
+    try {
+      const created = await ctx.run(async (tx) => {
+        const clientId = await resolvePrimaryWorkspaceClientId(
+          tx,
+          undefined,
+          request,
+          ctx.organizationId,
+        );
+        const projectCode = await allocateProjectCode(tx, clientId);
 
-    const created = await prisma.project.create({
-      data: {
-        organizationId: user.currentOrgId,
-        outsourcingClientId: clientId,
-        projectCode,
-        name,
-        description,
-        department,
-        status: status as never,
-        currency,
-        budgetAmount,
-        startDate,
-        dueDate,
-        ownerUserId: ownerUserId || user.id,
-        createdByUserId: user.id,
-      },
-      include: {
-        owner: { select: { id: true, name: true, email: true } },
-        createdBy: { select: { id: true, name: true, email: true } },
-        budget: { select: { id: true, name: true } },
-        _count: { select: { tasks: true, milestones: true } },
-      },
-    });
+        return tx.project.create({
+          data: {
+            organizationId: ctx.organizationId,
+            outsourcingClientId: clientId,
+            projectCode,
+            name,
+            description,
+            department,
+            status: status as never,
+            currency,
+            budgetAmount,
+            startDate,
+            dueDate,
+            ownerUserId: ownerUserId || ctx.staff.id,
+            createdByUserId: ctx.staff.id,
+          },
+          include: {
+            owner: { select: { id: true, name: true, email: true } },
+            createdBy: { select: { id: true, name: true, email: true } },
+            budget: { select: { id: true, name: true } },
+            _count: { select: { tasks: true, milestones: true } },
+          },
+        });
+      });
 
-    return NextResponse.json({ project: serializeProject(created) }, { status: 201 });
-  } catch (error) {
-    await reportApiError({
-      route: 'POST /api/projects',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to create project.' }, { status: 500 });
-  }
+      return NextResponse.json({ project: serializeProject(created) }, { status: 201 });
+    } catch (error) {
+      await reportApiError({
+        route: 'POST /api/projects',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to create project.' }, { status: 500 });
+    }
+  });
 }
