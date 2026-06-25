@@ -102,6 +102,8 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   // —— Disciplinary ——
   { prefix: '/api/disciplinary', module: 'disciplinary' },
   { prefix: '/api/grievances', module: 'disciplinary' },
+  { prefix: '/api/ess/procurement', module: 'procurement' },
+  { prefix: '/ess/procurement', module: 'procurement' },
   { prefix: '/api/ess/disciplinary', module: 'disciplinary' },
   { prefix: '/api/ess/grievances', module: 'disciplinary' },
   { prefix: '/dashboard/disciplinary', module: 'disciplinary' },
@@ -281,4 +283,5 @@ export const ESS_NAV_MODULES: Record<string, ModuleKey> = {
   '/ess/hse': 'hse',
   '/ess/assets': 'assets',
   '/ess/performance': 'performance',
+  '/ess/procurement': 'procurement',
 };

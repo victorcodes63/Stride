@@ -79,6 +79,7 @@ export function isEssNavItemVisible(href: string, enabled: EnabledModulesMap): b
   if (href.startsWith('/ess/hse')) return enabled.hse;
   if (href.startsWith('/ess/assets')) return enabled.assets;
   if (href.startsWith('/ess/performance')) return enabled.performance;
+  if (href.startsWith('/ess/procurement')) return enabled.procurement;
   return true;
 }
 
