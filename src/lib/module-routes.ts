@@ -96,6 +96,7 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   // —— Accounts / finance ——
   { prefix: '/api/accounts', module: 'accounts' },
   { prefix: '/api/finance', module: 'accounts' },
+  { prefix: '/api/legal', module: 'legal' },
   { prefix: '/dashboard/accounts', module: 'accounts' },
 
   // —— Disciplinary ——

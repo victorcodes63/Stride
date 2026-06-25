@@ -8,6 +8,7 @@ import useEntityConfig, { useDisplayMoney } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { BillingAutomationPanel } from '@/components/dashboard/accounts/BillingAutomationPanel';
 
 type InvoiceRow = {
  id: string;
@@ -118,6 +119,8 @@ function AccountsInvoicesPageInner() {
  </Link>
  </div>
  )}
+
+ <BillingAutomationPanel clientId={filterClientId} />
 
  {loading && (
  <div className="flex items-center gap-2 text-neutral-600 py-12 justify-center">

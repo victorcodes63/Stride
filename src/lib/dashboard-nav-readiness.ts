@@ -50,9 +50,10 @@ export const NAV_ITEM_READINESS: Record<string, NavReadiness> = {
   '/dashboard/procurement/spend': 'partial',
 
   // Legal
-  '/dashboard/legal': 'partial',
+  '/dashboard/legal': 'live',
   '/dashboard/people/contracts': 'partial',
-  '/dashboard/legal/obligations': 'planned',
+  '/dashboard/legal/obligations': 'live',
+  '/dashboard/accounts/mpesa-reconciliation': 'live',
 
   // Projects
   '/dashboard/projects': 'planned',

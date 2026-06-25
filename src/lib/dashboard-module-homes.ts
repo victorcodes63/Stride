@@ -162,7 +162,7 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         title: 'Legal & compliance',
         description:
           'Contracts, credentials, company policies, and regulatory obligations — one place for document risk.',
-        phase: 'Phase B — partial',
+        phase: 'Phase B — live',
         plannedBullets: ['Obligation register with owners and due dates', 'Board filing deadlines', 'Evidence document vault'],
         workspaces: [
           {
@@ -171,12 +171,7 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
               { href: '/dashboard/people/contracts', label: 'Contracts', note: 'Renewals & reminders', icon: FileSignature },
               { href: '/dashboard/credentials', label: 'Credentials', note: 'Licences & certifications', icon: Gavel },
               { href: '/dashboard/company-documents', label: 'Company policies', note: 'Policy library', icon: FileText },
-            ],
-          },
-          {
-            title: 'Planned',
-            links: [
-              { href: '/dashboard/legal/obligations', label: 'Obligations register', note: 'Roadmap', icon: Scale },
+              { href: '/dashboard/legal/obligations', label: 'Obligations register', note: 'Renewals & expiries', icon: Scale },
             ],
           },
         ],
