@@ -221,10 +221,13 @@ function PlatformVerticalsSection() {
         </h2>
         <p className="mt-4 max-w-[620px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
           Vertical packs add specialised workflows on top of the horizontal platform — not a separate
-          product to integrate. Logistics &amp; Cargo is live today; more sectors are on the roadmap.
+          product to integrate. Six sector packs are live today, from logistics and SACCOs to
+          healthcare, energy, and construction.
         </p>
 
-        <div className="mt-10 grid gap-4 lg:grid-cols-2">
+        <div
+          className={`mt-10 grid gap-4 ${comingSoon.length > 0 ? 'lg:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'}`}
+        >
           {available.map((vertical) => (
             <Link
               key={vertical.id}
@@ -252,6 +255,7 @@ function PlatformVerticalsSection() {
             </Link>
           ))}
 
+          {comingSoon.length > 0 ? (
           <div className="rounded-2xl border border-[var(--sc-line)] bg-[var(--sc-paper-2)] p-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-ink-muted)]">
               On the roadmap
@@ -279,6 +283,7 @@ function PlatformVerticalsSection() {
               All industries →
             </Link>
           </div>
+          ) : null}
         </div>
       </StudioCraftContainer>
     </section>

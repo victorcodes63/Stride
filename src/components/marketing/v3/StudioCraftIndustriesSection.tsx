@@ -107,7 +107,7 @@ export function StudioCraftIndustriesSection() {
                   vertical.status === 'available'
                     ? vertical.id === 'logistics'
                       ? MARKETING_CTAS.seeFleet
-                      : MARKETING_CTAS.joinWaitlist
+                      : MARKETING_CTAS.seeDemo
                     : MARKETING_CTAS.joinWaitlist
                 }
                 status={vertical.status}

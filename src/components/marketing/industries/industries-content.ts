@@ -28,7 +28,7 @@ export const INDUSTRIES_HERO = {
   eyebrow: 'Industries',
   title: 'Built for your industry.',
   subhead:
-    'Sector-specific workflows on Stride — from HR consultancies running recruitment and client payroll to fleets, SACCOs, and construction sites. Explore what is live today and what is on the roadmap.',
+    'Sector-specific workflows on Stride — from HR consultancies and fleets to SACCOs, hospitals, energy sites, and construction projects. Six vertical packs are live on the shared core.',
 } as const;
 
 /** Shared core platform capabilities */
@@ -159,7 +159,7 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
   {
     id: 'energy',
     name: 'Oil & Gas / Energy',
-    status: 'coming_soon',
+    status: 'available',
     positioning: 'Multi-entity operations and HSE, compliant by default.',
     pain:
       'Multi-entity, multi-country statutory complexity; HSE and incidents tracked on paper.',
@@ -169,7 +169,7 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
       'Downstream operators run hundreds of staff across entities and borders with no unified system.',
     stats: ENERGY_STATS,
     href: '/industries/energy',
-    ctaLabel: 'Talk to us',
+    ctaLabel: 'See the demo',
     mediaKey: 'energy',
   },
   {

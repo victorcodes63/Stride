@@ -143,6 +143,7 @@ export const MARKETING_CTAS = {
   talkToSales: 'Talk to sales',
   watchDemo: 'Watch demo',
   seeFleet: 'See the fleet module',
+  seeDemo: 'See the demo',
   joinWaitlist: 'Join the waitlist',
   explorePlatform: 'Explore the platform',
 } as const;
@@ -677,7 +678,7 @@ export const PLATFORM_FAQ = [
   {
     question: 'What industry verticals are available today?',
     answer:
-      'HR Consultancy, Logistics & Cargo, Construction, SACCOs, and Healthcare are live vertical packs today. Energy is on the roadmap.',
+      'HR Consultancy, Logistics & Cargo, SACCOs, Healthcare, Oil & Gas / Energy, and Construction are live vertical packs today — each with a demo pack on the platform.',
   },
 ] as const;
 
@@ -739,7 +740,7 @@ export const INDUSTRY_VERTICALS: {
   {
     id: 'healthcare',
     name: 'Healthcare',
-    status: 'coming_soon',
+    status: 'available',
     description: 'Rota, biometric clock-in, and shift scheduling for clinical and non-clinical teams.',
     features: ['Shift rota', 'Biometric clock-in', 'Licence tracking', 'NHIF-ready payroll'],
     href: '/industries/healthcare',
@@ -971,7 +972,7 @@ export const FAQ_ITEMS = [
   {
     question: 'Do you support my industry?',
     answer:
-      'The horizontal core works for any business. Logistics, Construction, SACCOs, and Healthcare are available today as vertical packs; Energy is on the roadmap.',
+      'The horizontal core works for any business. Six vertical packs are live today — HR Consultancy, Logistics, SACCOs, Healthcare, Energy, and Construction — each layered on the same Stride core.',
   },
 ] as const;
 
