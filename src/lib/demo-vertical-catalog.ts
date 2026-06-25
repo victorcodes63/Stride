@@ -3,7 +3,8 @@ export type VerticalShowcasePackId =
   | 'petroleum-retail'
   | 'cargo-logistics'
   | 'hospital-healthcare'
-  | 'travel-agency';
+  | 'travel-agency'
+  | 'construction';
 
 export type DemoVerticalMeta = {
   id: VerticalShowcasePackId;
@@ -43,6 +44,12 @@ export const DEMO_VERTICAL_CATALOG: Record<VerticalShowcasePackId, DemoVerticalM
     label: 'Horizon Travels',
     sector: 'Travel & tourism',
     emoji: '✈️',
+  },
+  construction: {
+    id: 'construction',
+    label: 'Kilimani Builders',
+    sector: 'Construction & civil works',
+    emoji: '🏗️',
   },
 };
 

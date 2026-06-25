@@ -128,6 +128,22 @@ const VERTICAL_CONTENT: Record<string, VerticalContent> = {
       { title: 'Supplier commission schedule', category: 'Finance', department: 'Finance' },
     ],
   },
+  construction: {
+    training: [
+      { title: 'Site safety induction (NCA-aligned)', category: 'HSE', provider: 'BuildSafe Kenya', status: TrainingStatus.in_progress, durationHours: 8 },
+      { title: 'Plant operator competency refresh', category: 'Operations', provider: 'Kilimani Builders Academy', status: TrainingStatus.scheduled, durationHours: 6 },
+      { title: 'Subcontractor payment & retention controls', category: 'Finance', provider: 'Stride Academy', status: TrainingStatus.completed, durationHours: 4, isOnline: true },
+    ],
+    announcements: [
+      { title: 'Westlands Tower — crane lift schedule', body: 'Structural steel deliveries for level 3 are confirmed for next week. Site managers to brief subcontractors on access windows.', priority: AnnouncementPriority.high, isPinned: true },
+      { title: 'Plant utilization review — Q2', body: 'Quantity surveying will publish plant hire vs budget variance by site this Friday.', priority: AnnouncementPriority.normal },
+    ],
+    documents: [
+      { title: 'Site HSE plan template', category: 'HSE', department: 'Site Operations' },
+      { title: 'Subcontractor mobilization checklist', category: 'SOP', department: 'Procurement' },
+      { title: 'Project budget vs actual SOP', category: 'Finance', department: 'Quantity Surveying' },
+    ],
+  },
 };
 
 function daysFromNow(days: number) {
@@ -521,6 +537,7 @@ async function main() {
   execSync('npx tsx prisma/seed-onboarding-templates.ts', { cwd: root, stdio: 'inherit', env: process.env });
   await ensureAccountsClients();
   await enrichShowcaseVerticals();
+  execSync('npx tsx prisma/seed-projects-demo.ts', { cwd: root, stdio: 'inherit', env: process.env });
   await seedStaffLeaveDemo();
 
   console.log('\nAll vertical demos enriched.\n');

@@ -1,5 +1,11 @@
-import { ModuleRoadmapPage } from '@/components/dashboard/ModuleRoadmapPage';
+import type { Metadata } from 'next';
+import FacilitiesContent from './FacilitiesContent';
 
-export default function FacilitiesRoadmapPage() {
-  return <ModuleRoadmapPage slug="admin-facilities" />;
+export const metadata: Metadata = {
+  title: 'Facilities | Stride Dashboard',
+  description: 'Sites, leases, and maintenance tickets.',
+};
+
+export default function FacilitiesPage() {
+  return <FacilitiesContent />;
 }

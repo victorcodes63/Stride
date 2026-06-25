@@ -436,6 +436,12 @@ function partnerSettlementKes(km: number | undefined) {
 }
 
 async function clearFleetData(clientId: string) {
+  await prisma.fleetFuelLog.deleteMany({
+    where: { outsourcingClientId: clientId },
+  });
+  await prisma.fleetMaintenanceLog.deleteMany({
+    where: { outsourcingClientId: clientId },
+  });
   await prisma.fleetTripEvent.deleteMany({
     where: { trip: { outsourcingClientId: clientId } },
   });
@@ -482,7 +488,7 @@ async function main() {
   const vehicleIds: string[] = [];
   for (const v of VEHICLES) {
     const row = await prisma.fleetVehicle.create({
-      data: { outsourcingClientId: client.id, ...v },
+      data: { organizationId: client.organizationId, outsourcingClientId: client.id, ...v },
     });
     vehicleIds.push(row.id);
   }
@@ -502,6 +508,7 @@ async function main() {
     }
     const row = await prisma.fleetDriver.create({
       data: {
+        organizationId: client.organizationId,
         outsourcingClientId: client.id,
         fullName: d.fullName,
         phone: d.phone,
@@ -517,7 +524,7 @@ async function main() {
   const partnerIds: string[] = [];
   for (const p of PARTNERS) {
     const row = await prisma.fleetTransportPartner.create({
-      data: { outsourcingClientId: client.id, ...p },
+      data: { organizationId: client.organizationId, outsourcingClientId: client.id, ...p },
     });
     partnerIds.push(row.id);
   }
@@ -668,6 +675,62 @@ async function main() {
   console.log(
     `→ Fleet demo seeded: ${vehicleIds.length} vehicles, ${driverIds.length} drivers, ${partnerIds.length} partners, ${customerIds.length} customers, ${tripCount} trips.`,
   );
+
+  await prisma.fleetFuelLog.createMany({
+    data: [
+      {
+        organizationId: client.organizationId,
+        outsourcingClientId: client.id,
+        vehicleId: vehicleIds[1],
+        driverId: driverIds[0],
+        fueledAt: daysFromNow(-2),
+        liters: new Prisma.Decimal(180),
+        amountKes: new Prisma.Decimal(28_800),
+        odometerKm: 287_100,
+        station: 'Shell — Mtito Andei',
+      },
+      {
+        organizationId: client.organizationId,
+        outsourcingClientId: client.id,
+        vehicleId: vehicleIds[2],
+        driverId: driverIds[2],
+        fueledAt: daysFromNow(-5),
+        liters: new Prisma.Decimal(95),
+        amountKes: new Prisma.Decimal(15_200),
+        odometerKm: 156_800,
+        station: 'Total — Embakasi',
+      },
+    ],
+  });
+
+  await prisma.fleetMaintenanceLog.createMany({
+    data: [
+      {
+        organizationId: client.organizationId,
+        outsourcingClientId: client.id,
+        vehicleId: vehicleIds[2],
+        maintenanceType: 'repair',
+        description: 'Replaced rear axle tyre after blowout',
+        performedAt: daysFromNow(-1),
+        costKes: new Prisma.Decimal(42_000),
+        odometerKm: 156_850,
+        vendor: 'TyreMax Industrial Area',
+      },
+      {
+        organizationId: client.organizationId,
+        outsourcingClientId: client.id,
+        vehicleId: vehicleIds[0],
+        maintenanceType: 'service',
+        description: '10,000 km scheduled service — oil, filters, brake check',
+        performedAt: daysFromNow(-14),
+        costKes: new Prisma.Decimal(18_500),
+        odometerKm: 410_000,
+        vendor: 'DT Dobie — Nairobi',
+      },
+    ],
+  });
+
+  console.log('→ Seeded sample fuel and maintenance logs.');
 }
 
 main()

@@ -31,10 +31,17 @@ type FleetOverview = {
   incidents?: { open?: number };
 };
 
+type ProjectsSummary = {
+  total?: number;
+  active?: number;
+  openTasks?: number;
+};
+
 function buildStats(
   domainId: DashboardModuleDomainId,
   overview: OverviewMetrics | null,
   fleet: FleetOverview | null,
+  projectsSummary: ProjectsSummary | null,
 ): ModuleHomeStat[] {
   const cross = overview?.crossModule;
 
@@ -160,18 +167,19 @@ function buildStats(
     case 'projects':
       return [
         {
-          label: 'Budgets',
-          value: 'Finance',
-          hint: 'Not project-scoped yet',
-          href: '/dashboard/accounts/budgets',
+          label: 'Active projects',
+          value: projectsSummary?.active ?? 0,
+          hint: `${projectsSummary?.total ?? 0} total`,
+          href: '/dashboard/projects/all?status=active',
           tone: 'primary',
         },
         {
-          label: 'Task pattern',
-          value: 'HR',
-          hint: 'Onboarding tasks live',
-          href: '/dashboard/onboarding',
+          label: 'Open tasks',
+          value: projectsSummary?.openTasks ?? 0,
+          hint: 'Not done',
+          href: '/dashboard/projects/tasks',
           tone: 'violet',
+          warn: (projectsSummary?.openTasks ?? 0) > 0,
         },
       ];
     case 'admin-operations':
@@ -216,12 +224,14 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<OverviewMetrics | null>(null);
   const [fleet, setFleet] = useState<FleetOverview | null>(null);
+  const [projectsSummary, setProjectsSummary] = useState<ProjectsSummary | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
 
     const needsFleet = domainId === 'admin-operations';
+    const needsProjects = domainId === 'projects';
 
     Promise.all([
       fetch('/api/dashboard/overview?metricsOnly=1', { credentials: 'include' }).then(async (r) =>
@@ -232,11 +242,17 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
             r.ok ? ((await r.json()) as FleetOverview) : null,
           )
         : Promise.resolve(null),
+      needsProjects
+        ? fetch('/api/projects', { credentials: 'include' }).then(async (r) =>
+            r.ok ? ((await r.json()) as { summary?: ProjectsSummary }) : null,
+          )
+        : Promise.resolve(null),
     ])
-      .then(([overviewData, fleetData]) => {
+      .then(([overviewData, fleetData, projectsData]) => {
         if (cancelled) return;
         setOverview(overviewData);
         setFleet(fleetData);
+        setProjectsSummary(projectsData?.summary ?? null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -247,7 +263,10 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
     };
   }, [domainId]);
 
-  const stats = useMemo(() => buildStats(domainId, overview, fleet), [domainId, overview, fleet]);
+  const stats = useMemo(
+    () => buildStats(domainId, overview, fleet, projectsSummary),
+    [domainId, overview, fleet, projectsSummary],
+  );
   const headerActions = useMemo(
     () => getModuleHomeHeaderActions(domainId, user, modules),
     [domainId, user, modules],

@@ -1,41 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { HseIncidentSeverity, HseIncidentType } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireEssUser } from '@/lib/ess-api-auth';
-import { toGrievanceNumber } from '@/lib/disciplinary';
 import { logAuditEvent } from '@/lib/audit-events';
 import { getHrUserIds, sendNotification } from '@/lib/notifications';
+import { allocateIncidentNumber } from '@/lib/hse/incident-code';
+import { HSE_INCIDENT_STATUS_LABELS, serializeIncident } from '@/lib/hse/serialize';
+
+function essSeverityToType(severity: string): HseIncidentType {
+  if (severity === 'high') return 'injury';
+  if (severity === 'medium') return 'near_miss';
+  if (severity === 'low') return 'hazard';
+  return 'other';
+}
+
+function essSeverityToLevel(severity: string): HseIncidentSeverity {
+  if (severity === 'high') return 'high';
+  if (severity === 'low') return 'low';
+  return 'medium';
+}
 
 export async function GET(request: NextRequest) {
-  if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  }
   const user = await requireEssUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   if (!user.employeeId) return NextResponse.json({ items: [] });
 
-  const items = await prisma.grievance.findMany({
-    where: {
-      employeeId: user.employeeId,
-      category: 'WORKPLACE_SAFETY',
-      subject: { startsWith: 'HSE report:' },
+  const items = await prisma.hseIncident.findMany({
+    where: { reportedByEmployeeId: user.employeeId },
+    orderBy: { reportedAt: 'desc' },
+    include: {
+      reportedByUser: { select: { name: true } },
+      reportedByEmployee: { select: { firstName: true, lastName: true } },
+      actions: { select: { id: true, status: true } },
     },
-    orderBy: { submittedAt: 'desc' },
-    select: {
-      id: true,
-      grievanceNumber: true,
-      subject: true,
-      description: true,
-      status: true,
-      submittedAt: true,
-    },
+    take: 50,
   });
 
-  return NextResponse.json({ items });
+  return NextResponse.json({
+    items: items.map((item) => {
+      const row = serializeIncident(item);
+      return {
+        id: row.id,
+        incidentNumber: row.incidentNumber,
+        title: row.title,
+        status: row.status,
+        statusLabel: row.statusLabel,
+        submittedAt: row.reportedAt,
+      };
+    }),
+  });
 }
 
 export async function POST(request: NextRequest) {
-  if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  }
   const user = await requireEssUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-  if (!user.employeeId) return NextResponse.json({ error: 'No linked employee profile.' }, { status: 400 });
+  if (!user.employeeId) {
+    return NextResponse.json({ error: 'No linked employee profile.' }, { status: 400 });
+  }
 
   let body: unknown;
   try {
@@ -54,40 +81,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please describe what happened.' }, { status: 400 });
   }
 
-  const year = new Date().getUTCFullYear();
-  const count = await prisma.grievance.count({
-    where: {
-      submittedAt: {
-        gte: new Date(Date.UTC(year, 0, 1)),
-        lt: new Date(Date.UTC(year + 1, 0, 1)),
-      },
-    },
+  const employee = await prisma.employee.findUnique({
+    where: { id: user.employeeId },
+    select: { organizationId: true, outsourcingClientId: true },
   });
+  if (!employee) {
+    return NextResponse.json({ error: 'Employee record not found.' }, { status: 400 });
+  }
 
-  const details = [
-    `Severity: ${severity}`,
-    location ? `Location: ${location}` : null,
-    happenedAt ? `Happened at: ${happenedAt}` : null,
-    '',
-    description,
-  ]
-    .filter((part): part is string => part !== null)
-    .join('\n');
+  const incidentNumber = await allocateIncidentNumber(prisma, employee.outsourcingClientId);
+  const title = location ? `HSE report: ${location}` : 'HSE report: Incident or near-miss';
+  const occurredAt = happenedAt ? new Date(happenedAt) : new Date();
+  const level = essSeverityToLevel(severity);
 
-  const report = await prisma.grievance.create({
+  const report = await prisma.hseIncident.create({
     data: {
-      employeeId: user.employeeId,
-      grievanceNumber: toGrievanceNumber(year, count + 1),
-      subject: `HSE report: ${location || 'Incident or near-miss'}`,
-      description: details,
-      category: 'WORKPLACE_SAFETY',
+      organizationId: employee.organizationId,
+      outsourcingClientId: employee.outsourcingClientId,
+      incidentNumber,
+      title,
+      description,
+      incidentType: essSeverityToType(severity),
+      severity: level,
+      location: location || null,
+      occurredAt,
+      reportedByEmployeeId: user.employeeId,
+    },
+    include: {
+      reportedByUser: { select: { name: true } },
+      reportedByEmployee: { select: { firstName: true, lastName: true } },
+      actions: { select: { id: true, status: true } },
     },
   });
 
   await logAuditEvent({
     actor: { userId: null, email: user.email, name: user.name },
     action: 'ess.hse.report.created',
-    entityType: 'Grievance',
+    entityType: 'HseIncident',
     entityId: report.id,
     route: 'POST /api/ess/hse/reports',
     metadata: { employeeId: user.employeeId, severity, location },
@@ -97,13 +127,24 @@ export async function POST(request: NextRequest) {
   await sendNotification({
     event: 'grievance_submitted',
     recipientUserIds: hrUserIds,
-    title: `New HSE report ${report.grievanceNumber}`,
+    title: `New HSE report ${report.incidentNumber}`,
     body: `${user.name} reported ${location || 'an incident or near-miss'}.`,
-    href: `/dashboard/disciplinary/grievances/${report.id}`,
+    href: '/dashboard/hse',
     priority: severity === 'high' ? 'urgent' : 'action_required',
     channel: 'in_app',
     metadata: { reportId: report.id, severity, location },
   });
 
-  return NextResponse.json(report, { status: 201 });
+  const row = serializeIncident(report);
+  return NextResponse.json(
+    {
+      id: row.id,
+      incidentNumber: row.incidentNumber,
+      title: row.title,
+      status: row.status,
+      statusLabel: HSE_INCIDENT_STATUS_LABELS[report.status],
+      submittedAt: row.reportedAt,
+    },
+    { status: 201 },
+  );
 }

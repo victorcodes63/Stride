@@ -4,6 +4,7 @@ import { reportApiError } from '@/lib/monitoring';
 import type { ApplicationWithDetails } from '@/types/dashboard';
 import ExcelJS from 'exceljs';
 import { sortEmploymentByRecency } from '@/lib/employment-sort';
+import { strideHexToArgb, STRIDE_PALETTE } from '@/lib/stride-palette';
 
 export async function GET(request: NextRequest) {
   if (!process.env.DATABASE_URL) {
@@ -189,7 +190,7 @@ export async function GET(request: NextRequest) {
 
   const sheet = workbook.addWorksheet(safeSheetName, {
     views: [{ state: 'frozen', ySplit: 1 }],
-    properties: { tabColor: { argb: 'FF1D2460' } },
+    properties: { tabColor: { argb: strideHexToArgb(STRIDE_PALETTE.ink) } },
   });
 
   const MAX_EDUCATION_COLUMNS = 5;

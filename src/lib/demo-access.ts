@@ -4,7 +4,7 @@ import {
   DEMO_FINANCE_EMAIL,
   DEMO_HR_EMAIL,
 } from '@/lib/demo-credentials';
-import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-config';
+import { isPublicDemoMode } from '@/lib/deployment-config';
 import { isGenericPublicLogin } from '@/lib/marketing-site';
 
 function trimEnv(key: string): string | undefined {
@@ -30,7 +30,8 @@ export type DemoAccessRow = { role: string; email: string; note?: string };
  */
 export function isDemoAccessPageEnabled(): boolean {
   if (parseBoolean(trimEnv('NEXT_PUBLIC_DEMO_ACCESS_PAGE'), false)) return true;
-  if (isPublicDemoMode() || isDemoMode()) {
+  // Client components hydrate with NEXT_PUBLIC_* only — never gate UI on server-only DEMO_MODE.
+  if (isPublicDemoMode()) {
     return !isGenericPublicLogin();
   }
   return false;

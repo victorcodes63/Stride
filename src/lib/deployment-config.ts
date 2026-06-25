@@ -30,7 +30,7 @@ export function isDemoMode(): boolean {
   return parseBoolean(trimEnv('DEMO_MODE'), false);
 }
 
-/** Client-safe demo flag — set NEXT_PUBLIC_DEMO_MODE=true alongside DEMO_MODE for login hints. */
+/** Client-safe demo flag — set NEXT_PUBLIC_DEMO_MODE alongside DEMO_MODE for marketing UI. */
 export function isPublicDemoMode(): boolean {
   return parseBoolean(trimEnv('NEXT_PUBLIC_DEMO_MODE'), isDemoMode());
 }

@@ -20,6 +20,7 @@ type VehicleRow = {
   status: string;
   depotLocation: string | null;
   capacityKg: number | null;
+  odometerKm: number | null;
 };
 
 export default function FleetVehiclesPage() {
@@ -75,6 +76,7 @@ export default function FleetVehiclesPage() {
                     <th>Ownership</th>
                     <th>Status</th>
                     <th>Depot</th>
+                    <th className="col-right">Odometer</th>
                     <th className="col-right">Capacity (kg)</th>
                   </tr>
                 </thead>
@@ -93,6 +95,11 @@ export default function FleetVehiclesPage() {
                       <td className="capitalize">{vehicle.ownership}</td>
                       <td className="capitalize">{vehicle.status.replace(/_/g, ' ')}</td>
                       <td>{vehicle.depotLocation ?? '—'}</td>
+                      <td className="col-right">
+                        {vehicle.odometerKm != null
+                          ? `${vehicle.odometerKm.toLocaleString()} km`
+                          : '—'}
+                      </td>
                       <td className="col-right">{vehicle.capacityKg ?? '—'}</td>
                     </tr>
                   ))}

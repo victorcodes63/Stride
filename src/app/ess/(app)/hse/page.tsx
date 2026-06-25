@@ -9,9 +9,10 @@ import { EssStatusPill } from '@/components/ess/EssStatusPill';
 
 type HseReport = {
   id: string;
-  grievanceNumber: string;
-  subject: string;
+  incidentNumber: string;
+  title: string;
   status: string;
+  statusLabel: string;
   submittedAt: string;
 };
 
@@ -49,11 +50,11 @@ export default function EssHsePage() {
             {items.map((item) => (
               <EssListItem
                 key={item.id}
-                title={item.subject.replace(/^HSE report:\s*/, '')}
-                subtitle={item.grievanceNumber}
+                title={item.title.replace(/^HSE report:\s*/, '')}
+                subtitle={item.incidentNumber}
                 meta={new Date(item.submittedAt).toLocaleString()}
                 icon={<ShieldAlert className="h-5 w-5" />}
-                trailing={<EssStatusPill status={item.status} />}
+                trailing={<EssStatusPill status={item.statusLabel || item.status} />}
               />
             ))}
           </div>

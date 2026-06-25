@@ -19,6 +19,7 @@ const contexts = [
   'cargo-logistics',
   'hospital-healthcare',
   'travel-agency',
+  'construction',
   'all-verticals',
   'blank-shell',
 ];

@@ -72,7 +72,9 @@ function getInitials(name: string) {
 }
 
 function TopbarDivider() {
-  return <div className="hidden h-6 w-px shrink-0 bg-neutral-200 sm:block" aria-hidden />;
+  return (
+    <div className="hidden h-6 w-px shrink-0 bg-[var(--dash-border-subtle)] sm:block" aria-hidden />
+  );
 }
 
 export default function DashboardTopbar({
@@ -203,7 +205,7 @@ export default function DashboardTopbar({
         {/* Search — fills available space between breadcrumbs and actions */}
         <div className="relative min-w-0 flex-1">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dash-text-subtle)]"
             strokeWidth={1.75}
           />
           <input
@@ -214,7 +216,7 @@ export default function DashboardTopbar({
             className="h-9 w-full cursor-pointer rounded-lg border pl-9 pr-14 text-sm transition-colors dash-search-input focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             aria-label="Search"
           />
-          <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 items-center rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[10px] font-medium text-neutral-400 sm:inline-flex">
+          <kbd className="dash-kbd pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 sm:inline-flex">
             ⌘K
           </kbd>
         </div>

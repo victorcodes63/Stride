@@ -60,6 +60,15 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'OrganizationMembership',
     'SystemSetting',
     'Insight',
+    'Project',
+    'ProjectMilestone',
+    'ProjectTask',
+    'FacilitySite',
+    'FacilityLease',
+    'FacilityMaintenanceTicket',
+    'GovernanceMeeting',
+    'GovernanceResolution',
+    'GovernanceActionItem',
   ],
   leave: [
     'LeaveType',
@@ -112,7 +121,7 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'PerformanceReviewRating',
     'PerformanceFeedback',
   ],
-  hse: [],
+  hse: ['HseIncident', 'HseAction'],
   accounts: [
     'AccountsClient',
     'AccountsInvoice',
@@ -130,6 +139,9 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
   fleet: [
     'FleetVehicle',
     'FleetDriver',
+    'FleetTransportPartner',
+    'FleetFuelLog',
+    'FleetMaintenanceLog',
     'FleetTrip',
     'FleetSettlement',
     'FleetIncident',
@@ -189,8 +201,8 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
     if (def.key === 'hse') {
       return {
         ...base,
-        phase: 'not-started',
-        notes: 'Mock UI or thin API — migrate when real module lands (Phase E).',
+        phase: 'routes-live',
+        notes: 'HseIncident/HseAction schema, staff dashboard, ESS reporting.',
       };
     }
 

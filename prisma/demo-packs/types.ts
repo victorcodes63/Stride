@@ -152,7 +152,8 @@ export type DemoPackId =
   | 'imara-sacco'
   | 'cargo-logistics'
   | 'hospital-healthcare'
-  | 'travel-agency';
+  | 'travel-agency'
+  | 'construction';
 
 /** Packs shown in the multi-vertical entity switcher (excludes neutral generic shell). */
 export const VERTICAL_SHOWCASE_PACK_IDS = [
@@ -161,6 +162,7 @@ export const VERTICAL_SHOWCASE_PACK_IDS = [
   'cargo-logistics',
   'hospital-healthcare',
   'travel-agency',
+  'construction',
 ] as const satisfies readonly DemoPackId[];
 
 export type VerticalShowcasePackId = (typeof VERTICAL_SHOWCASE_PACK_IDS)[number];

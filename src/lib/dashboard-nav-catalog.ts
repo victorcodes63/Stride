@@ -159,8 +159,10 @@ const projectsSection: DashboardNavSection = {
   icon: Briefcase,
   items: [
     { href: '/dashboard/projects', label: 'Overview', icon: LayoutGrid },
+    { href: '/dashboard/projects/all', label: 'All projects', icon: Briefcase },
     { href: '/dashboard/projects/board', label: 'Project board', icon: Briefcase },
     { href: '/dashboard/projects/tasks', label: 'Tasks & deliverables', icon: ListTodo },
+    { href: '/dashboard/projects/budget', label: 'Budget vs actual', icon: Scale },
   ],
 };
 
@@ -172,6 +174,7 @@ const fleetNavItems: DashboardNavItem[] = [
   { href: '/dashboard/fleet/billing', label: 'Billing', icon: Receipt },
   { href: '/dashboard/fleet/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/dashboard/fleet/vehicles', label: 'Vehicles', icon: Truck },
+  { href: '/dashboard/fleet/registers', label: 'Registers', icon: ClipboardList },
 ];
 
 const assetsNavItems: DashboardNavItem[] = [
@@ -266,7 +269,7 @@ function buildCommunicationsInsightSection(canViewSystemAnalytics: boolean): Das
 }
 
 /** Roadmap sections — always visible so partial/planned modules stay discoverable. */
-const ROADMAP_NAV_SECTION_IDS = new Set(['projects', 'legal-documents']);
+const ROADMAP_NAV_SECTION_IDS = new Set(['legal-documents']);
 
 function filterSections(
   sections: DashboardNavSection[],

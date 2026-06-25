@@ -153,7 +153,7 @@ export default function CommandPalette({
         aria-label="Search"
       >
         <div className="dash-modal-header flex items-center gap-2 border-b px-4 py-3">
-          <Search className="w-5 h-5 text-neutral-400 shrink-0" />
+          <Search className="h-5 w-5 shrink-0 text-[var(--dash-text-subtle)]" />
           <input
             ref={inputRef}
             type="search"
@@ -163,25 +163,18 @@ export default function CommandPalette({
             className="min-w-0 flex-1 bg-transparent py-2 text-sm text-[var(--dash-text-strong)] placeholder:text-[var(--dash-text-subtle)] focus:outline-none"
             aria-label="Search query"
           />
-          <kbd className="hidden sm:inline text-xs text-neutral-400 border border-neutral-200 rounded px-1.5 py-0.5">
-            Esc
-          </kbd>
+          <kbd className="dash-kbd hidden sm:inline-flex">Esc</kbd>
         </div>
 
-        <div
-          ref={listRef}
-          className="max-h-[min(60vh,400px)] overflow-y-auto py-2"
-        >
+        <div ref={listRef} className="max-h-[min(60vh,400px)] overflow-y-auto py-2">
           {query.trim().length < 2 ? (
-            <p className="px-4 py-6 text-sm text-neutral-500 text-center">
+            <p className="px-4 py-6 text-center text-sm text-[var(--dash-text-muted)]">
               Type at least 2 characters to search
             </p>
           ) : loading ? (
-            <p className="px-4 py-6 text-sm text-neutral-500 text-center">
-              Searching...
-            </p>
+            <p className="px-4 py-6 text-center text-sm text-[var(--dash-text-muted)]">Searching...</p>
           ) : entries.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-neutral-500 text-center">
+            <p className="px-4 py-6 text-center text-sm text-[var(--dash-text-muted)]">
               No results for &quot;{query}&quot;
             </p>
           ) : (
@@ -191,7 +184,7 @@ export default function CommandPalette({
                   return (
                     <li
                       key={entry.label}
-                      className="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-neutral-500"
+                      className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-subtle)]"
                     >
                       {entry.label}
                     </li>
@@ -210,16 +203,14 @@ export default function CommandPalette({
                       }}
                       className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
                         isSelected
-                          ? 'bg-[color-mix(in_srgb,var(--brand-primary)_10%,var(--dash-surface-solid))] text-[var(--dash-text-strong)]'
+                          ? 'bg-[color-mix(in_srgb,var(--brand-primary)_12%,var(--dash-surface-solid))] text-[var(--dash-text-strong)]'
                           : 'text-[var(--dash-text)] hover:bg-[var(--dash-hover)]'
                       }`}
                     >
-                      <Icon className="w-4 h-4 text-neutral-400 shrink-0" />
-                      <span className="flex-1 min-w-0 truncate font-medium">
-                        {entry.item.label}
-                      </span>
+                      <Icon className="h-4 w-4 shrink-0 text-[var(--dash-text-subtle)]" />
+                      <span className="min-w-0 flex-1 truncate font-medium">{entry.item.label}</span>
                       {entry.item.subtitle && (
-                        <span className="text-neutral-500 truncate max-w-[40%]">
+                        <span className="max-w-[40%] truncate text-[var(--dash-text-muted)]">
                           {entry.item.subtitle}
                         </span>
                       )}
@@ -231,13 +222,13 @@ export default function CommandPalette({
           )}
         </div>
 
-        <div className="dash-modal-footer flex items-center justify-between border-t px-4 py-2 text-xs">
+        <div className="dash-modal-footer flex items-center justify-between border-t px-4 py-2 text-xs text-[var(--dash-text-muted)]">
           <span>
-            <kbd className="border border-neutral-200 rounded px-1">↑</kbd>
-            <kbd className="border border-neutral-200 rounded px-1 ml-1">↓</kbd> navigate
+            <kbd className="dash-kbd">↑</kbd>
+            <kbd className="dash-kbd ml-1">↓</kbd> navigate
           </span>
           <span>
-            <kbd className="border border-neutral-200 rounded px-1">Enter</kbd> open
+            <kbd className="dash-kbd">Enter</kbd> open
           </span>
         </div>
       </div>

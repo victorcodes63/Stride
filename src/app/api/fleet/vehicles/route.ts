@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
       status: v.status,
       depotLocation: v.depotLocation,
       capacityKg: v.capacityKg,
+      odometerKm: v.odometerKm,
     })),
   );
 }

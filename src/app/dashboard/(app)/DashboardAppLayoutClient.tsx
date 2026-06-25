@@ -261,7 +261,7 @@ export default function DashboardAppLayoutClient({
  aria-hidden={hasMounted && !sidebarOpen}
  >
  <div
- className="flex-shrink-0 border-b border-neutral-100/80 px-3.5 py-3"
+ className="dash-sidebar-brand flex-shrink-0 border-b px-3.5 py-3"
  onClick={closeSidebarOnMobile}
  >
  {sidebarBrand}

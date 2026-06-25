@@ -19,20 +19,20 @@ export function DashboardBreadcrumbs({ crumbs, className = '' }: DashboardBreadc
           return (
             <li key={`${crumb.label}-${index}`} className="flex min-w-0 items-center gap-1.5">
               {index > 0 ? (
-                <span className="text-neutral-300 select-none" aria-hidden>
+                <span className="select-none text-[var(--dash-text-faint)]" aria-hidden>
                   /
                 </span>
               ) : null}
               {crumb.href && !isLast ? (
                 <Link
                   href={crumb.href}
-                  className="truncate font-medium text-primary-700 hover:text-primary-800 hover:underline"
+                  className="truncate font-medium text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)] hover:underline"
                 >
                   {crumb.label}
                 </Link>
               ) : (
                 <span
-                  className={`truncate ${isLast ? 'font-medium text-ink' : 'text-neutral-600'}`}
+                  className={`truncate ${isLast ? 'font-medium text-[var(--dash-text-strong)]' : 'text-[var(--dash-text-muted)]'}`}
                   aria-current={isLast ? 'page' : undefined}
                 >
                   {crumb.label}

@@ -102,7 +102,7 @@ function NavSubLink({
   sectionActive?: boolean;
 }) {
   const isActive = isPathActive(pathname, href);
-  const connectorClass = sectionActive ? 'bg-primary-200' : 'bg-neutral-200';
+  const connectorClass = sectionActive ? 'bg-primary-300' : 'bg-neutral-200';
   const readiness = getNavItemReadiness(href);
 
   return (
@@ -118,10 +118,8 @@ function NavSubLink({
         href={href}
         onClick={onNavigate}
         title={label}
-        className={`group/link-row mb-0.5 flex min-w-0 flex-1 items-center gap-1 rounded-md py-1 pl-1 pr-1 text-[12.5px] leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
-          isActive
-            ? 'bg-primary-50 font-medium text-primary-900'
-            : 'font-normal text-neutral-600 hover:bg-neutral-50 hover:text-ink'
+        className={`group/link-row dash-nav-sub focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
+          isActive ? 'is-active' : ''
         }`}
       >
         <span className="truncate">{label}</span>
@@ -155,15 +153,11 @@ function NavRootLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className={`group/link-row flex h-8 items-center gap-2 rounded-lg px-2 pr-1 text-[13px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
-        isActive
-          ? 'bg-primary-600 font-medium text-white shadow-sm'
-          : 'font-medium text-neutral-700 hover:bg-neutral-100/80 hover:text-ink'
+      className={`group/link-row dash-nav-root focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
+        isActive ? 'is-active' : ''
       }`}
     >
-      <Icon
-        className={`h-4 w-4 flex-shrink-0 [stroke-width:1.75] ${isActive ? 'text-white' : 'text-neutral-500'}`}
-      />
+      <Icon className="dash-nav-icon" />
       <span className="truncate">{label}</span>
       <NavPinButton
         href={href}
@@ -180,11 +174,7 @@ function isSameNavHref(a: string, b: string): boolean {
 }
 
 function NavGroupLabel({ label }: { label: string }) {
-  return (
-    <p className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-      {label}
-    </p>
-  );
+  return <p className="dash-nav-group-label">{label}</p>;
 }
 
 function getStoredExpanded(): Set<string> {
@@ -409,21 +399,17 @@ export default function DashboardNav({
                   key={domain.id}
                   href={domain.hubHref}
                   onClick={onNavigate}
-                  className={`group/link-row flex h-8 items-center gap-2 rounded-lg px-2 text-[13px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
-                    isActive
-                      ? 'bg-primary-600 font-medium text-white shadow-sm'
-                      : 'font-medium text-neutral-700 hover:bg-neutral-100/80 hover:text-ink'
+                  className={`group/link-row dash-nav-root focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
+                    isActive ? 'is-active' : ''
                   }`}
                 >
-                  <DomainIcon
-                    className={`h-4 w-4 flex-shrink-0 [stroke-width:1.75] ${isActive ? 'text-white' : 'text-neutral-500'}`}
-                  />
+                  <DomainIcon className="dash-nav-icon" />
                   <span className="truncate">{domain.shortLabel}</span>
                 </Link>
               );
             })}
           </div>
-          <p className="px-2 pt-3 text-[10px] leading-snug text-neutral-400">
+          <p className="dash-nav-hint">
             Pick a module to focus the sidebar, or stay here for the cross-module command center.
           </p>
         </div>
@@ -457,20 +443,14 @@ export default function DashboardNav({
                 <button
                   type="button"
                   onClick={() => toggleSection(section.id)}
-                  className={`flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-[13px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
-                    sectionActive
-                      ? 'bg-neutral-100 font-semibold text-ink'
-                      : 'font-medium text-neutral-600 hover:bg-neutral-50'
+                  className={`dash-nav-section-btn focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
+                    sectionActive ? 'is-active' : ''
                   }`}
                   aria-expanded={isExpanded}
                   aria-controls={`nav-section-${section.id}`}
                   id={`nav-trigger-${section.id}`}
                 >
-                  <SectionIcon
-                    className={`h-4 w-4 flex-shrink-0 [stroke-width:1.75] ${
-                      sectionActive ? 'text-primary-600' : 'text-neutral-400'
-                    }`}
-                  />
+                  <SectionIcon className="dash-nav-icon" />
                   <span className="min-w-0 flex-1 truncate">{section.label}</span>
                   <ChevronRight
                     className={`h-3.5 w-3.5 flex-shrink-0 text-neutral-400 transition-transform duration-200 ${

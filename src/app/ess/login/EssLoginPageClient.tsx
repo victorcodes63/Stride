@@ -235,7 +235,7 @@ export function EssLoginForm({
                   <div className="w-full border-t border-slate-200" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-white px-3 text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                  <span className="bg-white px-3 text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-600">
                     or continue with
                   </span>
                 </div>
@@ -264,7 +264,7 @@ export function EssLoginForm({
 
         {/* Footer */}
         <div className="mt-auto pt-8 text-center">
-          <p className="text-[0.8125rem] text-slate-500">
+          <p className="text-[0.8125rem] text-slate-600">
             HR staff?{' '}
             <Link href="/dashboard/login" className="font-semibold text-[#1A1714] underline-offset-2 hover:underline">
               Staff dashboard

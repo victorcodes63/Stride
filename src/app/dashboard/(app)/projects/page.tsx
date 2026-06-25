@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ModuleHomeContent } from '@/components/dashboard/module-home/ModuleHomeContent';
+import ProjectsOverviewContent from './ProjectsOverviewContent';
 
 export const metadata: Metadata = {
   title: 'Projects | Stride Dashboard',
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ProjectsModuleHomePage() {
-  return <ModuleHomeContent domainId="projects" />;
+  return <ProjectsOverviewContent />;
 }

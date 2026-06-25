@@ -56,15 +56,18 @@ export const NAV_ITEM_READINESS: Record<string, NavReadiness> = {
   '/dashboard/accounts/mpesa-reconciliation': 'live',
 
   // Projects
-  '/dashboard/projects': 'planned',
-  '/dashboard/projects/board': 'planned',
-  '/dashboard/projects/tasks': 'planned',
+  '/dashboard/projects': 'live',
+  '/dashboard/projects/all': 'live',
+  '/dashboard/projects/board': 'live',
+  '/dashboard/projects/tasks': 'live',
+  '/dashboard/projects/budget': 'live',
 
   // Admin & Operations
-  '/dashboard/hse': 'mock',
-  '/dashboard/admin/facilities': 'planned',
-  '/dashboard/admin/governance': 'planned',
-  '/dashboard/fleet/vehicles': 'partial',
+  '/dashboard/hse': 'live',
+  '/dashboard/admin/facilities': 'live',
+  '/dashboard/admin/governance': 'live',
+  '/dashboard/fleet/vehicles': 'live',
+  '/dashboard/fleet/registers': 'live',
 };
 
 export function getNavItemReadiness(href: string): NavReadiness {

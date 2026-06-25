@@ -170,26 +170,16 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         domainId,
         eyebrow: domain.marketingLabel,
         title: 'Projects',
-        description: 'Deliverables, tasks, and budget vs execution across client and internal work.',
-        phase: 'Phase D — planned',
-        plannedBullets: [
-          'Project charter and milestones',
-          'Task board with owners',
-          'Budget vs actual from Finance & Payroll',
-        ],
+        description: 'Deliverables, milestones, and tasks across client and internal work.',
+        phase: 'Phase D — live',
         workspaces: [
           {
-            title: 'Related today',
+            title: 'Projects',
             links: [
-              { href: '/dashboard/accounts/budgets', label: 'Budgets', note: 'Finance — not project-scoped yet', icon: Scale },
-              { href: '/dashboard/onboarding', label: 'Onboarding tasks', note: 'HR task pattern', icon: ClipboardList },
-            ],
-          },
-          {
-            title: 'Coming soon',
-            links: [
-              { href: '/dashboard/projects/board', label: 'Project board', note: 'Roadmap', icon: Briefcase },
-              { href: '/dashboard/projects/tasks', label: 'Tasks & deliverables', note: 'Roadmap', icon: ClipboardList },
+              { href: '/dashboard/projects/all', label: 'All projects', note: 'Register & create', icon: Briefcase },
+              { href: '/dashboard/projects/board', label: 'Project board', note: 'Kanban by status', icon: Briefcase },
+              { href: '/dashboard/projects/tasks', label: 'Tasks & deliverables', note: 'List & assign', icon: ClipboardList },
+              { href: '/dashboard/projects/budget', label: 'Budget vs actual', note: 'Burn from payroll, AP & expenses', icon: Scale },
             ],
           },
         ],

@@ -45,6 +45,27 @@ export const STRIDE_BRAND_SECONDARY = STRIDE_PALETTE.ink;
 export const STRIDE_MANIFEST_BACKGROUND = STRIDE_PALETTE.paper;
 export const STRIDE_MANIFEST_THEME_COLOR = STRIDE_PALETTE.ink;
 
+/** Locked brand triple — RAV-157 verification anchor */
+export const STRIDE_LOCKED_BRAND = {
+  coral: STRIDE_PALETTE.coral,
+  ink: STRIDE_PALETTE.ink,
+  paper: STRIDE_PALETTE.paper,
+} as const;
+
+/** Legacy primaries retired in RAV-108 / RAV-157 — must not appear in src/ */
+export const STRIDE_BANNED_LEGACY_HEX = [
+  '#ff6118',
+  '#0d9488',
+  '#0088ff',
+  '#1d2460',
+] as const;
+
+/** Excel / Office ARGB (alpha + RRGGBB) from a locked hex token */
+export function strideHexToArgb(hex: string): string {
+  const normalized = sanitizeStrideHexColor(hex, STRIDE_PALETTE.ink).slice(1);
+  return `FF${normalized}`;
+}
+
 const HEX = /^#([0-9a-fA-F]{6})$/;
 
 function parseHex(hex: string): [number, number, number] | null {

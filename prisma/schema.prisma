@@ -142,11 +142,21 @@ model OutsourcingClient {
   fleetTrips              FleetTrip[]
   fleetSettlements        FleetSettlement[]
   fleetIncidents          FleetIncident[]
+  fleetFuelLogs           FleetFuelLog[]
+  fleetMaintenanceLogs    FleetMaintenanceLog[]
   purchaseRequests        PurchaseRequest[]
   purchaseOrders          PurchaseOrder[]
   goodsReceipts           GoodsReceipt[]
   payrollDisbursementBatches PayrollDisbursementBatch[]
   performanceCycles          PerformanceCycle[]
+  projects                   Project[]
+  facilitySites              FacilitySite[]
+  facilityMaintenanceTickets FacilityMaintenanceTicket[]
+  governanceMeetings         GovernanceMeeting[]
+  governanceResolutions      GovernanceResolution[]
+  governanceActionItems      GovernanceActionItem[]
+  hseIncidents               HseIncident[]
+  hseActions                 HseAction[]
 
   @@index([name])
 }
@@ -310,6 +320,7 @@ model Employee {
   fleetDriverProfile          FleetDriver?
   performanceGoals            PerformanceGoal[]
   performanceReviews          PerformanceReview[]
+  hseIncidentsReported        HseIncident[]
 
   /// One national ID maps to at most one employee record system-wide (multiple NULL allowed).
   @@unique([idNumber])
@@ -1956,6 +1967,24 @@ model User {
   performanceCyclesCreated         PerformanceCycle[]         @relation("PerformanceCycleCreator")
   performanceReviewsManaged        PerformanceReview[]        @relation("PerformanceReviewManager")
   performanceFeedbackAuthored      PerformanceFeedback[]      @relation("PerformanceFeedbackStaffAuthor")
+  projectsOwned                    Project[]                  @relation("ProjectOwner")
+  projectsCreated                  Project[]                  @relation("ProjectCreator")
+  projectTasksAssigned             ProjectTask[]              @relation("ProjectTaskAssignee")
+  projectTasksCreated              ProjectTask[]              @relation("ProjectTaskCreator")
+  facilitySitesManaged             FacilitySite[]             @relation("FacilitySiteManager")
+  facilitySitesCreated             FacilitySite[]             @relation("FacilitySiteCreator")
+  facilityLeasesCreated            FacilityLease[]            @relation("FacilityLeaseCreator")
+  facilityTicketsReported          FacilityMaintenanceTicket[] @relation("FacilityTicketReporter")
+  facilityTicketsAssigned          FacilityMaintenanceTicket[] @relation("FacilityTicketAssignee")
+  facilityTicketsCreated           FacilityMaintenanceTicket[] @relation("FacilityTicketCreator")
+  governanceMeetingsCreated        GovernanceMeeting[]         @relation("GovernanceMeetingCreator")
+  governanceResolutionsCreated     GovernanceResolution[]      @relation("GovernanceResolutionCreator")
+  governanceActionsAssigned        GovernanceActionItem[]      @relation("GovernanceActionAssignee")
+  governanceActionsCreated         GovernanceActionItem[]      @relation("GovernanceActionCreator")
+  hseIncidentsReported             HseIncident[]               @relation("HseIncidentReporter")
+  hseIncidentsCreated              HseIncident[]               @relation("HseIncidentCreator")
+  hseActionsAssigned               HseAction[]                 @relation("HseActionAssignee")
+  hseActionsCreated                HseAction[]                 @relation("HseActionCreator")
 
   leaveApprover  User?  @relation("UserLeaveApprover", fields: [leaveApproverId], references: [id], onDelete: SetNull)
   leaveReportees User[] @relation("UserLeaveApprover")
@@ -3028,7 +3057,8 @@ model Budget {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  items BudgetLineItem[]
+  items    BudgetLineItem[]
+  projects Project[]
 
   @@index([fiscalYear, status])
   @@index([department])
@@ -3335,6 +3365,14 @@ enum FleetTripStatus {
   exception
 }
 
+enum FleetMaintenanceType {
+  service
+  repair
+  inspection
+  tyre
+  other
+}
+
 model FleetVehicle {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
@@ -3353,8 +3391,10 @@ model FleetVehicle {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
-  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  trips  FleetTrip[]
+  client           OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  trips            FleetTrip[]
+  fuelLogs         FleetFuelLog[]
+  maintenanceLogs  FleetMaintenanceLog[]
 
   @@unique([outsourcingClientId, registration])
   @@index([outsourcingClientId, status])
@@ -3379,8 +3419,58 @@ model FleetDriver {
   client   OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
   employee Employee?         @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   trips    FleetTrip[]
+  fuelLogs FleetFuelLog[]
 
   @@index([outsourcingClientId, status])
+}
+
+model FleetFuelLog {
+  id                  String   @id @default(cuid())
+  organizationId      String   @db.Uuid
+  outsourcingClientId String
+  vehicleId           String
+  driverId            String?
+  tripId              String?
+  fueledAt            DateTime @default(now())
+  liters              Decimal  @db.Decimal(10, 2)
+  amountKes           Decimal  @db.Decimal(14, 2)
+  odometerKm          Int?
+  station             String?
+  notes               String?  @db.Text
+  createdByUserId     String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  client  OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  vehicle FleetVehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver  FleetDriver?      @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  trip    FleetTrip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
+
+  @@index([outsourcingClientId, fueledAt])
+  @@index([vehicleId])
+}
+
+model FleetMaintenanceLog {
+  id                  String                @id @default(cuid())
+  organizationId      String                @db.Uuid
+  outsourcingClientId String
+  vehicleId           String
+  maintenanceType     FleetMaintenanceType  @default(service)
+  description         String
+  performedAt         DateTime              @default(now())
+  costKes             Decimal?              @db.Decimal(14, 2)
+  odometerKm          Int?
+  vendor              String?
+  notes               String?               @db.Text
+  createdByUserId     String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  client  OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  vehicle FleetVehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([outsourcingClientId, performedAt])
+  @@index([vehicleId])
 }
 
 model FleetTransportPartner {
@@ -3488,6 +3578,7 @@ model FleetTrip {
   incidents        FleetIncident[]
   clientInvoiceId  String?                    @unique
   clientInvoice    AccountsInvoice?           @relation("FleetTripClientInvoice", fields: [clientInvoiceId], references: [id], onDelete: SetNull)
+  fuelLogs         FleetFuelLog[]
 
   @@unique([outsourcingClientId, tripNumber])
   @@index([outsourcingClientId, status])
@@ -3939,4 +4030,450 @@ model PerformanceFeedback {
   authorEssUser EssPortalUser?    @relation(fields: [authorEssUserId], references: [id], onDelete: SetNull)
 
   @@index([reviewId])
+}
+
+// --- Projects (RAV-84 / Phase D1) ---
+
+enum ProjectStatus {
+  planning
+  active
+  on_hold
+  completed
+  cancelled
+}
+
+enum ProjectMilestoneStatus {
+  pending
+  in_progress
+  done
+}
+
+enum ProjectTaskStatus {
+  backlog
+  todo
+  in_progress
+  blocked
+  done
+}
+
+enum ProjectTaskPriority {
+  low
+  medium
+  high
+}
+
+model Project {
+  id                  String        @id @default(cuid())
+  organizationId      String        @db.Uuid
+  outsourcingClientId String
+  projectCode         String
+  name                String
+  description         String?       @db.Text
+  status              ProjectStatus @default(planning)
+  department          String?
+  currency            String        @default("KES")
+  budgetAmount        Decimal?      @db.Decimal(14, 2)
+  budgetId            String?
+  startDate           DateTime?     @db.Date
+  dueDate             DateTime?     @db.Date
+  completedAt         DateTime?
+  ownerUserId         String?
+  createdByUserId     String
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  client      OutsourcingClient   @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  budget      Budget?             @relation(fields: [budgetId], references: [id], onDelete: SetNull)
+  owner       User?               @relation("ProjectOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy   User                @relation("ProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  milestones  ProjectMilestone[]
+  tasks       ProjectTask[]
+
+  @@unique([outsourcingClientId, projectCode])
+  @@index([outsourcingClientId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([ownerUserId])
+  @@index([budgetId])
+}
+
+model ProjectMilestone {
+  id             String                 @id @default(cuid())
+  organizationId String                 @db.Uuid
+  projectId      String
+  title          String
+  description    String?                @db.Text
+  status         ProjectMilestoneStatus @default(pending)
+  dueDate        DateTime?              @db.Date
+  completedAt    DateTime?
+  sortOrder      Int                    @default(0)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   ProjectTask[]
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model ProjectTask {
+  id              String              @id @default(cuid())
+  organizationId  String              @db.Uuid
+  projectId       String
+  milestoneId     String?
+  title           String
+  description     String?             @db.Text
+  status          ProjectTaskStatus   @default(todo)
+  priority        ProjectTaskPriority @default(medium)
+  assigneeUserId  String?
+  dueDate         DateTime?           @db.Date
+  completedAt     DateTime?
+  sortOrder       Int                 @default(0)
+  createdByUserId String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone ProjectMilestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  assignee  User?             @relation("ProjectTaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  createdBy User              @relation("ProjectTaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([status])
+  @@index([assigneeUserId])
+  @@index([dueDate])
+}
+
+// --- Facilities (RAV-88 / Phase E1) ---
+
+enum FacilitySiteType {
+  office
+  warehouse
+  retail
+  site
+  other
+}
+
+enum FacilitySiteStatus {
+  active
+  inactive
+}
+
+enum FacilityLeaseStatus {
+  active
+  expiring_soon
+  expired
+  terminated
+}
+
+enum FacilityTicketCategory {
+  plumbing
+  electrical
+  hvac
+  structural
+  cleaning
+  other
+}
+
+enum FacilityTicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum FacilityTicketStatus {
+  open
+  in_progress
+  on_hold
+  resolved
+  closed
+}
+
+model FacilitySite {
+  id                  String             @id @default(cuid())
+  organizationId      String             @db.Uuid
+  outsourcingClientId String
+  siteCode            String
+  name                String
+  siteType            FacilitySiteType   @default(office)
+  status              FacilitySiteStatus @default(active)
+  address             String?            @db.Text
+  county              String?
+  phone               String?
+  managerUserId       String?
+  notes               String?            @db.Text
+  createdByUserId     String
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  client              OutsourcingClient           @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  manager             User?                       @relation("FacilitySiteManager", fields: [managerUserId], references: [id], onDelete: SetNull)
+  createdBy           User                        @relation("FacilitySiteCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  leases              FacilityLease[]
+  maintenanceTickets  FacilityMaintenanceTicket[]
+
+  @@unique([outsourcingClientId, siteCode])
+  @@index([outsourcingClientId])
+  @@index([status])
+  @@index([managerUserId])
+}
+
+model FacilityLease {
+  id              String              @id @default(cuid())
+  organizationId  String              @db.Uuid
+  siteId          String
+  reference       String?
+  landlordName    String
+  startDate       DateTime            @db.Date
+  endDate         DateTime            @db.Date
+  monthlyRent     Decimal?            @db.Decimal(14, 2)
+  currency        String              @default("KES")
+  status          FacilityLeaseStatus @default(active)
+  renewalNotes    String?             @db.Text
+  createdByUserId String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  site      FacilitySite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  createdBy User         @relation("FacilityLeaseCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([siteId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model FacilityMaintenanceTicket {
+  id               String                 @id @default(cuid())
+  organizationId   String                 @db.Uuid
+  outsourcingClientId String
+  siteId           String
+  ticketNumber     String
+  title            String
+  description      String?                @db.Text
+  category         FacilityTicketCategory @default(other)
+  priority         FacilityTicketPriority @default(medium)
+  status           FacilityTicketStatus   @default(open)
+  reportedByUserId String?
+  assigneeUserId   String?
+  dueDate          DateTime?              @db.Date
+  resolvedAt       DateTime?
+  createdByUserId  String
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  client     OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  site       FacilitySite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  reportedBy User?             @relation("FacilityTicketReporter", fields: [reportedByUserId], references: [id], onDelete: SetNull)
+  assignee   User?             @relation("FacilityTicketAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  createdBy  User              @relation("FacilityTicketCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([outsourcingClientId, ticketNumber])
+  @@index([outsourcingClientId])
+  @@index([siteId])
+  @@index([status])
+  @@index([priority])
+  @@index([assigneeUserId])
+  @@index([dueDate])
+}
+
+// --- Board & governance (RAV-89 / Phase E2) ---
+
+enum GovernanceMeetingStatus {
+  scheduled
+  completed
+  cancelled
+}
+
+enum GovernanceResolutionStatus {
+  draft
+  adopted
+  rejected
+  withdrawn
+}
+
+enum GovernanceActionStatus {
+  open
+  in_progress
+  done
+  cancelled
+}
+
+model GovernanceMeeting {
+  id                  String                  @id @default(cuid())
+  organizationId      String                  @db.Uuid
+  outsourcingClientId String
+  meetingCode         String
+  title               String
+  meetingDate         DateTime                @db.Date
+  location            String?
+  minutesSummary      String?                 @db.Text
+  status              GovernanceMeetingStatus @default(scheduled)
+  createdByUserId     String
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  client      OutsourcingClient      @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  createdBy   User                   @relation("GovernanceMeetingCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  resolutions GovernanceResolution[]
+  actions     GovernanceActionItem[]
+
+  @@unique([outsourcingClientId, meetingCode])
+  @@index([outsourcingClientId])
+  @@index([meetingDate])
+  @@index([status])
+}
+
+model GovernanceResolution {
+  id                  String                     @id @default(cuid())
+  organizationId      String                     @db.Uuid
+  outsourcingClientId String
+  meetingId           String?
+  resolutionCode      String
+  title               String
+  description         String?                    @db.Text
+  status              GovernanceResolutionStatus @default(draft)
+  adoptedAt           DateTime?                  @db.Date
+  effectiveDate       DateTime?                  @db.Date
+  createdByUserId     String
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  client    OutsourcingClient      @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  meeting   GovernanceMeeting?     @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  createdBy User                   @relation("GovernanceResolutionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  actions   GovernanceActionItem[]
+
+  @@unique([outsourcingClientId, resolutionCode])
+  @@index([outsourcingClientId])
+  @@index([meetingId])
+  @@index([status])
+}
+
+model GovernanceActionItem {
+  id                  String                 @id @default(cuid())
+  organizationId      String                 @db.Uuid
+  outsourcingClientId String
+  meetingId           String?
+  resolutionId        String?
+  title               String
+  description         String?                @db.Text
+  status              GovernanceActionStatus @default(open)
+  assigneeUserId      String?
+  dueDate             DateTime?              @db.Date
+  completedAt         DateTime?
+  createdByUserId     String
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  client     OutsourcingClient     @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  meeting    GovernanceMeeting?    @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  resolution GovernanceResolution? @relation(fields: [resolutionId], references: [id], onDelete: SetNull)
+  assignee   User?                 @relation("GovernanceActionAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  createdBy  User                  @relation("GovernanceActionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([outsourcingClientId])
+  @@index([meetingId])
+  @@index([resolutionId])
+  @@index([status])
+  @@index([assigneeUserId])
+  @@index([dueDate])
+}
+
+enum HseIncidentType {
+  hazard
+  near_miss
+  injury
+  fire
+  equipment_failure
+  environmental
+  other
+}
+
+enum HseIncidentSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum HseIncidentStatus {
+  open
+  investigating
+  resolved
+  closed
+}
+
+enum HseActionStatus {
+  open
+  in_progress
+  completed
+  cancelled
+}
+
+model HseIncident {
+  id                    String              @id @default(cuid())
+  organizationId        String              @db.Uuid
+  outsourcingClientId   String
+  incidentNumber        String
+  title                 String
+  description           String              @db.Text
+  incidentType          HseIncidentType     @default(other)
+  severity              HseIncidentSeverity @default(medium)
+  status                HseIncidentStatus   @default(open)
+  location              String?
+  siteName              String?
+  occurredAt            DateTime
+  immediateAction       String?             @db.Text
+  injuredParty          String?
+  reportedByUserId      String?
+  reportedByEmployeeId  String?
+  reportedAt            DateTime            @default(now())
+  resolvedAt            DateTime?
+  closedAt              DateTime?
+  createdByUserId       String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  client              OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  reportedByUser      User?             @relation("HseIncidentReporter", fields: [reportedByUserId], references: [id], onDelete: SetNull)
+  reportedByEmployee  Employee?         @relation(fields: [reportedByEmployeeId], references: [id], onDelete: SetNull)
+  createdBy           User?             @relation("HseIncidentCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  actions             HseAction[]
+
+  @@unique([outsourcingClientId, incidentNumber])
+  @@index([outsourcingClientId])
+  @@index([status])
+  @@index([severity])
+  @@index([occurredAt])
+  @@index([reportedByEmployeeId])
+}
+
+model HseAction {
+  id                  String          @id @default(cuid())
+  organizationId      String          @db.Uuid
+  outsourcingClientId String
+  incidentId          String
+  title               String
+  description         String?         @db.Text
+  assigneeUserId      String?
+  dueDate             DateTime?       @db.Date
+  status              HseActionStatus @default(open)
+  completedAt         DateTime?
+  createdByUserId     String
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  client    OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  incident  HseIncident       @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  assignee  User?             @relation("HseActionAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  createdBy User              @relation("HseActionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([outsourcingClientId])
+  @@index([incidentId])
+  @@index([status])
+  @@index([assigneeUserId])
+  @@index([dueDate])
 }

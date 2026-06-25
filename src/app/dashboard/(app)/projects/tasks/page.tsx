@@ -1,5 +1,5 @@
-import { ModuleRoadmapPage } from '@/components/dashboard/ModuleRoadmapPage';
+import ProjectTasksContent from './ProjectTasksContent';
 
-export default function ProjectTasksRoadmapPage() {
-  return <ModuleRoadmapPage slug="projects-tasks" />;
+export default function ProjectTasksPage() {
+  return <ProjectTasksContent />;
 }
