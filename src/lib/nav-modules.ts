@@ -48,7 +48,7 @@ export function isDashboardNavItemVisible(
     return enabled.reports;
   }
 
-  if (sectionId === 'procurement' || sectionId === 'projects') {
+  if (sectionId === 'projects') {
     return true;
   }
 

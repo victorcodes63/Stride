@@ -108,6 +108,40 @@ describe('modules', () => {
     }
   });
 
+  it('respects MODULE_PROCUREMENT env for licensing', () => {
+    const prev = process.env.MODULE_PROCUREMENT;
+    process.env.MODULE_PROCUREMENT = 'false';
+    try {
+      expect(isModuleLicensed('procurement')).toBe(false);
+      process.env.MODULE_PROCUREMENT = 'true';
+      expect(isModuleLicensed('procurement')).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.MODULE_PROCUREMENT;
+      else process.env.MODULE_PROCUREMENT = prev;
+    }
+  });
+
+  it('resolveEffectiveModules gates procurement when unlicensed', () => {
+    const prev = process.env.MODULE_PROCUREMENT;
+    delete process.env.DEMO_MODE;
+    delete process.env.NEXT_PUBLIC_DEMO_MODE;
+    process.env.MODULE_PROCUREMENT = 'false';
+    try {
+      const admin = allModulesAdminEnabled();
+      expect(resolveEffectiveModules(admin).procurement).toBe(false);
+      expect(
+        resolveEffectiveModules(admin, { subscribedModules: { procurement: true } }).procurement,
+      ).toBe(false);
+      process.env.MODULE_PROCUREMENT = 'true';
+      expect(
+        resolveEffectiveModules(admin, { subscribedModules: { procurement: true } }).procurement,
+      ).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.MODULE_PROCUREMENT;
+      else process.env.MODULE_PROCUREMENT = prev;
+    }
+  });
+
   it('subscription entitlements block unlicensed modules', () => {
     const admin = allModulesAdminEnabled();
     const effective = resolveEffectiveModules(admin, {

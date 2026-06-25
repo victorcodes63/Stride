@@ -266,7 +266,7 @@ function buildCommunicationsInsightSection(canViewSystemAnalytics: boolean): Das
 }
 
 /** Roadmap sections — always visible so partial/planned modules stay discoverable. */
-const ROADMAP_NAV_SECTION_IDS = new Set(['procurement', 'projects', 'legal-documents']);
+const ROADMAP_NAV_SECTION_IDS = new Set(['projects', 'legal-documents']);
 
 function filterSections(
   sections: DashboardNavSection[],

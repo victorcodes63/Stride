@@ -25,7 +25,20 @@ describe('entitlements-guard', () => {
 
   it('blocks unentitled modules', () => {
     expect(isModuleEntitled('fleet', baseEntitlements)).toBe(false);
+    expect(isModuleEntitled('procurement', baseEntitlements)).toBe(false);
     expect(isModuleEntitled('accounts', baseEntitlements)).toBe(true);
+  });
+
+  it('counts procurement in horizontal bucket', () => {
+    const violations = findModuleAdminViolations(
+      { procurement: true, legal: true, accounts: true } as never,
+      {
+        ...baseEntitlements,
+        modules: { ...baseEntitlements.modules, procurement: false },
+        horizontalQuota: 2,
+      },
+    );
+    expect(violations.map((v) => v.module)).toContain('procurement');
   });
 
   it('detects admin flag violations', () => {
