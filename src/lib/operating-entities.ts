@@ -8,6 +8,7 @@ import {
   parseVerticalFromEntitySlug,
   type VerticalShowcasePackId,
 } from '@/lib/demo-vertical-catalog';
+import { STRIDE_BRAND_PRIMARY } from '@/lib/stride-palette';
 
 export const OPERATING_ENTITIES_SETTINGS_KEY = 'admin.operating.entities';
 
@@ -112,7 +113,7 @@ export const COUNTRY_PROFILES: Record<
   CountryCode,
   { country: string; flag: string; color: string; defaultCurrency: string }
 > = {
-  KE: { country: 'Kenya', flag: '🇰🇪', color: '#006600', defaultCurrency: 'KES' },
+  KE: { country: 'Kenya', flag: '🇰🇪', color: STRIDE_BRAND_PRIMARY, defaultCurrency: 'KES' },
   UG: { country: 'Uganda', flag: '🇺🇬', color: '#000000', defaultCurrency: 'UGX' },
 };
 

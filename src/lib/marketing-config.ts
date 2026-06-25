@@ -206,7 +206,7 @@ export const MARKETING_DASHBOARD_HERO = {
   src: '/images/dashboard_home.png',
   width: 2984,
   height: 1792,
-  alt: 'Stride HR and payroll dashboard — people and workforce overview',
+  alt: 'Stride People & workforce module — HR, employees, leave, and payroll home',
 } as const;
 
 /** Statutory compliance screenshot for “Why we built it”. */

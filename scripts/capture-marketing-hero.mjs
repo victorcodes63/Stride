@@ -47,9 +47,9 @@ const SHOTS = [
   {
     id: 'hero',
     file: 'dashboard_home.png',
-    path: '/dashboard',
+    path: '/dashboard/people',
     entityMatch: /SwiftFreight/i,
-    waitFor: /Good (morning|afternoon|evening)|Across your business|Operations overview|Business snapshot|Dashboard/i,
+    waitFor: /People & workforce|People &|Total staff|Module home/i,
     clip: { width: 1440, height: 900 },
   },
   {

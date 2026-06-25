@@ -15,6 +15,19 @@ import {
 } from './studio-craft-shared';
 import './studio-craft-hero.css';
 
+function HeroSubcopy() {
+  const { sub, descriptionHighlight } = MARKETING_HERO;
+  const idx = sub.indexOf(descriptionHighlight);
+  if (idx === -1) return sub;
+  return (
+    <>
+      {sub.slice(0, idx)}
+      <span className="text-[var(--sc-coral)]">{descriptionHighlight}</span>
+      {sub.slice(idx + descriptionHighlight.length)}
+    </>
+  );
+}
+
 export function StudioCraftHero() {
   return (
     <section className="sc-hero-section relative flex min-h-svh flex-col overflow-x-clip">
@@ -69,7 +82,7 @@ export function StudioCraftHero() {
               className="sc-animate-fade-up mt-5 max-w-lg text-sm leading-relaxed text-[var(--sc-ink-muted)] sm:mt-6 sm:text-base lg:text-lg"
               style={{ animationDelay: '320ms' }}
             >
-              {MARKETING_HERO.sub}
+              <HeroSubcopy />
             </p>
 
             <div

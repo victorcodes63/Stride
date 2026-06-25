@@ -38,13 +38,15 @@ type EntityContextType = {
   setActiveEntity: (e: Entity) => void;
 };
 
+import { STRIDE_BRAND_PRIMARY } from '@/lib/stride-palette';
+
 const FALLBACK_ENTITY: Entity = {
   id: 'ke',
   name: 'Workspace',
   country: 'Kenya',
   currency: 'KES',
   flag: '🇰🇪',
-  color: '#006600',
+  color: STRIDE_BRAND_PRIMARY,
 };
 
 const EntityContext = createContext<EntityContextType>({
