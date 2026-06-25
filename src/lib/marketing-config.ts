@@ -185,6 +185,8 @@ export const MARKETING_WHY_STRIDE = {
 export const MARKETING_INDUSTRIES_SECTION = {
   badge: 'Built for your industry',
   title: 'Then it gets specific.',
+  subLead:
+    'Every business runs the same core — people, payroll, finance. What sets you apart is the work that defines your industry. Stride adds that as a vertical pack on the same platform: same login, same records, same compliance. Not a second system. Not an integration project.',
 } as const;
 
 /** Brand tokens for studio-craft (v3) — mirrors public-theme.css, no new colors. */
@@ -701,7 +703,7 @@ export const INDUSTRY_VERTICALS: {
   {
     id: 'construction',
     name: 'Construction',
-    status: 'available',
+    status: 'coming_soon',
     description: 'Site and project management, plant tracking, and subcontractor workflows.',
     features: ['Site management', 'Asset / plant tracking', 'Subcontractors', 'Project budgets'],
     href: '/industries/construction',
