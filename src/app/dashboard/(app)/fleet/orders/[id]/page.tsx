@@ -74,6 +74,25 @@ export default function FleetOrderDetailPage() {
     if (res.ok) await load();
   }
 
+  async function schedulePlannedTrip() {
+    setAllocating(true);
+    setAllocError(null);
+    try {
+      const res = await fetch(`/api/fleet/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create_trip' }),
+      });
+      const data = (await res.json()) as { tripId?: string; error?: string };
+      if (!res.ok) throw new Error(data.error || 'Failed to schedule trip.');
+      if (data.tripId) window.location.href = `/dashboard/fleet/trips/${data.tripId}`;
+    } catch (e) {
+      setAllocError(e instanceof Error ? e.message : 'Failed to schedule trip.');
+    } finally {
+      setAllocating(false);
+    }
+  }
+
   async function allocate() {
     setAllocating(true);
     setAllocError(null);
@@ -161,6 +180,16 @@ export default function FleetOrderDetailPage() {
                   className="mt-6 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
                 >
                   Validate order
+                </button>
+              ) : null}
+              {order.status === 'validated' && order.tripCount === 0 ? (
+                <button
+                  type="button"
+                  disabled={allocating}
+                  onClick={() => void schedulePlannedTrip()}
+                  className="mt-4 rounded-lg border border-primary-200 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-800 hover:bg-primary-100 disabled:opacity-50"
+                >
+                  Schedule trip (Planned)
                 </button>
               ) : null}
             </section>

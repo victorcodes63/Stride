@@ -76,30 +76,40 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(orderToListRow(updated));
     }
 
-    const isAllocateAction = body.action === 'allocate' || body.action === 'create_trip';
+    const isCreateTrip = body.action === 'create_trip';
+    const isAllocate = body.action === 'allocate';
 
-    if (isAllocateAction) {
+    if (isCreateTrip || isAllocate) {
       if (order.status !== 'validated' && order.status !== 'assigned') {
         return NextResponse.json(
-          { error: 'Order must be validated before allocation.' },
+          { error: 'Order must be validated before scheduling a trip.' },
           { status: 400 },
         );
       }
 
-      const allocation = {
-        vehicleId: body.vehicleId || null,
-        driverId: body.driverId || null,
-        partnerId: body.partnerId || null,
-        isOutsourced: body.isOutsourced ?? Boolean(body.partnerId),
-      };
+      const allocation = isAllocate
+        ? {
+            vehicleId: body.vehicleId || null,
+            driverId: body.driverId || null,
+            partnerId: body.partnerId || null,
+            isOutsourced: body.isOutsourced ?? Boolean(body.partnerId),
+          }
+        : {
+            vehicleId: null,
+            driverId: null,
+            partnerId: null,
+            isOutsourced: false,
+          };
 
-      try {
-        await assertFleetAllocationAvailable(prisma, ctx, allocation);
-      } catch (e) {
-        if (e instanceof FleetAllocationConflictError) {
-          return NextResponse.json({ error: e.message }, { status: 409 });
+      if (isAllocate) {
+        try {
+          await assertFleetAllocationAvailable(prisma, ctx, allocation);
+        } catch (e) {
+          if (e instanceof FleetAllocationConflictError) {
+            return NextResponse.json({ error: e.message }, { status: 409 });
+          }
+          throw e;
         }
-        throw e;
       }
 
       const tripNumber = await nextFleetTripNumber(prisma, ctx.workspaceClientId);
@@ -107,6 +117,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         body.plannedDeliveryAt
           ? new Date(body.plannedDeliveryAt)
           : order.deliveryDeadlineAt ?? null;
+
+      const tripStatus = isAllocate ? 'allocated' : 'planned';
 
       const trip = await prisma.fleetTrip.create({
         data: {
@@ -125,29 +137,34 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           isOutsourced: allocation.isOutsourced,
           plannedDistanceKm: body.plannedDistanceKm ?? null,
           plannedDeliveryAt,
-          status: 'allocated',
+          status: tripStatus,
         },
       });
 
-      await ensureTripComplianceChecks(prisma, trip.id);
+      if (isAllocate) {
+        await ensureTripComplianceChecks(prisma, trip.id);
 
-      if (allocation.driverId) {
-        await prisma.fleetDriver.update({
-          where: { id: allocation.driverId },
-          data: { status: 'on_trip' },
-        });
+        if (allocation.driverId) {
+          await prisma.fleetDriver.update({
+            where: { id: allocation.driverId },
+            data: { status: 'on_trip' },
+          });
+        }
       }
 
       await prisma.fleetOrder.update({
         where: { id },
-        data: { status: 'assigned' },
+        data: { status: isAllocate ? 'assigned' : 'validated' },
       });
 
       await prisma.fleetTripEvent.create({
         data: {
+          organizationId: ctx.organizationId,
           tripId: trip.id,
-          eventType: 'order_assigned',
-          message: `Trip ${tripNumber} allocated from order ${order.orderNumber}.`,
+          eventType: isAllocate ? 'order_assigned' : 'order_scheduled',
+          message: isAllocate
+            ? `Trip ${tripNumber} allocated from order ${order.orderNumber}.`
+            : `Trip ${tripNumber} planned from order ${order.orderNumber}.`,
           metadata: {
             orderId: order.id,
             vehicleId: allocation.vehicleId,
@@ -158,7 +175,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         },
       });
 
-      return NextResponse.json({ tripId: trip.id, tripNumber: trip.tripNumber, status: 'allocated' }, { status: 201 });
+      return NextResponse.json(
+        { tripId: trip.id, tripNumber: trip.tripNumber, status: tripStatus },
+        { status: 201 },
+      );
     }
 
     if (body.status && FLEET_ORDER_STATUSES.includes(body.status)) {
