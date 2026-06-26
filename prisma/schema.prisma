@@ -98,7 +98,7 @@ model OutsourcingClient {
   paymentTerms      String? // e.g. Net 15, Net 30, due on receipt
 
   /// Dashboard entity switcher: `ke` | `ug` — scopes workforce, payroll, and linked accounts when set.
-  entityCode String? @unique
+  entityCode String?
 
   // Address
   postalAddress String?
@@ -144,6 +144,13 @@ model OutsourcingClient {
   fleetIncidents          FleetIncident[]
   fleetFuelLogs           FleetFuelLog[]
   fleetMaintenanceLogs    FleetMaintenanceLog[]
+  fleetGeofences          FleetGeofence[]
+  fleetServicePlans       FleetServicePlan[]
+  fleetDefectReports      FleetDefectReport[]
+  fleetAlarmRules         FleetAlarmRule[]
+  fleetEnvironmentalSnapshots FleetEnvironmentalSnapshot[]
+  fleetDriverEvaluations  FleetDriverEvaluation[]
+  fleetDrivingTimeLogs    FleetDrivingTimeLog[]
   purchaseRequests        PurchaseRequest[]
   purchaseOrders          PurchaseOrder[]
   goodsReceipts           GoodsReceipt[]
@@ -167,6 +174,7 @@ model OutsourcingClient {
   constructionPlantAssets    ConstructionPlantAsset[]
   constructionSubcontractors ConstructionSubcontractor[]
 
+  @@unique([organizationId, entityCode])
   @@index([name])
 }
 
@@ -508,9 +516,26 @@ model Grievance {
   resolvedBy         User?             @relation("GrievanceResolver", fields: [resolvedById], references: [id])
   submittedAt        DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
+  documents          GrievanceDocument[]
 
   @@index([employeeId])
   @@index([status])
+}
+
+model GrievanceDocument {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  grievanceId  String
+  grievance    Grievance @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
+  title        String
+  filePath     String
+  fileName     String
+  uploadedById String?
+  uploadedBy   User?     @relation("GrievanceDocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+
+  @@index([grievanceId])
 }
 
 enum DisciplinaryCaseType {
@@ -1960,6 +1985,7 @@ model User {
   resolvedCases                    DisciplinaryCase[]         @relation("CaseResolver")
   disciplinaryActions              DisciplinaryAction[]       @relation("DisciplinaryActionPerformer")
   uploadedDisciplinaryDocuments    DisciplinaryDocument[]     @relation("DisciplinaryDocumentUploader")
+  uploadedGrievanceDocuments       GrievanceDocument[]        @relation("GrievanceDocumentUploader")
   resolvedGrievances               Grievance[]                @relation("GrievanceResolver")
   initiatedEmployeeEntityTransfers EmployeeEntityTransfer[]
   actedEmployeeLifecycleEvents     EmployeeLifecycleEvent[]
@@ -1972,6 +1998,7 @@ model User {
   assetsAssigned                   CompanyAsset[]             @relation("AssetAssignedByUser")
   fleetComplianceChecks            FleetTripComplianceCheck[] @relation("FleetComplianceCheckedBy")
   fleetTripDocumentsUploaded       FleetTripDocument[]        @relation("FleetTripDocumentUploader")
+  fleetDriverEvaluations           FleetDriverEvaluation[]    @relation("FleetDriverEvaluationBy")
   purchaseRequestsRequested        PurchaseRequest[]          @relation("PurchaseRequestRequester")
   purchaseRequestsReviewed         PurchaseRequest[]          @relation("PurchaseRequestReviewer")
   purchaseOrdersIssued             PurchaseOrder[]            @relation("PurchaseOrderIssuer")
@@ -2000,6 +2027,8 @@ model User {
   hseActionsCreated                HseAction[]                 @relation("HseActionCreator")
   saccoLedgerEntriesCreated        SaccoLedgerEntry[]          @relation("SaccoLedgerCreator")
   saccoDividendRunsCreated         SaccoDividendRun[]          @relation("SaccoDividendRunCreator")
+  supportTicketsCreated            SupportTicket[]             @relation("SupportTicketCreator")
+  supportTicketMessages            SupportTicketMessage[]      @relation("SupportTicketMessageAuthor")
 
   leaveApprover  User?  @relation("UserLeaveApprover", fields: [leaveApproverId], references: [id], onDelete: SetNull)
   leaveReportees User[] @relation("UserLeaveApprover")
@@ -3410,6 +3439,11 @@ model FleetVehicle {
   trips            FleetTrip[]
   fuelLogs         FleetFuelLog[]
   maintenanceLogs  FleetMaintenanceLog[]
+  positions        FleetVehiclePosition[]
+  servicePlans     FleetServicePlan[]
+  defectReports    FleetDefectReport[]
+  environmentalSnapshots FleetEnvironmentalSnapshot[]
+  drivingTimeLogs  FleetDrivingTimeLog[]
 
   @@unique([outsourcingClientId, registration])
   @@index([outsourcingClientId, status])
@@ -3435,6 +3469,9 @@ model FleetDriver {
   employee Employee?         @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   trips    FleetTrip[]
   fuelLogs FleetFuelLog[]
+  evaluations FleetDriverEvaluation[]
+  drivingTimeLogs FleetDrivingTimeLog[]
+  defectReports   FleetDefectReport[]
 
   @@index([outsourcingClientId, status])
 }
@@ -3542,6 +3579,7 @@ model FleetOrder {
   cargoVolumeCbm      Decimal?         @db.Decimal(10, 2)
   truckRequirements   String?
   requestedPickupAt   DateTime?
+  deliveryDeadlineAt  DateTime?
   status              FleetOrderStatus @default(draft)
   notes               String?          @db.Text
   createdAt           DateTime         @default(now())
@@ -3594,6 +3632,11 @@ model FleetTrip {
   clientInvoiceId  String?                    @unique
   clientInvoice    AccountsInvoice?           @relation("FleetTripClientInvoice", fields: [clientInvoiceId], references: [id], onDelete: SetNull)
   fuelLogs         FleetFuelLog[]
+  positions        FleetVehiclePosition[]
+  defectReports    FleetDefectReport[]
+  driverEvaluations FleetDriverEvaluation[]
+  environmentalSnapshots FleetEnvironmentalSnapshot[]
+  drivingTimeLogs  FleetDrivingTimeLog[]
 
   @@unique([outsourcingClientId, tripNumber])
   @@index([outsourcingClientId, status])
@@ -3756,6 +3799,238 @@ model FleetIncident {
 
   @@index([outsourcingClientId, status])
   @@index([tripId])
+}
+
+enum FleetGeofenceType {
+  depot
+  customer_site
+  corridor
+  restricted
+  custom
+}
+
+model FleetGeofence {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  name                String
+  geofenceType        FleetGeofenceType @default(custom)
+  description         String?           @db.Text
+  // GeoJSON polygon or circle centre+radius stored as JSON
+  geometry            Json
+  isActive            Boolean           @default(true)
+  alertOnEntry        Boolean           @default(true)
+  alertOnExit         Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+
+  @@index([outsourcingClientId, isActive])
+}
+
+model FleetVehiclePosition {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  vehicleId  String
+  tripId     String?
+  latitude   Decimal  @db.Decimal(10, 7)
+  longitude  Decimal  @db.Decimal(10, 7)
+  speedKph   Decimal? @db.Decimal(6, 2)
+  headingDeg Int?
+  altitudeM  Decimal? @db.Decimal(8, 2)
+  recordedAt DateTime @default(now())
+  source     String?  @default("telematics")
+
+  vehicle FleetVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  trip    FleetTrip?   @relation(fields: [tripId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId, recordedAt(sort: Desc)])
+  @@index([tripId])
+}
+
+enum FleetServicePlanStatus {
+  scheduled
+  due
+  overdue
+  completed
+  cancelled
+}
+
+model FleetServicePlan {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  vehicleId           String
+  title               String
+  description         String?                @db.Text
+  dueAt               DateTime
+  dueOdometerKm       Int?
+  status              FleetServicePlanStatus @default(scheduled)
+  completedAt         DateTime?
+  notes               String?                @db.Text
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  client  OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  vehicle FleetVehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([outsourcingClientId, status])
+  @@index([vehicleId, dueAt])
+}
+
+enum FleetDefectSeverity {
+  minor
+  major
+  critical
+}
+
+enum FleetDefectStatus {
+  reported
+  acknowledged
+  in_repair
+  resolved
+  closed
+}
+
+model FleetDefectReport {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  vehicleId           String
+  tripId              String?
+  reportedByDriverId  String?
+  title               String
+  description         String              @db.Text
+  severity            FleetDefectSeverity @default(minor)
+  status              FleetDefectStatus   @default(reported)
+  reportedAt          DateTime            @default(now())
+  resolvedAt          DateTime?
+  notes               String?             @db.Text
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  client         OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  vehicle        FleetVehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  trip           FleetTrip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  reportedByDriver FleetDriver?    @relation(fields: [reportedByDriverId], references: [id], onDelete: SetNull)
+
+  @@index([outsourcingClientId, status])
+  @@index([vehicleId])
+}
+
+enum FleetAlarmSeverity {
+  info
+  warning
+  critical
+}
+
+model FleetAlarmRule {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  name                String
+  eventType           String
+  condition           Json?
+  severity            FleetAlarmSeverity @default(warning)
+  notifyEmail         String?
+  notifySms           String?
+  isActive            Boolean            @default(true)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+
+  @@index([outsourcingClientId, isActive])
+}
+
+enum FleetDriverEvaluationPeriod {
+  trip
+  weekly
+  monthly
+  quarterly
+}
+
+model FleetDriverEvaluation {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  driverId            String
+  tripId              String?
+  period              FleetDriverEvaluationPeriod @default(trip)
+  scoreOverall        Int
+  scoreSafety         Int?
+  scorePunctuality    Int?
+  scoreFuelEfficiency Int?
+  scoreCustomer       Int?
+  notes               String?                     @db.Text
+  evaluatedAt         DateTime                    @default(now())
+  evaluatedByUserId   String?
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+
+  client     OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  driver     FleetDriver       @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  trip       FleetTrip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  evaluatedBy User?            @relation("FleetDriverEvaluationBy", fields: [evaluatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([driverId, evaluatedAt(sort: Desc)])
+  @@index([outsourcingClientId])
+}
+
+model FleetEnvironmentalSnapshot {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  vehicleId           String?
+  tripId              String?
+  periodStart         DateTime
+  periodEnd           DateTime
+  distanceKm          Decimal  @db.Decimal(10, 2)
+  fuelLiters          Decimal? @db.Decimal(10, 2)
+  co2KgEstimate       Decimal? @db.Decimal(10, 2)
+  idleMinutes         Int?
+  notes               String?  @db.Text
+  createdAt           DateTime @default(now())
+
+  client  OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  vehicle FleetVehicle?     @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  trip    FleetTrip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
+
+  @@index([outsourcingClientId, periodStart(sort: Desc)])
+}
+
+model FleetDrivingTimeLog {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  driverId            String
+  vehicleId           String?
+  tripId              String?
+  sessionStart        DateTime
+  sessionEnd          DateTime?
+  drivingMinutes      Int       @default(0)
+  restMinutes         Int       @default(0)
+  exceedsLimit        Boolean   @default(false)
+  notes               String?   @db.Text
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  client  OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  driver  FleetDriver       @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicle FleetVehicle?     @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  trip    FleetTrip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
+
+  @@index([driverId, sessionStart(sort: Desc)])
+  @@index([outsourcingClientId])
 }
 
 // --- Procurement (purchase requests) ---
@@ -3948,6 +4223,8 @@ model PerformanceCycle {
   periodEnd           DateTime              @db.Date
   status              PerformanceCycleStatus @default(draft)
   outsourcingClientId String?
+  goalTemplates       Json?
+  ratingDimensions    Json?
   createdByUserId     String?
   activatedAt         DateTime?
   closedAt            DateTime?
@@ -4843,4 +5120,82 @@ model ConstructionSubcontractor {
 
   @@index([outsourcingClientId, status])
   @@index([siteId])
+}
+
+// --- Platform support (dashboard help desk → control plane) ---
+
+enum SupportTicketCategory {
+  incident
+  service_request
+  access_permissions
+  payroll_statutory
+  data_import
+  billing_account
+  feature_request
+  other
+}
+
+enum SupportTicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum SupportTicketStatus {
+  submitted
+  acknowledged
+  in_progress
+  waiting_on_customer
+  resolved
+  closed
+}
+
+enum SupportTicketMessageAuthor {
+  customer
+  support
+  system
+}
+
+model SupportTicket {
+  id                   String                @id @default(cuid())
+  organizationId       String                @db.Uuid
+  ticketNumber         String
+  subject              String
+  description          String                @db.Text
+  category             SupportTicketCategory @default(other)
+  priority             SupportTicketPriority @default(medium)
+  status               SupportTicketStatus   @default(submitted)
+  createdByUserId      String
+  reporterName         String
+  reporterEmail        String
+  controlPlaneTicketId String?
+  resolvedAt           DateTime?
+  closedAt             DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  createdBy User                   @relation("SupportTicketCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  messages  SupportTicketMessage[]
+
+  @@unique([organizationId, ticketNumber])
+  @@index([organizationId, status, createdAt])
+  @@index([createdByUserId])
+}
+
+model SupportTicketMessage {
+  id             String                     @id @default(cuid())
+  organizationId String                     @db.Uuid
+  ticketId       String
+  authorType     SupportTicketMessageAuthor
+  authorUserId   String?
+  authorName     String
+  body           String                     @db.Text
+  isInternal     Boolean                    @default(false)
+  createdAt      DateTime                   @default(now())
+
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorUser User?         @relation("SupportTicketMessageAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
 }

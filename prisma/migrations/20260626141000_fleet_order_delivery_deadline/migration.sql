@@ -1,0 +1,1 @@
+ALTER TABLE "FleetOrder" ADD COLUMN IF NOT EXISTS "deliveryDeadlineAt" TIMESTAMP(3);
