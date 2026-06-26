@@ -170,11 +170,20 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
       prismaModels: MODULE_PRISMA_MODELS[def.key],
     };
 
+    if (def.key === 'fleet') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes:
+          'FLT-00 verified: full schema (Vehicle/Driver/Partner/Order/Trip/Compliance/POD/Settlement/Incident), lifecycle in fleet-status.ts, all /api/fleet/* use withFleetTenant.',
+      };
+    }
+
     if (def.key === 'payroll') {
       return {
         ...base,
-        phase: 'routes-partial',
-        notes: 'Payroll run wizard + M-Pesa sandbox disbursement; migrate remaining payroll API routes to withTenant().',
+        phase: 'tenant-safe',
+        notes: 'All outsourcing/payroll and payroll/statutory API routes use withTenant() + RLS.',
       };
     }
 
@@ -205,7 +214,7 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
     if (def.key === 'hse') {
       return {
         ...base,
-        phase: 'routes-live',
+        phase: 'routes-partial',
         notes: 'HseIncident/HseAction schema, staff dashboard, ESS reporting.',
       };
     }

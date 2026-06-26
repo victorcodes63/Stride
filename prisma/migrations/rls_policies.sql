@@ -2686,9 +2686,6 @@ CREATE POLICY "HealthcareClinicalAssignment_insert_bootstrap" ON "HealthcareClin
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
-    OR "organizationId" = current_setting('app.current_org', true)::uuid
-  );
-
 ALTER TABLE "EnergySite" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "EnergySite" FORCE ROW LEVEL SECURITY;
 
