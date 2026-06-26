@@ -7,7 +7,10 @@ import {
   getFleetDriverForEmployee,
 } from '@/lib/ess-fleet';
 import { fleetTripDetailInclude, tripToDetail } from '@/lib/fleet-api';
-import { FLEET_TRIP_STATUS_LABELS } from '@/lib/fleet-status';
+import {
+  applyTripStatusChange,
+  TripStatusTransitionError,
+} from '@/lib/fleet-trip-status-change';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +45,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     where: {
       id,
       driverId: driver.id,
+      organizationId: driver.organizationId,
       outsourcingClientId: driver.outsourcingClientId,
     },
   });
@@ -51,47 +55,23 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'That status change is not allowed.' }, { status: 400 });
   }
 
-  const trip = await prisma.$transaction(async (tx) => {
-    const updated = await tx.fleetTrip.update({
-      where: { id },
-      data: {
-        status: nextStatus,
-        ...(nextStatus === 'delivered' && !existing.actualDeliveryAt
-          ? { actualDeliveryAt: new Date() }
-          : {}),
-      },
-      include: fleetTripDetailInclude,
-    });
-
-    const message = note
-      ? `Driver updated status to ${FLEET_TRIP_STATUS_LABELS[nextStatus]}: ${note}`
-      : `Driver updated status to ${FLEET_TRIP_STATUS_LABELS[nextStatus]}.`;
-
-    await tx.fleetTripEvent.create({
-      data: {
+  try {
+    const trip = await prisma.$transaction((tx) =>
+      applyTripStatusChange(tx, {
         tripId: id,
-        eventType: 'status_change',
-        message,
-        metadata: {
-          from: existing.status,
-          to: nextStatus,
-          actorEmail: user.email,
-          source: 'ess',
-        },
-      },
-    });
-
-    if (updated.vehicleId && (nextStatus === 'in_transit' || nextStatus === 'delivered')) {
-      await tx.fleetVehicle.update({
-        where: { id: updated.vehicleId },
-        data: {
-          status: nextStatus === 'in_transit' ? 'in_transit' : 'available',
-        },
-      });
+        from: existing.status,
+        to: nextStatus,
+        actor: 'driver',
+        actorEmail: user.email,
+        source: 'ess',
+        note: note || undefined,
+      }),
+    );
+    return NextResponse.json(tripToDetail(trip));
+  } catch (e) {
+    if (e instanceof TripStatusTransitionError) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
     }
-
-    return updated;
-  });
-
-  return NextResponse.json(tripToDetail(trip));
+    throw e;
+  }
 }

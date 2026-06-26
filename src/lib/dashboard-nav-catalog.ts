@@ -48,6 +48,12 @@ import {
   Stethoscope,
   Fuel,
   HardHat,
+  MapPin,
+  Radio,
+  Wrench,
+  Leaf,
+  Bell,
+  UserCheck,
 } from 'lucide-react';
 import type { UserRole } from '@/types/dashboard';
 import { isDashboardNavItemVisible, isNavSectionVisible, type EnabledModulesMap } from '@/lib/nav-modules';
@@ -88,7 +94,8 @@ const primarySections: DashboardNavSection[] = [
     items: [
       { href: '/dashboard/employees', label: 'Employees', icon: Users },
       { href: '/dashboard/departments', label: 'Departments', icon: Building2 },
-      { href: '/dashboard/onboarding', label: 'Onboarding', icon: ListTodo },
+      { href: '/dashboard/people/tasks', label: 'Tasks', icon: ListTodo },
+      { href: '/dashboard/onboarding', label: 'Onboarding', icon: ClipboardList },
       { href: '/dashboard/performance', label: 'Performance', icon: BarChart2 },
       { href: '/dashboard/disciplinary', label: 'Disciplinary', icon: Shield },
     ],
@@ -169,16 +176,57 @@ const projectsSection: DashboardNavSection = {
   ],
 };
 
-const fleetNavItems: DashboardNavItem[] = [
-  { href: '/dashboard/fleet', label: 'Fleet', icon: Truck },
-  { href: '/dashboard/fleet/trips', label: 'Trip board', icon: Route },
-  { href: '/dashboard/fleet/compliance', label: 'Compliance', icon: ShieldCheck },
-  { href: '/dashboard/fleet/settlements', label: 'Settlements', icon: ClipboardList },
-  { href: '/dashboard/fleet/billing', label: 'Billing', icon: Receipt },
-  { href: '/dashboard/fleet/incidents', label: 'Incidents', icon: AlertTriangle },
-  { href: '/dashboard/fleet/vehicles', label: 'Vehicles', icon: Truck },
-  { href: '/dashboard/fleet/registers', label: 'Registers', icon: ClipboardList },
-];
+const fleetOperationsSection: DashboardNavSection = {
+  id: 'fleet-operations',
+  label: 'Orders & dispatch',
+  icon: Route,
+  items: [
+    { href: '/dashboard/fleet', label: 'Overview', icon: LayoutGrid },
+    { href: '/dashboard/fleet/orders', label: 'Transport orders', icon: ClipboardList },
+    { href: '/dashboard/fleet/customers', label: 'Customers', icon: Building2 },
+    { href: '/dashboard/fleet/planning', label: 'Route planning', icon: MapPin },
+    { href: '/dashboard/fleet/trips', label: 'Trip board', icon: Route },
+    { href: '/dashboard/fleet/compliance', label: 'Pre-trip compliance', icon: ShieldCheck },
+  ],
+};
+
+const fleetMonitoringSection: DashboardNavSection = {
+  id: 'fleet-monitoring',
+  label: 'Monitoring',
+  icon: Radio,
+  items: [
+    { href: '/dashboard/fleet/tracking', label: 'Live tracking', icon: Radio },
+    { href: '/dashboard/fleet/geofences', label: 'Geofences', icon: MapPin },
+    { href: '/dashboard/fleet/driving-time', label: 'Driving time', icon: Clock4 },
+    { href: '/dashboard/fleet/incidents', label: 'Incidents', icon: AlertTriangle },
+    { href: '/dashboard/fleet/alarms', label: 'Events & alarms', icon: Bell },
+  ],
+};
+
+const fleetAssetsSection: DashboardNavSection = {
+  id: 'fleet-assets',
+  label: 'Fleet assets',
+  icon: Truck,
+  items: [
+    { href: '/dashboard/fleet/vehicles', label: 'Vehicles', icon: Truck },
+    { href: '/dashboard/fleet/service', label: 'Service planning', icon: Wrench },
+    { href: '/dashboard/fleet/defects', label: 'Defect reports', icon: AlertTriangle },
+    { href: '/dashboard/fleet/registers', label: 'Registers', icon: ClipboardList },
+  ],
+};
+
+const fleetCommercialSection: DashboardNavSection = {
+  id: 'fleet-commercial',
+  label: 'Commercial',
+  icon: Receipt,
+  items: [
+    { href: '/dashboard/fleet/settlements', label: 'Settlements', icon: Wallet },
+    { href: '/dashboard/fleet/billing', label: 'Client billing', icon: Receipt },
+    { href: '/dashboard/fleet/drivers/performance', label: 'Driver performance', icon: UserCheck },
+    { href: '/dashboard/fleet/environmental', label: 'Environmental', icon: Leaf },
+    { href: '/dashboard/fleet/reports', label: 'Performance reports', icon: BarChart2 },
+  ],
+};
 
 const assetsNavItems: DashboardNavItem[] = [
   { href: '/dashboard/assets', label: 'All assets', icon: Package },
@@ -197,12 +245,12 @@ const saccoNavItems: DashboardNavItem[] = [
   { href: '/dashboard/sacco/reports', label: 'SASRA reports', icon: FileText },
 ];
 
-/** Fleet, assets, and HSE — grouped for Admin & Operations sidebar. */
+/** Assets and HSE — admin operations sidebar (fleet is its own module). */
 const operationsSection: DashboardNavSection = {
   id: 'operations',
   label: 'Operations',
-  icon: Truck,
-  items: [...fleetNavItems, ...assetsNavItems, ...hseNavItems],
+  icon: Package,
+  items: [...assetsNavItems, ...hseNavItems],
 };
 
 const saccoSection: DashboardNavSection = {
@@ -389,6 +437,14 @@ export function buildDashboardNavSections(options: DashboardNavBuildOptions): Da
   if (isNavSectionVisible('construction', enabledModules)) {
     chunks.push(constructionSection);
   }
+  if (isNavSectionVisible('fleet-operations', enabledModules)) {
+    chunks.push(
+      fleetOperationsSection,
+      fleetMonitoringSection,
+      fleetAssetsSection,
+      fleetCommercialSection,
+    );
+  }
   chunks.push(
     operationsSection,
     buildCommunicationsInsightSection(options.canViewSystemAnalytics),
@@ -463,6 +519,10 @@ export const DASHBOARD_NAV_EXPANDABLE_SECTION_IDS = [
   healthcareSection.id,
   energySection.id,
   constructionSection.id,
+  fleetOperationsSection.id,
+  fleetMonitoringSection.id,
+  fleetAssetsSection.id,
+  fleetCommercialSection.id,
   operationsSection.id,
   'communications-insight',
   adminSection.id,
@@ -475,7 +535,8 @@ export const DASHBOARD_NAV_GROUPS = [
   { label: '03 — Procurement', startSectionId: 'procurement' },
   { label: '04 — Legal & Documents', startSectionId: 'legal-documents' },
   { label: '05 — Projects', startSectionId: 'projects' },
-  { label: '06 — Admin & Operations', startSectionId: 'operations' },
+  { label: '06 — Fleet & Logistics', startSectionId: 'fleet-operations' },
+  { label: '07 — Admin & Operations', startSectionId: 'operations' },
 ] as const;
 
 /** @deprecated Use DASHBOARD_NAV_GROUPS */

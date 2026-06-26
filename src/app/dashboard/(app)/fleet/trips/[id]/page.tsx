@@ -11,9 +11,9 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import type { FleetTripDetail } from '@/lib/fleet-api';
 import {
-  FLEET_TRIP_STATUSES,
   FLEET_TRIP_STATUS_LABELS,
   fleetTripStatusBadgeClass,
+  getAllowedNextTripStatuses,
 } from '@/lib/fleet-status';
 import { FleetTripComplianceSection } from '@/components/fleet/FleetTripComplianceSection';
 import { FleetTripDocumentsSection } from '@/components/fleet/FleetTripDocumentsSection';
@@ -179,7 +179,7 @@ export default function FleetTripDetailPage() {
                 Move the trip through each logistics workflow stage.
               </p>
               <div className="mt-4 space-y-2">
-                {FLEET_TRIP_STATUSES.map((status) => (
+                {[trip.status, ...getAllowedNextTripStatuses(trip.status, 'staff')].map((status) => (
                   <button
                     key={status}
                     type="button"
