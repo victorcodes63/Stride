@@ -30,7 +30,7 @@ function HeroSubcopy() {
 
 export function StudioCraftHero() {
   return (
-    <section className="sc-hero-section relative flex min-h-svh flex-col overflow-x-clip">
+    <section className="sc-hero-section relative flex min-h-0 flex-col overflow-x-clip md:min-h-svh">
       <div
         className="pointer-events-none absolute inset-0 z-0"
         aria-hidden
@@ -57,15 +57,18 @@ export function StudioCraftHero() {
         <HeroShaderBackground />
       </div>
 
-      <div className="relative z-20 flex min-h-0 flex-1 flex-col">
-        <div className="flex flex-1 items-center justify-center px-5 pb-6 pt-[var(--nav-h)] sm:px-8 sm:pb-8">
+      <div className="relative z-20 flex flex-col md:min-h-0 md:flex-1">
+        <div className="flex items-center justify-center pb-4 pt-[var(--nav-h)] sm:pb-6 md:flex-1 md:pb-8">
           <StudioCraftContainer className="flex flex-col items-center text-center">
             <p
-              className="sc-animate-fade-up mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--sc-coral)]/[0.08] px-3 py-1 text-[12px] font-medium uppercase tracking-[0.14em] text-[var(--sc-coral)] sm:mb-5"
+              className="sc-animate-fade-up mb-4 flex flex-col items-center gap-0.5 rounded-full bg-[var(--sc-coral)]/[0.08] px-4 py-2 text-[11px] font-medium uppercase leading-snug tracking-[0.12em] text-[var(--sc-coral)] sm:mb-5 sm:text-[12px] sm:tracking-[0.14em]"
               style={{ animationDelay: '80ms' }}
             >
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sc-coral)]" aria-hidden />
-              {MARKETING_HERO.eyebrow}
+              <span className="inline-flex items-center gap-2">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sc-coral)]" aria-hidden />
+                {MARKETING_HERO.eyebrowLines[0]}
+              </span>
+              <span>{MARKETING_HERO.eyebrowLines[1]}</span>
             </p>
 
             <h1 className="font-normal leading-[1.05] tracking-tight text-[var(--sc-ink)] text-[clamp(2rem,9vw,2.75rem)] min-[400px]:text-[44px] sm:text-6xl lg:text-7xl xl:text-[80px]">
@@ -99,8 +102,8 @@ export function StudioCraftHero() {
           </StudioCraftContainer>
         </div>
 
-        <div className="sc-animate-hero-fade-in relative z-30 w-full shrink-0">
-          <StudioCraftContainer className="px-2 sm:px-3">
+        <div className="sc-animate-hero-fade-in relative z-30 w-full shrink-0 pb-0 md:pb-2">
+          <StudioCraftContainer className="px-3 sm:px-3">
             <div className="sc-hero-dashboard-stage relative">
               <div
                 className="pointer-events-none absolute -inset-x-4 bottom-0 top-[30%] -z-10 rounded-[50%] bg-[#1A1714]/[0.06] blur-3xl sm:-inset-x-6"

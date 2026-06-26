@@ -32,18 +32,3 @@ export function MarketingModuleBadge({
     </span>
   );
 }
-
-export function MarketingReadinessLegend({ className = '' }: { className?: string }) {
-  const items: MarketingModuleReadiness[] = ['live', 'partial', 'roadmap'];
-  return (
-    <p className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-[var(--sc-ink-muted)] ${className}`.trim()}>
-      <span className="font-medium text-[var(--sc-ink)]">Module status:</span>
-      {items.map((key) => (
-        <span key={key} className="inline-flex items-center gap-1.5">
-          <MarketingModuleBadge readiness={key} />
-          <span>{MARKETING_READINESS_META[key].title}</span>
-        </span>
-      ))}
-    </p>
-  );
-}

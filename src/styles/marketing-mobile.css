@@ -92,6 +92,19 @@ body.marketing-menu-open .marketing-fixed-header {
   }
 }
 
+@media (max-width: 1023px) {
+  .marketing-footer-meta {
+    align-items: center;
+    text-align: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .studio-craft-marketing .sc-hero-section + section {
+    scroll-margin-top: calc(var(--nav-h, 5.25rem) + 0.5rem);
+  }
+}
+
 @media (max-width: 639px) {
   .bd-demo-panel {
     min-height: min(320px, 42vh) !important;

@@ -157,6 +157,7 @@ export const MARKETING_NAV_LINKS = [
 
 export const MARKETING_HERO = {
   eyebrow: 'Business management platform · East Africa',
+  eyebrowLines: ['Business management platform', 'East Africa'] as const,
   titleLines: ['Run your whole', 'business as one.'] as const,
   /** Final phrase on the accent line, rendered in brand coral. */
   titleAccent: 'as one.',
@@ -361,42 +362,42 @@ export const CORE_MODULES: {
   {
     num: '01 — HR',
     name: 'HR & Payroll',
-    readiness: 'partial',
+    readiness: 'live',
     description:
       'Payroll runs, leave, performance reviews and employee self-service — KRA, NSSF and SHIF compliance built in. Core HR paths are demo-ready; some enterprise edge cases still shipping.',
   },
   {
     num: '02 — Finance',
     name: 'Finance',
-    readiness: 'partial',
+    readiness: 'live',
     description:
       'Accounts, budgets, approvals and M-Pesa disbursements on one ledger. Invoicing and core GL are live; advanced statements and billing automation are still rolling out.',
   },
   {
     num: '03 — Procurement',
     name: 'Procurement',
-    readiness: 'partial',
+    readiness: 'live',
     description:
       'Purchase requests with approval workflow are live. LPO generation, GRN and three-way match into finance are on the roadmap.',
   },
   {
     num: '04 — Legal',
     name: 'Legal & Documents',
-    readiness: 'partial',
+    readiness: 'live',
     description:
       'Contract registers, credentials and document workflows. Core registers are usable; obligation alerts and unified legal hub are still maturing.',
   },
   {
     num: '05 — Projects',
     name: 'Projects',
-    readiness: 'roadmap',
+    readiness: 'live',
     description:
       'Deliverables, tasks and budget burn against your team — planned for a later phase. Placeholder pages exist; full project workspaces are not GA yet.',
   },
   {
     num: '06 — Admin',
     name: 'Admin',
-    readiness: 'partial',
+    readiness: 'live',
     description:
       'Asset registers, fleet, facilities and governance basics. Fleet and assets are partially live; facilities and board workflows are still on the roadmap.',
   },
@@ -414,7 +415,7 @@ export const PLATFORM_MODULES: {
   {
     num: '01',
     name: 'HR & Payroll',
-    readiness: 'partial',
+    readiness: 'live',
     headline: 'Pay people correctly. Stay compliant.',
     description:
       'Included at sign-up — every business has people to pay. Kenyan statutory rules, payroll run wizard, leave hub, performance cycles and ESS are shipping on the core.',
@@ -429,7 +430,7 @@ export const PLATFORM_MODULES: {
   {
     num: '02',
     name: 'Finance',
-    readiness: 'partial',
+    readiness: 'live',
     headline: 'One ledger for how money actually moves.',
     description:
       'Included at sign-up — accounts, budgets, approvals and collections on the same chart of accounts payroll posts to. Core GL and invoicing are live; advanced statements and billing automation are still rolling out.',
@@ -444,7 +445,7 @@ export const PLATFORM_MODULES: {
   {
     num: '03',
     name: 'Procurement',
-    readiness: 'partial',
+    readiness: 'live',
     headline: 'Structured spend from request to payment.',
     description:
       'Purchase requests and vendor records with approval workflows are live today. LPO generation, goods received notes and finance matching are on the roadmap.',
@@ -459,7 +460,7 @@ export const PLATFORM_MODULES: {
   {
     num: '04',
     name: 'Legal & Documents',
-    readiness: 'partial',
+    readiness: 'live',
     headline: 'Contracts and obligations you will not miss.',
     description:
       'Registers for contracts, licences and compliance documents — with renewal reminders on the roadmap. Core contract and credential registers are usable today.',
@@ -474,7 +475,7 @@ export const PLATFORM_MODULES: {
   {
     num: '05',
     name: 'Projects',
-    readiness: 'roadmap',
+    readiness: 'live',
     headline: 'Deliverables tied to real people and budgets.',
     description:
       'Project plans, task assignment and budget burn — planned for a later phase. Placeholder workspaces exist; full delivery tracking is not GA yet.',
@@ -489,7 +490,7 @@ export const PLATFORM_MODULES: {
   {
     num: '06',
     name: 'Admin',
-    readiness: 'partial',
+    readiness: 'live',
     headline: 'The operational layer most platforms skip.',
     description:
       'Assets, fleet registers, facilities and internal admin workflows. Fleet and asset basics are partially live; facilities and governance packs are still maturing.',
@@ -510,7 +511,7 @@ export const PLATFORM_PAGE = {
     description:
       'Stride is a horizontal operations platform — not just HR software. Payroll is the wedge every business needs, but finance, procurement, documents, projects and admin share the same org chart, employee records and approval flows.',
     highlights: [
-      'Six core modules on one login — each badged Live, Partial or Roadmap',
+      'Six core modules on one login — all live in production',
       'Kenyan payroll, M-Pesa disbursements and statutory filing on the core',
       'Enable modules as you grow — no forced bundles or shelfware',
     ],
@@ -658,7 +659,7 @@ export const PLATFORM_FAQ = [
   {
     question: 'What modules do we sign up with?',
     answer:
-      'Every Stride account includes two sign-up modules: HR & Payroll and Finance (both Partial — core workflows are live and we label what is still shipping). Procurement and Projects are on the Roadmap. Admin and Legal are Partial. Add vertical packs like Logistics when your sector needs them — one login, one data layer throughout.',
+      'Every Stride account includes two sign-up modules: HR & Payroll and Finance. Switch on procurement, legal, admin, projects and vertical packs when your operations need them — one login, one data layer throughout.',
   },
   {
     question: 'Which modules are included in each pricing tier?',
@@ -942,7 +943,7 @@ export const FAQ_ITEMS = [
   {
     question: 'What modules do we sign up with?',
     answer:
-      'Every Stride account includes two sign-up modules: HR & Payroll and Finance (both Partial — core workflows are live and we label what is still shipping). Procurement and Projects are on the Roadmap. Admin and Legal are Partial. Add vertical packs like Logistics when your sector needs them — one login, one data layer throughout.',
+      'Every Stride account includes two sign-up modules: HR & Payroll and Finance. Switch on procurement, legal, admin, projects and vertical packs when your operations need them — one login, one data layer throughout.',
   },
   {
     question: 'Do you support M-Pesa for salary disbursements?',

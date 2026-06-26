@@ -1,15 +1,8 @@
 'use client';
 
 import {
-  ArrowLeft,
-  ArrowRight,
-  Copy,
   LayoutGrid,
   Monitor,
-  PanelLeft,
-  Plus,
-  RefreshCw,
-  Share2,
   Users,
   Wallet,
   FolderKanban,
@@ -54,37 +47,28 @@ function StrideMarkIcon({ className = 'h-5 w-5' }: { className?: string }) {
 export function StrideHeroDashboardMockup() {
   return (
     <div
-      className="overflow-hidden rounded-t-[18px] text-left shadow-[0_-24px_80px_rgba(26,23,20,0.32)] ring-1 ring-black/10"
+      className="sc-hero-mockup overflow-hidden rounded-t-[18px] text-left shadow-[0_20px_60px_rgba(26,23,20,0.18)] ring-1 ring-black/10"
       style={{ backgroundColor: '#12100E' }}
     >
-      {/* Safari chrome */}
       <div
-        className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-2.5"
+        className="flex items-center gap-1.5 border-b border-white/[0.06] px-3 py-2 sm:gap-2 sm:px-4 sm:py-2.5"
         style={{ backgroundColor: '#1C1916' }}
       >
-        <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" aria-hidden />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]" aria-hidden />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#28C840]" aria-hidden />
-        <PanelLeft className="ml-1.5 h-3.5 w-3.5 text-white/35" aria-hidden />
-        <ArrowLeft className="h-3.5 w-3.5 text-white/20" aria-hidden />
-        <ArrowRight className="h-3.5 w-3.5 text-white/20" aria-hidden />
+        <span className="h-2 w-2 rounded-full bg-[#FF5F57] sm:h-2.5 sm:w-2.5" aria-hidden />
+        <span className="h-2 w-2 rounded-full bg-[#FEBC2E] sm:h-2.5 sm:w-2.5" aria-hidden />
+        <span className="h-2 w-2 rounded-full bg-[#28C840] sm:h-2.5 sm:w-2.5" aria-hidden />
         <div
-          className="mx-auto flex min-w-[220px] items-center justify-center gap-1.5 rounded-md px-8 py-1 text-[11px] text-white/55"
+          className="mx-auto flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-3 py-0.5 text-[10px] text-white/55 sm:min-w-[220px] sm:px-8 sm:py-1 sm:text-[11px]"
           style={{ backgroundColor: '#12100E' }}
         >
           <Monitor className="h-3 w-3 shrink-0" aria-hidden />
-          {marketingAppHostLabel()}
+          <span className="truncate">{marketingAppHostLabel()}</span>
         </div>
-        <RefreshCw className="h-3.5 w-3.5 text-white/35" aria-hidden />
-        <Share2 className="h-3.5 w-3.5 text-white/35" aria-hidden />
-        <Plus className="h-3.5 w-3.5 text-white/35" aria-hidden />
-        <Copy className="h-3.5 w-3.5 text-white/35" aria-hidden />
       </div>
 
-      <div className="flex min-h-[300px]">
-        {/* Sidebar */}
+      <div className="flex min-h-0 sm:min-h-[300px]">
         <aside
-          className="flex w-[168px] shrink-0 flex-col border-r border-white/[0.06] px-3 py-4"
+          className="hidden w-[168px] shrink-0 flex-col border-r border-white/[0.06] px-3 py-4 sm:flex"
           style={{ backgroundColor: '#161311' }}
         >
           <div className="mb-5 flex items-center gap-2">
@@ -143,42 +127,37 @@ export function StrideHeroDashboardMockup() {
         </aside>
 
         {/* Main */}
-        <div className="flex min-w-0 flex-1 flex-col px-5 py-4" style={{ backgroundColor: '#12100E' }}>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                style={{ backgroundColor: MARKETING_BRAND.coral }}
-              >
-                <StrideMarkIcon className="h-6 w-6 brightness-0 invert" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[15px] font-semibold leading-tight text-white">
-                  Operations overview
-                </p>
-                <p className="text-[11px] text-white/60">
-                  {DEMO_TENANT.hq} HQ · {DEMO_TENANT.region}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-semibold text-white shadow-[0_8px_24px_rgba(255,84,54,0.35)]"
-              style={{ backgroundColor: MARKETING_BRAND.coral }}
-            >
-              <RefreshCw className="h-3 w-3" aria-hidden />
-              Run payroll
-            </button>
+        <div className="flex min-w-0 flex-1 flex-col px-3.5 py-3 sm:px-5 sm:py-4" style={{ backgroundColor: '#12100E' }}>
+          <div
+            className="mb-3 rounded-xl px-3 py-3 sm:mb-4"
+            style={{ backgroundColor: MARKETING_BRAND.coral }}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/80">
+              HR & Payroll
+            </p>
+            <p className="mt-1 text-[15px] font-semibold leading-tight text-white sm:text-base">
+              People & workforce
+            </p>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.025]">
-            <div className="grid grid-cols-3 divide-x divide-y divide-white/[0.06] sm:grid-cols-6 sm:divide-y-0">
-              {STATS.map((stat) => (
-                <div key={stat.label} className="px-3 py-3 sm:px-4 sm:py-4">
+            <div className="grid grid-cols-2 divide-x divide-y divide-white/[0.06] sm:grid-cols-3 lg:grid-cols-6 lg:divide-y-0">
+              {STATS.slice(0, 4).map((stat) => (
+                <div key={stat.label} className="px-2.5 py-2.5 sm:px-4 sm:py-4">
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-white/35 sm:text-[9px] sm:tracking-[0.14em]">
+                    {stat.label}
+                  </p>
+                  <p className="mt-1.5 text-lg font-semibold leading-none tracking-tight text-white sm:mt-2 sm:text-xl lg:text-[26px]">
+                    {stat.value}
+                  </p>
+                </div>
+              ))}
+              {STATS.slice(4).map((stat) => (
+                <div key={stat.label} className="hidden px-4 py-4 sm:block lg:px-4 lg:py-4">
                   <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/35">
                     {stat.label}
                   </p>
-                  <p className="mt-2 text-xl font-semibold leading-none tracking-tight text-white sm:text-[26px]">
+                  <p className="mt-2 text-xl font-semibold leading-none tracking-tight text-white lg:text-[26px]">
                     {stat.value}
                   </p>
                   <p className="mt-1.5 text-[10px] text-white/40">{stat.sub}</p>
@@ -187,7 +166,7 @@ export function StrideHeroDashboardMockup() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="mt-3 hidden rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 sm:mt-4 sm:block">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/35">
               People & workforce
             </p>
@@ -204,7 +183,7 @@ export function StrideHeroDashboardMockup() {
             </ul>
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="mt-3 hidden grid-cols-3 gap-3 sm:mt-4 sm:grid">
             {[
               { title: 'People', items: ['Employees', 'Onboarding', 'Departments'] },
               { title: 'Time & leave', items: ['Attendance', 'Leave', 'Rota'] },

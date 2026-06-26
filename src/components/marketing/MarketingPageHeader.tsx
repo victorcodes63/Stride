@@ -1,4 +1,10 @@
 import type { ReactNode } from 'react';
+import {
+  MarketingPageHero,
+  MarketingPageHeroDescription,
+  MarketingPageHeroEyebrow,
+  MarketingPageHeroTitle,
+} from '@/components/marketing/MarketingPageHero';
 
 type MarketingPageHeaderProps = {
   eyebrow: string;
@@ -20,32 +26,20 @@ export function MarketingPageHeader({
   const centered = align === 'center';
 
   return (
-    <header className={`px-5 pb-10 pt-4 sm:px-8 sm:pb-12 sm:pt-6 lg:px-12 ${className}`.trim()}>
-      <div className={`mx-auto max-w-[1100px] min-w-0 ${centered ? 'text-center' : ''}`}>
-        <p
-          className={`mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pub-primary)] sm:mb-5 sm:text-xs ${
-            centered
-              ? ''
-              : 'flex items-center gap-2.5 before:h-px before:w-5 before:shrink-0 before:bg-[var(--pub-primary)] sm:before:w-6'
-          }`}
-        >
-          {eyebrow}
-        </p>
-        <h1
-          className={`font-heading text-[clamp(1.875rem,7vw,3.75rem)] font-extrabold tracking-[-0.04em] text-pub-ink sm:tracking-[-1.5px] ${
-            centered ? 'mx-auto max-w-3xl' : 'max-w-3xl'
-          }`}
-        >
+    <MarketingPageHero className={className}>
+      <div className={centered ? 'text-center' : ''}>
+        <div className={centered ? 'mb-5 flex justify-center' : 'mb-5'}>
+          <MarketingPageHeroEyebrow>{eyebrow}</MarketingPageHeroEyebrow>
+        </div>
+        <MarketingPageHeroTitle className={centered ? 'mx-auto max-w-3xl' : 'max-w-3xl'}>
           {title}
-        </h1>
+        </MarketingPageHeroTitle>
         {description ? (
-          <p
-            className={`mt-4 text-base leading-relaxed text-pub-ink-muted sm:mt-5 sm:text-lg ${
-              centered ? 'mx-auto max-w-2xl' : 'max-w-2xl'
-            }`}
+          <MarketingPageHeroDescription
+            className={`mt-4 sm:mt-5 ${centered ? 'mx-auto max-w-2xl' : 'max-w-2xl'}`}
           >
             {description}
-          </p>
+          </MarketingPageHeroDescription>
         ) : null}
         {visual ? (
           <div
@@ -55,6 +49,6 @@ export function MarketingPageHeader({
           </div>
         ) : null}
       </div>
-    </header>
+    </MarketingPageHero>
   );
 }

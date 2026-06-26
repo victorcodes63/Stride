@@ -1,10 +1,16 @@
 import { ComplianceBento } from '@/components/marketing/home/ComplianceBento';
 import Link from 'next/link';
+import {
+  MarketingPageHero,
+  MarketingPageHeroDescription,
+  MarketingPageHeroEyebrow,
+  MarketingPageHeroTitle,
+} from '@/components/marketing/MarketingPageHero';
 import { PlatformModulesShowcase } from '@/components/marketing/platform/PlatformModulesShowcase';
 import { PlatformArchitectureSection } from '@/components/marketing/platform/PlatformArchitectureSection';
 import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
 import { MarketingFinalCta } from '@/components/marketing/sections/MarketingFinalCta';
-import { MarketingModuleBadge, MarketingReadinessLegend } from '@/components/marketing/MarketingModuleBadge';
+import { MarketingModuleBadge } from '@/components/marketing/MarketingModuleBadge';
 import {
   MarketingOutlineLink,
   MarketingPrimaryLink,
@@ -29,44 +35,37 @@ function PlatformHero() {
   const { hero } = PLATFORM_PAGE;
 
   return (
-    <header className="bg-[var(--sc-paper)] px-5 pb-12 pt-10 sm:px-8 sm:pb-16 sm:pt-12 lg:px-12 lg:pb-20 lg:pt-14">
-      <StudioCraftContainer>
-        <div className="grid min-w-0 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
-          <div className="min-w-0">
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--sc-coral)]/15 bg-[var(--sc-coral)]/[0.06] px-3 py-1 text-[13px] font-medium uppercase tracking-[0.12em] text-[var(--sc-coral)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--sc-coral)]" aria-hidden />
-              {hero.eyebrow}
-            </p>
-            <h1 className="text-[clamp(1.875rem,7vw,3.75rem)] font-medium leading-[1.04] tracking-[-0.03em] text-[var(--sc-ink)]">
-              <span className="block">{hero.titleLines[0]}</span>
-              <span className="block text-[var(--sc-coral)]">{hero.titleLines[1]}</span>
-            </h1>
-            <p className="mt-6 max-w-[540px] text-base leading-relaxed text-[var(--sc-ink-muted)] sm:text-lg">
-              {hero.description}
-            </p>
-            <ul className="mt-8 space-y-3">
-              {hero.highlights.map((item) => (
-                <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[var(--sc-ink-muted)]">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sc-coral)]" aria-hidden />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <div className="marketing-cta-stack mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap">
-              <TextRollLink href={MARKETING_ROUTES.contact} label={MARKETING_CTAS.bookDemo} variant="coral" />
-              <MarketingOutlineLink href={MARKETING_ROUTES.pricing} label="View pricing" />
-            </div>
-            <p className="mt-6 text-[12px] leading-relaxed text-[var(--sc-ink-muted)] sm:mt-8 sm:text-[13px]">
-              {MARKETING_HERO.trustBadge} · {MARKETING_HERO.trustTags}
-            </p>
+    <MarketingPageHero>
+      <div className="grid min-w-0 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
+        <div className="min-w-0">
+          <MarketingPageHeroEyebrow className="mb-5">{hero.eyebrow}</MarketingPageHeroEyebrow>
+          <MarketingPageHeroTitle>
+            <span className="block">{hero.titleLines[0]}</span>
+            <span className="block text-[var(--sc-coral)]">{hero.titleLines[1]}</span>
+          </MarketingPageHeroTitle>
+          <MarketingPageHeroDescription className="mt-6">{hero.description}</MarketingPageHeroDescription>
+          <ul className="mt-8 space-y-3">
+            {hero.highlights.map((item) => (
+              <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[var(--sc-ink-muted)]">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sc-coral)]" aria-hidden />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <div className="marketing-cta-stack mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap">
+            <TextRollLink href={MARKETING_ROUTES.contact} label={MARKETING_CTAS.bookDemo} variant="coral" />
+            <MarketingOutlineLink href={MARKETING_ROUTES.pricing} label="View pricing" />
           </div>
-
-          <div className="min-w-0">
-            <PlatformModulesShowcase />
-          </div>
+          <p className="mt-6 text-[12px] leading-relaxed text-[var(--sc-ink-muted)] sm:mt-8 sm:text-[13px]">
+            {MARKETING_HERO.trustBadge} · {MARKETING_HERO.trustTags}
+          </p>
         </div>
-      </StudioCraftContainer>
-    </header>
+
+        <div className="min-w-0">
+          <PlatformModulesShowcase />
+        </div>
+      </div>
+    </MarketingPageHero>
   );
 }
 
@@ -109,10 +108,8 @@ function PlatformModulesSection() {
         </h2>
         <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
           Sign up with HR & Payroll and Finance — your two included modules — then switch on legal,
-          admin or vertical packs when your operations need them. Procurement and Projects are on the
-          roadmap; we badge every module honestly below.
+          admin, procurement or projects when your operations need them.
         </p>
-        <MarketingReadinessLegend className="mt-6" />
 
         <div className="mt-12 space-y-5">
           {PLATFORM_MODULES.map((mod) => (

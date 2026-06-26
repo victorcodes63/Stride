@@ -6,9 +6,14 @@ import { DashboardMockup } from '@/components/marketing/mockups/DashboardMockup'
 import { MOTION_EASE, MOTION_SPRING_SNAPPY, Stagger, StaggerItem } from '@/components/marketing/motion';
 import {
   MarketingOutlineLink,
-  StudioCraftContainer,
   TextRollLink,
 } from '@/components/marketing/v3/studio-craft-shared';
+import {
+  MarketingPageHero,
+  MarketingPageHeroDescription,
+  MarketingPageHeroEyebrow,
+  MarketingPageHeroTitle,
+} from '@/components/marketing/MarketingPageHero';
 import {
   ABOUT_PAGE,
   MARKETING_CTAS,
@@ -48,47 +53,45 @@ export function AboutHero() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <header className="relative overflow-hidden bg-[var(--sc-paper)] px-5 pb-12 pt-4 sm:px-8 sm:pb-16 sm:pt-6 lg:px-12 lg:pb-20">
-      <div
-        className="pointer-events-none absolute -right-[15%] top-[-8%] h-[420px] w-[560px] opacity-[0.3]"
-        aria-hidden
-      >
-        <motion.div
-          className="h-full w-full rounded-full"
-          style={{
-            background:
-              'radial-gradient(ellipse 60% 55% at 50% 50%, rgba(255,84,54,0.4) 0%, transparent 70%)',
-            filter: 'blur(48px)',
-          }}
-          animate={reduceMotion ? undefined : { x: [0, -20, 12, 0], y: [0, 14, -8, 0] }}
-          transition={
-            reduceMotion ? undefined : { duration: 20, repeat: Infinity, ease: 'easeInOut' }
-          }
-        />
-      </div>
+    <MarketingPageHero
+      className="overflow-hidden"
+      containerClassName="relative"
+      decorations={
+        <div
+          className="pointer-events-none absolute -right-[15%] top-[-8%] h-[420px] w-[560px] opacity-[0.3]"
+          aria-hidden
+        >
+          <motion.div
+            className="h-full w-full rounded-full"
+            style={{
+              background:
+                'radial-gradient(ellipse 60% 55% at 50% 50%, rgba(255,84,54,0.4) 0%, transparent 70%)',
+              filter: 'blur(48px)',
+            }}
+            animate={reduceMotion ? undefined : { x: [0, -20, 12, 0], y: [0, 14, -8, 0] }}
+            transition={
+              reduceMotion ? undefined : { duration: 20, repeat: Infinity, ease: 'easeInOut' }
+            }
+          />
+        </div>
+      }
+    >
+      <div className="grid min-w-0 items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
+        <div className="min-w-0">
+          <HeroBlock delay={0.06}>
+            <MarketingPageHeroEyebrow className="mb-5">{hero.eyebrow}</MarketingPageHeroEyebrow>
+          </HeroBlock>
 
-      <StudioCraftContainer className="relative">
-        <div className="grid min-w-0 items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
-          <div className="min-w-0">
-            <HeroBlock delay={0.06}>
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--sc-coral)]/15 bg-[var(--sc-coral)]/[0.06] px-3 py-1 text-[13px] font-medium uppercase tracking-[0.12em] text-[var(--sc-coral)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--sc-coral)]" aria-hidden />
-                {hero.eyebrow}
-              </p>
-            </HeroBlock>
+          <HeroBlock delay={0.14}>
+            <MarketingPageHeroTitle>
+              <span className="block">{hero.titleLines[0]}</span>
+              <span className="block text-[var(--sc-coral)]">{hero.titleLines[1]}</span>
+            </MarketingPageHeroTitle>
+          </HeroBlock>
 
-            <HeroBlock delay={0.14}>
-              <h1 className="text-[clamp(1.875rem,7vw,3.75rem)] font-medium leading-[1.04] tracking-[-0.03em] text-[var(--sc-ink)]">
-                <span className="block">{hero.titleLines[0]}</span>
-                <span className="block text-[var(--sc-coral)]">{hero.titleLines[1]}</span>
-              </h1>
-            </HeroBlock>
-
-            <HeroBlock delay={0.22}>
-              <p className="mt-6 max-w-[540px] text-base leading-relaxed text-[var(--sc-ink-muted)] sm:text-lg">
-                {hero.description}
-              </p>
-            </HeroBlock>
+          <HeroBlock delay={0.22}>
+            <MarketingPageHeroDescription className="mt-6">{hero.description}</MarketingPageHeroDescription>
+          </HeroBlock>
 
             <Stagger className="mt-8 space-y-3" delayChildren={0.28}>
               {hero.highlights.map((item) => (
@@ -132,7 +135,6 @@ export function AboutHero() {
             <DashboardMockup className="w-full" />
           </motion.div>
         </div>
-      </StudioCraftContainer>
-    </header>
+    </MarketingPageHero>
   );
 }

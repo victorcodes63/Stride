@@ -14,8 +14,8 @@ export function IndustriesSectorNav() {
             Sectors we serve
           </p>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--sc-ink-muted)] sm:text-base">
-            Jump to your industry — each section covers the pain, what Stride runs, and whether it is
-            Six vertical packs are live on the shared Stride core — explore each sector below.
+            Jump to your industry — each section covers the pain, what Stride runs, and whether the
+            pack is live on the shared core. Six vertical packs are available today.
           </p>
         </Reveal>
         <Stagger

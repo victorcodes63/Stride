@@ -32,7 +32,7 @@ export const DEMO_CORE_STATS = {
   compliance: '100%',
   complianceHint: 'KRA · NSSF · SHIF',
   modulesLive: 2,
-  modulesHint: 'Live · 3 partial · 2 roadmap',
+  modulesHint: '6 modules live',
 } as const;
 
 export const DEMO_CORE_EMPLOYEES = [

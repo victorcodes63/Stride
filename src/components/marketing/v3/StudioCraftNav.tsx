@@ -11,6 +11,7 @@ import {
   MARKETING_ROUTES,
 } from '@/lib/marketing-config';
 import { MarketingPrimaryLink, MarketingSignInLink, StudioCraftContainer, TextRollLink } from './studio-craft-shared';
+import { studioCraftBrandVars } from './StudioCraftShell';
 
 export function StudioCraftNav() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,12 +36,13 @@ export function StudioCraftNav() {
     mounted && menuOpen
       ? createPortal(
           <div
-            className="fixed inset-0 z-[200] flex flex-col bg-[var(--sc-paper)] md:hidden"
+            className="fixed inset-0 z-[200] flex flex-col bg-[#FBF8F4] text-[#1A1714] md:hidden"
+            style={studioCraftBrandVars}
             role="dialog"
             aria-modal="true"
             aria-label="Site menu"
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-[var(--sc-line)] px-5 pb-4 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:px-6">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#E6DED4] bg-[#FBF8F4] px-5 pb-4 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:px-6">
               <Link
                 href={MARKETING_ROUTES.home}
                 className="flex items-center"
@@ -65,7 +67,7 @@ export function StudioCraftNav() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="block rounded-xl px-2 py-3 text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-[var(--sc-ink)] transition-colors hover:bg-[var(--sc-paper-2)] sm:text-[2rem]"
+                      className="block rounded-xl px-2 py-3 text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-[#1A1714] transition-colors hover:bg-[#F4EFE8] sm:text-[2rem]"
                       onClick={closeMenu}
                     >
                       {link.label}
@@ -75,7 +77,7 @@ export function StudioCraftNav() {
               </ul>
             </nav>
 
-            <div className="marketing-mobile-drawer-cta shrink-0 space-y-3 border-t border-[var(--sc-line)] bg-[var(--sc-paper)] px-5 py-5 sm:px-6">
+            <div className="marketing-mobile-drawer-cta shrink-0 space-y-3 border-t border-[#E6DED4] bg-[#FBF8F4] px-5 py-5 sm:px-6">
               <MarketingPrimaryLink
                 href={MARKETING_ROUTES.contact}
                 label={MARKETING_CTAS.bookDemo}
