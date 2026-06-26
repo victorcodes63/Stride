@@ -5,6 +5,7 @@ import {
   type FleetTripStatusActor,
 } from '@/lib/fleet-status';
 import { fleetTripDetailInclude } from '@/lib/fleet-api';
+import { tripHasRoutePlan, tripPlanningGateError } from '@/lib/fleet-planning';
 
 export type ApplyTripStatusChangeInput = {
   tripId: string;
@@ -33,7 +34,14 @@ export async function applyTripStatusChange(
 
   const existing = await tx.fleetTrip.findUnique({
     where: { id: tripId },
-    select: { status: true, actualDeliveryAt: true, vehicleId: true },
+    select: {
+      status: true,
+      actualDeliveryAt: true,
+      vehicleId: true,
+      tripNumber: true,
+      plannedDistanceKm: true,
+      plannedDeliveryAt: true,
+    },
   });
   if (!existing) {
     throw new TripStatusTransitionError('Trip not found.');
@@ -42,6 +50,22 @@ export async function applyTripStatusChange(
     throw new TripStatusTransitionError(
       `Trip status is ${FLEET_TRIP_STATUS_LABELS[existing.status]}, expected ${FLEET_TRIP_STATUS_LABELS[from]}.`,
     );
+  }
+
+  if (to === 'loaded') {
+    const routeEvent = await tx.fleetTripEvent.findFirst({
+      where: { tripId, eventType: 'route_planned' },
+      select: { id: true },
+    });
+    if (
+      !tripHasRoutePlan({
+        plannedDistanceKm: existing.plannedDistanceKm,
+        plannedDeliveryAt: existing.plannedDeliveryAt,
+        hasRoutePlannedEvent: Boolean(routeEvent),
+      })
+    ) {
+      throw new TripStatusTransitionError(tripPlanningGateError(existing));
+    }
   }
 
   const shouldSetDelivery =
