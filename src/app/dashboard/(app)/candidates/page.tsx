@@ -26,6 +26,12 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
+import {
+  dashboardFilterInputClass,
+  dashboardFilterSelectClass,
+} from '@/components/dashboard/DashboardFilterBar';
 import {
  DashboardAsyncState,
  DashboardEmptyState,
@@ -35,8 +41,7 @@ import type { CandidateListItem } from '@/types/dashboard';
 import type { CandidateWithDetails } from '@/app/api/candidates/[id]/route';
 import { WorkExperienceTab, EducationTab, CertificationsTab } from '@/components/dashboard/CandidateDetailTabs';
 
-const filterInputClass =
- 'px-3 py-2.5 border border-neutral-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-300 transition-colors min-w-0';
+const filterInputClass = dashboardFilterSelectClass;
 
 type CandidateDetailTab = 'general' | 'experience' | 'education' | 'certifications';
 
@@ -236,81 +241,31 @@ export default function DashboardCandidatesPage() {
  />
 
  {dbStats && (
- <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
- <div className="relative overflow-hidden dashboard-surface p-4 sm:p-5 shadow-sm min-w-0">
- <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-primary-50 p-2.5 text-primary-700 hidden sm:block">
- <Users className="w-4 h-4" strokeWidth={1.75} />
- </div>
- <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Total profiles</p>
- <p className="text-2xl sm:text-3xl font-bold text-primary-900 tabular-nums">{dbStats.total}</p>
- <p className="text-[11px] text-neutral-500 mt-1 leading-tight">In database</p>
- </div>
- <div className="relative overflow-hidden dashboard-surface p-4 sm:p-5 shadow-sm min-w-0">
- <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-indigo-50 p-2.5 text-indigo-700 hidden sm:block">
- <FileText className="w-4 h-4" strokeWidth={1.75} />
- </div>
- <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">With resume</p>
- <p className="text-2xl sm:text-3xl font-bold text-indigo-700 tabular-nums">{dbStats.withResume}</p>
- <p className="text-[11px] text-neutral-500 mt-1 leading-tight">
- {dbStats.total ? `${Math.round((dbStats.withResume / dbStats.total) * 100)}%` : '—'} uploaded CV
- </p>
- </div>
- <div className="relative overflow-hidden dashboard-surface p-4 sm:p-5 shadow-sm min-w-0">
- <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-amber-50 p-2.5 text-amber-700 hidden sm:block">
- <Briefcase className="w-4 h-4" strokeWidth={1.75} />
- </div>
- <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Avg experience</p>
- <p className="text-2xl sm:text-3xl font-bold text-amber-700 tabular-nums">{dbStats.avgExperienceYears}</p>
- <p className="text-[11px] text-neutral-500 mt-1 leading-tight">Years (profile)</p>
- </div>
- <div className="relative overflow-hidden dashboard-surface p-4 sm:p-5 shadow-sm min-w-0">
- <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-emerald-50 p-2.5 text-emerald-700 hidden sm:block">
- <MapPin className="w-4 h-4" strokeWidth={1.75} />
- </div>
- <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">With location</p>
- <p className="text-2xl sm:text-3xl font-bold text-emerald-700 tabular-nums">{dbStats.withLocation}</p>
- <p className="text-[11px] text-neutral-500 mt-1 leading-tight">Listed city/area</p>
- </div>
- <div className="relative overflow-hidden dashboard-surface p-4 sm:p-5 shadow-sm min-w-0">
- <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-sky-50 p-2.5 text-sky-700 hidden sm:block">
- <Calendar className="w-4 h-4" strokeWidth={1.75} />
- </div>
- <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">New (30 days)</p>
- <p className="text-2xl sm:text-3xl font-bold text-sky-700 tabular-nums">{dbStats.addedLast30Days}</p>
- <p className="text-[11px] text-neutral-500 mt-1 leading-tight">Profiles added</p>
- </div>
- <div className="relative overflow-hidden rounded-2xl border border-primary-200/80 bg-primary-50/30 p-4 sm:p-5 shadow-sm min-w-0 ring-1 ring-primary-100/50">
- <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-white/90 p-2.5 text-primary-800 hidden sm:block">
- <Eye className="w-4 h-4" strokeWidth={1.75} />
- </div>
- <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-primary-800/90 mb-1">In table</p>
- <p className="text-2xl sm:text-3xl font-bold text-primary-900 tabular-nums">{loading ? '—' : filtered.length}</p>
- <p className="text-[11px] text-primary-800/80 mt-1 leading-tight">
- {hasActiveFilters ? 'After filters' : 'Same as total'}
- </p>
- </div>
- </div>
+ <DashboardStatGrid columns={6} className="mb-6 gap-3 sm:gap-4">
+ <DashboardMetricCard label="Total profiles" value={dbStats.total} hint="In database" icon={Users} tone="primary" />
+ <DashboardMetricCard
+ label="With resume"
+ value={dbStats.withResume}
+ hint={dbStats.total ? `${Math.round((dbStats.withResume / dbStats.total) * 100)}% uploaded CV` : '—'}
+ icon={FileText}
+ tone="violet"
+ />
+ <DashboardMetricCard label="Avg experience" value={dbStats.avgExperienceYears} hint="Years (profile)" icon={Briefcase} tone="amber" />
+ <DashboardMetricCard label="With location" value={dbStats.withLocation} hint="Listed city/area" icon={MapPin} tone="emerald" />
+ <DashboardMetricCard label="New (30 days)" value={dbStats.addedLast30Days} hint="Profiles added" icon={Calendar} tone="primary" />
+ <DashboardMetricCard
+ label="In table"
+ value={loading ? '—' : filtered.length}
+ hint={hasActiveFilters ? 'After filters' : 'Same as total'}
+ icon={Eye}
+ tone="primary"
+ highlighted
+ />
+ </DashboardStatGrid>
  )}
 
  <div className="dashboard-surface shadow-sm overflow-hidden mb-6">
- <div className="p-4 sm:p-5 border-b border-neutral-100 bg-gradient-to-b from-white to-neutral-50/40">
- <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
- <div>
- <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-0.5">
- Search &amp; job
- </p>
- <p className="text-xs text-neutral-500">Find by name or email, optionally limit to one role.</p>
- </div>
- {hasActiveFilters && (
- <button
- type="button"
- onClick={clearFilters}
- className="inline-flex items-center px-3 py-2 dashboard-surface text-neutral-600 hover:bg-neutral-50 text-sm font-medium transition-colors shrink-0 self-start sm:self-auto"
- >
- Clear filters
- </button>
- )}
- </div>
+ <DashboardTableToolbar label="Search & filters">
  <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
  <div className="flex-1 relative min-w-0 max-w-xl">
  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
@@ -319,14 +274,14 @@ export default function DashboardCandidatesPage() {
  placeholder="Search by name or email…"
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
- className="w-full pl-10 pr-4 py-2.5 border border-neutral-200 rounded-xl text-sm bg-neutral-50/80 focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-300 transition-colors"
+ className={`${dashboardFilterInputClass} pl-10`}
  aria-label="Search candidates"
  />
  </div>
  <select
  value={jobFilter}
  onChange={(e) => setJobFilter(e.target.value)}
- className={`${filterInputClass} lg:min-w-[200px] lg:max-w-xs truncate py-2.5`}
+ className={`${filterInputClass} lg:min-w-[200px] lg:max-w-xs truncate`}
  aria-label="Filter by job"
  >
  <option value="">All jobs</option>
@@ -336,6 +291,15 @@ export default function DashboardCandidatesPage() {
  </option>
  ))}
  </select>
+ {hasActiveFilters ? (
+ <button
+ type="button"
+ onClick={clearFilters}
+ className="dash-filter-clear inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium self-start lg:self-auto"
+ >
+ Clear filters
+ </button>
+ ) : null}
  </div>
  {selectedIds.size > 0 && (
  <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-neutral-100/80">
@@ -364,7 +328,7 @@ export default function DashboardCandidatesPage() {
  )}
  </div>
  )}
- </div>
+ </DashboardTableToolbar>
 
  <div className="p-4 sm:p-5 bg-primary-50/25 border-t border-primary-100/50">
  <p className="text-[11px] font-bold uppercase tracking-widest text-primary-800/80 mb-1">

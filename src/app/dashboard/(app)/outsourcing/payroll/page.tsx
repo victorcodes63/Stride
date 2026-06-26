@@ -415,9 +415,7 @@ export default function OutsourcingPayrollPage() {
  <DashboardPageHeader
  title={entityConfig.payroll.runLabel}
  description="Generate payroll and payslips by month for your workforce."
- />
- <EntityContextBanner />
-
+ footer={
  <PayrollRunWizard
  month={month}
  year={year}
@@ -434,6 +432,9 @@ export default function OutsourcingPayrollPage() {
  onBankExport={handleBankExport}
  bankExportEnabled={bankExportState.enabled}
  />
+ }
+ />
+ <EntityContextBanner />
 
  {error && (
  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">

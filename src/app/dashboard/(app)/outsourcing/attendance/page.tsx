@@ -5,7 +5,10 @@ import { AlertTriangle, Clock, Plus } from 'lucide-react';
 import { useEntity } from '@/components/EntitySwitcher';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
+import { dashboardFilterInputClass, dashboardFilterSelectClass } from '@/components/dashboard/DashboardFilterBar';
 import { AttendanceWorkSitesPanel } from '@/components/dashboard/AttendanceWorkSitesPanel';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
 type Client = { id: string; name: string; label?: string };
 type Summary = {
@@ -32,11 +35,16 @@ type Exception = {
  employee: { firstName: string; lastName: string; employeeNumber: string | null };
 };
 
+function attendanceStatusClass(label: string) {
+ if (label === 'complete') return dashStatusChip('success');
+ if (label === 'pending_review') return dashStatusChip('warning');
+ return dashStatusChip('neutral');
+}
+
 export default function OutsourcingAttendancePage() {
  const { activeEntity } = useEntity();
  const [clients, setClients] = useState<Client[]>([]);
  const [selectedClientId, setSelectedClientId] = useState('');
- /** Filter rows by entity-specific employee number prefixes (e.g. *-UG-* vs *-KE-*). */
  const [region, setRegion] = useState<'all' | 'uganda' | 'kenya'>('all');
  const [from, setFrom] = useState(new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10));
  const [to, setTo] = useState(new Date().toISOString().slice(0, 10));
@@ -125,15 +133,25 @@ export default function OutsourcingAttendancePage() {
  description="Reconciled day summaries with manual override support."
  />
 
+ {selectedClientId ? (
  <div className="mb-4">
- {selectedClientId ? <AttendanceWorkSitesPanel clientId={selectedClientId} /> : null}
+ <AttendanceWorkSitesPanel clientId={selectedClientId} />
  </div>
+ ) : null}
 
- <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 mb-4">
+ {error ? (
+ <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-100">
+ {error}
+ </div>
+ ) : null}
+
+ <div className="overflow-hidden dashboard-surface shadow-sm">
+ <DashboardTableToolbar>
+ <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
  <select
  value={selectedClientId}
  onChange={(e) => setSelectedClientId(e.target.value)}
- className="h-10 rounded border border-neutral-300 px-3 text-sm bg-white"
+ className={dashboardFilterSelectClass}
  aria-label="Workspace client"
  >
  <option value="">Select workspace</option>
@@ -146,47 +164,74 @@ export default function OutsourcingAttendancePage() {
  <select
  value={region}
  onChange={(e) => setRegion(e.target.value as 'all' | 'uganda' | 'kenya')}
- className="h-10 rounded border border-neutral-300 px-3 text-sm bg-white"
+ className={dashboardFilterSelectClass}
  aria-label="Country / operation"
  >
  <option value="all">All countries (Uganda & Kenya)</option>
  <option value="uganda">Uganda operations (STB-UG…)</option>
  <option value="kenya">Kenya operations (STB-KE…)</option>
  </select>
- <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-10 rounded border border-neutral-300 px-3 text-sm bg-white" />
- <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-10 rounded border border-neutral-300 px-3 text-sm bg-white" />
- <div className="h-10 rounded border border-amber-200 bg-amber-50 px-3 text-sm text-amber-900 flex items-center gap-2">
- <AlertTriangle className="w-4 h-4" />
+ <input
+ type="date"
+ value={from}
+ onChange={(e) => setFrom(e.target.value)}
+ className={dashboardFilterInputClass}
+ aria-label="From date"
+ />
+ <input
+ type="date"
+ value={to}
+ onChange={(e) => setTo(e.target.value)}
+ className={dashboardFilterInputClass}
+ aria-label="To date"
+ />
+ <div className={`flex h-10 items-center gap-2 rounded-lg border px-3 text-sm ${dashStatusChip('warning')}`}>
+ <AlertTriangle className="h-4 w-4 shrink-0" />
  Open exceptions: {openExceptions}
  </div>
  </div>
+ </DashboardTableToolbar>
 
- {error ? (
- <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
- ) : null}
-
- <div className="dashboard-surface shadow-sm p-4 mb-4">
- <h2 className="text-sm font-semibold text-neutral-800 mb-2 flex items-center gap-2">
- <Plus className="w-4 h-4" />
+ <div className="border-t border-[var(--dash-border-subtle)] px-4 py-4 sm:px-5">
+ <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--dash-text-strong)]">
+ <Plus className="h-4 w-4" />
  Manual attendance override
  </h2>
  <div className="grid gap-2 sm:grid-cols-4">
- <input value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} placeholder="Employee ID" className="h-9 rounded border border-neutral-300 px-2 text-sm" />
- <input type="datetime-local" value={observedAt} onChange={(e) => setObservedAt(e.target.value)} className="h-9 rounded border border-neutral-300 px-2 text-sm" />
- <select value={kind} onChange={(e) => setKind(e.target.value as 'check_in' | 'check_out')} className="h-9 rounded border border-neutral-300 px-2 text-sm">
+ <input
+ value={employeeId}
+ onChange={(e) => setEmployeeId(e.target.value)}
+ placeholder="Employee ID"
+ className={dashboardFilterInputClass}
+ />
+ <input
+ type="datetime-local"
+ value={observedAt}
+ onChange={(e) => setObservedAt(e.target.value)}
+ className={dashboardFilterInputClass}
+ />
+ <select
+ value={kind}
+ onChange={(e) => setKind(e.target.value as 'check_in' | 'check_out')}
+ className={dashboardFilterSelectClass}
+ >
  <option value="check_in">Check in</option>
  <option value="check_out">Check out</option>
  </select>
- <button type="button" onClick={() => void addManualEvent()} className="h-9 rounded bg-primary-700 text-white text-sm inline-flex items-center justify-center gap-2">
- <Clock className="w-4 h-4" />
+ <button
+ type="button"
+ onClick={() => void addManualEvent()}
+ className="btn-primary inline-flex h-10 items-center justify-center gap-2 text-sm"
+ >
+ <Clock className="h-4 w-4" />
  Save event
  </button>
  </div>
  </div>
 
- <div className="dashboard-surface shadow-sm overflow-hidden">
+ <div className="overflow-x-auto border-t border-[var(--dash-border-subtle)]">
  <table className="data-table dashboard-data-table w-full text-sm">
- <thead className="bg-neutral-50 text-neutral-600">
+ <thead>
  <tr>
  <th className="px-3 py-2">Date</th>
  <th className="px-3 py-2">Employee</th>
@@ -201,7 +246,7 @@ export default function OutsourcingAttendancePage() {
  </thead>
  <tbody>
  {summaries.map((summary) => (
- <tr key={summary.id} className="border-t border-neutral-100">
+ <tr key={summary.id}>
  <td className="px-3 py-2 tabular-nums">{summary.workDate.slice(0, 10)}</td>
  <td className="px-3 py-2">
  {summary.employee.employeeNumber ? `${summary.employee.employeeNumber} - ` : ''}
@@ -215,9 +260,7 @@ export default function OutsourcingAttendancePage() {
  {summary.publicHolidayName ? (
  <div className="flex flex-col items-center gap-1">
  <span className="tabular-nums">{summary.overtimeMinutes}m</span>
- <span className="inline-flex w-fit rounded bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
- Holiday 2x
- </span>
+ <span className={dashStatusChip('warning')}>Holiday 2x</span>
  </div>
  ) : (
  `${summary.overtimeMinutes}m`
@@ -225,9 +268,7 @@ export default function OutsourcingAttendancePage() {
  </td>
  <td className="px-3 py-2 col-center">
  {summary.publicHolidayName ? (
- <span className="inline-flex rounded bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700">
- {summary.publicHolidayName}
- </span>
+ <span className={dashStatusChip('info')}>{summary.publicHolidayName}</span>
  ) : (
  '—'
  )}
@@ -238,22 +279,21 @@ export default function OutsourcingAttendancePage() {
  const rowExceptions = exceptionByEmployeeDate.get(key) ?? [];
  const missingOut = rowExceptions.some((item) => item.type === 'missing_check_out' && item.status === 'open');
  const label = missingOut ? 'pending_review' : summary.status === 'approved' ? 'corrected' : 'complete';
- const cls =
- label === 'complete'
- ? 'bg-emerald-50 text-emerald-700'
- : label === 'pending_review'
- ? 'bg-amber-50 text-amber-700'
- : 'bg-slate-100 text-slate-700';
- return <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>;
+ return <span className={attendanceStatusClass(label)}>{label}</span>;
  })()}
  </td>
  </tr>
  ))}
  {!loading && summaries.length === 0 ? (
- <tr><td colSpan={9} className="px-3 py-8 text-center text-neutral-500">No attendance summaries found.</td></tr>
+ <tr>
+ <td colSpan={9} className="px-3 py-8 text-center text-[var(--dash-text-muted)]">
+ No attendance summaries found.
+ </td>
+ </tr>
  ) : null}
  </tbody>
  </table>
+ </div>
  </div>
  </DashboardPage>
  );

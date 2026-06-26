@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, PlayCircle } from 'lucide-react';
 import { DashboardAsyncState } from '@/components/dashboard/DashboardAsyncState';
 import { dashboardFilterSelectClass } from '@/components/dashboard/DashboardFilterBar';
 import {
@@ -50,6 +50,11 @@ function OnboardingPageContent() {
   const [rows, setRows] = useState<WorkflowRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [startOpen, setStartOpen] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [employees, setEmployees] = useState<Array<{ id: string; name: string }>>([]);
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; type: string }>>([]);
+  const [startForm, setStartForm] = useState({ employeeId: '', templateId: '' });
 
   useEffect(() => {
     let cancelled = false;
@@ -83,6 +88,49 @@ function OnboardingPageContent() {
       cancelled = true;
     };
   }, [filters.search, filters.status, type]);
+
+  useEffect(() => {
+    if (!startOpen) return;
+    void Promise.all([
+      fetch('/api/outsourcing/employees').then((r) => r.json()),
+      fetch(`/api/onboarding/templates?type=${type}`).then((r) => r.json()),
+    ]).then(([empData, tplData]) => {
+      if (Array.isArray(empData)) {
+        setEmployees(
+          empData.map((e: { id: string; firstName: string; lastName: string }) => ({
+            id: e.id,
+            name: `${e.firstName} ${e.lastName}`.trim(),
+          })),
+        );
+      }
+      if (Array.isArray(tplData)) setTemplates(tplData);
+    });
+  }, [startOpen, type]);
+
+  async function startWorkflow() {
+    if (!startForm.employeeId) return;
+    setStarting(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/onboarding/workflows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employeeId: startForm.employeeId,
+          type,
+          ...(startForm.templateId ? { templateId: startForm.templateId } : {}),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start workflow');
+      setStartOpen(false);
+      window.location.href = `/dashboard/onboarding/${data.id}`;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to start workflow');
+    } finally {
+      setStarting(false);
+    }
+  }
 
   const view = useMemo(
     () =>
@@ -130,6 +178,20 @@ function OnboardingPageContent() {
     <DashboardPage>
       <DashboardPageHeader
         title="Onboarding & Offboarding"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard/onboarding/templates" className="btn-secondary inline-flex h-10 items-center px-3 text-sm">
+              Templates
+            </Link>
+            <Link href="/dashboard/people/tasks" className="btn-secondary inline-flex h-10 items-center px-3 text-sm">
+              My tasks
+            </Link>
+            <button type="button" onClick={() => setStartOpen(true)} className="btn-primary inline-flex h-10 items-center gap-2 px-3">
+              <PlayCircle className="h-4 w-4" />
+              Start workflow
+            </button>
+          </div>
+        }
         footer={
           <DashboardTabs
             embedded
@@ -142,6 +204,38 @@ function OnboardingPageContent() {
           />
         }
       />
+
+      {startOpen ? (
+        <div className="mb-6 dashboard-surface shadow-sm p-4 sm:p-5 space-y-3">
+          <h2 className="text-sm font-semibold">Start {type === 'ONBOARDING' ? 'onboarding' : 'offboarding'} workflow</h2>
+          <select
+            className={`${dashboardFilterSelectClass} w-full`}
+            value={startForm.employeeId}
+            onChange={(e) => setStartForm((f) => ({ ...f, employeeId: e.target.value }))}
+          >
+            <option value="">Select employee…</option>
+            {employees.map((e) => (
+              <option key={e.id} value={e.id}>{e.name}</option>
+            ))}
+          </select>
+          <select
+            className={`${dashboardFilterSelectClass} w-full`}
+            value={startForm.templateId}
+            onChange={(e) => setStartForm((f) => ({ ...f, templateId: e.target.value }))}
+          >
+            <option value="">Default template (auto)</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+          <div className="flex gap-2">
+            <button type="button" disabled={starting || !startForm.employeeId} className="btn-primary disabled:opacity-50" onClick={() => void startWorkflow()}>
+              {starting ? 'Starting…' : 'Start'}
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => setStartOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      ) : null}
 
       <DashboardTableCard>
         <DashboardTableToolbar label={null}>

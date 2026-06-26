@@ -6,6 +6,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CalendarCheck, Users, Loader2, Search, X, Coffee, Plus } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import {
+  dashboardFilterInputClass,
+  dashboardFilterSelectClass,
+} from '@/components/dashboard/DashboardFilterBar';
 import type { InterviewType, InterviewDurationMinutes } from '@/types/dashboard';
 import { parseDateTimeAsNairobi, dateTimeNairobi, APP_TIMEZONE } from '@/lib/timezone';
 import { computeBulkInterviewStartTimesWithCustom } from '@/lib/bulk-interview-schedule';
@@ -581,7 +585,16 @@ function ScheduleInterviewsPageContent() {
  }
  };
 
- const inputClass = 'w-full min-w-0 px-4 py-2.5 sm:py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base';
+ const formInputClass = `${dashboardFilterInputClass} h-auto min-h-10 py-2.5 text-base`;
+ const formSelectClass = `${dashboardFilterSelectClass} h-auto min-h-10 py-2.5 text-base`;
+ const formLabelClass = 'block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5';
+ const formHintClass = 'text-[11px] text-[var(--dash-text-muted)]';
+ const sectionLabelClass = 'text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-1';
+ const stepPanelClass = 'rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] p-4 mb-6';
+ const errorBoxClass = 'p-4 rounded-lg border border-[var(--dash-danger-border)] bg-[var(--dash-danger-bg)] text-[var(--dash-danger-fg)] text-sm';
+ const listShellClass = 'border border-[var(--dash-border)] rounded-lg divide-y divide-[var(--dash-border)] max-h-[min(85vh,28rem)] overflow-y-auto overflow-x-hidden bg-[var(--dash-surface)] pr-1';
+ const emptyDashedClass = 'border border-dashed border-[var(--dash-border)] rounded-lg p-8 text-center bg-[var(--dash-surface-muted)]/40';
+ const previewShellClass = 'rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] overflow-hidden shadow-sm';
 
  return (
  <DashboardPage>
@@ -593,7 +606,7 @@ function ScheduleInterviewsPageContent() {
  </Link>
  </li>
  <li aria-hidden="true">/</li>
- <li className="text-primary-900 font-medium" aria-current="page">
+ <li className="text-[var(--dash-text-strong)] font-medium" aria-current="page">
  Schedule interviews
  </li>
  </ol>
@@ -608,14 +621,14 @@ function ScheduleInterviewsPageContent() {
  <div className="space-y-6 sm:space-y-8">
  {/* Bulk schedule (max 10) */}
  <div className="dashboard-surface shadow-sm p-5 sm:p-6 lg:p-8">
- <h2 className="text-base sm:text-lg font-semibold text-primary-900 flex items-center gap-2 mb-5 sm:mb-6">
+ <h2 className="text-base sm:text-lg font-semibold text-[var(--dash-text-strong)] flex items-center gap-2 mb-5 sm:mb-6">
  <Users className="w-5 h-5 shrink-0" />
  Bulk schedule (max 10)
  </h2>
 
  {/* Step 1: Search + job (only jobs with shortlisted candidates) */}
- <div className="bg-neutral-50 rounded-lg border border-neutral-200 p-4 mb-6">
- <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-3">1. Select a job</p>
+ <div className={stepPanelClass}>
+ <p className="text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-3">1. Select a job</p>
  <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
  <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -624,7 +637,7 @@ function ScheduleInterviewsPageContent() {
  placeholder="Search by job title or company..."
  value={bulkSearch}
  onChange={(e) => setBulkSearch(e.target.value)}
- className="w-full pl-9 pr-3 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm bg-white"
+ className={`${dashboardFilterInputClass} pl-9`}
  aria-label="Search jobs"
  />
  </div>
@@ -633,7 +646,7 @@ function ScheduleInterviewsPageContent() {
  id="bulk-job"
  value={bulkJobId}
  onChange={(e) => setBulkJobId(e.target.value)}
- className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm bg-white"
+ className={formSelectClass}
  aria-label="Select job"
  >
  <option value="">Select job (shortlisted only)</option>
@@ -677,15 +690,15 @@ function ScheduleInterviewsPageContent() {
  >
  {/* Schedule + breaks */}
  <div className="min-w-0 space-y-3 dashboard-surface rounded-lg p-4 lg:border-0 lg:bg-transparent lg:p-0">
- <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">2. Set schedule details</p>
+ <p className="text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">2. Set schedule details</p>
  {bulkFormError && (
- <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+ <div className={errorBoxClass}>
  {bulkFormError}
  </div>
  )}
  <div className="space-y-3">
  <div>
- <label htmlFor="bulk-date" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="bulk-date" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Date <span className="text-red-600">*</span>
  </label>
  <input
@@ -693,15 +706,15 @@ function ScheduleInterviewsPageContent() {
  type="date"
  value={bulkDate}
  onChange={(e) => setBulkDate(e.target.value)}
- className={inputClass}
+ className={formInputClass}
  required
  />
  </div>
  <div>
- <label htmlFor="bulk-time" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="bulk-time" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Start time
  </label>
- <p className="text-[10px] text-neutral-500 mb-1">
+ <p className={`${formHintClass} mb-1`}>
  Matches the <strong className="text-neutral-600">earliest</strong> interview start. Changing a pill
  updates this; changing here recenters the auto chain (earliest slot still wins if someone is earlier).
  </p>
@@ -710,18 +723,18 @@ function ScheduleInterviewsPageContent() {
  type="time"
  value={bulkStartTime}
  onChange={(e) => setBulkStartTime(e.target.value)}
- className={inputClass}
+ className={formInputClass}
  />
  </div>
  <div>
- <label htmlFor="bulk-duration" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="bulk-duration" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Duration
  </label>
  <select
  id="bulk-duration"
  value={bulkDuration}
  onChange={(e) => setBulkDuration(Number(e.target.value) as InterviewDurationMinutes)}
- className={inputClass}
+ className={formSelectClass}
  >
  {DURATION_OPTIONS.map((opt) => (
  <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -729,26 +742,26 @@ function ScheduleInterviewsPageContent() {
  </select>
  </div>
  <div>
- <label htmlFor="bulk-type" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="bulk-type" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Default type
  </label>
  <select
  id="bulk-type"
  value={bulkType}
  onChange={(e) => setBulkType(e.target.value as InterviewType)}
- className={inputClass}
+ className={formSelectClass}
  >
  <option value="onsite">On-site</option>
  <option value="video">Video</option>
  <option value="phone">Phone</option>
  </select>
- <p className="mt-1 text-[11px] text-neutral-500">
+ <p className={`mt-1 ${formHintClass}`}>
  Newly ticked candidates use this. Override per person in the list →
  </p>
  </div>
  </div>
  <div>
- <label htmlFor="bulk-location" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="bulk-location" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Location / link <span className="text-red-600">*</span>
  </label>
  <input
@@ -757,12 +770,12 @@ function ScheduleInterviewsPageContent() {
  value={bulkLocation}
  onChange={(e) => setBulkLocation(e.target.value)}
  placeholder="e.g. Zoom link or office address"
- className={inputClass}
+ className={formInputClass}
  required
  />
  </div>
  <div>
- <label htmlFor="bulk-notes" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="bulk-notes" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Notes
  </label>
  <textarea
@@ -771,13 +784,13 @@ function ScheduleInterviewsPageContent() {
  onChange={(e) => setBulkNotes(e.target.value)}
  placeholder="e.g. Please bring ID, certificates, or other documents. These notes will be included in the invite email."
  rows={2}
- className={inputClass + ' resize-y'}
+ className={`${formInputClass} resize-y`}
  />
  </div>
 
- <div className="rounded-lg border border-secondary-200 bg-secondary-50/80 p-3 space-y-2">
+ <div className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] p-3 space-y-2">
  <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
- <p className="text-[10px] font-semibold text-secondary-900 uppercase tracking-wider flex items-center gap-1.5">
+ <p className="text-[10px] font-semibold text-[var(--dash-text-strong)] uppercase tracking-wider flex items-center gap-1.5">
  <Coffee className="w-3.5 h-3.5 shrink-0" />
  Breaks (optional)
  </p>
@@ -794,27 +807,27 @@ function ScheduleInterviewsPageContent() {
  },
  ])
  }
- className="text-xs font-medium text-secondary-800 hover:text-secondary-950 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white border border-secondary-200"
+ className="text-xs font-medium text-[var(--dash-text-body)] hover:text-[var(--dash-text-strong)] inline-flex items-center gap-1 px-2 py-1 rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)]"
  >
  <Plus className="w-3.5 h-3.5" />
  Add break
  </button>
  </div>
- <p className="text-[10px] leading-snug text-secondary-800/90">
+ <p className={`text-[10px] leading-snug ${formHintClass}`}>
  Same day as date above. Interview slots <strong className="font-semibold">pause during breaks</strong>—no
  overlap. Set break start (e.g. 12:00 lunch); next interview resumes after the break ends.
  </p>
  {bulkBreakDrafts.length === 0 ? (
- <p className="text-xs text-secondary-700/80 italic">No breaks—add one if you need lunch or a buffer.</p>
+ <p className={`text-xs italic ${formHintClass}`}>No breaks—add one if you need lunch or a buffer.</p>
  ) : (
  <ul className="space-y-2">
  {bulkBreakDrafts.map((row, idx) => (
  <li
  key={row.id}
- className="flex flex-wrap items-end gap-2 p-2 bg-white rounded-lg border border-secondary-100"
+ className="flex flex-wrap items-end gap-2 p-2 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface)]"
  >
  <div className="min-w-[100px]">
- <label className="block text-[10px] font-medium text-secondary-900 mb-0.5">Start time</label>
+ <label className={`block text-[10px] font-medium text-[var(--dash-text-strong)] mb-0.5`}>Start time</label>
  <input
  type="time"
  value={row.time}
@@ -823,11 +836,11 @@ function ScheduleInterviewsPageContent() {
  prev.map((r) => (r.id === row.id ? { ...r, time: e.target.value } : r))
  )
  }
- className="w-full px-2 py-1.5 border border-neutral-300 rounded text-sm"
+ className={`${dashboardFilterInputClass} w-full px-2 py-1.5 text-sm`}
  />
  </div>
  <div className="min-w-[90px]">
- <label className="block text-[10px] font-medium text-secondary-900 mb-0.5">Minutes</label>
+ <label className={`block text-[10px] font-medium text-[var(--dash-text-strong)] mb-0.5`}>Minutes</label>
  <select
  value={row.durationMinutes}
  onChange={(e) =>
@@ -839,7 +852,7 @@ function ScheduleInterviewsPageContent() {
  )
  )
  }
- className="w-full px-2 py-1.5 border border-neutral-300 rounded text-sm bg-white"
+ className={`${dashboardFilterSelectClass} w-full px-2 py-1.5 text-sm`}
  >
  {[15, 30, 45, 60, 90, 120].map((m) => (
  <option key={m} value={m}>
@@ -849,7 +862,7 @@ function ScheduleInterviewsPageContent() {
  </select>
  </div>
  <div className="flex-1 min-w-[120px]">
- <label className="block text-[10px] font-medium text-secondary-900 mb-0.5">Label</label>
+ <label className={`block text-[10px] font-medium text-[var(--dash-text-strong)] mb-0.5`}>Label</label>
  <input
  type="text"
  value={row.label}
@@ -859,7 +872,7 @@ function ScheduleInterviewsPageContent() {
  )
  }
  placeholder="Lunch"
- className="w-full px-2 py-1.5 border border-neutral-300 rounded text-sm"
+ className={`${dashboardFilterInputClass} w-full px-2 py-1.5 text-sm`}
  />
  </div>
  <button
@@ -878,25 +891,25 @@ function ScheduleInterviewsPageContent() {
  </div>
  {/* Candidates */}
  <div className="min-w-0 mt-6 lg:mt-0 dashboard-surface rounded-lg p-4 lg:border-0 lg:bg-transparent lg:p-0">
- <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">3. Select candidates</p>
- <label className="block text-sm font-medium text-primary-900 mb-2">
+ <p className="text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">3. Select candidates</p>
+ <label className="block text-sm font-medium text-[var(--dash-text-strong)] mb-2">
  Shortlisted candidates (max 10)
  </label>
- <p className="text-[11px] text-neutral-500 mb-2">
+ <p className={`${formHintClass} mb-2`}>
  <strong className="text-neutral-600">Start time</strong> per row (tap for wheel). Duration + order fill the
  rest. Type per row.
  </p>
  {shortlistedLoading ? (
  <p className="text-sm text-neutral-500 py-8">Loading…</p>
  ) : shortlistedApps.length === 0 ? (
- <div className="border border-dashed border-neutral-200 rounded-lg p-8 text-center">
+ <div className={emptyDashedClass}>
  <p className="text-sm text-neutral-500">
  {bulkJobId ? 'No shortlisted candidates for this job.' : 'Select a job above to see shortlisted candidates.'}
  </p>
  </div>
  ) : (
  <ul
- className="border border-neutral-200 rounded-lg divide-y divide-neutral-100 max-h-[min(85vh,28rem)] overflow-y-auto overflow-x-hidden bg-white pr-1"
+ className={listShellClass}
  style={{ scrollbarGutter: 'stable' }}
  >
  {bulkCandidateSlots.sortedSelected.length > 0 && (
@@ -916,7 +929,7 @@ function ScheduleInterviewsPageContent() {
  return (
  <li
  key={appId}
- className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-3 gap-y-1 px-2 py-2.5 lg:px-3 hover:bg-neutral-50/80"
+ className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-3 gap-y-1 px-2 py-2.5 lg:px-3 hover:bg-[var(--dash-surface-muted)]/80"
  >
  <input
  type="checkbox"
@@ -925,7 +938,7 @@ function ScheduleInterviewsPageContent() {
  className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 shrink-0"
  aria-label={`Deselect ${app.candidate.firstName}`}
  />
- <span className="text-sm font-medium text-neutral-900 min-w-0 truncate">
+ <span className="text-sm font-medium text-[var(--dash-text-strong)] min-w-0 truncate">
  {app.candidate.firstName} {app.candidate.lastName}
  </span>
  <div
@@ -947,7 +960,7 @@ function ScheduleInterviewsPageContent() {
  aria-label={`Type for ${app.candidate.firstName}`}
  value={bulkTypesByApp[appId] ?? bulkType}
  onChange={(e) => setBulkTypeForApp(appId, e.target.value as InterviewType)}
- className="text-xs border border-neutral-300 rounded-md px-1.5 py-1 bg-white max-w-[6.5rem] justify-self-end"
+ className={`${dashboardFilterSelectClass} text-xs max-w-[6.5rem] justify-self-end py-1`}
  >
  <option value="onsite">On-site</option>
  <option value="video">Video</option>
@@ -957,14 +970,14 @@ function ScheduleInterviewsPageContent() {
  );
  })}
  {bulkCandidateSlots.unselected.length > 0 && (
- <li className="px-2 py-1.5 bg-neutral-100 text-[10px] font-semibold uppercase tracking-wider text-neutral-600 border-y border-neutral-200">
+ <li className="px-2 py-1.5 bg-[var(--dash-surface-muted)] text-[10px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)] border-y border-[var(--dash-border)]">
  Not selected — tick to add (slots after current day chain)
  </li>
  )}
  {bulkCandidateSlots.unselected.map((app) => (
  <li
  key={app.id}
- className="flex flex-wrap items-center gap-2 px-2 py-2 lg:px-3 hover:bg-neutral-50/50 opacity-90"
+ className="flex flex-wrap items-center gap-2 px-2 py-2 lg:px-3 hover:bg-[var(--dash-surface-muted)]/50 opacity-90"
  >
  <input
  type="checkbox"
@@ -973,7 +986,7 @@ function ScheduleInterviewsPageContent() {
  disabled={bulkSelectedAppIds.size >= MAX_BULK}
  className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 shrink-0"
  />
- <span className="text-sm text-neutral-700 min-w-0 flex-1">
+ <span className="text-sm text-[var(--dash-text-body)] min-w-0 flex-1">
  {app.candidate.firstName} {app.candidate.lastName}
  </span>
  </li>
@@ -990,13 +1003,13 @@ function ScheduleInterviewsPageContent() {
  {/* Day preview — ~1.2fr so a bit wider, not half the page */}
  <aside
  id="day-preview"
- className="w-full min-w-0 mt-8 pt-8 border-t border-neutral-200 lg:mt-0 lg:pt-0 lg:border-t-0 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain"
+ className="w-full min-w-0 mt-8 pt-8 border-t border-[var(--dash-border)] lg:mt-0 lg:pt-0 lg:border-t-0 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain"
  >
  <p className="lg:hidden text-xs text-neutral-500 mb-3">
  Day preview is below on small screens. On a wider window it stays fixed on the right while you edit.
  </p>
- <div className="rounded-2xl border border-neutral-200/80 bg-gradient-to-b from-neutral-50/90 to-white overflow-hidden shadow-sm">
- <div className="px-3 sm:px-4 py-3 sm:py-4 border-b border-neutral-100 bg-white/80">
+ <div className={previewShellClass}>
+ <div className="px-3 sm:px-4 py-3 sm:py-4 border-b border-[var(--dash-border)] bg-[var(--dash-surface-muted)]/60">
  <div className="flex flex-col gap-2">
  <div className="min-w-0">
  <h3 className="text-sm font-semibold text-primary-950 flex items-center gap-2 tracking-tight">
@@ -1012,7 +1025,7 @@ function ScheduleInterviewsPageContent() {
  </div>
  {bulkJobId ? (
  <div className="flex flex-wrap items-center gap-2 shrink-0">
- <span className="inline-flex items-center rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-primary-900 shadow-sm">
+ <span className="inline-flex items-center rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-1.5 text-xs font-medium text-[var(--dash-text-strong)] shadow-sm">
  {bulkSchedulePreview.scheduleDayLabel}
  </span>
  {bulkSchedulePreview.blocks.length > 0 && (
@@ -1167,10 +1180,10 @@ function ScheduleInterviewsPageContent() {
  </div>
  </aside>
  </form>
- <div className="pt-6 mt-6 border-t border-neutral-200 flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-3 sm:gap-4">
+ <div className="pt-6 mt-6 border-t border-[var(--dash-border)] flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-3 sm:gap-4">
  <Link
  href="/dashboard/interviews"
- className="w-full sm:w-auto order-2 sm:order-1 px-6 py-3 min-h-[44px] sm:min-h-0 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors inline-flex items-center justify-center"
+ className="w-full sm:w-auto order-2 sm:order-1 px-6 py-3 min-h-[44px] sm:min-h-0 btn-secondary inline-flex items-center justify-center"
  >
  Cancel
  </Link>
@@ -1192,14 +1205,14 @@ function ScheduleInterviewsPageContent() {
 
  {/* Add single interview */}
  <div className="dashboard-surface shadow-sm p-5 sm:p-6 lg:p-8">
- <h2 className="text-base sm:text-lg font-semibold text-primary-900 flex items-center gap-2 mb-5 sm:mb-6">
+ <h2 className="text-base sm:text-lg font-semibold text-[var(--dash-text-strong)] flex items-center gap-2 mb-5 sm:mb-6">
  <CalendarCheck className="w-5 h-5 shrink-0" />
  Add single interview
  </h2>
 
  {/* Step 1: Search + job */}
- <div className="bg-neutral-50 rounded-lg border border-neutral-200 p-4 mb-6">
- <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-3">1. Select a job</p>
+ <div className={stepPanelClass}>
+ <p className="text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-3">1. Select a job</p>
  <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
  <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -1208,7 +1221,7 @@ function ScheduleInterviewsPageContent() {
  placeholder="Search by job title or company..."
  value={singleSearch}
  onChange={(e) => setSingleSearch(e.target.value)}
- className="w-full pl-9 pr-3 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm bg-white"
+ className={`${dashboardFilterInputClass} pl-9`}
  aria-label="Search jobs"
  />
  </div>
@@ -1216,7 +1229,7 @@ function ScheduleInterviewsPageContent() {
  <select
  value={singleJobId}
  onChange={(e) => setSingleJobId(e.target.value)}
- className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm bg-white"
+ className={formSelectClass}
  aria-label="Select job"
  >
  <option value="">Select job (shortlisted only)</option>
@@ -1262,15 +1275,15 @@ function ScheduleInterviewsPageContent() {
 
  {/* Step 2: Select candidate */}
  <div>
- <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2">2. Select candidate</p>
- <label htmlFor="single-application" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <p className="text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-2">2. Select candidate</p>
+ <label htmlFor="single-application" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Candidate <span className="text-red-600">*</span>
  </label>
  <select
  id="single-application"
  value={form.applicationId}
  onChange={(e) => setForm((f) => ({ ...f, applicationId: e.target.value }))}
- className={inputClass}
+ className={formSelectClass}
  required
  disabled={singleShortlistedLoading}
  >
@@ -1287,10 +1300,10 @@ function ScheduleInterviewsPageContent() {
 
  {/* Step 3: Schedule details */}
  <div>
- <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-3">3. Set schedule details</p>
+ <p className="text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-3">3. Set schedule details</p>
  <div className="space-y-4">
  <div>
- <label htmlFor="single-datetime" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="single-datetime" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Date & time <span className="text-red-600">*</span>
  </label>
  <input
@@ -1298,19 +1311,19 @@ function ScheduleInterviewsPageContent() {
  type="datetime-local"
  value={form.scheduledAt}
  onChange={(e) => setForm((f) => ({ ...f, scheduledAt: e.target.value }))}
- className={inputClass}
+ className={formInputClass}
  required
  />
  </div>
  <div>
- <label htmlFor="single-duration" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="single-duration" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Duration
  </label>
  <select
  id="single-duration"
  value={form.durationMinutes}
  onChange={(e) => setForm((f) => ({ ...f, durationMinutes: Number(e.target.value) as InterviewDurationMinutes }))}
- className={inputClass}
+ className={formSelectClass}
  >
  {DURATION_OPTIONS.map((opt) => (
  <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1318,14 +1331,14 @@ function ScheduleInterviewsPageContent() {
  </select>
  </div>
  <div>
- <label htmlFor="single-type" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="single-type" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Type
  </label>
  <select
  id="single-type"
  value={form.type}
  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as InterviewType }))}
- className={inputClass}
+ className={formSelectClass}
  >
  <option value="onsite">On-site</option>
  <option value="video">Video</option>
@@ -1333,7 +1346,7 @@ function ScheduleInterviewsPageContent() {
  </select>
  </div>
  <div>
- <label htmlFor="single-location" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="single-location" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Location or meeting link <span className="text-red-600">*</span>
  </label>
  <input
@@ -1342,12 +1355,12 @@ function ScheduleInterviewsPageContent() {
  value={form.locationOrLink}
  onChange={(e) => setForm((f) => ({ ...f, locationOrLink: e.target.value }))}
  placeholder="e.g. Zoom link or office address"
- className={inputClass}
+ className={formInputClass}
  required
  />
  </div>
  <div>
- <label htmlFor="single-notes" className="block text-sm font-medium text-primary-900 mb-1.5">
+ <label htmlFor="single-notes" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Notes (optional)
  </label>
  <textarea
@@ -1355,16 +1368,16 @@ function ScheduleInterviewsPageContent() {
  value={form.notes}
  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
  rows={3}
- className={`${inputClass} resize-y`}
+ className={`${formInputClass} resize-y`}
  />
  </div>
  </div>
  </div>
 
- <div className="pt-4 border-t border-neutral-200 flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-3 sm:gap-4">
+ <div className="pt-4 border-t border-[var(--dash-border)] flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-3 sm:gap-4">
  <Link
  href="/dashboard/interviews"
- className="w-full sm:w-auto order-2 sm:order-1 px-6 py-3 min-h-[44px] sm:min-h-0 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors inline-flex items-center justify-center"
+ className="w-full sm:w-auto order-2 sm:order-1 px-6 py-3 min-h-[44px] sm:min-h-0 btn-secondary inline-flex items-center justify-center"
  >
  Cancel
  </Link>

@@ -567,10 +567,7 @@ export default function DashboardInterviewsPage() {
  : 'Your central hub for scheduling, invites, and all interview-related content.'
  }
  actions={
- <Link
- href={scheduleUrlCurrentJob}
- className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-900 text-white rounded-lg hover:bg-primary-800 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 text-sm font-medium"
- >
+ <Link href={scheduleUrlCurrentJob} className="btn-primary inline-flex items-center gap-2">
  <Plus className="w-4 h-4" />
  Schedule interviews
  </Link>

@@ -12,7 +12,10 @@ function cn(...parts: (string | false | undefined)[]) {
   return parts.filter(Boolean).join(' ');
 }
 
-export type DashboardPageHeaderVariant = 'default' | 'hero' | 'panel';
+export type DashboardPageHeaderVariant = 'panel' | 'hero';
+
+/** @deprecated Use `panel` — kept for backward compatibility in call sites. */
+export type DashboardPageHeaderLegacyVariant = DashboardPageHeaderVariant | 'default';
 
 export type DashboardPageHeaderBadge = {
   label: ReactNode;
@@ -42,30 +45,32 @@ export type DashboardPageHeaderProps = {
   eyebrow?: string;
   /** Secondary line under description (date, counts, breadcrumbs text). */
   meta?: ReactNode;
-  /** Hero-only context pills (role, entity, status). */
+  /** Context pills (role, entity, readiness) — styled for hero or panel. */
   badges?: DashboardPageHeaderBadge[];
   /** Custom action nodes, or declarative action links. */
   actions?: ReactNode | DashboardPageHeaderAction[];
-  /** Optional strip below the title row (tabs, filters) — used with `panel` variant. */
+  /** Optional strip below the title row (tabs, filters) — panel variant only. */
   footer?: ReactNode;
   /** Override pathname used to resolve the default icon (defaults to current route). */
   href?: string;
-  variant?: DashboardPageHeaderVariant;
+  variant?: DashboardPageHeaderLegacyVariant;
   titleSuppressHydrationWarning?: boolean;
   metaSuppressHydrationWarning?: boolean;
   className?: string;
 };
+
+type ResolvedVariant = DashboardPageHeaderVariant;
 
 function HeaderActions({
   actions,
   variant,
 }: {
   actions: ReactNode | DashboardPageHeaderAction[];
-  variant: DashboardPageHeaderVariant;
+  variant: ResolvedVariant;
 }) {
   if (Array.isArray(actions)) {
     return (
-      <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+      <div className="page-header-actions">
         {actions.map((action) => {
           const Icon = action.icon;
           const isPrimary = action.variant !== 'secondary';
@@ -92,7 +97,7 @@ function HeaderActions({
   return <div className="page-header-actions">{actions}</div>;
 }
 
-function HeaderBadges({ badges, variant }: { badges: DashboardPageHeaderBadge[]; variant: DashboardPageHeaderVariant }) {
+function HeaderBadges({ badges, variant }: { badges: DashboardPageHeaderBadge[]; variant: ResolvedVariant }) {
   if (!badges.length) return null;
 
   if (variant === 'hero') {
@@ -122,10 +127,13 @@ function HeaderBadges({ badges, variant }: { badges: DashboardPageHeaderBadge[];
     <div className="flex flex-wrap items-center gap-2">
       {badges.map((badge, index) => {
         const Icon = badge.icon;
+        if (badge.bare) {
+          return <span key={index}>{badge.label}</span>;
+        }
         return (
           <span
             key={index}
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary-200/60 bg-primary-50/80 px-2.5 py-1 text-[11px] font-medium text-primary-800"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--dash-text-body)]"
           >
             {badge.prefix ? <span aria-hidden>{badge.prefix}</span> : null}
             {Icon ? <Icon className="h-3 w-3 text-primary-600" aria-hidden /> : null}
@@ -137,11 +145,83 @@ function HeaderBadges({ badges, variant }: { badges: DashboardPageHeaderBadge[];
   );
 }
 
+function PanelPageHeader({
+  title,
+  TitleIcon,
+  iconClassName,
+  description,
+  eyebrow,
+  meta,
+  badges,
+  actions,
+  footer,
+  hasActions,
+  titleSuppressHydrationWarning,
+  metaSuppressHydrationWarning,
+  className,
+}: {
+  title: ReactNode;
+  TitleIcon?: LucideIcon;
+  iconClassName?: string;
+  description?: ReactNode;
+  eyebrow?: string;
+  meta?: ReactNode;
+  badges: DashboardPageHeaderBadge[];
+  actions?: ReactNode | DashboardPageHeaderAction[];
+  footer?: ReactNode;
+  hasActions: boolean;
+  titleSuppressHydrationWarning?: boolean;
+  metaSuppressHydrationWarning?: boolean;
+  className?: string;
+}) {
+  return (
+    <section className={cn('dashboard-surface overflow-hidden shadow-sm', className)}>
+      <header className={cn(DASHBOARD_PAGE_HEADER_CLASS, 'px-5 py-5 sm:px-6')}>
+        <div className="page-header-body min-w-0 space-y-2">
+          {eyebrow ? (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-700 dark:text-[var(--dash-text-subtle)]">
+              {eyebrow}
+            </p>
+          ) : null}
+          {badges.length > 0 ? <HeaderBadges badges={badges} variant="panel" /> : null}
+          <h1
+            className={cn('page-title', TitleIcon && 'flex items-center gap-2')}
+            suppressHydrationWarning={titleSuppressHydrationWarning}
+          >
+            {TitleIcon ? (
+              <TitleIcon
+                className={iconClassName ?? 'h-7 w-7 shrink-0 text-primary-600'}
+                strokeWidth={1.75}
+                aria-hidden
+              />
+            ) : null}
+            {title}
+          </h1>
+          {description ? <div className="page-description max-w-2xl !mt-0">{description}</div> : null}
+          {meta ? (
+            <div
+              className="text-xs text-[var(--dash-text-muted)]"
+              suppressHydrationWarning={metaSuppressHydrationWarning}
+            >
+              {meta}
+            </div>
+          ) : null}
+        </div>
+        {hasActions && actions ? <HeaderActions actions={actions} variant="panel" /> : null}
+      </header>
+      {footer ? (
+        <div className="border-t border-[var(--dash-border-subtle)] bg-[var(--dash-surface-muted)] px-5 py-3 sm:px-6">
+          {footer}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 /**
  * Standard page header for dashboard routes.
- * - `default` — title block on the canvas (legacy list/detail pages)
- * - `panel` — enclosed glass card with optional footer strip (recommended for list pages)
- * - `hero` — navy gradient welcome band (Overview and module home pages)
+ * - `panel` (default) — enclosed surface card with title, embedded actions, and optional footer strip
+ * - `hero` — navy gradient welcome band (main command center overview only)
  */
 export function DashboardPageHeader({
   title,
@@ -161,12 +241,13 @@ export function DashboardPageHeader({
 }: DashboardPageHeaderProps) {
   const pathname = usePathname();
   const routeKey = href ?? pathname ?? '/dashboard';
-  const showIcon = variant === 'hero' || isMainDashboardPage(routeKey);
+  const resolvedVariant: ResolvedVariant = variant === 'hero' ? 'hero' : 'panel';
+  const showIcon = resolvedVariant === 'hero' || isMainDashboardPage(routeKey);
   const TitleIcon =
     showIcon && icon !== false ? icon || resolveDashboardPageIcon(routeKey) : undefined;
   const hasActions = actions != null && (Array.isArray(actions) ? actions.length > 0 : true);
 
-  if (variant === 'hero') {
+  if (resolvedVariant === 'hero') {
     return (
       <section
         className={cn(
@@ -217,68 +298,21 @@ export function DashboardPageHeader({
     );
   }
 
-  if (variant === 'panel') {
-    return (
-      <section className={cn('dashboard-surface overflow-hidden shadow-sm', className)}>
-        <header className={cn(DASHBOARD_PAGE_HEADER_CLASS, 'px-5 py-5 sm:px-6')}>
-          <div className="page-header-body min-w-0 space-y-2">
-            {eyebrow ? (
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-700">{eyebrow}</p>
-            ) : null}
-            {badges.length > 0 ? <HeaderBadges badges={badges} variant="default" /> : null}
-            <h1
-              className={cn('page-title', TitleIcon && 'flex items-center gap-2')}
-              suppressHydrationWarning={titleSuppressHydrationWarning}
-            >
-              {TitleIcon ? (
-                <TitleIcon
-                  className={iconClassName ?? 'h-7 w-7 shrink-0 text-primary-600'}
-                  strokeWidth={1.75}
-                  aria-hidden
-                />
-              ) : null}
-              {title}
-            </h1>
-            {description ? <div className="page-description max-w-2xl !mt-0">{description}</div> : null}
-            {meta ? (
-              <div className="text-xs text-neutral-500" suppressHydrationWarning={metaSuppressHydrationWarning}>
-                {meta}
-              </div>
-            ) : null}
-          </div>
-          {hasActions && actions ? <HeaderActions actions={actions} variant="default" /> : null}
-        </header>
-        {footer ? (
-          <div className="border-t border-primary-200/30 bg-primary-50/30 px-5 py-3 sm:px-6">{footer}</div>
-        ) : null}
-      </section>
-    );
-  }
-
   return (
-    <header className={cn(DASHBOARD_PAGE_HEADER_CLASS, className)}>
-      <div className="page-header-body min-w-0 space-y-2">
-        {eyebrow ? (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-700">{eyebrow}</p>
-        ) : null}
-        {badges.length > 0 ? <HeaderBadges badges={badges} variant="default" /> : null}
-        <h1
-          className={cn('page-title', TitleIcon && 'flex items-center gap-2')}
-          suppressHydrationWarning={titleSuppressHydrationWarning}
-        >
-          {TitleIcon ? (
-            <TitleIcon className={iconClassName ?? 'h-7 w-7 shrink-0 text-primary-600'} strokeWidth={1.75} aria-hidden />
-          ) : null}
-          {title}
-        </h1>
-        {description ? <div className="page-description max-w-2xl !mt-0">{description}</div> : null}
-        {meta ? (
-          <div className="text-xs text-neutral-500" suppressHydrationWarning={metaSuppressHydrationWarning}>
-            {meta}
-          </div>
-        ) : null}
-      </div>
-      {hasActions && actions ? <HeaderActions actions={actions} variant="default" /> : null}
-    </header>
+    <PanelPageHeader
+      title={title}
+      TitleIcon={TitleIcon}
+      iconClassName={iconClassName}
+      description={description}
+      eyebrow={eyebrow}
+      meta={meta}
+      badges={badges}
+      actions={actions}
+      footer={footer}
+      hasActions={hasActions}
+      titleSuppressHydrationWarning={titleSuppressHydrationWarning}
+      metaSuppressHydrationWarning={metaSuppressHydrationWarning}
+      className={className}
+    />
   );
 }

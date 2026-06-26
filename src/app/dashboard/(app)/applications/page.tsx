@@ -28,6 +28,12 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
+import {
+  dashboardFilterInputClass,
+  dashboardFilterSelectClass,
+} from '@/components/dashboard/DashboardFilterBar';
 import type {
  ApplicationWithDetails,
  ApplicationListItem,
@@ -687,90 +693,35 @@ export default function DashboardApplicationsPage() {
  }
  };
 
- const filterInputClass =
- 'w-full px-3 py-2.5 border border-neutral-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-300 transition-colors';
+ const filterInputClass = dashboardFilterSelectClass;
 
  return (
  <DashboardPage>
  <DashboardPageHeader
  title="Applications"
  description="Review and manage job applications. Status updates can notify applicants by email."
- />
-
- <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- className="relative overflow-hidden dashboard-surface p-5 shadow-sm min-w-0"
- >
- <div className="absolute right-4 top-1/2 -translate-y-1/2 rounded-xl bg-primary-50 p-3 text-primary-700">
- <Users className="w-5 h-5" strokeWidth={1.75} />
- </div>
- <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Total</p>
- <p className="text-3xl font-bold text-primary-900 tabular-nums">{stats.total}</p>
- <p className="text-xs text-neutral-500 mt-1">All applications</p>
- </motion.div>
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.05 }}
- className="relative overflow-hidden dashboard-surface p-5 shadow-sm min-w-0"
- >
- <div className="absolute right-4 top-1/2 -translate-y-1/2 rounded-xl bg-amber-50 p-3 text-amber-700">
- <Calendar className="w-5 h-5" strokeWidth={1.75} />
- </div>
- <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Pending</p>
- <p className="text-3xl font-bold text-amber-600 tabular-nums">{stats.pending}</p>
- <p className="text-xs text-neutral-500 mt-1">Awaiting review</p>
- </motion.div>
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.1 }}
- className="relative overflow-hidden dashboard-surface p-5 shadow-sm min-w-0"
- >
- <div className="absolute right-4 top-1/2 -translate-y-1/2 rounded-xl bg-indigo-50 p-3 text-indigo-700">
- <Eye className="w-5 h-5" strokeWidth={1.75} />
- </div>
- <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Shortlisted</p>
- <p className="text-3xl font-bold text-indigo-600 tabular-nums">{stats.shortlisted}</p>
- <p className="text-xs text-neutral-500 mt-1">In pipeline</p>
- </motion.div>
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.15 }}
- className="relative overflow-hidden dashboard-surface p-5 shadow-sm min-w-0"
- >
- <div className="absolute right-4 top-1/2 -translate-y-1/2 rounded-xl bg-emerald-50 p-3 text-emerald-700">
- <Briefcase className="w-5 h-5" strokeWidth={1.75} />
- </div>
- <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Hired</p>
- <p className="text-3xl font-bold text-emerald-600 tabular-nums">{stats.hired}</p>
- <p className="text-xs text-neutral-500 mt-1">Placed</p>
- </motion.div>
- </div>
-
- <div className="dashboard-surface shadow-sm overflow-visible mb-6">
- {/* Search & application filters */}
- <div className="p-4 sm:p-5 border-b border-neutral-100 bg-gradient-to-b from-white to-neutral-50/40">
- <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
- <div>
- <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-0.5">
- Search &amp; application
- </p>
- <p className="text-xs text-neutral-500">Find rows and narrow by status and job.</p>
- </div>
+ actions={
  <a
  href={exportParams ? `/api/applications/export?${exportParams}` : '/api/applications/export'}
- className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary-900 text-white text-sm font-semibold shadow-sm shadow-primary-900/15 hover:bg-primary-800 transition-colors shrink-0"
+ className="btn-primary inline-flex items-center justify-center gap-2"
  download
  title="Export applications (current filters)"
  >
  <FileSpreadsheet className="w-4 h-4" />
  Export
  </a>
- </div>
+ }
+ />
+
+ <DashboardStatGrid columns={4} className="gap-4">
+ <DashboardMetricCard label="Total" value={stats.total} hint="All applications" icon={Users} tone="primary" />
+ <DashboardMetricCard label="Pending" value={stats.pending} hint="Awaiting review" icon={Calendar} tone="amber" />
+ <DashboardMetricCard label="Shortlisted" value={stats.shortlisted} hint="In pipeline" icon={Eye} tone="violet" />
+ <DashboardMetricCard label="Hired" value={stats.hired} hint="Placed" icon={Briefcase} tone="emerald" />
+ </DashboardStatGrid>
+
+ <div className="dashboard-surface shadow-sm overflow-visible mb-6">
+ <DashboardTableToolbar label="Search & filters">
  <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
  <div className="relative lg:col-span-5">
  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
@@ -779,7 +730,7 @@ export default function DashboardApplicationsPage() {
  placeholder="Search by name, email, or job title…"
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
- className="w-full pl-10 pr-4 py-2.5 border border-neutral-200 rounded-xl text-sm bg-neutral-50/80 focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-300 transition-colors"
+ className={`${dashboardFilterInputClass} pl-10`}
  aria-label="Search applications"
  />
  </div>
@@ -859,7 +810,7 @@ export default function DashboardApplicationsPage() {
  <span className="text-sm text-neutral-600">{bulkResult}</span>
  )}
  </div>
- </div>
+ </DashboardTableToolbar>
 
  {/* Candidate & qualifications — first row always; rest expandable */}
  <div className="p-4 sm:p-5 bg-primary-50/25 border-t border-primary-100/50">

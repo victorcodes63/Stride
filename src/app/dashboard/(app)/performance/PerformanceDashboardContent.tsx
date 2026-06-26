@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, PlayCircle, Square } from 'lucide-react';
+import { Loader2, PlayCircle, Square, Download } from 'lucide-react';
 
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
@@ -59,6 +60,16 @@ export function PerformanceDashboardContent() {
     periodEnd: '2026-06-30',
     description: 'Mid-year goals and competency review',
   });
+  const [goalTemplates, setGoalTemplates] = useState([
+    { title: 'Deliver role KPIs on time', weightPercent: 50 },
+    { title: 'Complete compliance and training requirements', weightPercent: 50 },
+  ]);
+  const [ratingDimensions, setRatingDimensions] = useState([
+    'Quality of work',
+    'Team collaboration',
+    'Goal achievement',
+    'Communication',
+  ]);
 
   const selectedCycle = cycles.find((c) => c.id === selectedCycleId) ?? cycles[0] ?? null;
 
@@ -95,6 +106,37 @@ export function PerformanceDashboardContent() {
   useEffect(() => {
     if (selectedCycle?.id) void loadReviews(selectedCycle.id).catch(() => null);
   }, [selectedCycle?.id, loadReviews]);
+
+  useEffect(() => {
+    if (!selectedCycle?.id || selectedCycle.status !== 'draft') return;
+    void fetch(`/api/performance/cycles/${selectedCycle.id}`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.cycle?.goalTemplates?.length) setGoalTemplates(data.cycle.goalTemplates);
+        if (data.cycle?.ratingDimensions?.length) setRatingDimensions(data.cycle.ratingDimensions);
+      })
+      .catch(() => null);
+  }, [selectedCycle?.id, selectedCycle?.status]);
+
+  async function saveCycleTemplates() {
+    if (!selectedCycle || selectedCycle.status !== 'draft') return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/performance/cycles/${selectedCycle.id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goalTemplates, ratingDimensions }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Save failed');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -217,6 +259,16 @@ export function PerformanceDashboardContent() {
                 Close cycle
               </button>
             ) : null}
+            {selectedCycle ? (
+              <a
+                href={`/api/performance/cycles/${selectedCycle.id}/export`}
+                className="btn-secondary inline-flex h-10 items-center gap-2 px-3"
+                download
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </a>
+            ) : null}
           </div>
         }
       />
@@ -262,6 +314,55 @@ export function PerformanceDashboardContent() {
             onClick={() => void createCycle()}
           >
             Create draft cycle
+          </button>
+        </div>
+      ) : null}
+
+      {selectedCycle?.status === 'draft' ? (
+        <div className="mb-6 dashboard-surface shadow-sm p-4 space-y-4">
+          <h2 className="text-sm font-semibold text-neutral-900">Cycle templates (draft)</h2>
+          <p className="text-xs text-neutral-500">Goals must total 100% weight. Applied to all employees when you activate.</p>
+          {goalTemplates.map((goal, idx) => (
+            <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_120px]">
+              <input
+                className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                value={goal.title}
+                onChange={(e) =>
+                  setGoalTemplates((rows) => rows.map((r, i) => (i === idx ? { ...r, title: e.target.value } : r)))
+                }
+              />
+              <input
+                type="number"
+                min={1}
+                max={100}
+                className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                value={goal.weightPercent}
+                onChange={(e) =>
+                  setGoalTemplates((rows) =>
+                    rows.map((r, i) => (i === idx ? { ...r, weightPercent: Number(e.target.value) } : r)),
+                  )
+                }
+              />
+            </div>
+          ))}
+          <button type="button" className="btn-secondary text-sm" onClick={() => setGoalTemplates((rows) => [...rows, { title: 'New goal', weightPercent: 0 }])}>
+            Add goal
+          </button>
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-neutral-600">Rating dimensions</p>
+            {ratingDimensions.map((dim, idx) => (
+              <input
+                key={idx}
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                value={dim}
+                onChange={(e) =>
+                  setRatingDimensions((rows) => rows.map((r, i) => (i === idx ? e.target.value : r)))
+                }
+              />
+            ))}
+          </div>
+          <button type="button" disabled={busy} className="btn-primary disabled:opacity-50" onClick={() => void saveCycleTemplates()}>
+            Save templates
           </button>
         </div>
       ) : null}
@@ -316,7 +417,12 @@ export function PerformanceDashboardContent() {
                   filtered.map((row) => (
                     <tr key={row.id} className="border-t border-zinc-100">
                       <DashboardTableCell>
-                        <div className="font-medium">{row.employeeName}</div>
+                        <Link
+                          href={`/dashboard/performance/reviews/${row.id}`}
+                          className="font-medium text-primary-800 hover:underline"
+                        >
+                          {row.employeeName}
+                        </Link>
                         {row.employeeNumber ? (
                           <div className="text-xs text-zinc-500">{row.employeeNumber}</div>
                         ) : null}

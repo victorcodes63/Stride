@@ -45,4 +45,8 @@ export function DashboardFilterBar({
 
 /** Standard select styling for filter bars and table toolbars. */
 export const dashboardFilterSelectClass =
-  'dash-filter-select rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
+  'dash-filter-select h-10 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
+
+/** Standard search/text input for filter bars and table toolbars. */
+export const dashboardFilterInputClass =
+  'dash-filter-select h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';

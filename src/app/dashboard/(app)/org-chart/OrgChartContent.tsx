@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Network, Loader2, AlertCircle, ChevronDown, ChevronRight, User, Users, Building2 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
+import { dashboardFilterInputClass } from '@/components/dashboard/DashboardFilterBar';
+import { dashboardAvatarClass, dashboardInitials } from '@/lib/dashboard-avatar-palette';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type OrgEmployee = {
@@ -49,10 +53,10 @@ function OrgTreeNode({ node, depth = 0 }: { node: OrgNode; depth?: number }) {
  hasChildren ? 'hover:bg-primary-50/50 cursor-pointer' : 'cursor-default'
  }`}
  >
- <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
- depth === 0 ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600'
- }`}>
- <User className="w-4 h-4" />
+ <div
+ className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${dashboardAvatarClass(`${node.firstName} ${node.lastName}`)}`}
+ >
+ {dashboardInitials(node.firstName, node.lastName)}
  </div>
  <div className="flex-1 min-w-0">
  <div className="flex items-center gap-2">
@@ -144,56 +148,59 @@ export default function OrgChartContent() {
  <DashboardPageHeader
  title="Organization Chart"
  icon={Network}
- iconClassName="h-7 w-7 shrink-0 text-primary-700"
  description="Visual hierarchy of employees and reporting lines."
- className="mb-6"
  />
 
  {employees && (
- <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
- {[
- { label: 'Total employees', value: employees.length, icon: Users, color: 'text-primary-900' },
- { label: 'Departments', value: departments.length, icon: Building2, color: 'text-indigo-700' },
- { label: 'Managers', value: employees.filter((e) => employees.some((s) => s.managerEmployeeId === e.id)).length, icon: User, color: 'text-blue-700' },
- { label: 'Active', value: employees.filter((e) => e.employmentStatus === 'active').length, icon: Users, color: 'text-emerald-700' },
- ].map((s, i) => (
- <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
- className="dashboard-stat-card">
- <div className="inline-flex rounded-lg p-2 mb-2 bg-primary-50 text-primary-700"><s.icon className="w-4 h-4" /></div>
- <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-0.5">{s.label}</p>
- <p className={`text-xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
- </motion.div>
- ))}
- </div>
+ <DashboardStatGrid>
+ <DashboardStatCard label="Total employees" value={employees.length} tone="primary" />
+ <DashboardStatCard label="Departments" value={departments.length} tone="violet" />
+ <DashboardStatCard
+ label="Managers"
+ value={employees.filter((e) => employees.some((s) => s.managerEmployeeId === e.id)).length}
+ tone="sky"
+ />
+ <DashboardStatCard
+ label="Active"
+ value={employees.filter((e) => e.employmentStatus === 'active').length}
+ tone="success"
+ />
+ </DashboardStatGrid>
  )}
 
- <div className="mb-4">
- <input placeholder="Search employees…" value={search} onChange={(e) => setSearch(e.target.value)}
- className="w-full max-w-sm px-4 py-2.5 rounded-lg border border-neutral-300 text-sm focus:ring-2 focus:ring-primary-200 focus:border-primary-400 transition-all" />
- </div>
+ <div className="overflow-hidden dashboard-surface shadow-sm">
+ <DashboardTableToolbar>
+ <input
+ placeholder="Search employees…"
+ value={search}
+ onChange={(e) => setSearch(e.target.value)}
+ className={`${dashboardFilterInputClass} max-w-sm`}
+ />
+ </DashboardTableToolbar>
 
- {loading && <div className="flex items-center gap-2 text-neutral-600 py-12 justify-center"><Loader2 className="w-5 h-5 animate-spin" /> Loading…</div>}
+ <div className="border-t border-[var(--dash-border-subtle)] p-4 sm:p-5">
+ {loading && (
+ <div className="flex items-center justify-center gap-2 py-12 text-[var(--dash-text-muted)]">
+ <Loader2 className="h-5 w-5 animate-spin" /> Loading…
+ </div>
+ )}
  {!loading && error && (
- <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex gap-3 items-start">
- <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" /><p>{error}</p>
+ <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex gap-3 items-start dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+ <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+ <p>{error}</p>
  </div>
  )}
-
  {!loading && !error && tree.length === 0 && (
- <div className="dashboard-surface p-8 text-center text-sm text-neutral-500">
+ <p className="py-8 text-center text-sm text-[var(--dash-text-muted)]">
  No employees found. Add employees with manager assignments to build the org chart.
- </div>
+ </p>
  )}
-
- {!loading && !error && tree.length > 0 && (
- <div className="dashboard-stat-card sm:p-5">
- {tree
+ {!loading && !error && tree.length > 0 &&
+ tree
  .sort((a, b) => (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName))
- .map((node) => (
- <OrgTreeNode key={node.id} node={node} />
- ))}
+ .map((node) => <OrgTreeNode key={node.id} node={node} />)}
  </div>
- )}
+ </div>
  </DashboardPage>
  );
 }

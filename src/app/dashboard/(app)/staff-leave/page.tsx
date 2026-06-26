@@ -20,6 +20,10 @@ import {
 import { DashboardAsyncState, DashboardInlineLoading } from '@/components/dashboard/DashboardAsyncState';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import {
+  dashboardFilterInputClass,
+  dashboardFilterSelectClass,
+} from '@/components/dashboard/DashboardFilterBar';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
 import { useDashboardTabParam } from '@/hooks/useDashboardTabParam';
 import { LeaveAudienceTabs } from '../leave/LeaveHub';
@@ -418,11 +422,22 @@ function StaffLeavePageContent() {
  iconClassName="h-7 w-7 text-primary-600"
  description="Balances, requests, and approvals for internal staff."
  actions={
- <>
+ <button
+ type="button"
+ onClick={() => setModal(true)}
+ className="btn-primary inline-flex items-center gap-2"
+ >
+ <Plus className="w-4 h-4" />
+ Request leave
+ </button>
+ }
+ footer={
+ <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
  <select
  value={year}
  onChange={(e) => setYear(parseInt(e.target.value, 10))}
- className="px-3 py-2 border border-neutral-300 rounded-lg text-sm bg-white"
+ className={`${dashboardFilterSelectClass} w-full sm:w-auto`}
+ aria-label="Leave year"
  >
  {[year - 1, year, year + 1].map((y) => (
  <option key={y} value={y}>
@@ -430,17 +445,6 @@ function StaffLeavePageContent() {
  </option>
  ))}
  </select>
- <button
- type="button"
- onClick={() => setModal(true)}
- className="inline-flex items-center gap-2 px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-semibold hover:bg-primary-800"
- >
- <Plus className="w-4 h-4" />
- Request leave
- </button>
- </>
- }
- footer={
  <DashboardTabs
  embedded
  value={tab}
@@ -475,6 +479,7 @@ function StaffLeavePageContent() {
  },
  ]}
  />
+ </div>
  }
  />
 

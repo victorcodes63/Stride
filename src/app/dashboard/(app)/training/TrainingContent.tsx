@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
 type ProgramRow = {
  id: string;
@@ -28,12 +29,12 @@ type ProgramRow = {
  createdAt: string;
 };
 
-const STATUS_STYLES: Record<string, string> = {
- scheduled: 'bg-blue-50 text-blue-800',
- in_progress: 'bg-amber-50 text-amber-800',
- completed: 'bg-emerald-50 text-emerald-800',
- cancelled: 'bg-neutral-100 text-neutral-500',
-};
+function trainingStatusClass(status: string) {
+ if (status === 'completed') return dashStatusChip('success');
+ if (status === 'in_progress' || status === 'scheduled') return dashStatusChip('info');
+ if (status === 'cancelled') return dashStatusChip('neutral');
+ return dashStatusChip('neutral');
+}
 
 export default function TrainingContent() {
  const [programs, setPrograms] = useState<ProgramRow[] | null>(null);
@@ -179,7 +180,7 @@ export default function TrainingContent() {
  <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
  <GraduationCap className="w-5 h-5 text-primary-700" />
  </div>
- <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_STYLES[p.status] || 'bg-neutral-100 text-neutral-700'}`}>
+ <span className={trainingStatusClass(p.status)}>
  {p.status.replace('_', ' ')}
  </span>
  </div>

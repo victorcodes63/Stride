@@ -16,6 +16,11 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
+import {
+  dashboardFilterInputClass,
+  dashboardFilterSelectClass,
+} from '@/components/dashboard/DashboardFilterBar';
 
 type RequestStatus = 'pending' | 'processing' | 'completed' | 'rejected';
 type DocumentType = 'employment_letter' | 'p9_form' | 'payslip_copy' | 'nssf_statement' | 'nhif_statement' | 'clearance_letter' | 'recommendation_letter' | 'salary_advance_form' | 'other';
@@ -153,7 +158,7 @@ export default function DocumentRequestsPage() {
  </section>
 
  <div className="dashboard-surface shadow-sm">
- <div className="p-4 border-b border-neutral-200">
+ <DashboardTableToolbar label="Search & filters">
  <div className="flex flex-col sm:flex-row gap-3">
  <div className="relative flex-1 max-w-md">
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
@@ -161,13 +166,13 @@ export default function DocumentRequestsPage() {
  value={q}
  onChange={(e) => setQ(e.target.value)}
  placeholder="Search employee, document type, reason..."
- className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+ className={`${dashboardFilterInputClass} pl-9`}
  />
  </div>
  <select
  value={statusFilter}
  onChange={(e) => setStatusFilter(e.target.value as RequestStatus | 'all')}
- className="h-10 px-3 border border-neutral-300 rounded-lg text-sm bg-white"
+ className={dashboardFilterSelectClass}
  >
  <option value="all">All statuses</option>
  <option value="pending">Pending</option>
@@ -178,7 +183,7 @@ export default function DocumentRequestsPage() {
  <select
  value={typeFilter}
  onChange={(e) => setTypeFilter(e.target.value)}
- className="h-10 px-3 border border-neutral-300 rounded-lg text-sm bg-white"
+ className={dashboardFilterSelectClass}
  >
  <option value="">All document types</option>
  {DOCUMENT_TYPES.map((dt) => (
@@ -189,7 +194,7 @@ export default function DocumentRequestsPage() {
  <p className="mt-2 text-xs text-neutral-500">
  Showing {filtered.length} of {requests.length} requests
  </p>
- </div>
+ </DashboardTableToolbar>
 
  <div className="overflow-x-auto">
  <table className="data-table dashboard-data-table w-full min-w-[1000px]">

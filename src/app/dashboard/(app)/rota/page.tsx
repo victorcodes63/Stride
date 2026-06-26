@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEntity } from '@/components/EntitySwitcher';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { dashboardFilterSelectClass } from '@/components/dashboard/DashboardFilterBar';
 import {
  LayoutGrid,
  FileSpreadsheet,
@@ -1142,19 +1143,6 @@ export default function RotaPage() {
  title="Rota planner"
  description="Build shift templates, plan periods, assign staff, scan conflicts, and import from CSV."
  actions={
- <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
- <select
- value={selectedClientId}
- onChange={(e) => setSelectedClientId(e.target.value)}
- className="h-10 rounded-lg border border-neutral-300 px-3 text-sm bg-white min-w-[220px]"
- >
- <option value="">Select workspace</option>
- {clients.map((c) => (
- <option key={c.id} value={c.id}>
- {c.name}
- </option>
- ))}
- </select>
  <button
  type="button"
  onClick={() => void refreshAll()}
@@ -1163,7 +1151,21 @@ export default function RotaPage() {
  <RefreshCw className={`h-4 w-4 ${busy || loading ? 'animate-spin' : ''}`} />
  Refresh
  </button>
- </div>
+ }
+ footer={
+ <select
+ value={selectedClientId}
+ onChange={(e) => setSelectedClientId(e.target.value)}
+ className={`${dashboardFilterSelectClass} w-full sm:min-w-[220px] sm:max-w-md`}
+ aria-label="Rota workspace"
+ >
+ <option value="">Select workspace</option>
+ {clients.map((c) => (
+ <option key={c.id} value={c.id}>
+ {c.name}
+ </option>
+ ))}
+ </select>
  }
  />
 
