@@ -6,18 +6,16 @@ import { normalizeEmployeeNationalId } from '@/lib/outsourcing-employee-national
 import { calculateStatutoryForPayroll, getPayrollStatutoryRates } from '@/lib/payroll-calc';
 import { mapOutsourcingClientsToAccountsClients } from '@/lib/payroll-accounts-link';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { canAccessPayroll, forbiddenResponse, unauthorizedResponse } from '@/lib/demo-route-access';
+import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
+import { withTenant } from '@/lib/tenant-api';
 
 function toDecimal(n: number): Decimal {
   return new Decimal(Math.round((n + Number.EPSILON) * 100) / 100);
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const user = await requireStaffUser(request);
-    if (!user) return unauthorizedResponse();
-    if (!canAccessPayroll(user)) {
+  return withTenant(request, async (ctx) => {
+    if (!canAccessPayroll(ctx.staff)) {
       return forbiddenResponse('Payroll access is restricted to finance and admins.');
     }
     if (!process.env.DATABASE_URL) {
@@ -32,12 +30,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'file, month, and year are required.' }, { status: 400 });
     }
 
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      requestedClientId,
+      request,
+      ctx.organizationId,
+    );
 
-    const client = await prisma.outsourcingClient.findUnique({
-      where: { id: clientId },
-      select: { id: true, leavePayMode: true },
-    });
+    const client = await ctx.run((tx) =>
+      tx.outsourcingClient.findFirst({
+        where: { id: clientId, organizationId: ctx.organizationId },
+        select: { id: true, leavePayMode: true },
+      }),
+    );
     if (!client) return NextResponse.json({ error: 'Client not found.' }, { status: 404 });
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -121,17 +126,23 @@ export async function POST(request: NextRequest) {
           .filter((x): x is string => Boolean(x)),
       ),
     ];
-    const employees = await prisma.employee.findMany({
-      where: { outsourcingClientId: clientId, idNumber: { in: idValues } },
-      select: { id: true, idNumber: true, baseSalary: true, outsourcingClientId: true },
-    });
+    const employees = await ctx.run((tx) =>
+      tx.employee.findMany({
+        where: {
+          outsourcingClientId: clientId,
+          idNumber: { in: idValues },
+          client: { organizationId: ctx.organizationId },
+        },
+        select: { id: true, idNumber: true, baseSalary: true, outsourcingClientId: true },
+      }),
+    );
     const employeeByIdNumber = new Map(
       employees.map((e) => [normalizeEmployeeNationalId(e.idNumber) ?? '', e]),
     );
     const accountsByOutsourcing = await mapOutsourcingClientsToAccountsClients([clientId]);
     const statutoryRates = await getPayrollStatutoryRates({
       clientId,
-      organizationId: user.currentOrgId,
+      organizationId: ctx.organizationId,
     });
 
     const unmatchedRows = rowsToCommit
@@ -163,29 +174,32 @@ export async function POST(request: NextRequest) {
           invalidRows: grossBelowBaseRows,
         }, { status: 400 });
       }
-      // User explicitly opted to accept sheet values as updates:
-      // align employee base salary down to the uploaded gross pay for these rows.
       for (const row of rowsToCommit) {
         const employee = employeeByIdNumber.get(normalizeEmployeeNationalId(row.nationalId) ?? '');
         if (!employee || employee.baseSalary == null) continue;
         const currentBase = Number(employee.baseSalary);
         if (row.grossPay < currentBase) {
-          await prisma.employee.update({
-            where: { id: employee.id },
-            data: { baseSalary: toDecimal(row.grossPay) },
-          });
+          await ctx.run((tx) =>
+            tx.employee.update({
+              where: { id: employee.id },
+              data: { baseSalary: toDecimal(row.grossPay) },
+            }),
+          );
           employee.baseSalary = toDecimal(row.grossPay);
         }
       }
     }
-    const existing = await prisma.payroll.findMany({
-      where: {
-        month,
-        year,
-        employeeId: { in: employees.map((e) => e.id) },
-      },
-      select: { id: true, employeeId: true, status: true },
-    });
+    const existing = await ctx.run((tx) =>
+      tx.payroll.findMany({
+        where: {
+          ...ctx.where(),
+          month,
+          year,
+          employeeId: { in: employees.map((e) => e.id) },
+        },
+        select: { id: true, employeeId: true, status: true },
+      }),
+    );
     const existingByEmployee = new Map(existing.map((e) => [e.employeeId, e]));
 
     let updated = 0;
@@ -236,22 +250,27 @@ export async function POST(request: NextRequest) {
           });
           continue;
         }
-        await prisma.payroll.update({
-          where: { id: existingPayroll.id },
-          data: payload,
-        });
+        await ctx.run((tx) =>
+          tx.payroll.update({
+            where: { id: existingPayroll.id },
+            data: payload,
+          }),
+        );
         updated += 1;
         continue;
       }
 
-      await prisma.payroll.create({
-        data: {
-          employeeId: employee.id,
-          month,
-          year,
-          ...payload,
-        },
-      });
+      await ctx.run((tx) =>
+        tx.payroll.create({
+          data: {
+            organizationId: ctx.organizationId,
+            employeeId: employee.id,
+            month,
+            year,
+            ...payload,
+          },
+        }),
+      );
       created += 1;
     }
 
@@ -262,8 +281,5 @@ export async function POST(request: NextRequest) {
       skippedDetails: skipped.slice(0, 50),
       message: `Payroll import complete for ${month}/${year}. Created ${created}, updated ${updated}, skipped ${skipped.length}.`,
     });
-  } catch (e) {
-    console.error('[outsourcing/payroll/import/commit]', e);
-    return NextResponse.json({ error: 'Failed to commit payroll import.' }, { status: 500 });
-  }
+  });
 }

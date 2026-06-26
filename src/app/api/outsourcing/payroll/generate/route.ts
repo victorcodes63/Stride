@@ -5,17 +5,14 @@ import { calculateStatutoryForPayroll, getPayrollStatutoryRatesByClient, getPayr
 import { isBiweeklyClient } from '@/lib/biweekly-payroll';
 import { mapOutsourcingClientsToAccountsClients } from '@/lib/payroll-accounts-link';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { canAccessPayroll, forbiddenResponse, unauthorizedResponse } from '@/lib/demo-route-access';
+import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
 import { ATTENDANCE_SUMMARY_STATUSES_FOR_PAYROLL } from '@/lib/attendance-reconciliation';
-import { logAuditEvent } from '@/lib/audit-events';
 import { createWorkflowRun, getPayrollUserIds, sendNotification } from '@/lib/notifications';
+import { withTenant } from '@/lib/tenant-api';
 
 export async function POST(request: NextRequest) {
-  try {
-    const user = await requireStaffUser(request);
-    if (!user) return unauthorizedResponse();
-    if (!canAccessPayroll(user)) {
+  return withTenant(request, async (ctx) => {
+    if (!canAccessPayroll(ctx.staff)) {
       return forbiddenResponse('Payroll access is restricted to finance and admins.');
     }
     if (!process.env.DATABASE_URL) {
@@ -33,7 +30,12 @@ export async function POST(request: NextRequest) {
     const month = typeof b.month === 'number' ? b.month : parseInt(String(b.month ?? ''), 10);
     const year = typeof b.year === 'number' ? b.year : parseInt(String(b.year ?? ''), 10);
     const requestedClientId = typeof b.clientId === 'string' && b.clientId.trim() ? b.clientId.trim() : null;
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      requestedClientId,
+      request,
+      ctx.organizationId,
+    );
     const departmentId = typeof b.departmentId === 'string' && b.departmentId.trim() ? b.departmentId.trim() : null;
     const defaultLeavePay =
       typeof b.defaultLeavePay === 'number' && !Number.isNaN(b.defaultLeavePay)
@@ -48,25 +50,30 @@ export async function POST(request: NextRequest) {
 
     let biweekly = false;
     let leavePayMode: string | null = 'none';
-    const c = await prisma.outsourcingClient.findUnique({
-      where: { id: clientId },
-      select: { payrollFrequency: true, leavePayMode: true },
-    });
+    const c = await ctx.run((tx) =>
+      tx.outsourcingClient.findFirst({
+        where: { id: clientId, organizationId: ctx.organizationId },
+        select: { payrollFrequency: true, leavePayMode: true },
+      }),
+    );
     biweekly = isBiweeklyClient(c?.payrollFrequency);
     leavePayMode = c?.leavePayMode ?? 'none';
 
     const statutoryRates = await getPayrollStatutoryRates({
       clientId,
-      organizationId: user.currentOrgId,
+      organizationId: ctx.organizationId,
     });
 
-    const employees = await prisma.employee.findMany({
-      where: {
-        outsourcingClientId: clientId,
-        ...(departmentId ? { departmentId } : {}),
-      },
-      select: { id: true, baseSalary: true, outsourcingClientId: true },
-    });
+    const employees = await ctx.run((tx) =>
+      tx.employee.findMany({
+        where: {
+          outsourcingClientId: clientId,
+          ...(departmentId ? { departmentId } : {}),
+          client: { organizationId: ctx.organizationId },
+        },
+        select: { id: true, baseSalary: true, outsourcingClientId: true },
+      }),
+    );
 
     const accountsByOutsourcing = await mapOutsourcingClientsToAccountsClients(
       employees.map((e) => e.outsourcingClientId),
@@ -76,24 +83,29 @@ export async function POST(request: NextRequest) {
     let statutoryByClient = new Map<string, Awaited<ReturnType<typeof getPayrollStatutoryRates>>>();
     if (!clientId && employees.length) {
       const clientIds = [...new Set(employees.map((e) => e.outsourcingClientId))];
-      const clients = await prisma.outsourcingClient.findMany({
-        where: { id: { in: clientIds } },
-        select: { id: true, leavePayMode: true, payrollFrequency: true },
-      });
-      for (const c of clients) {
-        clientModes.set(c.id, c.leavePayMode);
+      const clients = await ctx.run((tx) =>
+        tx.outsourcingClient.findMany({
+          where: { id: { in: clientIds }, organizationId: ctx.organizationId },
+          select: { id: true, leavePayMode: true, payrollFrequency: true },
+        }),
+      );
+      for (const client of clients) {
+        clientModes.set(client.id, client.leavePayMode);
       }
-      statutoryByClient = await getPayrollStatutoryRatesByClient(clientIds, user.currentOrgId);
+      statutoryByClient = await getPayrollStatutoryRatesByClient(clientIds, ctx.organizationId);
     }
 
-    const existing = await prisma.payroll.findMany({
-      where: {
-        month,
-        year,
-        employeeId: { in: employees.map((e) => e.id) },
-      },
-      select: { employeeId: true },
-    });
+    const existing = await ctx.run((tx) =>
+      tx.payroll.findMany({
+        where: {
+          ...ctx.where(),
+          month,
+          year,
+          employeeId: { in: employees.map((e) => e.id) },
+        },
+        select: { employeeId: true },
+      }),
+    );
     const existingIds = new Set(existing.map((e) => e.employeeId));
     const toCreate = employees.filter((e) => !existingIds.has(e.id));
 
@@ -105,8 +117,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    /** Use interactive transaction — `.$transaction([ async () => ... ])` is not a supported Prisma batch shape. */
-    await prisma.$transaction(async (tx) => {
+    await ctx.run(async (tx) => {
       const periodStart = new Date(Date.UTC(year, month - 1, 1));
       const periodEnd = new Date(Date.UTC(year, month, 1));
       for (const e of toCreate) {
@@ -160,6 +171,7 @@ export async function POST(request: NextRequest) {
           const stat = calculateStatutoryForPayroll(mode, employmentGross, lp, 0, rates);
           await tx.payroll.create({
             data: {
+              organizationId: ctx.organizationId,
               employeeId: e.id,
               month,
               year,
@@ -184,6 +196,7 @@ export async function POST(request: NextRequest) {
           const stat = calculateStatutoryForPayroll(mode, employmentGross, lp, 0, rates);
           await tx.payroll.create({
             data: {
+              organizationId: ctx.organizationId,
               employeeId: e.id,
               month,
               year,
@@ -204,8 +217,7 @@ export async function POST(request: NextRequest) {
         }
       }
     });
-    await logAuditEvent({
-      actor: { userId: user.id, email: user.email, name: user.name },
+    await ctx.audit({
       action: 'payroll.generated',
       entityType: 'PayrollBatch',
       entityId: `${year}-${month}-${clientId}`,
@@ -226,7 +238,16 @@ export async function POST(request: NextRequest) {
         event: 'payroll_generated',
         entityType: 'PayrollBatch',
         entityId: `${year}-${month}-${clientId}`,
-        entityCode: clientId ? (await prisma.outsourcingClient.findUnique({ where: { id: clientId }, select: { entityCode: true } }))?.entityCode ?? null : null,
+        entityCode: clientId
+          ? (
+              await ctx.run((tx) =>
+                tx.outsourcingClient.findFirst({
+                  where: { id: clientId, organizationId: ctx.organizationId },
+                  select: { entityCode: true },
+                }),
+              )
+            )?.entityCode ?? null
+          : null,
         assigneeUserId: payrollUserIds[0] ?? null,
         dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         metadata: { month, year, clientId, created: toCreate.length },
@@ -251,9 +272,5 @@ export async function POST(request: NextRequest) {
       skipped: employees.length - toCreate.length,
       message: `Created ${toCreate.length} draft payroll record(s) for ${month}/${year}.${biweekly ? ' (Bi-weekly)' : ''}`,
     });
-  } catch (e) {
-    console.error('[payroll/generate]', e);
-    const detail = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: 'Failed to generate payroll', detail }, { status: 500 });
-  }
+  });
 }

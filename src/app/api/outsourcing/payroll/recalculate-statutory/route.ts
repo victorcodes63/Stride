@@ -5,25 +5,28 @@ import { calculateStatutoryForPayroll, getPayrollStatutoryRates } from '@/lib/pa
 import { isBiweeklyClient } from '@/lib/biweekly-payroll';
 import { mapOutsourcingClientsToAccountsClients } from '@/lib/payroll-accounts-link';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { canAccessPayroll, forbiddenResponse, unauthorizedResponse } from '@/lib/demo-route-access';
+import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
+import { withTenant } from '@/lib/tenant-api';
 
 function toDecimal(n: number): Decimal {
   return new Decimal(Math.round(n * 100) / 100);
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const user = await requireStaffUser(request);
-    if (!user) return unauthorizedResponse();
-    if (!canAccessPayroll(user)) {
+  return withTenant(request, async (ctx) => {
+    if (!canAccessPayroll(ctx.staff)) {
       return forbiddenResponse('Payroll access is restricted to finance and admins.');
     }
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     const month = body.month != null ? parseInt(String(body.month), 10) : undefined;
     const year = body.year != null ? parseInt(String(body.year), 10) : undefined;
     const requestedClientId = typeof body.clientId === 'string' ? body.clientId : undefined;
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      requestedClientId,
+      request,
+      ctx.organizationId,
+    );
     const departmentId = typeof body.departmentId === 'string' ? body.departmentId : undefined;
 
     if (
@@ -37,24 +40,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Valid month and year required' }, { status: 400 });
     }
 
-    const payrolls = await prisma.payroll.findMany({
-      where: {
-        month,
-        year,
-        employee: {
-          outsourcingClientId: clientId,
-          ...(departmentId ? { departmentId } : {}),
-        },
-      },
-      include: {
-        employee: {
-          select: {
-            outsourcingClientId: true,
-            client: { select: { leavePayMode: true, payrollFrequency: true } },
+    const payrolls = await ctx.run((tx) =>
+      tx.payroll.findMany({
+        where: {
+          ...ctx.where(),
+          month,
+          year,
+          employee: {
+            outsourcingClientId: clientId,
+            ...(departmentId ? { departmentId } : {}),
+            client: { organizationId: ctx.organizationId },
           },
         },
-      },
-    });
+        include: {
+          employee: {
+            select: {
+              outsourcingClientId: true,
+              client: { select: { leavePayMode: true, payrollFrequency: true } },
+            },
+          },
+        },
+      }),
+    );
 
     const accountsByOutsourcing = await mapOutsourcingClientsToAccountsClients(
       payrolls.map((p) => p.employee.outsourcingClientId),
@@ -62,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     const statutoryRates = await getPayrollStatutoryRates({
       clientId,
-      organizationId: user.currentOrgId,
+      organizationId: ctx.organizationId,
     });
 
     let updated = 0;
@@ -81,19 +88,21 @@ export async function POST(request: NextRequest) {
 
       const calc = calculateStatutoryForPayroll(mode, employmentGross, leavePay, otherTotal, statutoryRates);
 
-      await prisma.payroll.update({
-        where: { id: p.id },
-        data: {
-          accountsClientId: accountsByOutsourcing.get(p.employee.outsourcingClientId) ?? null,
-          grossPay: toDecimal(calc.grossPay),
-          paye: toDecimal(calc.paye),
-          nssf: toDecimal(calc.nssf),
-          nhif: toDecimal(calc.nhif),
-          ahl: toDecimal(calc.ahl),
-          nita: toDecimal(calc.nita),
-          netPay: toDecimal(calc.netPay),
-        },
-      });
+      await ctx.run((tx) =>
+        tx.payroll.update({
+          where: { id: p.id },
+          data: {
+            accountsClientId: accountsByOutsourcing.get(p.employee.outsourcingClientId) ?? null,
+            grossPay: toDecimal(calc.grossPay),
+            paye: toDecimal(calc.paye),
+            nssf: toDecimal(calc.nssf),
+            nhif: toDecimal(calc.nhif),
+            ahl: toDecimal(calc.ahl),
+            nita: toDecimal(calc.nita),
+            netPay: toDecimal(calc.netPay),
+          },
+        }),
+      );
       updated++;
     }
 
@@ -101,8 +110,5 @@ export async function POST(request: NextRequest) {
       updated,
       message: `Recalculated statutory for ${updated} record(s) (respects leave pay mode per client).`,
     });
-  } catch (e) {
-    console.error('[payroll recalculate-statutory]', e);
-    return NextResponse.json({ error: 'Failed to recalculate' }, { status: 500 });
-  }
+  });
 }

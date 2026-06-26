@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { allocateNextEmployeeNumber, deriveEmployeePrefixFromName } from '@/lib/outsourcing-employee-number';
 import { normalizeEmployeeNationalId } from '@/lib/outsourcing-employee-national-id';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { canAccessPayroll, forbiddenResponse, unauthorizedResponse } from '@/lib/demo-route-access';
+import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
+import { withTenant } from '@/lib/tenant-api';
 
 type MissingSeed = {
   nationalId: string;
@@ -23,10 +23,9 @@ function splitName(fullName: string | null | undefined): { firstName: string; la
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const user = await requireStaffUser(request);
-    if (!user) return unauthorizedResponse();
-    if (!canAccessPayroll(user)) {
+  return withTenant(request, async (ctx) => {
+    try {
+    if (!canAccessPayroll(ctx.staff)) {
       return forbiddenResponse('Payroll access is restricted to finance and admins.');
     }
     if (!process.env.DATABASE_URL) {
@@ -44,12 +43,19 @@ export async function POST(request: NextRequest) {
     if (missingRows.length === 0) {
       return NextResponse.json({ error: 'missingRows[] is required.' }, { status: 400 });
     }
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      requestedClientId,
+      request,
+      ctx.organizationId,
+    );
 
-    const client = await prisma.outsourcingClient.findUnique({
-      where: { id: clientId },
-      select: { id: true, name: true, employeeNumberPrefix: true },
-    });
+    const client = await ctx.run((tx) =>
+      tx.outsourcingClient.findFirst({
+        where: { id: clientId, organizationId: ctx.organizationId },
+        select: { id: true, name: true, employeeNumberPrefix: true },
+      }),
+    );
     if (!client) return NextResponse.json({ error: 'Client not found.' }, { status: 404 });
 
     const normalizedBatchIds = [
@@ -61,10 +67,15 @@ export async function POST(request: NextRequest) {
     ];
     const existingById =
       normalizedBatchIds.length > 0
-        ? await prisma.employee.findMany({
-            where: { idNumber: { in: normalizedBatchIds } },
-            select: { idNumber: true },
-          })
+        ? await ctx.run((tx) =>
+            tx.employee.findMany({
+              where: {
+                idNumber: { in: normalizedBatchIds },
+                client: { organizationId: ctx.organizationId },
+              },
+              select: { idNumber: true },
+            }),
+          )
         : [];
     const existingIds = new Set(
       existingById.map((e) => e.idNumber).filter((x): x is string => Boolean(x))
@@ -103,17 +114,20 @@ export async function POST(request: NextRequest) {
           ? seed.email.trim().toLowerCase()
           : null;
       const employeeNumber = await allocateNextEmployeeNumber(prisma, clientId, prefix);
-      const createdEmployee = await prisma.employee.create({
-        data: {
-          outsourcingClientId: clientId,
-          employeeNumber,
-          firstName,
-          lastName,
-          email: providedEmail,
-          idNumber: nationalIdNorm,
-        },
-        select: { id: true, firstName: true, lastName: true, idNumber: true },
-      });
+      const createdEmployee = await ctx.run((tx) =>
+        tx.employee.create({
+          data: {
+            organizationId: ctx.organizationId,
+            outsourcingClientId: clientId,
+            employeeNumber,
+            firstName,
+            lastName,
+            email: providedEmail,
+            idNumber: nationalIdNorm,
+          },
+          select: { id: true, firstName: true, lastName: true, idNumber: true },
+        }),
+      );
       seenInRequest.add(nationalIdNorm);
       existingIds.add(nationalIdNorm);
       created.push({
@@ -124,15 +138,15 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ createdCount: created.length, skippedCount: skipped.length, created, skipped });
-  } catch (e) {
-    const err = e as { code?: string; meta?: { target?: string[] } };
-    if (err.code === 'P2002' && err.meta?.target?.includes('idNumber')) {
-      return NextResponse.json(
-        { error: 'A National ID in this batch already exists for another employee.' },
-        { status: 409 }
-      );
+    } catch (e) {
+      const err = e as { code?: string; meta?: { target?: string[] } };
+      if (err.code === 'P2002' && err.meta?.target?.includes('idNumber')) {
+        return NextResponse.json(
+          { error: 'A National ID in this batch already exists for another employee.' },
+          { status: 409 },
+        );
+      }
+      throw e;
     }
-    console.error('[outsourcing/payroll/import/create-missing-employees]', e);
-    return NextResponse.json({ error: 'Failed to create missing employees.' }, { status: 500 });
-  }
+  });
 }

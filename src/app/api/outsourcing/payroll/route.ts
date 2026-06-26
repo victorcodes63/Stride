@@ -1,25 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { canAccessPayroll, forbiddenResponse, unauthorizedResponse } from '@/lib/demo-route-access';
+import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
 import { logAuditEvent } from '@/lib/audit-events';
+import { withTenant } from '@/lib/tenant-api';
 
 export async function GET(request: NextRequest) {
-  try {
-    const user = await requireStaffUser(request);
-    if (!user) return unauthorizedResponse();
-    if (!canAccessPayroll(user)) {
+  return withTenant(request, async (ctx) => {
+    if (!canAccessPayroll(ctx.staff)) {
       return forbiddenResponse('Payroll access is restricted to finance and admins.');
     }
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
+
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
     const requestedClientId = searchParams.get('clientId') || undefined;
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      requestedClientId,
+      request,
+      ctx.organizationId,
+    );
     const departmentId = searchParams.get('departmentId') || undefined;
     const employeeIdsCsv = searchParams.get('employeeIds') || '';
     const employeeIds = employeeIdsCsv
@@ -33,34 +37,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid month or year' }, { status: 400 });
     }
 
-    const payrolls = await prisma.payroll.findMany({
-      where: {
-        month: m,
-        year: y,
-        ...(employeeIds.length > 0 ? { employeeId: { in: employeeIds } } : {}),
-        ...(clientId || departmentId
-          ? {
-              employee: {
-                ...(clientId ? { outsourcingClientId: clientId } : {}),
-                ...(departmentId ? { departmentId } : {}),
-              },
-            }
-          : {}),
-      },
-      include: {
-        accountsClient: { select: { id: true, name: true } },
-        employee: {
-          include: {
-            client: { select: { id: true, name: true, payrollFrequency: true, leavePayMode: true } },
-            department: { select: { id: true, name: true } },
+    const payrolls = await ctx.run((tx) =>
+      tx.payroll.findMany({
+        where: {
+          ...ctx.where(),
+          month: m,
+          year: y,
+          ...(employeeIds.length > 0 ? { employeeId: { in: employeeIds } } : {}),
+          ...(clientId || departmentId
+            ? {
+                employee: {
+                  ...(clientId ? { outsourcingClientId: clientId } : {}),
+                  ...(departmentId ? { departmentId } : {}),
+                },
+              }
+            : {}),
+        },
+        include: {
+          accountsClient: { select: { id: true, name: true } },
+          employee: {
+            include: {
+              client: { select: { id: true, name: true, payrollFrequency: true, leavePayMode: true } },
+              department: { select: { id: true, name: true } },
+            },
           },
         },
-      },
-      orderBy: [
-        { employee: { lastName: 'asc' } },
-        { employee: { firstName: 'asc' } },
-      ],
-    });
+        orderBy: [
+          { employee: { lastName: 'asc' } },
+          { employee: { firstName: 'asc' } },
+        ],
+      }),
+    );
 
     const list = payrolls.map((p) => ({
       id: p.id,
@@ -93,14 +100,18 @@ export async function GET(request: NextRequest) {
       attendanceSummaryStatus: 'legacy',
     }));
 
+    const start = new Date(Date.UTC(y, m - 1, 1));
+    const end = new Date(Date.UTC(y, m, 1));
+
     const prismaAny = prisma as unknown as {
       attendanceDaySummary?: {
-        aggregate: (args: unknown) => Promise<{ _count: { _all: number }; _sum: { minutesWorked: number | null } }>;
+        aggregate: (args: unknown) => Promise<{
+          _count: { _all: number };
+          _sum: { minutesWorked: number | null };
+        }>;
       };
     };
     const hasSummaryModel = typeof prismaAny.attendanceDaySummary?.aggregate === 'function';
-    const start = new Date(Date.UTC(y, m - 1, 1));
-    const end = new Date(Date.UTC(y, m, 1));
 
     if (hasSummaryModel) {
       await Promise.all(
@@ -112,7 +123,7 @@ export async function GET(request: NextRequest) {
           });
           (row as Record<string, unknown>).attendanceDays = summary._count._all;
           (row as Record<string, unknown>).attendanceMinutes = summary._sum.minutesWorked ?? 0;
-        })
+        }),
       );
     } else {
       for (const row of list) {
@@ -122,20 +133,14 @@ export async function GET(request: NextRequest) {
     }
 
     await logAuditEvent({
-      actor: { userId: user.id, email: user.email, name: user.name },
+      actor: { userId: ctx.staff.id, email: ctx.staff.email, name: ctx.staff.name },
       action: 'payroll.records.view',
       entityType: 'PayrollBatch',
       entityId: `${y}-${m}-${clientId ?? 'all'}`,
       route: 'GET /api/outsourcing/payroll',
       metadata: { month: m, year: y, departmentId: departmentId ?? null, count: list.length },
     });
+
     return NextResponse.json(list);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('outside active entity scope')) {
-      return NextResponse.json({ error: msg }, { status: 403 });
-    }
-    console.error('[payroll GET]', e);
-    return NextResponse.json({ error: 'Failed to load payroll' }, { status: 500 });
-  }
+  });
 }

@@ -4,23 +4,25 @@ import { sendPayslipEmail } from '@/lib/email';
 import { normalizeAttendance } from '@/lib/biweekly-attendance';
 import { isBiweeklyClient } from '@/lib/biweekly-payroll';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { canAccessPayroll, forbiddenResponse, unauthorizedResponse } from '@/lib/demo-route-access';
-import { logAuditEvent } from '@/lib/audit-events';
+import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
 import { getEssPortalUserIdForEmployee, sendNotification } from '@/lib/notifications';
+import { withTenant } from '@/lib/tenant-api';
 
 export async function POST(request: NextRequest) {
-  try {
-    const user = await requireStaffUser(request);
-    if (!user) return unauthorizedResponse();
-    if (!canAccessPayroll(user)) {
+  return withTenant(request, async (ctx) => {
+    if (!canAccessPayroll(ctx.staff)) {
       return forbiddenResponse('Payroll access is restricted to finance and admins.');
     }
     const body = await request.json().catch(() => ({}));
     const month = body.month != null ? parseInt(String(body.month), 10) : new Date().getMonth() + 1;
     const year = body.year != null ? parseInt(String(body.year), 10) : new Date().getFullYear();
     const requestedClientId = typeof body.clientId === 'string' ? body.clientId : undefined;
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      requestedClientId,
+      request,
+      ctx.organizationId,
+    );
     const departmentId = typeof body.departmentId === 'string' ? body.departmentId : undefined;
     const testTo = typeof body.testTo === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.testTo) ? body.testTo : undefined;
     const employeeIds = Array.isArray(body.employeeIds)
@@ -31,34 +33,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid month or year' }, { status: 400 });
     }
 
-    const payrolls = await prisma.payroll.findMany({
-      where: {
-        month,
-        year,
-        ...(employeeIds?.length
-          ? { employeeId: { in: employeeIds } }
-          : {
-              employee: {
-                outsourcingClientId: clientId,
-                ...(departmentId ? { departmentId } : {}),
-              },
-            }),
-      },
-      include: {
-        employee: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            employeeNumber: true,
-            client: { select: { name: true, payrollFrequency: true } },
-            department: { select: { name: true } },
+    const payrolls = await ctx.run((tx) =>
+      tx.payroll.findMany({
+        where: {
+          ...ctx.where(),
+          month,
+          year,
+          ...(employeeIds?.length
+            ? { employeeId: { in: employeeIds } }
+            : {
+                employee: {
+                  outsourcingClientId: clientId,
+                  ...(departmentId ? { departmentId } : {}),
+                  client: { organizationId: ctx.organizationId },
+                },
+              }),
+        },
+        include: {
+          employee: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              employeeNumber: true,
+              client: { select: { name: true, payrollFrequency: true } },
+              department: { select: { name: true } },
+            },
           },
         },
-      },
-      orderBy: [{ employee: { lastName: 'asc' } }, { employee: { firstName: 'asc' } }],
-    });
+        orderBy: [{ employee: { lastName: 'asc' } }, { employee: { firstName: 'asc' } }],
+      }),
+    );
 
     const sent: string[] = [];
     const skipped: string[] = [];
@@ -148,8 +154,7 @@ export async function POST(request: NextRequest) {
     };
     if (errors.length > 0) payload.errors = errors;
     if (diagnostics) payload.diagnostics = diagnostics;
-    await logAuditEvent({
-      actor: { userId: user.id, email: user.email, name: user.name },
+    await ctx.audit({
       action: 'payslip.sent',
       entityType: 'PayrollBatch',
       entityId: `${year}-${month}-${clientId}`,
@@ -166,13 +171,5 @@ export async function POST(request: NextRequest) {
       },
     });
     return NextResponse.json(payload);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const stack = e instanceof Error ? e.stack : undefined;
-    console.error('[send-payslips]', msg, stack);
-    return NextResponse.json(
-      { error: 'Failed to send payslips', details: process.env.NODE_ENV === 'development' ? msg : undefined },
-      { status: 500 }
-    );
-  }
+  });
 }

@@ -3,14 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { parsePayrollImportWorkbook } from '@/lib/payroll-import-template';
 import { normalizeEmployeeNationalId } from '@/lib/outsourcing-employee-national-id';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { canAccessPayroll, forbiddenResponse, unauthorizedResponse } from '@/lib/demo-route-access';
+import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
+import { withTenant } from '@/lib/tenant-api';
 
 export async function POST(request: NextRequest) {
-  try {
-    const user = await requireStaffUser(request);
-    if (!user) return unauthorizedResponse();
-    if (!canAccessPayroll(user)) {
+  return withTenant(request, async (ctx) => {
+    if (!canAccessPayroll(ctx.staff)) {
       return forbiddenResponse('Payroll access is restricted to finance and admins.');
     }
     if (!process.env.DATABASE_URL) {
@@ -25,9 +23,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'file, month, and year are required.' }, { status: 400 });
     }
 
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      requestedClientId,
+      request,
+      ctx.organizationId,
+    );
 
-    const client = await prisma.outsourcingClient.findUnique({ where: { id: clientId }, select: { id: true } });
+    const client = await ctx.run((tx) =>
+      tx.outsourcingClient.findFirst({
+        where: { id: clientId, organizationId: ctx.organizationId },
+        select: { id: true },
+      }),
+    );
     if (!client) return NextResponse.json({ error: 'Client not found.' }, { status: 404 });
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -40,20 +48,23 @@ export async function POST(request: NextRequest) {
       ),
     ];
 
-    const employees = await prisma.employee.findMany({
-      where: {
-        outsourcingClientId: clientId,
-        idNumber: { in: idValues },
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        idNumber: true,
-        baseSalary: true,
-      },
-    });
+    const employees = await ctx.run((tx) =>
+      tx.employee.findMany({
+        where: {
+          outsourcingClientId: clientId,
+          idNumber: { in: idValues },
+          client: { organizationId: ctx.organizationId },
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          idNumber: true,
+          baseSalary: true,
+        },
+      }),
+    );
     const employeeByIdNumber = new Map(
       employees.map((e) => [normalizeEmployeeNationalId(e.idNumber) ?? '', e]),
     );
@@ -160,8 +171,5 @@ export async function POST(request: NextRequest) {
       unmatchedRows,
       invalidRows: allInvalidRows,
     });
-  } catch (e) {
-    console.error('[outsourcing/payroll/import/preview]', e);
-    return NextResponse.json({ error: 'Failed to preview payroll input sheet.' }, { status: 500 });
-  }
+  });
 }

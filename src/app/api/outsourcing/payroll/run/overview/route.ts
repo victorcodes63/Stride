@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { prisma } from '@/lib/prisma';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { canAccessPayroll, forbiddenResponse, unauthorizedResponse } from '@/lib/demo-route-access';
+import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
 import {
   buildEmployeeReadinessRows,
   computePayrollVariance,
   priorPayrollPeriod,
   sumPayrollTotals,
 } from '@/lib/payroll/run-wizard';
+import { withTenant } from '@/lib/tenant-api';
 
 export async function GET(request: NextRequest) {
-  try {
-    const user = await requireStaffUser(request);
-    if (!user) return unauthorizedResponse();
-    if (!canAccessPayroll(user)) {
+  return withTenant(request, async (ctx) => {
+    if (!canAccessPayroll(ctx.staff)) {
       return forbiddenResponse('Payroll access is restricted to finance and admins.');
     }
     if (!process.env.DATABASE_URL) {
@@ -25,7 +24,12 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month') ? parseInt(searchParams.get('month')!, 10) : NaN;
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!, 10) : NaN;
     const requestedClientId = searchParams.get('clientId') || undefined;
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      requestedClientId,
+      request,
+      ctx.organizationId,
+    );
     const departmentId = searchParams.get('departmentId') || undefined;
 
     if (Number.isNaN(month) || month < 1 || month > 12 || Number.isNaN(year)) {
@@ -36,59 +40,68 @@ export async function GET(request: NextRequest) {
       outsourcingClientId: clientId,
       ...(departmentId ? { departmentId } : {}),
       employmentStatus: 'active' as const,
+      client: { organizationId: ctx.organizationId },
     };
 
     const [employees, payrolls, priorPeriod] = await Promise.all([
-      prisma.employee.findMany({
-        where: employeeWhere,
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          employeeNumber: true,
-          kraPin: true,
-          nssfNumber: true,
-          bankName: true,
-          bankAccountNumber: true,
-        },
-        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-      }),
-      prisma.payroll.findMany({
-        where: {
-          month,
-          year,
-          employee: employeeWhere,
-        },
-        select: {
-          id: true,
-          employeeId: true,
-          status: true,
-          grossPay: true,
-          netPay: true,
-          paye: true,
-          nssf: true,
-          nhif: true,
-          ahl: true,
-          employee: {
-            select: { firstName: true, lastName: true },
+      ctx.run((tx) =>
+        tx.employee.findMany({
+          where: employeeWhere,
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeNumber: true,
+            kraPin: true,
+            nssfNumber: true,
+            bankName: true,
+            bankAccountNumber: true,
           },
-        },
-      }),
+          orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+        }),
+      ),
+      ctx.run((tx) =>
+        tx.payroll.findMany({
+          where: {
+            ...ctx.where(),
+            month,
+            year,
+            employee: employeeWhere,
+          },
+          select: {
+            id: true,
+            employeeId: true,
+            status: true,
+            grossPay: true,
+            netPay: true,
+            paye: true,
+            nssf: true,
+            nhif: true,
+            ahl: true,
+            employee: {
+              select: { firstName: true, lastName: true },
+            },
+          },
+        }),
+      ),
       priorPayrollPeriod(month, year),
     ]);
 
-    const priorPayrolls = await prisma.payroll.findMany({
-      where: {
-        month: priorPeriod.month,
-        year: priorPeriod.year,
-        employee: employeeWhere,
-      },
-      select: {
-        employeeId: true,
-        grossPay: true,
-        netPay: true,
-      },
-    });
+    const priorPayrolls = await ctx.run((tx) =>
+      tx.payroll.findMany({
+        where: {
+          ...ctx.where(),
+          month: priorPeriod.month,
+          year: priorPeriod.year,
+          employee: employeeWhere,
+        },
+        select: {
+          employeeId: true,
+          grossPay: true,
+          netPay: true,
+        },
+      }),
+    );
 
     const readiness = buildEmployeeReadinessRows(employees);
     const draftCount = payrolls.filter((p) => p.status === 'draft').length;
@@ -96,12 +109,12 @@ export async function GET(request: NextRequest) {
     const paidCount = payrolls.filter((p) => p.status === 'paid').length;
     const totals = sumPayrollTotals(
       payrolls.map((p) => ({
-        grossPay: p.grossPay,
-        netPay: p.netPay,
-        paye: p.paye,
-        nssf: p.nssf,
-        nhif: p.nhif,
-        ahl: p.ahl,
+        grossPay: Number(p.grossPay),
+        netPay: Number(p.netPay),
+        paye: Number(p.paye),
+        nssf: Number(p.nssf),
+        nhif: Number(p.nhif),
+        ahl: Number(p.ahl),
       })),
     );
 
@@ -109,37 +122,39 @@ export async function GET(request: NextRequest) {
       payrolls.map((p) => ({
         employeeId: p.employeeId,
         employeeName: `${p.employee.firstName} ${p.employee.lastName}`.trim(),
-        grossPay: p.grossPay,
-        netPay: p.netPay,
+        grossPay: Number(p.grossPay),
+        netPay: Number(p.netPay),
       })),
       priorPayrolls.map((p) => ({
         employeeId: p.employeeId,
-        grossPay: p.grossPay,
-        netPay: p.netPay,
+        grossPay: Number(p.grossPay),
+        netPay: Number(p.netPay),
       })),
       priorPeriod,
     );
 
     const batchEntityId = `${year}-${month}-${clientId}`;
-    const auditEvents = await prisma.auditEvent.findMany({
-      where: {
-        organizationId: user.currentOrgId,
-        OR: [
-          { entityId: batchEntityId, entityType: 'PayrollBatch' },
-          { action: { in: ['payroll.run.approve', 'payroll.approved', 'payroll.generated'] } },
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-      select: {
-        id: true,
-        action: true,
-        actorEmail: true,
-        createdAt: true,
-        entityId: true,
-        metadata: true,
-      },
-    });
+    const auditEvents = await ctx.run((tx) =>
+      tx.auditEvent.findMany({
+        where: {
+          organizationId: ctx.organizationId,
+          OR: [
+            { entityId: batchEntityId, entityType: 'PayrollBatch' },
+            { action: { in: ['payroll.run.approve', 'payroll.approved', 'payroll.generated'] } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          action: true,
+          actorEmail: true,
+          createdAt: true,
+          entityId: true,
+          metadata: true,
+        },
+      }),
+    );
 
     const scopedAudit = auditEvents.filter((e) => {
       if (e.entityId === batchEntityId) return true;
@@ -180,12 +195,5 @@ export async function GET(request: NextRequest) {
         createdAt: e.createdAt.toISOString(),
       })),
     });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('outside active entity scope')) {
-      return NextResponse.json({ error: msg }, { status: 403 });
-    }
-    console.error('[payroll/run/overview]', e);
-    return NextResponse.json({ error: 'Failed to load payroll run overview' }, { status: 500 });
-  }
+  });
 }

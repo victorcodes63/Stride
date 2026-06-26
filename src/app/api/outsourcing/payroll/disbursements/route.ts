@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
         prisma,
         new URL(request.url).searchParams.get('clientId'),
         request,
+        ctx.organizationId,
       );
 
       const provider = getPayrollDisbursementProvider();
@@ -84,7 +85,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Valid month and year are required' }, { status: 400 });
       }
 
-      const clientId = await resolvePrimaryWorkspaceClientId(prisma, body.clientId, request);
+      const clientId = await resolvePrimaryWorkspaceClientId(
+        prisma,
+        body.clientId,
+        request,
+        ctx.organizationId,
+      );
       const provider = getPayrollDisbursementProvider();
 
       const result = await ctx.run((tx) =>
