@@ -7,32 +7,12 @@ import { useEntity } from '@/components/EntitySwitcher';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { dashboardAvatarClass, dashboardDeptInitials } from '@/lib/dashboard-avatar-palette';
 
 interface Department {
   id: string;
   name: string;
   employeeCount: number;
-}
-
-const DEPT_AVATAR_PALETTE = [
-  'bg-primary-100 text-primary-800 ring-primary-200/70',
-  'bg-emerald-100 text-emerald-800 ring-emerald-200/70',
-  'bg-violet-100 text-violet-800 ring-violet-200/70',
-  'bg-amber-100 text-amber-900 ring-amber-200/70',
-  'bg-sky-100 text-sky-800 ring-sky-200/70',
-  'bg-rose-100 text-rose-800 ring-rose-200/70',
-];
-
-function deptInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  return name.trim().slice(0, 2).toUpperCase() || '?';
-}
-
-function deptAvatarClass(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return DEPT_AVATAR_PALETTE[Math.abs(hash) % DEPT_AVATAR_PALETTE.length];
 }
 
 function DepartmentsPageInner() {
@@ -166,6 +146,25 @@ function DepartmentsPageInner() {
       <DashboardPageHeader
         title="Departments"
         description="Group employees by department for payroll and reporting."
+        footer={
+          <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="New department name"
+              className="h-10 min-w-0 flex-1 rounded-lg border border-neutral-200/80 bg-white/90 px-4 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-700 dark:bg-neutral-900/80"
+            />
+            <button
+              type="submit"
+              disabled={adding || !newName.trim()}
+              className="btn-primary inline-flex h-10 shrink-0 items-center justify-center gap-2 px-5 disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              {adding ? 'Adding…' : 'Add department'}
+            </button>
+          </form>
+        }
       />
 
       <DashboardStatGrid>
@@ -186,26 +185,8 @@ function DepartmentsPageInner() {
       <div className="overflow-hidden dashboard-surface shadow-sm">
         <div className="dashboard-toolbar space-y-4 px-4 py-4 md:px-5">
           {error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-100">{error}</div>
           ) : null}
-
-          <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row">
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="New department name"
-              className="h-10 flex-1 rounded-lg border border-neutral-200/80 bg-white/90 px-4 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            />
-            <button
-              type="submit"
-              disabled={adding || !newName.trim()}
-              className="btn-primary inline-flex h-10 shrink-0 items-center justify-center gap-2 px-5 disabled:opacity-50"
-            >
-              <Plus className="h-4 w-4" />
-              {adding ? 'Adding…' : 'Add department'}
-            </button>
-          </form>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative max-w-md flex-1">
@@ -279,9 +260,9 @@ function DepartmentsPageInner() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ring-1 ring-inset ${deptAvatarClass(dept.name)}`}
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ring-1 ring-inset ${dashboardAvatarClass(dept.name)}`}
                       >
-                        {deptInitials(dept.name)}
+                        {dashboardDeptInitials(dept.name)}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-medium text-ink">{dept.name}</p>

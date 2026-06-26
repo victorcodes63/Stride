@@ -172,6 +172,53 @@ export function PerformanceDashboardContent() {
       <DashboardPageHeader
         title="Performance management"
         description="Review cycles, employee goals, and manager ratings — replaces the legacy mock KPI dashboard."
+        footer={
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="text-sm">
+              <span className="text-neutral-500 dark:text-neutral-400">Cycle</span>
+              <select
+                className="mt-1 block min-w-[220px] rounded-lg border border-neutral-200/80 bg-white/90 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900/80"
+                value={selectedCycle?.id ?? ''}
+                onChange={(e) => setSelectedCycleId(e.target.value)}
+              >
+                {cycles.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.status})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="btn-secondary inline-flex h-10 items-center px-3"
+              onClick={() => setCreateOpen((v) => !v)}
+            >
+              New cycle
+            </button>
+            {selectedCycle?.status === 'draft' ? (
+              <button
+                type="button"
+                disabled={busy}
+                className="btn-primary inline-flex h-10 items-center gap-2 px-4 disabled:opacity-50"
+                onClick={() => void activateCycle()}
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+                Activate cycle
+              </button>
+            ) : null}
+            {selectedCycle?.status === 'active' ? (
+              <button
+                type="button"
+                disabled={busy}
+                className="btn-secondary inline-flex h-10 items-center gap-2 px-3 disabled:opacity-50"
+                onClick={() => void closeCycle()}
+              >
+                <Square className="h-4 w-4" />
+                Close cycle
+              </button>
+            ) : null}
+          </div>
+        }
       />
 
       {error ? (
@@ -179,52 +226,6 @@ export function PerformanceDashboardContent() {
           {error}
         </div>
       ) : null}
-
-      <div className="mb-6 flex flex-wrap items-end gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <label className="text-sm">
-          <span className="text-zinc-500">Cycle</span>
-          <select
-            className="mt-1 block min-w-[220px] rounded-lg border border-zinc-200 px-3 py-2"
-            value={selectedCycle?.id ?? ''}
-            onChange={(e) => setSelectedCycleId(e.target.value)}
-          >
-            {cycles.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.status})
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-          onClick={() => setCreateOpen((v) => !v)}
-        >
-          New cycle
-        </button>
-        {selectedCycle?.status === 'draft' ? (
-          <button
-            type="button"
-            disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            onClick={() => void activateCycle()}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
-            Activate cycle
-          </button>
-        ) : null}
-        {selectedCycle?.status === 'active' ? (
-          <button
-            type="button"
-            disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            onClick={() => void closeCycle()}
-          >
-            <Square className="h-4 w-4" />
-            Close cycle
-          </button>
-        ) : null}
-      </div>
 
       {createOpen ? (
         <div className="mb-6 grid gap-3 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 md:grid-cols-2">

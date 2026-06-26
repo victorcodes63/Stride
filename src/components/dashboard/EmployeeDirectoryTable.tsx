@@ -43,26 +43,7 @@ export type EmployeeDirectoryRecord = {
 
 const PAGE_SIZE = 25;
 
-const AVATAR_PALETTE = [
-  'bg-primary-100 text-primary-800 ring-primary-200/80',
-  'bg-sky-100 text-sky-800 ring-sky-200/80',
-  'bg-violet-100 text-violet-800 ring-violet-200/80',
-  'bg-emerald-100 text-emerald-800 ring-emerald-200/80',
-  'bg-amber-100 text-amber-900 ring-amber-200/80',
-  'bg-rose-100 text-rose-800 ring-rose-200/80',
-];
-
-function initials(first: string, last: string) {
-  const a = first.trim().charAt(0);
-  const b = last.trim().charAt(0);
-  return `${a}${b}`.toUpperCase() || '?';
-}
-
-function avatarPalette(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
-}
+import { dashboardAvatarClass, dashboardInitials } from '@/lib/dashboard-avatar-palette';
 
 function employmentStatusLabel(status: string) {
   switch (status) {
@@ -82,15 +63,15 @@ function employmentStatusLabel(status: string) {
 function employmentStatusClass(status: string) {
   switch (status) {
     case 'probation':
-      return 'bg-amber-50 text-amber-800 ring-amber-200/70';
+      return 'bg-amber-50 text-amber-800 ring-amber-200/70 dark:bg-amber-500/15 dark:text-amber-100 dark:ring-amber-500/30';
     case 'on_leave':
-      return 'bg-sky-50 text-sky-800 ring-sky-200/70';
+      return 'bg-sky-50 text-sky-800 ring-sky-200/70 dark:bg-sky-500/15 dark:text-sky-100 dark:ring-sky-500/30';
     case 'suspended':
-      return 'bg-red-50 text-red-800 ring-red-200/70';
+      return 'bg-red-50 text-red-800 ring-red-200/70 dark:bg-red-500/15 dark:text-red-100 dark:ring-red-500/30';
     case 'terminated':
-      return 'bg-neutral-100 text-neutral-600 ring-neutral-200/70';
+      return 'bg-neutral-100 text-neutral-600 ring-neutral-200/70 dark:bg-neutral-500/15 dark:text-neutral-300 dark:ring-neutral-500/30';
     default:
-      return 'bg-emerald-50 text-emerald-800 ring-emerald-200/70';
+      return 'bg-emerald-50 text-emerald-800 ring-emerald-200/70 dark:bg-emerald-500/15 dark:text-emerald-100 dark:ring-emerald-500/30';
   }
 }
 
@@ -370,7 +351,7 @@ export default function EmployeeDirectoryTable({
           <tbody>
             {pageEmployees.map((employee, rowIndex) => {
               const fullName = `${employee.firstName} ${employee.lastName}`.trim();
-              const palette = avatarPalette(fullName);
+              const palette = dashboardAvatarClass(fullName);
               const score = profileScore(employee);
               const expanded = expandedId === employee.id;
               const selected = selectedIds.has(employee.id);
@@ -407,7 +388,7 @@ export default function EmployeeDirectoryTable({
                         <div
                           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1 ring-inset ${palette}`}
                         >
-                          {initials(employee.firstName, employee.lastName)}
+                          {dashboardInitials(employee.firstName, employee.lastName)}
                         </div>
                         <div className="min-w-0">
                           <Link
@@ -449,7 +430,7 @@ export default function EmployeeDirectoryTable({
                     </td>
                     <td className="px-3 py-3 align-middle">
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-neutral-200">
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
                           <div
                             className={`h-full rounded-full transition-all ${
                               score.done === score.total ? 'bg-emerald-500' : 'bg-amber-500'
@@ -468,7 +449,7 @@ export default function EmployeeDirectoryTable({
                           <a
                             href={`mailto:${employee.email}`}
                             title={employee.email}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-primary-50 hover:text-primary-700"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-primary-50 hover:text-primary-700 dark:text-neutral-300 dark:hover:bg-primary-500/15 dark:hover:text-primary-100"
                           >
                             <Mail className="h-4 w-4" />
                           </a>
@@ -481,7 +462,7 @@ export default function EmployeeDirectoryTable({
                           <a
                             href={`tel:${employee.phone}`}
                             title={employee.phone}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-primary-50 hover:text-primary-700"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-primary-50 hover:text-primary-700 dark:text-neutral-300 dark:hover:bg-primary-500/15 dark:hover:text-primary-100"
                           >
                             <Phone className="h-4 w-4" />
                           </a>

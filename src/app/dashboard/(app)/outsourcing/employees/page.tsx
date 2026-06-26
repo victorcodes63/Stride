@@ -405,10 +405,52 @@ function EmployeesPageInner() {
  title="Employees"
  description="Search, manage, and import staff records."
  actions={
+ <>
+ <div className="relative" ref={importMenuRef}>
+ <button
+ type="button"
+ onClick={() => setImportMenuOpen((open) => !open)}
+ className="btn-secondary inline-flex items-center gap-1.5"
+ aria-expanded={importMenuOpen}
+ >
+ <MoreHorizontal className="h-4 w-4" />
+ Import / export
+ <ChevronDown className="h-4 w-4 text-neutral-400" />
+ </button>
+ {importMenuOpen ? (
+ <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden dashboard-surface rounded-lg py-1 shadow-lg">
+ <button
+ type="button"
+ onClick={() => {
+ handleDownloadTemplate();
+ setImportMenuOpen(false);
+ }}
+ className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-neutral-800"
+ >
+ <Download className="h-4 w-4 text-neutral-400" />
+ Download template
+ </button>
+ <button
+ type="button"
+ onClick={() => {
+ fileInputRef.current?.click();
+ setImportMenuOpen(false);
+ }}
+ disabled={importing}
+ className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 dark:text-neutral-200 dark:hover:bg-neutral-800"
+ >
+ <Upload className="h-4 w-4 text-neutral-400" />
+ {importing ? 'Importing…' : 'Import Excel'}
+ </button>
+ </div>
+ ) : null}
+ </div>
+ <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportFile} />
  <Link href="/dashboard/employees/new" className="btn-primary inline-flex shrink-0 items-center gap-2">
  <UserPlus className="h-4 w-4" />
  Add employee
  </Link>
+ </>
  }
  />
 
@@ -545,46 +587,6 @@ function EmployeesPageInner() {
  Clear filters
  </button>
  ) : null}
- <div className="relative" ref={importMenuRef}>
- <button
- type="button"
- onClick={() => setImportMenuOpen((open) => !open)}
- className="btn-secondary inline-flex items-center gap-1.5"
- aria-expanded={importMenuOpen}
- >
- <MoreHorizontal className="h-4 w-4" />
- Import / export
- <ChevronDown className="h-4 w-4 text-neutral-400" />
- </button>
- {importMenuOpen ? (
- <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden dashboard-surface rounded-lg py-1 shadow-lg">
- <button
- type="button"
- onClick={() => {
- handleDownloadTemplate();
- setImportMenuOpen(false);
- }}
- className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
- >
- <Download className="h-4 w-4 text-neutral-400" />
- Download template
- </button>
- <button
- type="button"
- onClick={() => {
- fileInputRef.current?.click();
- setImportMenuOpen(false);
- }}
- disabled={importing}
- className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
- >
- <Upload className="h-4 w-4 text-neutral-400" />
- {importing ? 'Importing…' : 'Import Excel'}
- </button>
- </div>
- ) : null}
- </div>
- <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportFile} />
  </div>
  </div>
  </div>
