@@ -47,10 +47,32 @@ async function createOrg(db: PrismaClient, name: string, slug: string) {
   });
 }
 
+async function tableExists(db: PrismaClient, tableName: string): Promise<boolean> {
+  const rows = await db.$queryRaw<{ exists: boolean }[]>`
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = ${tableName}
+    ) AS exists
+  `;
+  return Boolean(rows[0]?.exists);
+}
+
 async function main() {
   const suffix = Date.now();
   const orgA = await withOwner((db) => createOrg(db, 'Org Alpha Test', `org-alpha-${suffix}`));
   const orgB = await withOwner((db) => createOrg(db, 'Org Beta Test', `org-beta-${suffix}`));
+
+  const clientA = await withOwner((db) =>
+    db.outsourcingClient.create({
+      data: {
+        organizationId: orgA.id,
+        name: `RLS Fleet Client A ${suffix}`,
+        updatedAt: new Date(),
+      },
+    }),
+  );
+
+  const fleetTableReady = await withOwner((db) => tableExists(db, 'FleetGeofence'));
 
   await withAppRole(async (db) => {
     await withOrgContextOn(db, orgA.id, async (tx) => {
@@ -63,33 +85,63 @@ async function main() {
           actorEmail: `rls-a-${suffix}@example.com`,
         },
       });
+      if (fleetTableReady) {
+        await tx.fleetGeofence.create({
+          data: {
+            organizationId: orgA.id,
+            outsourcingClientId: clientA.id,
+            name: `RLS Geofence ${suffix}`,
+            geometry: { type: 'Point', coordinates: [36.8, -1.3] },
+          },
+        });
+      }
     });
   });
 
-  let leaked = false;
+  let auditLeaked = false;
+  let fleetLeaked = false;
   await withAppRole(async (db) => {
     await withOrgContextOn(db, orgB.id, async (tx) => {
-      const rows = await tx.auditEvent.findMany({ where: { entityId: 'alpha' } });
-      if (rows.some((row) => row.organizationId === orgA.id)) {
-        leaked = true;
+      const auditRows = await tx.auditEvent.findMany({ where: { entityId: 'alpha' } });
+      if (auditRows.some((row) => row.organizationId === orgA.id)) {
+        auditLeaked = true;
+      }
+      if (fleetTableReady) {
+        const geofences = await tx.fleetGeofence.findMany({
+          where: { name: `RLS Geofence ${suffix}` },
+        });
+        if (geofences.some((row) => row.organizationId === orgA.id)) {
+          fleetLeaked = true;
+        }
       }
     });
   });
 
   await withOwner(async (db) => {
+    if (fleetTableReady) {
+      await db.fleetGeofence.deleteMany({ where: { organizationId: orgA.id } });
+    }
     await db.auditEvent.deleteMany({
       where: { organizationId: { in: [orgA.id, orgB.id] } },
     });
+    await db.outsourcingClient.deleteMany({ where: { id: clientA.id } });
     await db.organization.deleteMany({
       where: { id: { in: [orgA.id, orgB.id] } },
     });
   });
 
-  if (leaked) {
+  if (auditLeaked) {
     throw new Error('RLS FAILURE: Org B context could read Org A audit rows');
   }
+  if (fleetLeaked) {
+    throw new Error('RLS FAILURE: Org B context could read Org A FleetGeofence rows');
+  }
 
-  console.log('RLS isolation check passed for AuditEvent.');
+  console.log(
+    fleetTableReady
+      ? 'RLS isolation check passed for AuditEvent and FleetGeofence.'
+      : 'RLS isolation check passed for AuditEvent (FleetGeofence table not migrated yet — run migrate deploy).',
+  );
 }
 
 main()
