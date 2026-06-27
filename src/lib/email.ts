@@ -502,6 +502,76 @@ export function wrapNotificationHtml(content: string, title?: string): string {
   return buildBrandedEmailHtml({ title, content });
 }
 
+function signInMethodLabel(setup: import('@/lib/org-provision').StaffAuthSetup): string {
+  switch (setup) {
+    case 'credentials_microsoft':
+      return 'Email & password, or Microsoft';
+    case 'credentials_google':
+      return 'Email & password, or Google';
+    case 'microsoft':
+      return 'Microsoft (work account on your verified domain)';
+    case 'google':
+      return 'Google (work account on your verified domain)';
+    default:
+      return 'Email & password';
+  }
+}
+
+/** White-glove tenant admin welcome — sent by control plane after provision. */
+export async function sendTenantAdminWelcomeEmail(params: {
+  to: string;
+  adminName: string;
+  organizationName: string;
+  loginUrl: string;
+  staffAuthSetup?: import('@/lib/org-provision').StaffAuthSetup;
+  password?: string;
+}): Promise<EmailSendResult> {
+  const staffAuthSetup = params.staffAuthSetup ?? 'credentials';
+  const includesPassword =
+    staffAuthSetup === 'credentials' ||
+    staffAuthSetup === 'credentials_microsoft' ||
+    staffAuthSetup === 'credentials_google';
+  const passwordBlock =
+    includesPassword && params.password?.trim()
+      ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0;width:100%;max-width:420px;border:1px solid ${STRIDE_PALETTE.line};border-radius:10px;background:${STRIDE_PALETTE.paper};">
+          <tr><td style="padding:16px 18px;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.6;color:${STRIDE_PALETTE.ink};">
+            <div style="margin:0 0 8px;font-family:system-ui,sans-serif;font-size:12px;font-weight:600;color:${STRIDE_PALETTE.warmSubtle};">Sign-in email</div>
+            <div style="margin:0 0 12px;">${escapeHtml(params.to)}</div>
+            <div style="margin:0 0 8px;font-family:system-ui,sans-serif;font-size:12px;font-weight:600;color:${STRIDE_PALETTE.warmSubtle};">Temporary password</div>
+            <div style="margin:0;">${escapeHtml(params.password.trim())}</div>
+          </td></tr>
+        </table>
+        <p style="margin:0 0 16px;font-size:13px;color:${STRIDE_PALETTE.warmSubtle};">Change your password after first sign-in from the dashboard profile menu.</p>`
+      : '';
+
+  const ssoNote =
+    staffAuthSetup === 'microsoft' || staffAuthSetup === 'google'
+      ? `<p style="margin:0 0 16px;">Sign in with your work account (<strong>${escapeHtml(params.to)}</strong>) using ${staffAuthSetup === 'microsoft' ? 'Microsoft' : 'Google'} on the login page.</p>`
+      : staffAuthSetup === 'credentials_microsoft' || staffAuthSetup === 'credentials_google'
+        ? `<p style="margin:0 0 16px;">You can also use ${staffAuthSetup === 'credentials_microsoft' ? 'Continue with Microsoft' : 'Continue with Google'} with the same work email.</p>`
+        : '';
+
+  const html = buildBrandedEmailHtml({
+    title: `Welcome to ${brand.appName}`,
+    content: `
+      <p style="margin:0 0 16px;">Hi ${escapeHtml(params.adminName || 'there')},</p>
+      <p style="margin:0 0 16px;">Your administrator account for <strong>${escapeHtml(params.organizationName)}</strong> on ${escapeHtml(brand.appName)} is ready.</p>
+      <p style="margin:0 0 8px;font-size:14px;color:${STRIDE_PALETTE.warmSubtle};"><strong>Sign-in method:</strong> ${escapeHtml(signInMethodLabel(staffAuthSetup))}</p>
+      ${passwordBlock}
+      ${ssoNote}
+      <p style="margin:0 0 16px;">Use the button below to open the staff login page.</p>
+      <p style="margin:16px 0 0;font-size:13px;color:${STRIDE_PALETTE.warmSubtle};">If you did not expect this email, contact ${escapeHtml(brand.contactEmail)}.</p>
+    `,
+    cta: { label: 'Sign in to Stride', href: params.loginUrl, variant: 'primary' },
+  });
+
+  return sendEmail({
+    to: params.to,
+    subject: `${emailSubjectTag} Your Stride admin account is ready`,
+    html,
+  });
+}
+
 /** Smoke-test send for Resend verification (RAV-243 AC). */
 export async function sendResendTestEmail(to: string): Promise<EmailSendResult> {
   const html = buildBrandedEmailHtml({
