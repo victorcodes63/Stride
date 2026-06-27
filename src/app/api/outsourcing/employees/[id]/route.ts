@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Decimal } from '@prisma/client/runtime/library';
-import { prisma } from '@/lib/prisma';
 import { normalizeEmployeeNationalId } from '@/lib/outsourcing-employee-national-id';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { canViewSalaryFields, unauthorizedResponse } from '@/lib/demo-route-access';
-import { logAuditEvent } from '@/lib/audit-events';
+import { canViewSalaryFields } from '@/lib/demo-route-access';
 import { ensureEssUserForEmployee } from '@/lib/ess-provision';
 import { diffSensitiveFields } from '@/lib/audit-helpers';
 import { getHrUserIds, sendNotification } from '@/lib/notifications';
 import { startWorkflowForEmployee } from '@/lib/onboarding-workflows';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
+import { withTenant } from '@/lib/tenant-api';
 import { assertEmployeeProfileCompleteness } from '@/lib/hr-core-employee';
 
 function str(b: Record<string, unknown>, key: string): string | null {
@@ -95,8 +93,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireStaffUser(_request);
-  if (!user) return unauthorizedResponse();
+  return withTenant(_request, async (ctx) => {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Employee id required' }, { status: 400 });
 
@@ -104,39 +101,37 @@ export async function GET(
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
     }
-    const employee = await prisma.employee.findUnique({
-      where: { id },
-      include: {
-        client: { select: { id: true, name: true } },
-        department: { select: { id: true, name: true } },
-      },
+    const employee = await ctx.run(async (tx) => {
+      const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, _request, ctx.organizationId);
+      return tx.employee.findFirst({
+        where: ctx.where({ id, outsourcingClientId: workspaceId }),
+        include: {
+          client: { select: { id: true, name: true } },
+          department: { select: { id: true, name: true } },
+        },
+      });
     });
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    const workspaceId = await resolvePrimaryWorkspaceClientId(prisma, null, _request);
-    if (employee.outsourcingClientId !== workspaceId) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    }
-    await logAuditEvent({
-      actor: { userId: user.id, email: user.email, name: user.name },
-      action: canViewSalaryFields(user) ? 'employee.salary.view' : 'employee.profile.view',
+    await ctx.audit({
+      action: canViewSalaryFields(ctx.staff) ? 'employee.salary.view' : 'employee.profile.view',
       entityType: 'Employee',
       entityId: employee.id,
       route: 'GET /api/outsourcing/employees/[id]',
-      metadata: { includesSalary: canViewSalaryFields(user) },
+      metadata: { includesSalary: canViewSalaryFields(ctx.staff) },
     });
-    return NextResponse.json(mapEmployeeToJson(employee, canViewSalaryFields(user)));
+    return NextResponse.json(mapEmployeeToJson(employee, canViewSalaryFields(ctx.staff)));
   } catch (e) {
     console.error('[outsourcing/employees GET]', e);
     return NextResponse.json({ error: 'Failed to load employee' }, { status: 500 });
   }
+  });
 }
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireStaffUser(request);
-  if (!user) return unauthorizedResponse();
+  return withTenant(request, async (ctx) => {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Employee id required' }, { status: 400 });
 
@@ -232,8 +227,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
     }
 
-    const existing = await prisma.employee.findUnique({
-      where: { id },
+    const outcome = await ctx.run(async (tx) => {
+    const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId);
+    const existing = await tx.employee.findFirst({
+      where: ctx.where({ id, outsourcingClientId: workspaceId }),
       select: {
         id: true,
         firstName: true,
@@ -252,37 +249,26 @@ export async function PATCH(
         idNumber: true,
       },
     });
-    if (!existing) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    const workspaceId = await resolvePrimaryWorkspaceClientId(prisma, null, request);
-    if (existing.outsourcingClientId !== workspaceId) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    }
+    if (!existing) return { error: 'not_found' as const };
 
     if (email !== undefined && email) {
-      const duplicate = await prisma.employee.findFirst({
-        where: {
+      const duplicate = await tx.employee.findFirst({
+        where: ctx.where({
           outsourcingClientId: existing.outsourcingClientId,
           email: email.toLowerCase(),
           id: { not: id },
-        },
+        }),
       });
-      if (duplicate) {
-        return NextResponse.json({ error: 'Another employee in this client already has this email.' }, { status: 409 });
-      }
+      if (duplicate) return { error: 'email_dup' as const };
     }
 
     const nextNationalId =
       idNumber !== undefined ? (idNumber ? normalizeEmployeeNationalId(idNumber) : null) : undefined;
     if (nextNationalId) {
-      const idDup = await prisma.employee.findFirst({
-        where: { idNumber: nextNationalId, id: { not: id } },
+      const idDup = await tx.employee.findFirst({
+        where: ctx.where({ idNumber: nextNationalId, id: { not: id } }),
       });
-      if (idDup) {
-        return NextResponse.json(
-          { error: 'Another employee already has this National ID.' },
-          { status: 409 }
-        );
-      }
+      if (idDup) return { error: 'id_dup' as const };
     }
 
     assertEmployeeProfileCompleteness({
@@ -298,7 +284,7 @@ export async function PATCH(
       costCenterCode: (data.costCenterCode as string | null | undefined) ?? existing.costCenterCode,
     });
 
-    const employee = await prisma.employee.update({
+    const employee = await tx.employee.update({
       where: { id },
       data,
       include: {
@@ -308,8 +294,9 @@ export async function PATCH(
     });
 
     if (attendancePolicyId !== undefined && attendancePolicyId) {
-      await prisma.attendancePolicyAssignment.create({
+      await tx.attendancePolicyAssignment.create({
         data: {
+          organizationId: ctx.organizationId,
           employeeId: id,
           attendancePolicyId,
           effectiveFrom: new Date(),
@@ -317,14 +304,28 @@ export async function PATCH(
       }).catch(() => null);
     }
     if (leavePolicyId !== undefined && leavePolicyId) {
-      await prisma.leavePolicyAssignment.create({
+      await tx.leavePolicyAssignment.create({
         data: {
+          organizationId: ctx.organizationId,
           employeeId: id,
           leavePolicyId,
           effectiveFrom: new Date(),
         },
       }).catch(() => null);
     }
+
+    return { existing, employee };
+    });
+
+    if ('error' in outcome) {
+      if (outcome.error === 'not_found') return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+      if (outcome.error === 'email_dup') {
+        return NextResponse.json({ error: 'Another employee in this client already has this email.' }, { status: 409 });
+      }
+      return NextResponse.json({ error: 'Another employee already has this National ID.' }, { status: 409 });
+    }
+
+    const { existing, employee } = outcome;
     await ensureEssUserForEmployee({
       employeeId: employee.id,
       firstName: employee.firstName,
@@ -344,8 +345,7 @@ export async function PATCH(
       },
       ['baseSalary', 'bankAccountNumber', 'idNumber']
     );
-    await logAuditEvent({
-      actor: { userId: user.id, email: user.email, name: user.name },
+    await ctx.audit({
       action: 'employee.updated',
       entityType: 'Employee',
       entityId: employee.id,
@@ -377,7 +377,7 @@ export async function PATCH(
         console.error('[onboarding] Failed to auto-start offboarding:', error),
       );
     }
-    return NextResponse.json(mapEmployeeToJson(employee, canViewSalaryFields(user)));
+    return NextResponse.json(mapEmployeeToJson(employee, canViewSalaryFields(ctx.staff)));
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.includes('Employee profile is incomplete.')) {
@@ -394,14 +394,14 @@ export async function PATCH(
     console.error('[outsourcing/employees PATCH]', e);
     return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 });
   }
+  });
 }
 
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireStaffUser(_request);
-  if (!user) return unauthorizedResponse();
+  return withTenant(_request, async (ctx) => {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Employee id required' }, { status: 400 });
 
@@ -409,23 +409,23 @@ export async function DELETE(
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
     }
-    const existing = await prisma.employee.findUnique({
-      where: { id },
-      select: { id: true, firstName: true, lastName: true, outsourcingClientId: true },
+    const existing = await ctx.run(async (tx) => {
+      const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, _request, ctx.organizationId);
+      const row = await tx.employee.findFirst({
+        where: ctx.where({ id, outsourcingClientId: workspaceId }),
+        select: { id: true, firstName: true, lastName: true, outsourcingClientId: true },
+      });
+      if (!row) return null;
+      await tx.employee.delete({ where: { id } });
+      return row;
     });
     if (!existing) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    const workspaceId = await resolvePrimaryWorkspaceClientId(prisma, null, _request);
-    if (existing.outsourcingClientId !== workspaceId) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    }
-    await prisma.employee.delete({ where: { id } });
-    await logAuditEvent({
-      actor: { userId: user.id, email: user.email, name: user.name },
+    await ctx.audit({
       action: 'employee.deleted',
       entityType: 'Employee',
       entityId: id,
       route: 'DELETE /api/outsourcing/employees/[id]',
-      metadata: { employeeName: existing ? `${existing.firstName} ${existing.lastName}` : null },
+      metadata: { employeeName: `${existing.firstName} ${existing.lastName}` },
     });
     try {
       const hrUserIds = await getHrUserIds();
@@ -449,4 +449,5 @@ export async function DELETE(
     console.error('[outsourcing/employees DELETE]', e);
     return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
   }
+  });
 }

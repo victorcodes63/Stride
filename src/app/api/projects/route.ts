@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireStaffUser } from '@/lib/staff-api-auth';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { reportApiError } from '@/lib/monitoring';
 import { allocateProjectCode } from '@/lib/projects/project-code';
@@ -72,9 +71,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+  return withTenant(request, async (ctx) => {
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -105,49 +102,48 @@ export async function POST(request: NextRequest) {
     typeof body.dueDate === 'string' && body.dueDate.trim() ? new Date(body.dueDate) : null;
   const ownerUserId = typeof body.ownerUserId === 'string' ? body.ownerUserId.trim() : null;
 
-  return withTenant(request, async (ctx) => {
-    try {
-      const created = await ctx.run(async (tx) => {
-        const clientId = await resolvePrimaryWorkspaceClientId(
-          tx,
-          undefined,
-          request,
-          ctx.organizationId,
-        );
-        const projectCode = await allocateProjectCode(tx, clientId);
+  try {
+    const created = await ctx.run(async (tx) => {
+      const clientId = await resolvePrimaryWorkspaceClientId(
+        tx,
+        undefined,
+        request,
+        ctx.organizationId,
+      );
+      const projectCode = await allocateProjectCode(tx, clientId);
 
-        return tx.project.create({
-          data: {
-            organizationId: ctx.organizationId,
-            outsourcingClientId: clientId,
-            projectCode,
-            name,
-            description,
-            department,
-            status: status as never,
-            currency,
-            budgetAmount,
-            startDate,
-            dueDate,
-            ownerUserId: ownerUserId || ctx.staff.id,
-            createdByUserId: ctx.staff.id,
-          },
-          include: {
-            owner: { select: { id: true, name: true, email: true } },
-            createdBy: { select: { id: true, name: true, email: true } },
-            budget: { select: { id: true, name: true } },
-            _count: { select: { tasks: true, milestones: true } },
-          },
-        });
+      return tx.project.create({
+        data: {
+          organizationId: ctx.organizationId,
+          outsourcingClientId: clientId,
+          projectCode,
+          name,
+          description,
+          department,
+          status: status as never,
+          currency,
+          budgetAmount,
+          startDate,
+          dueDate,
+          ownerUserId: ownerUserId || ctx.staff.id,
+          createdByUserId: ctx.staff.id,
+        },
+        include: {
+          owner: { select: { id: true, name: true, email: true } },
+          createdBy: { select: { id: true, name: true, email: true } },
+          budget: { select: { id: true, name: true } },
+          _count: { select: { tasks: true, milestones: true } },
+        },
       });
+    });
 
-      return NextResponse.json({ project: serializeProject(created) }, { status: 201 });
-    } catch (error) {
-      await reportApiError({
-        route: 'POST /api/projects',
-        message: error instanceof Error ? error.message : String(error),
-      });
-      return NextResponse.json({ error: 'Failed to create project.' }, { status: 500 });
-    }
+    return NextResponse.json({ project: serializeProject(created) }, { status: 201 });
+  } catch (error) {
+    await reportApiError({
+      route: 'POST /api/projects',
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json({ error: 'Failed to create project.' }, { status: 500 });
+  }
   });
 }

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
@@ -8,6 +7,7 @@ import {
 } from '@/lib/outsourcing-employee-number';
 import { normalizeEmployeeNationalId } from '@/lib/outsourcing-employee-national-id';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
+import { withTenant } from '@/lib/tenant-api';
 
 const HEADER_MAP: Record<string, string> = {
   'EMP No.': 'employeeNumber',
@@ -71,6 +71,7 @@ function parseString(val: unknown): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   try {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
@@ -90,10 +91,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId?.trim() ?? null, request);
+    return await ctx.run(async (tx) => {
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      tx,
+      requestedClientId?.trim() ?? null,
+      request,
+      ctx.organizationId,
+    );
 
-    const client = await prisma.outsourcingClient.findUnique({
-      where: { id: clientId },
+    const client = await tx.outsourcingClient.findFirst({
+      where: ctx.where({ id: clientId }),
       include: { departments: true },
     });
     if (!client) {
@@ -193,8 +200,9 @@ export async function POST(request: NextRequest) {
     // Auto-create missing departments when requested.
     if (missingDepartmentsByNormalized.size > 0 && autoCreateDepartments) {
       for (const deptDisplayName of missingDepartmentsByNormalized.values()) {
-        const createdDept = await prisma.department.create({
+        const createdDept = await tx.department.create({
           data: {
+            organizationId: ctx.organizationId,
             outsourcingClientId: clientId,
             name: deptDisplayName,
           },
@@ -252,8 +260,8 @@ export async function POST(request: NextRequest) {
           errors.push({ row: rowNum, reason: `Duplicate National ID in this file (${idNumberForRow})` });
           continue;
         }
-        const existingByNationalId = await prisma.employee.findFirst({
-          where: { idNumber: idNumberForRow },
+        const existingByNationalId = await tx.employee.findFirst({
+          where: ctx.where({ idNumber: idNumberForRow }),
         });
         if (existingByNationalId) {
           skipped.push({
@@ -265,11 +273,11 @@ export async function POST(request: NextRequest) {
       }
 
       if (emailNorm) {
-        const existing = await prisma.employee.findFirst({
-          where: {
+        const existing = await tx.employee.findFirst({
+          where: ctx.where({
             outsourcingClientId: clientId,
             email: emailNorm,
-          },
+          }),
         });
         if (existing) {
           skipped.push({ row: rowNum, reason: `Employee with email ${emailNorm} already exists` });
@@ -283,7 +291,7 @@ export async function POST(request: NextRequest) {
       if (!employeeNumber?.trim()) {
         const prefix =
           client.employeeNumberPrefix?.trim() || deriveEmployeePrefixFromName(client.name);
-        employeeNumber = await allocateNextEmployeeNumber(prisma, clientId, prefix);
+        employeeNumber = await allocateNextEmployeeNumber(tx as never, clientId, prefix);
       }
 
       let baseSalary: Decimal | undefined;
@@ -295,9 +303,10 @@ export async function POST(request: NextRequest) {
 
       if (idNumberForRow) nationalIdsSeenThisFile.add(idNumberForRow);
 
-      await prisma.employee.create({
+      await tx.employee.create({
         data: {
-            outsourcingClientId: clientId,
+          organizationId: ctx.organizationId,
+          outsourcingClientId: clientId,
           departmentId,
           employeeNumber,
           firstName: firstName.trim(),
@@ -327,6 +336,7 @@ export async function POST(request: NextRequest) {
       errors: errors.length,
       errorDetails: errors.slice(0, 20),
     });
+    });
   } catch (e) {
     console.error('[employees/import]', e);
     return NextResponse.json(
@@ -334,4 +344,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

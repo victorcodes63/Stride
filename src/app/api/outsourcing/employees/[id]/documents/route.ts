@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { EmployeeDocumentCategory } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
-import { requireStaffUser } from '@/lib/staff-api-auth';
 import {
   canAccessEmployeeDocuments,
   forbiddenResponse,
-  unauthorizedResponse,
 } from '@/lib/demo-route-access';
-import { logAuditEvent } from '@/lib/audit-events';
 import { DocumentUploadError, uploadEmployeeDocument } from '@/lib/document-upload';
 import { getEssPortalUserIdForEmployee, sendNotification } from '@/lib/notifications';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
+import { withTenant } from '@/lib/tenant-api';
 
 const CATEGORIES = new Set([
   'CONTRACT',
@@ -31,33 +28,31 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireStaffUser(request);
-  if (!user) return unauthorizedResponse();
-  if (!canAccessEmployeeDocuments(user)) {
+  return withTenant(request, async (ctx) => {
+  if (!canAccessEmployeeDocuments(ctx.staff)) {
     return forbiddenResponse('Document access is restricted to HR and admins.');
   }
   if (!process.env.DATABASE_URL) return NextResponse.json([], { status: 200 });
 
   const { id } = await params;
-  const workspaceId = await resolvePrimaryWorkspaceClientId(prisma, null, request);
-  const includeMedical = canViewMedicalDocuments(user.role, user.staffUserType);
+  const includeMedical = canViewMedicalDocuments(ctx.staff.role, ctx.staff.staffUserType);
   const { searchParams } = new URL(request.url);
   const q = searchParams.get('q')?.trim();
   const category = searchParams.get('category')?.trim().toUpperCase();
   const verifiedOnly = searchParams.get('verifiedOnly') === 'true';
 
-  const employee = await prisma.employee.findUnique({
-    where: { id },
-    select: { id: true, outsourcingClientId: true },
-  });
-  if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-  if (employee.outsourcingClientId !== workspaceId) {
-    return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-  }
+  const documents = await ctx.run(async (tx) => {
+    const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId);
+    const employee = await tx.employee.findFirst({
+      where: ctx.where({ id, outsourcingClientId: workspaceId }),
+      select: { id: true },
+    });
+    if (!employee) return null;
 
-  const documents = await prisma.employeeDocument.findMany({
-    where: {
-      employeeId: id,
+    return tx.employeeDocument.findMany({
+      where: {
+        ...ctx.where(),
+        employeeId: id,
       ...(q
         ? {
             OR: [
@@ -80,7 +75,10 @@ export async function GET(
       },
     },
     orderBy: [{ category: 'asc' }, { uploadedAt: 'desc' }],
+    });
   });
+
+  if (!documents) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
   return NextResponse.json(
     documents.map((doc) => ({
@@ -102,15 +100,15 @@ export async function GET(
       filePath: doc.filePath,
     }))
   );
+  });
 }
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireStaffUser(request);
-  if (!user) return unauthorizedResponse();
-  if (!canAccessEmployeeDocuments(user)) {
+  return withTenant(request, async (ctx) => {
+  if (!canAccessEmployeeDocuments(ctx.staff)) {
     return forbiddenResponse('Document access is restricted to HR and admins.');
   }
   if (!process.env.DATABASE_URL) {
@@ -118,15 +116,14 @@ export async function POST(
   }
 
   const { id } = await params;
-  const workspaceId = await resolvePrimaryWorkspaceClientId(prisma, null, request);
-  const employee = await prisma.employee.findUnique({
-    where: { id },
-    select: { id: true, outsourcingClientId: true },
+  const employee = await ctx.run(async (tx) => {
+    const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId);
+    return tx.employee.findFirst({
+      where: ctx.where({ id, outsourcingClientId: workspaceId }),
+      select: { id: true },
+    });
   });
   if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-  if (employee.outsourcingClientId !== workspaceId) {
-    return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-  }
 
   try {
     const formData = await request.formData();
@@ -149,7 +146,7 @@ export async function POST(
     if (!CATEGORIES.has(category)) {
       return NextResponse.json({ error: 'Invalid document category' }, { status: 400 });
     }
-    if (category === 'MEDICAL' && !canViewMedicalDocuments(user.role, user.staffUserType)) {
+    if (category === 'MEDICAL' && !canViewMedicalDocuments(ctx.staff.role, ctx.staff.staffUserType)) {
       return forbiddenResponse('Medical documents are restricted to HR and admins.');
     }
 
@@ -173,30 +170,32 @@ export async function POST(
             .filter(Boolean)
         : [];
 
-    const created = await prisma.employeeDocument.create({
-      data: {
-        employeeId: id,
-        title,
-        category: category as EmployeeDocumentCategory,
-        filePath: uploaded.path,
-        fileName: uploaded.fileName,
-        fileSize: uploaded.fileSize,
-        mimeType: uploaded.mimeType,
-        documentNumber,
-        issuedOn: issuedOn && !Number.isNaN(issuedOn.getTime()) ? issuedOn : null,
-        expiresOn: expiresOn && !Number.isNaN(expiresOn.getTime()) ? expiresOn : null,
-        isVerified,
-        tags,
-        notes,
-        uploadedBy: user.id,
-      },
-      include: {
-        uploader: { select: { name: true, email: true } },
-      },
-    });
+    const created = await ctx.run((tx) =>
+      tx.employeeDocument.create({
+        data: {
+          organizationId: ctx.organizationId,
+          employeeId: id,
+          title,
+          category: category as EmployeeDocumentCategory,
+          filePath: uploaded.path,
+          fileName: uploaded.fileName,
+          fileSize: uploaded.fileSize,
+          mimeType: uploaded.mimeType,
+          documentNumber,
+          issuedOn: issuedOn && !Number.isNaN(issuedOn.getTime()) ? issuedOn : null,
+          expiresOn: expiresOn && !Number.isNaN(expiresOn.getTime()) ? expiresOn : null,
+          isVerified,
+          tags,
+          notes,
+          uploadedBy: ctx.staff.id,
+        },
+        include: {
+          uploader: { select: { name: true, email: true } },
+        },
+      }),
+    );
 
-    await logAuditEvent({
-      actor: { userId: user.id, email: user.email, name: user.name },
+    await ctx.audit({
       action: 'employee.document.upload',
       entityType: 'EmployeeDocument',
       entityId: created.id,
@@ -255,4 +254,5 @@ export async function POST(
     console.error('[employee documents POST]', error);
     return NextResponse.json({ error: 'Failed to upload employee document' }, { status: 500 });
   }
+  });
 }
