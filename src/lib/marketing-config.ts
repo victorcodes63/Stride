@@ -7,6 +7,8 @@ export const MARKETING_ROUTES = {
   pricing: '/pricing',
   about: '/about',
   contact: '/contact',
+  privacy: '/privacy',
+  terms: '/terms',
   login: '/dashboard/login',
   /** Internal-only — /demo-access 404s unless NEXT_PUBLIC_INTERNAL_DEMO_SANDBOX (RAV-169). */
   demoAccess: '/demo-access',
@@ -167,6 +169,22 @@ export const MARKETING_HERO = {
   trustBadge: 'Built for Kenya',
   trustTags: 'M-Pesa · KRA · NSSF',
 } as const;
+
+/** Eyebrow lines for hero — falls back to splitting `eyebrow` if arrays are absent. */
+export function getMarketingHeroEyebrowLines(): readonly [string, string] {
+  const { eyebrow, eyebrowLines } = MARKETING_HERO;
+  if (Array.isArray(eyebrowLines) && eyebrowLines.length >= 2) {
+    return [eyebrowLines[0], eyebrowLines[1]];
+  }
+  const parts = eyebrow.split(/\s·\s/);
+  return [parts[0]?.trim() || eyebrow, parts[1]?.trim() || ''];
+}
+
+/** First hero title line — safe when `titleLines` is missing. */
+export function getMarketingHeroTitleLead(): string {
+  const lines = MARKETING_HERO.titleLines;
+  return (Array.isArray(lines) && lines[0]) || 'Run your whole';
+}
 
 export const MARKETING_WHY_STRIDE = {
   badge: 'Why we built it',

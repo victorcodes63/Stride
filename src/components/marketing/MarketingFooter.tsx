@@ -21,8 +21,8 @@ const FOOTER_PRODUCT_LINKS = [
 
 const FOOTER_COMPANY_LINKS = [
   { href: MARKETING_ROUTES.about, label: 'About' },
-  { href: '/privacy', label: 'Privacy' },
-  { href: '/terms', label: 'Terms' },
+  { href: MARKETING_ROUTES.privacy, label: 'Privacy' },
+  { href: MARKETING_ROUTES.terms, label: 'Terms' },
   { href: MARKETING_ROUTES.contact, label: 'Contact' },
 ] as const;
 
