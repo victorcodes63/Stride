@@ -70,10 +70,9 @@ export async function GET(request: NextRequest) {
       microsoft: isMicrosoftOAuthConfigured(),
       google: isGoogleOAuthConfigured(),
     };
-    const organizationId = actor?.organizationId;
     const emailDomains =
-      organizationId != null
-        ? (await listOrganizationEmailDomains(organizationId)).map((d) => ({
+      actor?.organizationId != null
+        ? (await listOrganizationEmailDomains(actor.organizationId)).map((d) => ({
             id: d.id,
             domain: d.domain,
             verified: Boolean(d.verifiedAt),
