@@ -3,12 +3,12 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { isEssAllowedEmail } from '@/lib/ess-allowed-domains';
 import { getEssSessionMaxAgeSeconds, type ParsedEssSession } from '@/lib/ess-session';
+import { buildGoogleAuthorizeUrl, buildMicrosoftAuthorizeUrl } from '@/lib/auth/platform-oauth';
 import { exchangeGoogleCodeForEmail } from '@/lib/oauth/google-email';
 import { exchangeMicrosoftCodeForEmail } from '@/lib/oauth/microsoft-email';
 import {
   getOAuthCookieDomain,
   getOAuthLoginPath,
-  getOAuthRedirectUri,
   getOAuthSuccessPath,
   type OAuthAudience,
 } from '@/lib/oauth-utils';
@@ -25,41 +25,22 @@ export function createEssOAuthStartResponse(
   request: NextRequest,
   provider: 'microsoft' | 'google',
 ): NextResponse {
-  const clientId =
-    provider === 'microsoft'
-      ? process.env.MS_CLIENT_ID?.trim()
-      : process.env.GOOGLE_CLIENT_ID?.trim();
-
-  if (!clientId) {
-    return NextResponse.redirect(new URL(`${getOAuthLoginPath('ess')}?error=oauth`, request.url));
-  }
-
+  const loginHint = request.nextUrl.searchParams.get('email')?.trim().toLowerCase();
+  const hostedDomain = request.nextUrl.searchParams.get('hd')?.trim().toLowerCase();
   const state = crypto.randomBytes(24).toString('hex');
-  const redirectUri = getOAuthRedirectUri(
-    'ess',
-    provider,
-    provider === 'microsoft' ? process.env.ESS_MS_REDIRECT_URI : process.env.ESS_GOOGLE_REDIRECT_URI,
-  );
 
-  let authUrl: URL;
-  if (provider === 'microsoft') {
-    const tenantId = process.env.MS_TENANT_ID?.trim() || 'common';
-    authUrl = new URL(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`);
-    authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('response_mode', 'query');
-    authUrl.searchParams.set('scope', 'openid profile email User.Read');
-    authUrl.searchParams.set('state', state);
-    authUrl.searchParams.set('prompt', 'select_account');
-  } else {
-    authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-    authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('scope', 'openid email profile');
-    authUrl.searchParams.set('state', state);
-    authUrl.searchParams.set('prompt', 'select_account');
+  const authUrl =
+    provider === 'microsoft'
+      ? buildMicrosoftAuthorizeUrl({ audience: 'ess', state, loginHint: loginHint || undefined })
+      : buildGoogleAuthorizeUrl({
+          audience: 'ess',
+          state,
+          loginHint: loginHint || undefined,
+          hostedDomain: hostedDomain || undefined,
+        });
+
+  if (!authUrl) {
+    return NextResponse.redirect(new URL(`${getOAuthLoginPath('ess')}?error=oauth`, request.url));
   }
 
   const response = NextResponse.redirect(authUrl);

@@ -9,12 +9,17 @@ import { CompanySetupForm } from './CompanySetupForm';
 import { OperatingEntitiesSection } from './OperatingEntitiesSection';
 import type { ModuleCatalogEntry } from './CompanySetupModulesSection';
 import { useEntity } from '@/components/EntitySwitcher';
+import type { CompanySetupCapabilities } from '@/lib/company-setup-tier-features';
+import { companySetupUpgradeHint } from '@/lib/company-setup-tier-features';
 
 type CompanySetupResponse = CompanySetupSettings & {
  defaults: CompanySetupSettings;
  resolvedBrand: PublicBrand;
  provisioning: ProvisioningCheckItem[];
  moduleCatalog: ModuleCatalogEntry[];
+ capabilities: CompanySetupCapabilities;
+ oauthConfigured: { microsoft: boolean; google: boolean };
+ emailDomains?: import('./AuthDomainsSection').EmailDomainRow[];
  storageKey?: string;
  activeContextLabel?: string | null;
  public?: unknown;
@@ -58,33 +63,29 @@ export function CompanySetupPageClient() {
  return (
  <>
  {data?.activeContextLabel ? (
- <p className="text-sm text-primary-800 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2 max-w-2xl">
+ <p className="dash-setup-notice dash-setup-notice--info max-w-2xl">
  Editing branding for <strong>{data.activeContextLabel}</strong> — matches the company selected in the
  top-bar switcher ({activeEntity.name}). Switch context there first if you meant to edit a different demo.
  </p>
  ) : null}
 
- <aside className="rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3.5 sm:px-5">
+ <aside className="dash-setup-banner">
  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
- <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-neutral-600">
+ <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm dash-setup-muted">
  <span className="inline-flex items-center gap-1.5">
  Payroll &amp; MFA →{' '}
- <Link href="/dashboard/settings" className="font-medium text-primary-700 hover:text-primary-800">
+ <Link href="/dashboard/settings" className="dash-setup-link">
  Settings
  </Link>
  </span>
- <span className="hidden sm:inline text-neutral-300" aria-hidden>
+ <span className="hidden sm:inline dash-setup-subtle" aria-hidden>
  |
  </span>
  <span>OAuth, SMTP &amp; site URL → environment variables</span>
  </div>
  {!loading && data ? (
  <div
- className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ring-1 ${
- allReady
- ? 'bg-emerald-50 text-emerald-800 ring-emerald-200'
- : 'bg-amber-50 text-amber-900 ring-amber-200'
- }`}
+ className={`dash-setup-status-pill ${allReady ? 'dash-setup-status-pill--ok' : 'dash-setup-status-pill--pending'}`}
  >
  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
  {readyCount}/{totalChecks} deployment checks
@@ -94,12 +95,12 @@ export function CompanySetupPageClient() {
  </aside>
 
  {error ? (
- <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+ <p className="dash-setup-alert dash-setup-alert--error">{error}</p>
  ) : null}
 
  {loading ? (
  <div className="flex items-center justify-center py-24">
- <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+ <Loader2 className="h-8 w-8 animate-spin dash-setup-heading-icon" />
  </div>
  ) : data ? (
  <div className="space-y-8">
@@ -107,26 +108,26 @@ export function CompanySetupPageClient() {
  <Link
  href="/dashboard/login"
  target="_blank"
- className="inline-flex items-center gap-1.5 dashboard-surface rounded-lg px-3 py-2 text-xs font-medium text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50"
+ className="inline-flex items-center gap-1.5 dashboard-surface rounded-lg px-3 py-2 text-xs font-medium dash-setup-body shadow-sm transition-colors hover:bg-[var(--dash-hover)]"
  >
  Staff login
- <ExternalLink className="h-3.5 w-3.5 text-neutral-400" aria-hidden />
+ <ExternalLink className="h-3.5 w-3.5 dash-setup-subtle" aria-hidden />
  </Link>
  <Link
  href="/ess/login"
  target="_blank"
- className="inline-flex items-center gap-1.5 dashboard-surface rounded-lg px-3 py-2 text-xs font-medium text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50"
+ className="inline-flex items-center gap-1.5 dashboard-surface rounded-lg px-3 py-2 text-xs font-medium dash-setup-body shadow-sm transition-colors hover:bg-[var(--dash-hover)]"
  >
  ESS login
- <ExternalLink className="h-3.5 w-3.5 text-neutral-400" aria-hidden />
+ <ExternalLink className="h-3.5 w-3.5 dash-setup-subtle" aria-hidden />
  </Link>
  <Link
  href="/careers"
  target="_blank"
- className="inline-flex items-center gap-1.5 dashboard-surface rounded-lg px-3 py-2 text-xs font-medium text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50"
+ className="inline-flex items-center gap-1.5 dashboard-surface rounded-lg px-3 py-2 text-xs font-medium dash-setup-body shadow-sm transition-colors hover:bg-[var(--dash-hover)]"
  >
  Careers page
- <ExternalLink className="h-3.5 w-3.5 text-neutral-400" aria-hidden />
+ <ExternalLink className="h-3.5 w-3.5 dash-setup-subtle" aria-hidden />
  </Link>
  </div>
 
@@ -137,6 +138,8 @@ export function CompanySetupPageClient() {
  resolvedBrand: _r,
  provisioning: _p,
  moduleCatalog: _mc,
+ capabilities: _c,
+ oauthConfigured: _o,
  public: _pub,
  themePreview: _t,
  ...form
@@ -147,8 +150,17 @@ export function CompanySetupPageClient() {
  resolvedBrand={data.resolvedBrand}
  provisioning={data.provisioning}
  moduleCatalog={data.moduleCatalog}
+ capabilities={data.capabilities}
+ oauthConfigured={data.oauthConfigured}
+ emailDomains={data.emailDomains ?? []}
  />
- <OperatingEntitiesSection />
+ {data.capabilities.canConfigureMultiEntity ? (
+  <OperatingEntitiesSection />
+ ) : (
+  <aside className="dash-setup-notice">
+   {companySetupUpgradeHint(data.capabilities.tier, 'canConfigureMultiEntity')}
+  </aside>
+ )}
  </div>
  ) : null}
  </>

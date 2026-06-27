@@ -2312,6 +2312,49 @@ model Organization {
   updatedAt DateTime @updatedAt
 
   memberships OrganizationMembership[]
+  authConfig    OrganizationAuthConfig?
+  emailDomains  OrganizationEmailDomain[]
+}
+
+/// Per-org sign-in policy (RLS). Replaces STAFF_ALLOWED_DOMAIN env for pooled deployments.
+model OrganizationAuthConfig {
+  id                   String   @id @default(uuid()) @db.Uuid
+  organizationId       String   @unique @db.Uuid
+  staffEnabledProviders AuthProvider[] @default([credentials])
+  essEnabledProviders  AuthProvider[] @default([credentials])
+  ssoEnforcedStaff     Boolean  @default(false)
+  ssoEnforcedEss       Boolean  @default(false)
+  jitProvisioning      Boolean  @default(false)
+  lockedMsTenantId     String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+enum AuthProvider {
+  microsoft
+  google
+  credentials
+}
+
+/// Verified email domains for org resolution + JIT. DNS TXT required before verifiedAt is set.
+model OrganizationEmailDomain {
+  id                String    @id @default(uuid()) @db.Uuid
+  organizationId    String    @db.Uuid
+  domain            String
+  verificationToken String
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, domain])
+  @@index([domain])
+  @@index([organizationId])
 }
 
 /// Links global User to Organization with per-org role (session scoping in RAV-63).

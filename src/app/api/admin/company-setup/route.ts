@@ -29,9 +29,18 @@ import {
   type ModuleKey,
 } from '@/lib/modules';
 import { HRIS_ENTITY_COOKIE } from '@/lib/entity-constants';
+import { getDeploymentTier } from '@/lib/deployment-tier';
+import {
+  enforceCompanySetupTier,
+  getCompanySetupCapabilities,
+} from '@/lib/company-setup-tier-features';
+import { isGoogleOAuthConfigured, isMicrosoftOAuthConfigured } from '@/lib/auth-providers';
+import { applyAuthMethodToSetup, type PortalAuthMethod } from '@/lib/company-setup-auth';
+import { syncCompanySetupToOrgAuth } from '@/lib/auth/sync-company-setup-auth';
+import { listOrganizationEmailDomains, formatDnsTxtRecord } from '@/lib/auth/domain-verification';
 
 export async function GET(request: NextRequest) {
-  const { error } = await requireAdminActor(request);
+  const { error, actor } = await requireAdminActor(request);
   if (error) return error;
   const tierDenied = companySetupAccessDeniedResponse();
   if (tierDenied) return tierDenied;
@@ -50,6 +59,23 @@ export async function GET(request: NextRequest) {
         }
       : undefined;
     const modules = resolveEffectiveModules(setup.moduleAdminFlags, subscription);
+    const tier = getDeploymentTier();
+    const capabilities = getCompanySetupCapabilities(tier);
+    const oauthConfigured = {
+      microsoft: isMicrosoftOAuthConfigured(),
+      google: isGoogleOAuthConfigured(),
+    };
+    const organizationId = actor?.organizationId;
+    const emailDomains =
+      organizationId != null
+        ? (await listOrganizationEmailDomains(organizationId)).map((d) => ({
+            id: d.id,
+            domain: d.domain,
+            verified: Boolean(d.verifiedAt),
+            verifiedAt: d.verifiedAt?.toISOString() ?? null,
+            txtRecord: formatDnsTxtRecord(d.verificationToken),
+          }))
+        : [];
     return NextResponse.json({
       ...setup,
       storageKey,
@@ -59,6 +85,9 @@ export async function GET(request: NextRequest) {
       themePreview: buildBrandThemeCssVars(setup.primaryColor, setup.secondaryColor),
       provisioning: buildProvisioningChecklist(setup),
       defaults: DEFAULT_COMPANY_SETUP,
+      capabilities,
+      oauthConfigured,
+      emailDomains,
       moduleCatalog: MODULE_DEFINITIONS.map(({ key, label, description, canDisable }) => ({
         key,
         label,
@@ -92,7 +121,32 @@ export async function PATCH(request: NextRequest) {
   const storageKey = companySetupStorageKeyFromRequest(request);
   const current = await loadCompanySetupForStorageKey(storageKey);
   const entitlements = await loadEntitlementsForAdminGuard();
-  const merged = sanitizeCompanySetup({ ...current, ...(body as Partial<CompanySetupSettings>) });
+  const tier = getDeploymentTier();
+  const capabilities = getCompanySetupCapabilities(tier);
+  const oauthConfigured = {
+    microsoft: isMicrosoftOAuthConfigured(),
+    google: isGoogleOAuthConfigured(),
+  };
+
+  let merged = sanitizeCompanySetup({ ...current, ...(body as Partial<CompanySetupSettings>) });
+
+  if (capabilities.canConfigureAuthPolicy) {
+    const payload = body as Partial<CompanySetupSettings>;
+    if (payload.staffAuthMethod) {
+      if (!capabilities.allowedAuthMethods.includes(payload.staffAuthMethod)) {
+        return NextResponse.json({ error: 'That staff sign-in method is not available on your plan.' }, { status: 403 });
+      }
+      merged = applyAuthMethodToSetup(merged, 'staff', payload.staffAuthMethod);
+    }
+    if (payload.essAuthMethod) {
+      if (!capabilities.allowedAuthMethods.includes(payload.essAuthMethod)) {
+        return NextResponse.json({ error: 'That ESS sign-in method is not available on your plan.' }, { status: 403 });
+      }
+      merged = applyAuthMethodToSetup(merged, 'ess', payload.essAuthMethod as PortalAuthMethod);
+    }
+  }
+
+  merged = enforceCompanySetupTier(merged, capabilities, oauthConfigured);
 
   const violations = findModuleAdminViolations(merged.moduleAdminFlags, entitlements);
   if (violations.length > 0) {
@@ -105,6 +159,17 @@ export async function PATCH(request: NextRequest) {
     }
 
     await persistCompanySetupSettings(storageKey, merged, actor?.userId ?? null);
+
+    if (actor?.organizationId) {
+      const bodyObj = body as Record<string, unknown>;
+      await syncCompanySetupToOrgAuth(actor.organizationId, merged, {
+        ssoEnforcedStaff: bodyObj.ssoEnforcedStaff === true,
+        ssoEnforcedEss: bodyObj.ssoEnforcedEss === true,
+        jitProvisioning: bodyObj.jitProvisioning === true,
+        lockedMsTenantId:
+          typeof bodyObj.lockedMsTenantId === 'string' ? bodyObj.lockedMsTenantId : undefined,
+      });
+    }
 
     await logAuditEvent({
       actor,

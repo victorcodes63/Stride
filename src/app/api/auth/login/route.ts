@@ -4,16 +4,20 @@ import { prisma } from '@/lib/prisma';
 import { getStaffSessionMaxAgeSeconds } from '@/lib/auth-session';
 import { reportApiError } from '@/lib/monitoring';
 import { logAuditEvent } from '@/lib/audit-events';
-import { getStaffAllowedDomains, isStaffEmailDomainAllowed } from '@/lib/staff-allowed-domains';
 import { createAuthChallengeToken } from '@/lib/auth-challenge';
 import { assertAccountLoginAllowed } from '@/lib/account-login-guard';
 import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
+import { assertCredentialsLoginEnabled } from '@/lib/oauth/assert-credentials-enabled';
+import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
 
 const STAFF_SESSION_COOKIE = 'staff_session';
 const COOKIE_MAX_AGE = getStaffSessionMaxAgeSeconds();
 
 export async function POST(request: NextRequest) {
   try {
+    const credentialsBlocked = await assertCredentialsLoginEnabled('staff');
+    if (credentialsBlocked) return credentialsBlocked;
+
     const body = await request.json();
     const { email, password } = body;
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
@@ -41,13 +45,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const allowedDomains = getStaffAllowedDomains();
-    const domainOk = isStaffEmailDomainAllowed(normalizedEmail, allowedDomains);
-    if (!domainOk) {
-      const domainHint =
-        allowedDomains.length === 1
-          ? `Use your @${allowedDomains[0]} email to sign in.`
-          : 'Use an authorized staff email domain to sign in.';
+    const resolved = await resolveOrgByEmail(normalizedEmail, 'staff');
+    if (!resolved?.verifiedDomain || !resolved.credentialsAllowed) {
+      const domainHint = resolved?.credentialsAllowed === false
+        ? 'Password sign-in is disabled for your organization. Use SSO instead.'
+        : 'Use an authorized work email domain to sign in.';
       await logAuditEvent({
         actor: { userId: null, email: normalizedEmail || null, name: null },
         action: 'auth.login.failed',
@@ -55,10 +57,7 @@ export async function POST(request: NextRequest) {
         route: 'POST /api/auth/login',
         metadata: { reason: 'unauthorized_domain' },
       });
-      return NextResponse.json(
-        { error: domainHint },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: domainHint }, { status: 401 });
     }
 
     if (staffEmail && normalizedEmail !== staffEmail.toLowerCase()) {

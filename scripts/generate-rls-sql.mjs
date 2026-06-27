@@ -77,6 +77,20 @@ for (const model of models) {
 }
 
 lines.push(
+  '-- AUTH: pre-login domain / auth-config lookup (verified domains only)',
+  'DROP POLICY IF EXISTS "OrganizationEmailDomain_auth_public_lookup" ON "OrganizationEmailDomain";',
+  'CREATE POLICY "OrganizationEmailDomain_auth_public_lookup" ON "OrganizationEmailDomain"',
+  '  FOR SELECT',
+  '  USING (',
+  "    current_setting('app.auth_public_lookup', true) = 'true'",
+  '    AND "verifiedAt" IS NOT NULL',
+  '  );',
+  '',
+  'DROP POLICY IF EXISTS "OrganizationAuthConfig_auth_public_lookup" ON "OrganizationAuthConfig";',
+  'CREATE POLICY "OrganizationAuthConfig_auth_public_lookup" ON "OrganizationAuthConfig"',
+  '  FOR SELECT',
+  '  USING (current_setting(\'app.auth_public_lookup\', true) = \'true\');',
+  '',
   '-- Global tables (no RLS): User, PermissionDefinition, RolePermission, SchedulerLock',
 );
 

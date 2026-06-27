@@ -1,6 +1,12 @@
 /**
  * Staff SSO provider availability — server-side only (secrets stay off the client).
+ * Credentials come from Stride platform OAuth (STRIDE_* env), not per-tenant secrets.
  */
+
+import {
+  isStrideGoogleOAuthConfigured,
+  isStrideMicrosoftOAuthConfigured,
+} from '@/lib/auth/platform-oauth';
 
 export type OAuthProviderKey = 'microsoft' | 'google';
 
@@ -11,19 +17,12 @@ export type OAuthProviderStatus = {
   startPath: string;
 };
 
-function trimEnv(key: string): string | undefined {
-  const v = process.env[key];
-  if (typeof v !== 'string') return undefined;
-  const t = v.trim();
-  return t.length > 0 ? t : undefined;
-}
-
 export function isMicrosoftOAuthConfigured(): boolean {
-  return Boolean(trimEnv('MS_CLIENT_ID') && trimEnv('MS_CLIENT_SECRET'));
+  return isStrideMicrosoftOAuthConfigured();
 }
 
 export function isGoogleOAuthConfigured(): boolean {
-  return Boolean(trimEnv('GOOGLE_CLIENT_ID') && trimEnv('GOOGLE_CLIENT_SECRET'));
+  return isStrideGoogleOAuthConfigured();
 }
 
 export function listOAuthProviderStatus(): OAuthProviderStatus[] {

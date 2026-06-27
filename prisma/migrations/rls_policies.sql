@@ -12,36 +12,13 @@ CREATE POLICY "Organization_insert_bootstrap" ON "Organization"
 DROP POLICY IF EXISTS "Organization_tenant_select" ON "Organization";
 CREATE POLICY "Organization_tenant_select" ON "Organization"
   FOR SELECT
-  USING (
-    coalesce(current_setting('app.current_org', true), '') <> ''
-    AND id = current_setting('app.current_org', true)::uuid
-  );
-
-DROP POLICY IF EXISTS "Organization_login_read" ON "Organization";
-CREATE POLICY "Organization_login_read" ON "Organization"
-  FOR SELECT
-  USING (
-    current_setting('app.login_user_id', true) <> ''
-    AND EXISTS (
-      SELECT 1
-      FROM "OrganizationMembership" om
-      WHERE om."organizationId" = "Organization".id
-        AND om."userId" = current_setting('app.login_user_id', true)
-        AND om.status = 'active'
-    )
-  );
+  USING (id = current_setting('app.current_org', true)::uuid);
 
 DROP POLICY IF EXISTS "Organization_tenant_update" ON "Organization";
 CREATE POLICY "Organization_tenant_update" ON "Organization"
   FOR UPDATE
-  USING (
-    coalesce(current_setting('app.current_org', true), '') <> ''
-    AND id = current_setting('app.current_org', true)::uuid
-  )
-  WITH CHECK (
-    coalesce(current_setting('app.current_org', true), '') <> ''
-    AND id = current_setting('app.current_org', true)::uuid
-  );
+  USING (id = current_setting('app.current_org', true)::uuid)
+  WITH CHECK (id = current_setting('app.current_org', true)::uuid);
 
 ALTER TABLE "Client" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Client" FORCE ROW LEVEL SECURITY;
@@ -292,6 +269,23 @@ CREATE POLICY "Grievance_tenant_rw" ON "Grievance"
 
 DROP POLICY IF EXISTS "Grievance_insert_bootstrap" ON "Grievance";
 CREATE POLICY "Grievance_insert_bootstrap" ON "Grievance"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "GrievanceDocument" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "GrievanceDocument" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "GrievanceDocument_tenant_rw" ON "GrievanceDocument";
+CREATE POLICY "GrievanceDocument_tenant_rw" ON "GrievanceDocument"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "GrievanceDocument_insert_bootstrap" ON "GrievanceDocument";
+CREATE POLICY "GrievanceDocument_insert_bootstrap" ON "GrievanceDocument"
   FOR INSERT
   WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
@@ -1216,20 +1210,48 @@ CREATE POLICY "LeaveApprovalAction_insert_bootstrap" ON "LeaveApprovalAction"
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "OrganizationAuthConfig" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "OrganizationAuthConfig" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "OrganizationAuthConfig_tenant_rw" ON "OrganizationAuthConfig";
+CREATE POLICY "OrganizationAuthConfig_tenant_rw" ON "OrganizationAuthConfig"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "OrganizationAuthConfig_insert_bootstrap" ON "OrganizationAuthConfig";
+CREATE POLICY "OrganizationAuthConfig_insert_bootstrap" ON "OrganizationAuthConfig"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "OrganizationEmailDomain" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "OrganizationEmailDomain" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "OrganizationEmailDomain_tenant_rw" ON "OrganizationEmailDomain";
+CREATE POLICY "OrganizationEmailDomain_tenant_rw" ON "OrganizationEmailDomain"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "OrganizationEmailDomain_insert_bootstrap" ON "OrganizationEmailDomain";
+CREATE POLICY "OrganizationEmailDomain_insert_bootstrap" ON "OrganizationEmailDomain"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "OrganizationMembership" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "OrganizationMembership" FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "OrganizationMembership_tenant_rw" ON "OrganizationMembership";
 CREATE POLICY "OrganizationMembership_tenant_rw" ON "OrganizationMembership"
   FOR ALL
-  USING (
-    coalesce(current_setting('app.current_org', true), '') <> ''
-    AND "organizationId" = current_setting('app.current_org', true)::uuid
-  )
-  WITH CHECK (
-    coalesce(current_setting('app.current_org', true), '') <> ''
-    AND "organizationId" = current_setting('app.current_org', true)::uuid
-  );
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
 
 DROP POLICY IF EXISTS "OrganizationMembership_insert_bootstrap" ON "OrganizationMembership";
 CREATE POLICY "OrganizationMembership_insert_bootstrap" ON "OrganizationMembership"
@@ -2091,104 +2113,136 @@ CREATE POLICY "FleetIncident_insert_bootstrap" ON "FleetIncident"
 
 ALTER TABLE "FleetGeofence" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FleetGeofence" FORCE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "FleetGeofence_tenant_rw" ON "FleetGeofence";
 CREATE POLICY "FleetGeofence_tenant_rw" ON "FleetGeofence"
-  FOR ALL USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
   WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
 DROP POLICY IF EXISTS "FleetGeofence_insert_bootstrap" ON "FleetGeofence";
 CREATE POLICY "FleetGeofence_insert_bootstrap" ON "FleetGeofence"
-  FOR INSERT WITH CHECK (
+  FOR INSERT
+  WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
 ALTER TABLE "FleetVehiclePosition" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FleetVehiclePosition" FORCE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "FleetVehiclePosition_tenant_rw" ON "FleetVehiclePosition";
 CREATE POLICY "FleetVehiclePosition_tenant_rw" ON "FleetVehiclePosition"
-  FOR ALL USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
   WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
 DROP POLICY IF EXISTS "FleetVehiclePosition_insert_bootstrap" ON "FleetVehiclePosition";
 CREATE POLICY "FleetVehiclePosition_insert_bootstrap" ON "FleetVehiclePosition"
-  FOR INSERT WITH CHECK (
+  FOR INSERT
+  WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
 ALTER TABLE "FleetServicePlan" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FleetServicePlan" FORCE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "FleetServicePlan_tenant_rw" ON "FleetServicePlan";
 CREATE POLICY "FleetServicePlan_tenant_rw" ON "FleetServicePlan"
-  FOR ALL USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
   WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
 DROP POLICY IF EXISTS "FleetServicePlan_insert_bootstrap" ON "FleetServicePlan";
 CREATE POLICY "FleetServicePlan_insert_bootstrap" ON "FleetServicePlan"
-  FOR INSERT WITH CHECK (
+  FOR INSERT
+  WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
 ALTER TABLE "FleetDefectReport" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FleetDefectReport" FORCE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "FleetDefectReport_tenant_rw" ON "FleetDefectReport";
 CREATE POLICY "FleetDefectReport_tenant_rw" ON "FleetDefectReport"
-  FOR ALL USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
   WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
 DROP POLICY IF EXISTS "FleetDefectReport_insert_bootstrap" ON "FleetDefectReport";
 CREATE POLICY "FleetDefectReport_insert_bootstrap" ON "FleetDefectReport"
-  FOR INSERT WITH CHECK (
+  FOR INSERT
+  WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
 ALTER TABLE "FleetAlarmRule" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FleetAlarmRule" FORCE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "FleetAlarmRule_tenant_rw" ON "FleetAlarmRule";
 CREATE POLICY "FleetAlarmRule_tenant_rw" ON "FleetAlarmRule"
-  FOR ALL USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
   WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
 DROP POLICY IF EXISTS "FleetAlarmRule_insert_bootstrap" ON "FleetAlarmRule";
 CREATE POLICY "FleetAlarmRule_insert_bootstrap" ON "FleetAlarmRule"
-  FOR INSERT WITH CHECK (
+  FOR INSERT
+  WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
 ALTER TABLE "FleetDriverEvaluation" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FleetDriverEvaluation" FORCE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "FleetDriverEvaluation_tenant_rw" ON "FleetDriverEvaluation";
 CREATE POLICY "FleetDriverEvaluation_tenant_rw" ON "FleetDriverEvaluation"
-  FOR ALL USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
   WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
 DROP POLICY IF EXISTS "FleetDriverEvaluation_insert_bootstrap" ON "FleetDriverEvaluation";
 CREATE POLICY "FleetDriverEvaluation_insert_bootstrap" ON "FleetDriverEvaluation"
-  FOR INSERT WITH CHECK (
+  FOR INSERT
+  WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
 ALTER TABLE "FleetEnvironmentalSnapshot" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FleetEnvironmentalSnapshot" FORCE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "FleetEnvironmentalSnapshot_tenant_rw" ON "FleetEnvironmentalSnapshot";
 CREATE POLICY "FleetEnvironmentalSnapshot_tenant_rw" ON "FleetEnvironmentalSnapshot"
-  FOR ALL USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
   WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
 DROP POLICY IF EXISTS "FleetEnvironmentalSnapshot_insert_bootstrap" ON "FleetEnvironmentalSnapshot";
 CREATE POLICY "FleetEnvironmentalSnapshot_insert_bootstrap" ON "FleetEnvironmentalSnapshot"
-  FOR INSERT WITH CHECK (
+  FOR INSERT
+  WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
 ALTER TABLE "FleetDrivingTimeLog" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FleetDrivingTimeLog" FORCE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "FleetDrivingTimeLog_tenant_rw" ON "FleetDrivingTimeLog";
 CREATE POLICY "FleetDrivingTimeLog_tenant_rw" ON "FleetDrivingTimeLog"
-  FOR ALL USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
   WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
 DROP POLICY IF EXISTS "FleetDrivingTimeLog_insert_bootstrap" ON "FleetDrivingTimeLog";
 CREATE POLICY "FleetDrivingTimeLog_insert_bootstrap" ON "FleetDrivingTimeLog"
-  FOR INSERT WITH CHECK (
+  FOR INSERT
+  WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
@@ -2770,5 +2824,53 @@ CREATE POLICY "ConstructionSubcontractor_insert_bootstrap" ON "ConstructionSubco
     coalesce(current_setting('app.current_org', true), '') = ''
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
+
+ALTER TABLE "SupportTicket" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SupportTicket" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SupportTicket_tenant_rw" ON "SupportTicket";
+CREATE POLICY "SupportTicket_tenant_rw" ON "SupportTicket"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SupportTicket_insert_bootstrap" ON "SupportTicket";
+CREATE POLICY "SupportTicket_insert_bootstrap" ON "SupportTicket"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SupportTicketMessage" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SupportTicketMessage" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SupportTicketMessage_tenant_rw" ON "SupportTicketMessage";
+CREATE POLICY "SupportTicketMessage_tenant_rw" ON "SupportTicketMessage"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SupportTicketMessage_insert_bootstrap" ON "SupportTicketMessage";
+CREATE POLICY "SupportTicketMessage_insert_bootstrap" ON "SupportTicketMessage"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+-- AUTH: pre-login domain / auth-config lookup (verified domains only)
+DROP POLICY IF EXISTS "OrganizationEmailDomain_auth_public_lookup" ON "OrganizationEmailDomain";
+CREATE POLICY "OrganizationEmailDomain_auth_public_lookup" ON "OrganizationEmailDomain"
+  FOR SELECT
+  USING (
+    current_setting('app.auth_public_lookup', true) = 'true'
+    AND "verifiedAt" IS NOT NULL
+  );
+
+DROP POLICY IF EXISTS "OrganizationAuthConfig_auth_public_lookup" ON "OrganizationAuthConfig";
+CREATE POLICY "OrganizationAuthConfig_auth_public_lookup" ON "OrganizationAuthConfig"
+  FOR SELECT
+  USING (current_setting('app.auth_public_lookup', true) = 'true');
 
 -- Global tables (no RLS): User, PermissionDefinition, RolePermission, SchedulerLock
