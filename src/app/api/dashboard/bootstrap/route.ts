@@ -20,6 +20,7 @@ import { loadDeploymentEntitlements } from '@/lib/entitlements-store';
 import { loadOrganizationEntitlements } from '@/lib/org-entitlements-store';
 import { isEntitlementsStale } from '@/lib/entitlements-types';
 import { planIdToTier } from '@/lib/entitlements-resolver';
+import { isModuleEntitled } from '@/lib/entitlements-guard';
 import { getDeploymentTier } from '@/lib/deployment-tier';
 import { withTenant } from '@/lib/tenant-api';
 import { listActiveMemberships } from '@/lib/org-membership';
@@ -102,6 +103,7 @@ export async function GET(request: NextRequest) {
           description,
           canDisable,
           licensed: licensed[key],
+          entitled: isModuleEntitled(key, entitlements),
           adminEnabled: moduleAdminFlags[key],
           enabled: modules[key],
         })),

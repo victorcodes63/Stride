@@ -1,5 +1,6 @@
 import type { DeploymentEntitlements } from '@/lib/entitlements-types';
 import { loadDeploymentEntitlements } from '@/lib/entitlements-store';
+import { loadOrganizationEntitlements } from '@/lib/org-entitlements-store';
 import type { ModuleKey } from '@/lib/modules';
 import { getModuleLabel } from '@/lib/modules';
 
@@ -53,7 +54,14 @@ export function clampModuleAdminFlags(
   return next;
 }
 
-export async function loadEntitlementsForAdminGuard(): Promise<DeploymentEntitlements | null> {
+/** Per-org entitlements (pooled cell) with deployment-level fallback (dedicated / legacy). */
+export async function loadEntitlementsForAdminGuard(
+  organizationId?: string | null,
+): Promise<DeploymentEntitlements | null> {
+  if (organizationId?.trim()) {
+    const orgEntitlements = await loadOrganizationEntitlements(organizationId.trim());
+    if (orgEntitlements) return orgEntitlements;
+  }
   return loadDeploymentEntitlements();
 }
 

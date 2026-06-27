@@ -1,8 +1,15 @@
 import { hash } from "bcryptjs";
-import type { Prisma } from "@prisma/client";
+import type { AuthProvider, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getLocalePack } from "@/lib/country-config";
 import { setOrgContext } from "@/lib/org-context";
+
+export type StaffAuthSetup =
+  | "credentials"
+  | "credentials_microsoft"
+  | "credentials_google"
+  | "microsoft"
+  | "google";
 
 export type ProvisionOrgInput = {
   organizationSlug: string;
@@ -14,7 +21,24 @@ export type ProvisionOrgInput = {
   adminEmail: string;
   adminName?: string;
   adminPassword?: string;
+  /** How staff sign-in is configured for this tenant (control-plane onboarding). */
+  staffAuthSetup?: StaffAuthSetup;
 };
+
+export function staffAuthSetupToProviders(setup: StaffAuthSetup): AuthProvider[] {
+  switch (setup) {
+    case "credentials_microsoft":
+      return ["microsoft", "credentials"];
+    case "credentials_google":
+      return ["google", "credentials"];
+    case "microsoft":
+      return ["microsoft"];
+    case "google":
+      return ["google"];
+    default:
+      return ["credentials"];
+  }
+}
 
 export type ProvisionOrgResult = {
   organizationId: string;
@@ -43,6 +67,7 @@ async function ensureProvisionAuthBootstrap(
   tx: Prisma.TransactionClient,
   organizationId: string,
   adminEmail: string,
+  staffAuthSetup: StaffAuthSetup = "credentials",
 ): Promise<void> {
   await setOrgContext(tx, organizationId);
 
@@ -66,15 +91,19 @@ async function ensureProvisionAuthBootstrap(
     });
   }
 
+  const staffEnabledProviders = staffAuthSetupToProviders(staffAuthSetup);
+  const essEnabledProviders: AuthProvider[] = ["credentials"];
+
   await tx.organizationAuthConfig.upsert({
     where: { organizationId },
     create: {
       organizationId,
-      staffEnabledProviders: ["credentials"],
-      essEnabledProviders: ["credentials"],
+      staffEnabledProviders,
+      essEnabledProviders,
       updatedAt: new Date(),
     },
     update: {
+      staffEnabledProviders,
       updatedAt: new Date(),
     },
   });
@@ -97,17 +126,65 @@ export async function provisionOrganization(
     throw new Error("adminEmail is required");
   }
 
+  const staffAuthSetup = input.staffAuthSetup ?? "credentials";
+  const adminName = input.adminName?.trim() || input.organizationName;
+
   const existingOrg = await prisma.organization.findUnique({
     where: { slug: organizationSlug },
   });
   if (existingOrg) {
-    const user = await prisma.user.findUnique({ where: { email: adminEmail } });
-    if (!user) {
-      throw new Error("Organization exists but admin user not found");
-    }
-    await prisma.$transaction(async (tx) => {
-      await ensureProvisionAuthBootstrap(tx, existingOrg.id, adminEmail);
+    const password =
+      input.adminPassword?.trim() ||
+      process.env.PROVISION_ADMIN_PASSWORD?.trim() ||
+      undefined;
+    const passwordHash = password ? await hash(password, 12) : undefined;
+
+    const user = await prisma.$transaction(async (tx) => {
+      await setOrgContext(tx, existingOrg.id);
+
+      const upserted = await tx.user.upsert({
+        where: { email: adminEmail },
+        create: {
+          email: adminEmail,
+          name: adminName,
+          role: "admin",
+          staffUserType: "operations",
+          passwordHash: passwordHash ?? (await hash(`Stride-${Date.now().toString(36)}!`, 12)),
+          isActive: true,
+          updatedAt: new Date(),
+        },
+        update: {
+          name: adminName,
+          isActive: true,
+          ...(passwordHash ? { passwordHash } : {}),
+          updatedAt: new Date(),
+        },
+      });
+
+      await tx.organizationMembership.upsert({
+        where: {
+          userId_organizationId: {
+            userId: upserted.id,
+            organizationId: existingOrg.id,
+          },
+        },
+        create: {
+          userId: upserted.id,
+          organizationId: existingOrg.id,
+          role: "admin",
+          updatedAt: new Date(),
+        },
+        update: {
+          role: "admin",
+          updatedAt: new Date(),
+        },
+      });
+
+      await ensureProvisionAuthBootstrap(tx, existingOrg.id, adminEmail, staffAuthSetup);
+
+      return upserted;
     });
+
     return {
       organizationId: existingOrg.id,
       organizationSlug: existingOrg.slug,
@@ -122,7 +199,6 @@ export async function provisionOrganization(
     `Stride-${Date.now().toString(36)}!`;
 
   const passwordHash = await hash(password, 12);
-  const adminName = input.adminName?.trim() || input.organizationName;
 
   const result = await prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({
@@ -180,7 +256,7 @@ export async function provisionOrganization(
       },
     });
 
-    await ensureProvisionAuthBootstrap(tx, org.id, adminEmail);
+    await ensureProvisionAuthBootstrap(tx, org.id, adminEmail, staffAuthSetup);
 
     return { org, user };
   });

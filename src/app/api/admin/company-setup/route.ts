@@ -21,6 +21,7 @@ import {
   isModuleEntitled,
   loadEntitlementsForAdminGuard,
   moduleNotEntitledResponse,
+  clampModuleAdminFlags,
 } from '@/lib/entitlements-guard';
 import {
   listLicensedModules,
@@ -30,6 +31,7 @@ import {
 } from '@/lib/modules';
 import { HRIS_ENTITY_COOKIE } from '@/lib/entity-constants';
 import { getDeploymentTier } from '@/lib/deployment-tier';
+import { planIdToTier } from '@/lib/entitlements-resolver';
 import {
   enforceCompanySetupTier,
   getCompanySetupCapabilities,
@@ -42,7 +44,10 @@ import { listOrganizationEmailDomains, formatDnsTxtRecord } from '@/lib/auth/dom
 export async function GET(request: NextRequest) {
   const { error, actor } = await requireAdminActor(request);
   if (error) return error;
-  const tierDenied = companySetupAccessDeniedResponse();
+
+  const entitlements = await loadEntitlementsForAdminGuard(actor?.organizationId);
+  const tier = entitlements ? planIdToTier(entitlements.planId) : getDeploymentTier();
+  const tierDenied = companySetupAccessDeniedResponse(tier);
   if (tierDenied) return tierDenied;
 
   try {
@@ -50,7 +55,6 @@ export async function GET(request: NextRequest) {
     const entitySlug = request.cookies.get(HRIS_ENTITY_COOKIE)?.value ?? null;
     const setup = await loadCompanySetupForStorageKey(storageKey);
     const licensed = listLicensedModules();
-    const entitlements = await loadEntitlementsForAdminGuard();
     const subscription = entitlements
       ? {
           subscribedModules: entitlements.modules,
@@ -59,7 +63,6 @@ export async function GET(request: NextRequest) {
         }
       : undefined;
     const modules = resolveEffectiveModules(setup.moduleAdminFlags, subscription);
-    const tier = getDeploymentTier();
     const capabilities = getCompanySetupCapabilities(tier);
     const oauthConfigured = {
       microsoft: isMicrosoftOAuthConfigured(),
@@ -88,6 +91,15 @@ export async function GET(request: NextRequest) {
       capabilities,
       oauthConfigured,
       emailDomains,
+      deploymentTier: tier,
+      entitlements: entitlements
+        ? {
+            planId: entitlements.planId,
+            accountStatus: entitlements.accountStatus,
+            horizontalQuota: entitlements.horizontalQuota,
+            verticalEnginesAllowed: entitlements.verticalEnginesAllowed,
+          }
+        : null,
       moduleCatalog: MODULE_DEFINITIONS.map(({ key, label, description, canDisable }) => ({
         key,
         label,
@@ -108,7 +120,10 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const { error, actor } = await requireAdminActor(request);
   if (error) return error;
-  const tierDenied = companySetupAccessDeniedResponse();
+
+  const entitlements = await loadEntitlementsForAdminGuard(actor?.organizationId);
+  const tier = entitlements ? planIdToTier(entitlements.planId) : getDeploymentTier();
+  const tierDenied = companySetupAccessDeniedResponse(tier);
   if (tierDenied) return tierDenied;
 
   let body: unknown;
@@ -120,8 +135,6 @@ export async function PATCH(request: NextRequest) {
 
   const storageKey = companySetupStorageKeyFromRequest(request);
   const current = await loadCompanySetupForStorageKey(storageKey);
-  const entitlements = await loadEntitlementsForAdminGuard();
-  const tier = getDeploymentTier();
   const capabilities = getCompanySetupCapabilities(tier);
   const oauthConfigured = {
     microsoft: isMicrosoftOAuthConfigured(),
@@ -147,6 +160,10 @@ export async function PATCH(request: NextRequest) {
   }
 
   merged = enforceCompanySetupTier(merged, capabilities, oauthConfigured);
+  merged = {
+    ...merged,
+    moduleAdminFlags: clampModuleAdminFlags(merged.moduleAdminFlags, entitlements),
+  };
 
   const violations = findModuleAdminViolations(merged.moduleAdminFlags, entitlements);
   if (violations.length > 0) {

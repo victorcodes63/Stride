@@ -29,8 +29,8 @@ export function getDeploymentTier(): DeploymentTier {
   return parseTier(trimEnv('DEPLOYMENT_TIER')) ?? 'growth';
 }
 
-export function canAccessCompanySetup(): boolean {
-  return COMPANY_SETUP_TIERS.includes(getDeploymentTier());
+export function canAccessCompanySetup(tier: DeploymentTier = getDeploymentTier()): boolean {
+  return COMPANY_SETUP_TIERS.includes(tier);
 }
 
 export function companySetupTierLabel(tier: DeploymentTier = getDeploymentTier()): string {

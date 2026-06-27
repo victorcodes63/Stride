@@ -52,6 +52,14 @@ export async function POST(request: NextRequest) {
       adminEmail,
       adminName: typeof body.adminName === "string" ? body.adminName : undefined,
       adminPassword: typeof body.adminPassword === "string" ? body.adminPassword : undefined,
+      staffAuthSetup:
+        body.staffAuthSetup === "credentials" ||
+        body.staffAuthSetup === "credentials_microsoft" ||
+        body.staffAuthSetup === "credentials_google" ||
+        body.staffAuthSetup === "microsoft" ||
+        body.staffAuthSetup === "google"
+          ? body.staffAuthSetup
+          : undefined,
     });
 
     return NextResponse.json({
