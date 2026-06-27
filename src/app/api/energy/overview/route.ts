@@ -1,66 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireStaffUser } from '@/lib/staff-api-auth';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { canAccessEnergy, forbiddenResponse } from '@/lib/demo-route-access';
 import { reportApiError } from '@/lib/monitoring';
 import { buildEnergyHseRollup } from '@/lib/energy/hse-rollup';
+import { withTenant } from '@/lib/tenant-api';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!canAccessEnergy(user)) {
-    return forbiddenResponse('Energy access is restricted to operations and admin users.');
-  }
+  return withTenant(request, async (ctx) => {
+    if (!canAccessEnergy(ctx.staff)) {
+      return forbiddenResponse('Energy access is restricted to operations and admin users.');
+    }
 
-  try {
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, undefined, request);
-    const soon = new Date();
-    soon.setDate(soon.getDate() + 60);
+    try {
+      const { activeSites, activePermits, expiringPermits, expiredPermits, openIncidents, rollup } =
+        await ctx.run(async (tx) => {
+          const clientId = await resolvePrimaryWorkspaceClientId(
+            tx,
+            undefined,
+            request,
+            ctx.organizationId,
+          );
 
-    const [activeSites, activePermits, expiringPermits, expiredPermits, openIncidents] =
-      await Promise.all([
-        prisma.energySite.count({ where: { outsourcingClientId: clientId, isActive: true } }),
-        prisma.energyPermit.count({
-          where: { outsourcingClientId: clientId, status: 'active' },
-        }),
-        prisma.energyPermit.count({
-          where: {
-            outsourcingClientId: clientId,
-            status: 'expiring_soon',
-          },
-        }),
-        prisma.energyPermit.count({
-          where: { outsourcingClientId: clientId, status: 'expired' },
-        }),
-        prisma.hseIncident.count({
-          where: {
-            outsourcingClientId: clientId,
-            status: { in: ['open', 'investigating'] },
-          },
-        }),
-      ]);
+          const [sites, permitsActive, permitsExpiring, permitsExpired, incidents, hseRollup] =
+            await Promise.all([
+              tx.energySite.count({
+                where: { ...ctx.where(), outsourcingClientId: clientId, isActive: true },
+              }),
+              tx.energyPermit.count({
+                where: { ...ctx.where(), outsourcingClientId: clientId, status: 'active' },
+              }),
+              tx.energyPermit.count({
+                where: {
+                  ...ctx.where(),
+                  outsourcingClientId: clientId,
+                  status: 'expiring_soon',
+                },
+              }),
+              tx.energyPermit.count({
+                where: { ...ctx.where(), outsourcingClientId: clientId, status: 'expired' },
+              }),
+              tx.hseIncident.count({
+                where: {
+                  ...ctx.where(),
+                  outsourcingClientId: clientId,
+                  status: { in: ['open', 'investigating'] },
+                },
+              }),
+              buildEnergyHseRollup(tx, ctx.organizationId),
+            ]);
 
-    const rollup = await buildEnergyHseRollup(prisma, user.currentOrgId);
+          return {
+            activeSites: sites,
+            activePermits: permitsActive,
+            expiringPermits: permitsExpiring,
+            expiredPermits: permitsExpired,
+            openIncidents: incidents,
+            rollup: hseRollup,
+          };
+        });
 
-    return NextResponse.json({
-      summary: {
-        activeSites,
-        activePermits,
-        expiringPermits,
-        expiredPermits,
-        openIncidents,
-        entityCount: rollup.length,
-      },
-      rollup,
-    });
-  } catch (error) {
-    await reportApiError({
-      route: 'GET /api/energy/overview',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to load energy overview.' }, { status: 500 });
-  }
+      return NextResponse.json({
+        summary: {
+          activeSites,
+          activePermits,
+          expiringPermits,
+          expiredPermits,
+          openIncidents,
+          entityCount: rollup.length,
+        },
+        rollup,
+      });
+    } catch (error) {
+      await reportApiError({
+        route: 'GET /api/energy/overview',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to load energy overview.' }, { status: 500 });
+    }
+  });
 }

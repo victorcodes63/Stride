@@ -198,33 +198,137 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
     if (def.key === 'core') {
       return {
         ...base,
-        phase: 'routes-partial',
+        phase: 'tenant-safe',
         notes:
-          'Exemplar: outsourcing/employees, dashboard/bootstrap, overview, notifications, search, overview-stats use withTenant().',
+          'All core staff API routes use withTenant(); ESS portal routes use withEssTenant() (ISO-04).',
       };
     }
 
     if (def.key === 'performance') {
       return {
         ...base,
-        phase: 'routes-partial',
-        notes: 'Real cycles/reviews APIs + dashboard/ESS UI; migrate remaining legacy routes.',
+        phase: 'tenant-safe',
+        notes: 'All performance cycles/reviews APIs use withTenant() + org-scoped queries.',
       };
     }
 
     if (def.key === 'leave') {
       return {
         ...base,
-        phase: 'routes-partial',
-        notes: 'Unified leave hub (employee + staff); overview API with withTenant(); migrate legacy application routes.',
+        phase: 'tenant-safe',
+        notes: 'Staff leave, outsourcing leave, and ESS leave routes use withTenant/withEssTenant (ISO-04).',
+      };
+    }
+
+    if (def.key === 'time') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'Rota, biometric, attendance, and ESS clock/rota routes use withTenant/withEssTenant (ISO-04).',
+      };
+    }
+
+    if (def.key === 'ats') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'Staff ATS routes use withTenant(); public careers paths use withOrgContext from job org (ISO-04).',
       };
     }
 
     if (def.key === 'hse') {
       return {
         ...base,
-        phase: 'routes-partial',
-        notes: 'HseIncident/HseAction schema, staff dashboard, ESS reporting.',
+        phase: 'tenant-safe',
+        notes: 'Staff HSE + ESS reporting routes use withTenant/withEssTenant (ISO-04).',
+      };
+    }
+
+    if (def.key === 'disciplinary') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'Staff + ESS disciplinary/grievance routes use withTenant/withEssTenant (ISO-04).',
+      };
+    }
+
+    if (def.key === 'procurement') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'All procurement staff + ESS purchase-request routes tenant-scoped (ISO-04).',
+      };
+    }
+
+    if (def.key === 'legal') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'Legal obligations API uses withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'documents') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'Company documents API uses withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'communications') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'Announcements API uses withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'training') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'Training programs API uses withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'sacco') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'All /api/sacco/* routes use withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'healthcare') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'All /api/healthcare/* routes use withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'energy') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'All /api/energy/* routes use withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'construction') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'All /api/construction/* routes use withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'ess') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'ESS shell routes (home, profile, notifications, etc.) use withEssTenant() (ISO-04).',
       };
     }
 

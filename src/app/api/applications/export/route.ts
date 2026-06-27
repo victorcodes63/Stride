@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { reportApiError } from '@/lib/monitoring';
+import { withTenant } from '@/lib/tenant-api';
 import type { ApplicationWithDetails } from '@/types/dashboard';
 import ExcelJS from 'exceljs';
 import { sortEmploymentByRecency } from '@/lib/employment-sort';
 import { strideHexToArgb, STRIDE_PALETTE } from '@/lib/stride-palette';
 
 export async function GET(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
   }
@@ -53,16 +54,18 @@ export async function GET(request: NextRequest) {
         candidateWhere.experience = { gte: minExp, lte: maxExp };
       }
 
-      const rows = await prisma.application.findMany({
-        where: {
-          ...(jobId ? { jobId } : {}),
-          ...(clientId ? { job: { clientId } } : {}),
-          ...(status ? { status: status as 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired' } : {}),
-          ...(Object.keys(candidateWhere).length ? { candidate: candidateWhere } : {}),
-        },
-        include: { candidate: true, job: { include: { client: true } } },
-        orderBy: { appliedDate: 'desc' },
-      });
+      const rows = await ctx.run((tx) =>
+        tx.application.findMany({
+          where: ctx.where({
+            ...(jobId ? { jobId } : {}),
+            ...(clientId ? { job: { clientId } } : {}),
+            ...(status ? { status: status as 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired' } : {}),
+            ...(Object.keys(candidateWhere).length ? { candidate: candidateWhere } : {}),
+          }),
+          include: { candidate: true, job: { include: { client: true } } },
+          orderBy: { appliedDate: 'desc' },
+        }),
+      );
       let filtered = rows;
       if (educationLevel?.trim()) {
         const level = educationLevel.trim();
@@ -355,5 +358,6 @@ export async function GET(request: NextRequest) {
       'Content-Disposition': `attachment; filename="${filename}"`,
       'Content-Length': String(buffer.byteLength),
     },
+  });
   });
 }

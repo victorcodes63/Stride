@@ -4,8 +4,8 @@
  * and list of previous applications (for talent-pool / urgent-reach-out use case).
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getInMemoryApplications } from '@/lib/applications-store';
+import { withTenant } from '@/lib/tenant-api';
 import type { CandidateSummary } from '@/types/dashboard';
 import type { ApplicationFormData } from '@/types/dashboard';
 
@@ -24,6 +24,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  return withTenant(request, async (ctx) => {
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: 'Candidate id required' }, { status: 400 });
@@ -31,15 +32,17 @@ export async function GET(
 
   try {
     if (process.env.DATABASE_URL) {
-      const candidate = await prisma.candidate.findUnique({
-        where: { id },
-        include: {
-          applications: {
-            orderBy: { appliedDate: 'desc' },
-            include: { job: { include: { client: true } } },
+      const candidate = await ctx.run((tx) =>
+        tx.candidate.findFirst({
+          where: ctx.where({ id }),
+          include: {
+            applications: {
+              orderBy: { appliedDate: 'desc' },
+              include: { job: { include: { client: true } } },
+            },
           },
-        },
-      });
+        }),
+      );
       if (!candidate) {
         return NextResponse.json({ error: 'Candidate not found.' }, { status: 404 });
       }
@@ -136,4 +139,5 @@ export async function GET(
   };
 
   return NextResponse.json(result);
+  });
 }

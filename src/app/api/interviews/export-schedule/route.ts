@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
 import { APP_TIMEZONE, dateTimeNairobi } from '@/lib/timezone';
 import { generateInterviewSchedulePdf } from '@/lib/interview-schedule-pdf';
 import { brand } from '@/lib/brand';
+import { withTenant } from '@/lib/tenant-api';
 
 const LOGO_PATH = brand.logoSrc.startsWith('/') ? brand.logoSrc : `/${brand.logoSrc}`;
 
@@ -24,6 +24,7 @@ type InterviewScheduleRow = Prisma.InterviewGetPayload<{
  * Default: returns HTML for viewing/printing
  */
 export async function GET(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   const { searchParams } = new URL(request.url);
   const idsParam = searchParams.get('ids') || '';
   const dateStr = searchParams.get('date') || '';
@@ -42,11 +43,13 @@ export async function GET(request: NextRequest) {
       if (ids.length === 0) {
         return NextResponse.json({ error: 'Query "ids" must be a comma-separated list of interview IDs.' }, { status: 400 });
       }
-      interviews = await prisma.interview.findMany({
-        where: { id: { in: ids } },
-        include: interviewScheduleInclude,
-        orderBy: { scheduledAt: 'asc' },
-      });
+      interviews = await ctx.run((tx) =>
+        tx.interview.findMany({
+          where: ctx.where({ id: { in: ids } }),
+          include: interviewScheduleInclude,
+          orderBy: { scheduledAt: 'asc' },
+        }),
+      );
       // Preserve order of ids if needed (findMany returns in arbitrary order; we ordered by scheduledAt)
     } else {
       if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -63,11 +66,13 @@ export async function GET(request: NextRequest) {
         scheduledAt: { gte: dateStart, lte: dateEnd },
       };
       if (jobId?.trim()) where.application = { jobId: jobId.trim() };
-      interviews = await prisma.interview.findMany({
-        where,
-        include: interviewScheduleInclude,
-        orderBy: { scheduledAt: 'asc' },
-      });
+      interviews = await ctx.run((tx) =>
+        tx.interview.findMany({
+          where: ctx.where(where),
+          include: interviewScheduleInclude,
+          orderBy: { scheduledAt: 'asc' },
+        }),
+      );
     }
 
     /** Day bounds in Nairobi so breaks match the same calendar day as interviews */
@@ -91,11 +96,13 @@ export async function GET(request: NextRequest) {
 
     if (effectiveJobId && effectiveDateStr && /^\d{4}-\d{2}-\d{2}$/.test(effectiveDateStr)) {
       const { start: bStart, end: bEnd } = dayBounds(effectiveDateStr);
-      breaks = await prisma.interviewScheduleBreak.findMany({
-        where: { jobId: effectiveJobId, scheduledAt: { gte: bStart, lte: bEnd } },
-        orderBy: { scheduledAt: 'asc' },
-        select: { id: true, scheduledAt: true, durationMinutes: true, label: true },
-      });
+      breaks = await ctx.run((tx) =>
+        tx.interviewScheduleBreak.findMany({
+          where: ctx.where({ jobId: effectiveJobId, scheduledAt: { gte: bStart, lte: bEnd } }),
+          orderBy: { scheduledAt: 'asc' },
+          select: { id: true, scheduledAt: true, durationMinutes: true, label: true },
+        }),
+      );
     }
 
     type TimelineItem =
@@ -121,10 +128,12 @@ export async function GET(request: NextRequest) {
       const job = interviews[0].application.job;
       positionTitle = formatPositionLine(job.title, job.company);
     } else if (breaks.length > 0 && effectiveJobId) {
-      const job = await prisma.job.findUnique({
-        where: { id: effectiveJobId },
-        select: { title: true, company: true },
-      });
+      const job = await ctx.run((tx) =>
+        tx.job.findFirst({
+          where: ctx.where({ id: effectiveJobId }),
+          select: { title: true, company: true },
+        }),
+      );
       positionTitle = job ? formatPositionLine(job.title, job.company) : '—';
     }
     const scheduleDate =
@@ -427,4 +436,5 @@ export async function GET(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Failed to generate schedule.' }, { status: 500 });
   }
+  });
 }

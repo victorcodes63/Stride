@@ -104,6 +104,7 @@ function usesTenantWrapper(source: string): boolean {
     /\bwithFleetTenant\s*\(/.test(source) ||
     /\bwithAccountsTenant\s*\(/.test(source) ||
     /\bwithEssTenant\s*\(/.test(source) ||
+    /\bwithAssessmentAccessToken\s*\(/.test(source) ||
     (/\bwithOrgContext\s*\(/.test(source) && /\brequireStaffUser\b/.test(source))
   );
 }

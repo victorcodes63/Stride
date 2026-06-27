@@ -3,7 +3,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { sendApplicationReceivedEmail } from '@/lib/email';
 import { reportApiError } from '@/lib/monitoring';
-import { parseStaffSession } from '@/lib/auth-session';
+import { withOrgContext } from '@/lib/org-context';
+import { withTenant } from '@/lib/tenant-api';
 import type {
   ApplicationWithDetails,
   ApplicationListItem,
@@ -11,8 +12,6 @@ import type {
 } from '@/types/dashboard';
 import { yearsBetweenEmploymentDates } from '@/lib/employment-sort';
 import { createAssessmentAttemptsForApplication } from '@/lib/assessment-attempts';
-
-const STAFF_SESSION_COOKIE = 'staff_session';
 
 function jobToSummary(job: {
   id: string;
@@ -93,11 +92,11 @@ function totalWorkExperienceYears(
 }
 
 export async function GET(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
   }
-  const rawSession = request.cookies.get(STAFF_SESSION_COOKIE)?.value;
-  const currentUserId = rawSession ? parseStaffSession(rawSession).userId : undefined;
+  const currentUserId = ctx.staff.id;
 
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get('jobId') || undefined;
@@ -143,22 +142,24 @@ export async function GET(request: NextRequest) {
         candidateWhere.experience = { gte: minExp, lte: maxExp };
       }
 
-      const applications = await prisma.application.findMany({
-        where: {
-          ...(jobId ? { jobId } : {}),
-          ...(clientId ? { job: { clientId } } : {}),
-          ...(status ? { status: status as 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired' } : {}),
-          ...(Object.keys(candidateWhere).length ? { candidate: candidateWhere } : {}),
-        },
-        include: {
-          candidate: true,
-          job: { include: { client: true } },
-          views: currentUserId
-            ? { where: { userId: currentUserId }, select: { userId: true } }
-            : false,
-        },
-        orderBy: { appliedDate: 'desc' },
-      });
+      const applications = await ctx.run((tx) =>
+        tx.application.findMany({
+          where: ctx.where({
+            ...(jobId ? { jobId } : {}),
+            ...(clientId ? { job: { clientId } } : {}),
+            ...(status ? { status: status as 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired' } : {}),
+            ...(Object.keys(candidateWhere).length ? { candidate: candidateWhere } : {}),
+          }),
+          include: {
+            candidate: true,
+            job: { include: { client: true } },
+            views: currentUserId
+              ? { where: { userId: currentUserId }, select: { userId: true } }
+              : false,
+          },
+          orderBy: { appliedDate: 'desc' },
+        }),
+      );
       let filtered = applications;
       if (educationLevel?.trim()) {
         const level = educationLevel.trim();
@@ -266,6 +267,7 @@ export async function GET(request: NextRequest) {
   } catch (_e) {
     return NextResponse.json({ error: 'Failed to load applications.' }, { status: 500 });
   }
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -358,10 +360,32 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-      const job = await prisma.job.findUnique({ where: { id: jobId } });
-      if (!job) {
+      const jobBootstrap = await prisma.job.findUnique({
+        where: { id: jobId },
+        select: {
+          id: true,
+          organizationId: true,
+          applicationDeadline: true,
+          title: true,
+          company: true,
+          location: true,
+          type: true,
+          category: true,
+          postedDate: true,
+          isActive: true,
+          clientId: true,
+          minYearsExperience: true,
+          educationLevel: true,
+          educationQualification: true,
+          requiredCertifications: true,
+        },
+      });
+      if (!jobBootstrap) {
         return NextResponse.json({ error: 'Job not found.' }, { status: 404 });
       }
+
+      return await withOrgContext(jobBootstrap.organizationId, async (tx) => {
+      const job = jobBootstrap;
       const deadline = job.applicationDeadline;
       if (deadline && new Date(deadline) < new Date()) {
         return NextResponse.json(
@@ -370,8 +394,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const existingApplication = await prisma.application.findFirst({
+      const existingApplication = await tx.application.findFirst({
         where: {
+          organizationId: job.organizationId,
           jobId,
           candidate: {
             email,
@@ -387,8 +412,9 @@ export async function POST(request: NextRequest) {
       }
 
       if (phone) {
-        const duplicatePhoneCandidate = await prisma.candidate.findFirst({
+        const duplicatePhoneCandidate = await tx.candidate.findFirst({
           where: {
+            organizationId: job.organizationId,
             phone,
             NOT: { email },
           },
@@ -405,9 +431,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const candidate = await prisma.candidate.upsert({
+      const candidate = await tx.candidate.upsert({
         where: { email },
         create: {
+          organizationId: job.organizationId,
           firstName,
           lastName,
           email,
@@ -437,8 +464,9 @@ export async function POST(request: NextRequest) {
           ? (formDataRaw as Record<string, unknown>)
           : undefined;
 
-      const application = await prisma.application.create({
+      const application = await tx.application.create({
         data: {
+          organizationId: job.organizationId,
           jobId,
           candidateId: candidate.id,
           coverLetter: coverLetter ?? null,
@@ -515,6 +543,7 @@ export async function POST(request: NextRequest) {
           name: row.templateName,
           url: `/careers/assessment/${row.accessToken}`,
         })),
+      });
       });
   } catch (e) {
     await reportApiError({

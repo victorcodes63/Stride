@@ -5,6 +5,8 @@ import { JobListing } from '@/types/ats';
 import { ensureUniqueSlug, jobSlugBase } from '@/lib/slug';
 import { parseDateTimeAsNairobi } from '@/lib/timezone';
 import { getOrCreateRecruitmentSettings, resolveJobCompanyAndClientId } from '@/lib/recruitment-workspace';
+import { withOrgContext } from '@/lib/org-context';
+import { withTenant } from '@/lib/tenant-api';
 
 type PrismaJobForListing = {
   id: string;
@@ -81,48 +83,76 @@ export async function GET(
   }
   const internal = request.nextUrl.searchParams.get('internal') === 'true';
 
+  if (internal) {
+    return withTenant(request, async (ctx) => {
+      try {
+        let job = await ctx.run((tx) =>
+          tx.job.findFirst({
+            where: ctx.where({ id }),
+            include: { client: true, _count: { select: { applications: true } } },
+          }),
+        );
+        if (!job) {
+          job = await ctx.run((tx) =>
+            tx.job.findFirst({
+              where: ctx.where({ slug: id }),
+              include: { client: true, _count: { select: { applications: true } } },
+            }),
+          );
+        }
+        if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+        const listing = prismaJobToListing(job as unknown as PrismaJobForListing);
+        const out = listing as JobListing & {
+          concealCompany?: boolean;
+          clientId?: string | null;
+          salaryPublic?: boolean;
+          minYearsExperience?: number | null;
+          educationLevel?: string | null;
+          educationQualification?: string | null;
+          requiredCertifications?: string | null;
+        };
+        out.concealCompany = job.concealCompany ?? false;
+        out.clientId = job.clientId ?? null;
+        out.salaryPublic = (job as { salaryPublic?: boolean }).salaryPublic ?? false;
+        out.minYearsExperience = (job as { minYearsExperience?: number | null }).minYearsExperience ?? null;
+        out.educationLevel = (job as { educationLevel?: string | null }).educationLevel ?? null;
+        out.educationQualification = (job as { educationQualification?: string | null }).educationQualification ?? null;
+        out.requiredCertifications = (job as { requiredCertifications?: string | null }).requiredCertifications ?? null;
+        return NextResponse.json(listing);
+      } catch (_e) {
+        return NextResponse.json({ error: 'Failed to load job.' }, { status: 500 });
+      }
+    });
+  }
+
   try {
-    // Try by id first (supports existing CUID links and bookmarks), then by slug
-    let job = await prisma.job.findUnique({
-        where: { id },
+    const bootstrap = await prisma.job.findFirst({
+      where: { OR: [{ id }, { slug: id }] },
+      select: { organizationId: true },
+    });
+    if (!bootstrap) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+
+    return await withOrgContext(bootstrap.organizationId, async (tx) => {
+      let job = await tx.job.findFirst({
+        where: { organizationId: bootstrap.organizationId, id },
         include: { client: true, _count: { select: { applications: true } } },
       });
-      if (!job && id) {
-        job = await prisma.job.findUnique({
-          where: { slug: id },
+      if (!job) {
+        job = await tx.job.findFirst({
+          where: { organizationId: bootstrap.organizationId, slug: id },
           include: { client: true, _count: { select: { applications: true } } },
         });
       }
-    if (job) {
-        const jobWithStart = job as { applicationStartAt?: Date | null };
-        if (!internal && jobWithStart.applicationStartAt != null && jobWithStart.applicationStartAt > new Date()) {
-          return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-        }
-        const listing = prismaJobToListing(job as unknown as PrismaJobForListing);
-        if (!internal) {
-          if (job.concealCompany) listing.company = 'Confidential';
-          if (!(job as { salaryPublic?: boolean }).salaryPublic) listing.salary = undefined;
-        } else {
-          const out = listing as JobListing & {
-            concealCompany?: boolean;
-            clientId?: string | null;
-            salaryPublic?: boolean;
-            minYearsExperience?: number | null;
-            educationLevel?: string | null;
-            educationQualification?: string | null;
-            requiredCertifications?: string | null;
-          };
-          out.concealCompany = job.concealCompany ?? false;
-          out.clientId = job.clientId ?? null;
-          out.salaryPublic = (job as { salaryPublic?: boolean }).salaryPublic ?? false;
-          out.minYearsExperience = (job as { minYearsExperience?: number | null }).minYearsExperience ?? null;
-          out.educationLevel = (job as { educationLevel?: string | null }).educationLevel ?? null;
-          out.educationQualification = (job as { educationQualification?: string | null }).educationQualification ?? null;
-          out.requiredCertifications = (job as { requiredCertifications?: string | null }).requiredCertifications ?? null;
-        }
-        return NextResponse.json(listing);
+      if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      const jobWithStart = job as { applicationStartAt?: Date | null };
+      if (jobWithStart.applicationStartAt != null && jobWithStart.applicationStartAt > new Date()) {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
       }
-    return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      const listing = prismaJobToListing(job as unknown as PrismaJobForListing);
+      if (job.concealCompany) listing.company = 'Confidential';
+      if (!(job as { salaryPublic?: boolean }).salaryPublic) listing.salary = undefined;
+      return NextResponse.json(listing);
+    });
   } catch (_e) {
     return NextResponse.json({ error: 'Failed to load job.' }, { status: 500 });
   }
@@ -132,6 +162,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  return withTenant(request, async (ctx) => {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Job id required' }, { status: 400 });
   let body: unknown;
@@ -248,16 +279,16 @@ export async function PATCH(
   }
   if (company !== undefined) {
     if (company === '') {
-      const settings = await getOrCreateRecruitmentSettings(prisma);
+      const settings = await ctx.run((tx) => getOrCreateRecruitmentSettings(tx));
       resolvedCompany = settings.employerName;
       resolvedClientId = settings.linkedClientId;
     } else {
-      const r = await resolveJobCompanyAndClientId(prisma, company);
+      const r = await ctx.run((tx) => resolveJobCompanyAndClientId(tx, company));
       resolvedCompany = r.company;
       resolvedClientId = r.clientId;
     }
   } else {
-    const settings = await getOrCreateRecruitmentSettings(prisma);
+    const settings = await ctx.run((tx) => getOrCreateRecruitmentSettings(tx));
     resolvedClientId = settings.linkedClientId;
   }
 
@@ -288,8 +319,9 @@ export async function PATCH(
   if (isActive !== undefined) payload.isActive = isActive;
 
   try {
-    const existing = await prisma.job.findUnique({
-        where: { id },
+    const job = await ctx.run(async (tx) => {
+      const existing = await tx.job.findFirst({
+        where: ctx.where({ id }),
         select: { slug: true, title: true, location: true },
       });
       const updateData: Record<string, unknown> = {
@@ -315,29 +347,34 @@ export async function PATCH(
         ...(payload.isActive !== undefined && { isActive: payload.isActive }),
       };
       if (!existing) {
-        return NextResponse.json({ error: 'Job not found.' }, { status: 404 });
+        throw new Error('NOT_FOUND');
       }
       if (existing.slug == null) {
         const baseSlug = jobSlugBase(
           payload.title ?? existing.title,
           payload.location ?? existing.location,
-          id.slice(0, 8)
+          id.slice(0, 8),
         );
         const slug = await ensureUniqueSlug(baseSlug, async (s) => {
-          const other = await prisma.job.findFirst({
-            where: { slug: s, id: { not: id } },
+          const other = await tx.job.findFirst({
+            where: ctx.where({ slug: s, id: { not: id } }),
           });
           return !!other;
         });
         updateData.slug = slug;
       }
-    const job = await prisma.job.update({
+      return tx.job.update({
         where: { id },
-        data: updateData as Parameters<typeof prisma.job.update>[0]['data'],
+        data: updateData as Parameters<typeof tx.job.update>[0]['data'],
       });
+    });
     const listing = prismaJobToListing(job as unknown as PrismaJobForListing);
     return NextResponse.json(listing);
-  } catch (_e) {
+  } catch (e) {
+    if (e instanceof Error && e.message === 'NOT_FOUND') {
+      return NextResponse.json({ error: 'Job not found.' }, { status: 404 });
+    }
     return NextResponse.json({ error: 'Failed to update job.' }, { status: 500 });
   }
+  });
 }

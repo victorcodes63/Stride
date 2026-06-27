@@ -1,8 +1,10 @@
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
+
+type Db = PrismaClient | Prisma.TransactionClient;
 
 /** Allocate the next HSE incident number, e.g. INC-2026-0001. */
 export async function allocateIncidentNumber(
-  prisma: PrismaClient,
+  prisma: Db,
   outsourcingClientId: string,
 ): Promise<string> {
   const year = new Date().getUTCFullYear();

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { HseIncidentSeverity, HseIncidentType } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
-import { requireStaffUser } from '@/lib/staff-api-auth';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { reportApiError } from '@/lib/monitoring';
 import { allocateIncidentNumber } from '@/lib/hse/incident-code';
 import { serializeIncident } from '@/lib/hse/serialize';
+import { withTenant } from '@/lib/tenant-api';
 
 const INCIDENT_TYPES: HseIncidentType[] = [
   'hazard',
@@ -26,127 +25,130 @@ const incidentInclude = {
 } as const;
 
 export async function GET(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return withTenant(request, async (ctx) => {
+    try {
+      const incidents = await ctx.run(async (tx) => {
+        const clientId = await resolvePrimaryWorkspaceClientId(tx, undefined, request, ctx.organizationId);
+        const status = request.nextUrl.searchParams.get('status')?.trim() || undefined;
+        const siteName = request.nextUrl.searchParams.get('siteName')?.trim() || undefined;
 
-  try {
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, undefined, request);
-    const status = request.nextUrl.searchParams.get('status')?.trim() || undefined;
-    const siteName = request.nextUrl.searchParams.get('siteName')?.trim() || undefined;
+        return tx.hseIncident.findMany({
+          where: {
+            ...ctx.where(),
+            outsourcingClientId: clientId,
+            ...(status ? { status: status as never } : {}),
+            ...(siteName ? { siteName } : {}),
+          },
+          include: incidentInclude,
+          orderBy: [{ occurredAt: 'desc' }],
+          take: 200,
+        });
+      });
 
-    const incidents = await prisma.hseIncident.findMany({
-      where: {
-        outsourcingClientId: clientId,
-        ...(status ? { status: status as never } : {}),
-        ...(siteName ? { siteName } : {}),
-      },
-      include: incidentInclude,
-      orderBy: [{ occurredAt: 'desc' }],
-      take: 200,
-    });
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const openCount = incidents.filter((i) => i.status === 'open').length;
+      const followUpCount = incidents.filter(
+        (i) => i.status === 'open' || i.status === 'investigating',
+      ).length;
+      const resolvedThisMonth = incidents.filter(
+        (i) =>
+          (i.status === 'resolved' || i.status === 'closed') &&
+          (i.resolvedAt ?? i.closedAt ?? i.updatedAt) >= monthStart,
+      ).length;
+      const nearMissCount = incidents.filter((i) => i.incidentType === 'near_miss').length;
+      const latest = incidents[0]?.occurredAt;
+      const daysSinceLast =
+        latest == null
+          ? null
+          : Math.max(0, Math.floor((now.getTime() - latest.getTime()) / 86400000));
 
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const openCount = incidents.filter((i) => i.status === 'open').length;
-    const followUpCount = incidents.filter(
-      (i) => i.status === 'open' || i.status === 'investigating',
-    ).length;
-    const resolvedThisMonth = incidents.filter(
-      (i) =>
-        (i.status === 'resolved' || i.status === 'closed') &&
-        (i.resolvedAt ?? i.closedAt ?? i.updatedAt) >= monthStart,
-    ).length;
-    const nearMissCount = incidents.filter((i) => i.incidentType === 'near_miss').length;
-    const latest = incidents[0]?.occurredAt;
-    const daysSinceLast =
-      latest == null
-        ? null
-        : Math.max(0, Math.floor((now.getTime() - latest.getTime()) / 86400000));
-
-    return NextResponse.json({
-      incidents: incidents.map(serializeIncident),
-      summary: {
-        openCount,
-        followUpCount,
-        resolvedThisMonth,
-        nearMissCount,
-        daysSinceLast,
-      },
-    });
-  } catch (error) {
-    await reportApiError({
-      route: 'GET /api/hse/incidents',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to load incidents.' }, { status: 500 });
-  }
+      return NextResponse.json({
+        incidents: incidents.map(serializeIncident),
+        summary: {
+          openCount,
+          followUpCount,
+          resolvedThisMonth,
+          nearMissCount,
+          daysSinceLast,
+        },
+      });
+    } catch (error) {
+      await reportApiError({
+        route: 'GET /api/hse/incidents',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to load incidents.' }, { status: 500 });
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return withTenant(request, async (ctx) => {
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    const description = typeof body.description === 'string' ? body.description.trim() : '';
+    if (!title || !description) {
+      return NextResponse.json({ error: 'Title and description are required.' }, { status: 400 });
+    }
 
-  const title = typeof body.title === 'string' ? body.title.trim() : '';
-  const description = typeof body.description === 'string' ? body.description.trim() : '';
-  if (!title || !description) {
-    return NextResponse.json({ error: 'Title and description are required.' }, { status: 400 });
-  }
+    const incidentType =
+      typeof body.incidentType === 'string' && INCIDENT_TYPES.includes(body.incidentType as HseIncidentType)
+        ? (body.incidentType as HseIncidentType)
+        : 'other';
+    const severity =
+      typeof body.severity === 'string' && SEVERITIES.includes(body.severity as HseIncidentSeverity)
+        ? (body.severity as HseIncidentSeverity)
+        : 'medium';
+    const siteName = typeof body.siteName === 'string' ? body.siteName.trim() : null;
+    const location = typeof body.location === 'string' ? body.location.trim() : null;
+    const immediateAction =
+      typeof body.immediateAction === 'string' ? body.immediateAction.trim() : null;
+    const injuredParty = typeof body.injuredParty === 'string' ? body.injuredParty.trim() : null;
+    const occurredAt =
+      typeof body.occurredAt === 'string' && body.occurredAt.trim()
+        ? new Date(body.occurredAt)
+        : new Date();
 
-  const incidentType =
-    typeof body.incidentType === 'string' && INCIDENT_TYPES.includes(body.incidentType as HseIncidentType)
-      ? (body.incidentType as HseIncidentType)
-      : 'other';
-  const severity =
-    typeof body.severity === 'string' && SEVERITIES.includes(body.severity as HseIncidentSeverity)
-      ? (body.severity as HseIncidentSeverity)
-      : 'medium';
-  const siteName = typeof body.siteName === 'string' ? body.siteName.trim() : null;
-  const location = typeof body.location === 'string' ? body.location.trim() : null;
-  const immediateAction =
-    typeof body.immediateAction === 'string' ? body.immediateAction.trim() : null;
-  const injuredParty = typeof body.injuredParty === 'string' ? body.injuredParty.trim() : null;
-  const occurredAt =
-    typeof body.occurredAt === 'string' && body.occurredAt.trim()
-      ? new Date(body.occurredAt)
-      : new Date();
+    try {
+      const created = await ctx.run(async (tx) => {
+        const clientId = await resolvePrimaryWorkspaceClientId(tx, undefined, request, ctx.organizationId);
+        const incidentNumber = await allocateIncidentNumber(tx, clientId);
 
-  try {
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, undefined, request);
-    const incidentNumber = await allocateIncidentNumber(prisma, clientId);
+        return tx.hseIncident.create({
+          data: {
+            organizationId: ctx.organizationId,
+            outsourcingClientId: clientId,
+            incidentNumber,
+            title,
+            description,
+            incidentType,
+            severity,
+            siteName,
+            location,
+            occurredAt,
+            immediateAction,
+            injuredParty,
+            reportedByUserId: ctx.staff.id,
+            createdByUserId: ctx.staff.id,
+          },
+          include: incidentInclude,
+        });
+      });
 
-    const created = await prisma.hseIncident.create({
-      data: {
-        organizationId: user.currentOrgId,
-        outsourcingClientId: clientId,
-        incidentNumber,
-        title,
-        description,
-        incidentType,
-        severity,
-        siteName,
-        location,
-        occurredAt,
-        immediateAction,
-        injuredParty,
-        reportedByUserId: user.id,
-        createdByUserId: user.id,
-      },
-      include: incidentInclude,
-    });
-
-    return NextResponse.json({ incident: serializeIncident(created) }, { status: 201 });
-  } catch (error) {
-    await reportApiError({
-      route: 'POST /api/hse/incidents',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to create incident.' }, { status: 500 });
-  }
+      return NextResponse.json({ incident: serializeIncident(created) }, { status: 201 });
+    } catch (error) {
+      await reportApiError({
+        route: 'POST /api/hse/incidents',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to create incident.' }, { status: 500 });
+    }
+  });
 }

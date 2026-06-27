@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
 import { dateTimeNairobi } from '@/lib/timezone';
 import { computeBulkInterviewStartTimesWithCustom } from '@/lib/bulk-interview-schedule';
+import { withTenant } from '@/lib/tenant-api';
 import type {
   InterviewWithDetails,
   InterviewType,
@@ -60,6 +60,7 @@ function jobToSummary(job: {
 }
 
 export async function POST(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   let body: unknown;
   try {
     body = await request.json();
@@ -120,17 +121,21 @@ export async function POST(request: NextRequest) {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
-    const job = await prisma.job.findUnique({
-      where: { id: jobId },
-      include: { client: true },
-    });
+    const job = await ctx.run((tx) =>
+      tx.job.findFirst({
+        where: ctx.where({ id: jobId }),
+        include: { client: true },
+      }),
+    );
     if (!job) {
       return NextResponse.json({ error: 'Job not found.' }, { status: 404 });
     }
-    const applications = await prisma.application.findMany({
-      where: { id: { in: applicationIds }, jobId, status: 'shortlisted' },
-      include: { candidate: true, job: { include: { client: true } } },
-    });
+    const applications = await ctx.run((tx) =>
+      tx.application.findMany({
+        where: ctx.where({ id: { in: applicationIds }, jobId, status: 'shortlisted' }),
+        include: { candidate: true, job: { include: { client: true } } },
+      }),
+    );
     if (applications.length !== applicationIds.length) {
       return NextResponse.json({
         error: 'Some application IDs were not found, are not shortlisted, or do not belong to this job.',
@@ -177,43 +182,48 @@ export async function POST(request: NextRequest) {
       timesByApp
     );
 
-    /** Array $transaction uses root client (interactive `tx` can miss `interviewScheduleBreak` in some runtimes). */
-    const breakOps = breakCreates.map((br) =>
-      prisma.interviewScheduleBreak.create({
-        data: {
-          jobId,
-          scheduledAt: br.scheduledAt,
-          durationMinutes: br.durationMinutes,
-          label: br.label,
-          notes: br.notes,
-        },
-      })
-    );
     const typesMap =
       b.typesByApplication && typeof b.typesByApplication === 'object' && !Array.isArray(b.typesByApplication)
         ? (b.typesByApplication as Record<string, string>)
         : {};
-    const interviewOps = applications.map((app, i) => {
-      const raw = String(typesMap[app.id] ?? '')
-        .trim()
-        .toLowerCase();
-      const perType = VALID_TYPES.includes(raw as InterviewType) ? (raw as InterviewType) : type;
-      return prisma.interview.create({
-        data: {
-          applicationId: app.id,
-          scheduledAt: new Date(interviewStarts[i].getTime()),
-          durationMinutes,
-          type: perType,
-          locationOrLink,
-          notes,
-        },
-        include: interviewCreateInclude,
-      });
+
+    const created = await ctx.run(async (tx) => {
+      for (const br of breakCreates) {
+        await tx.interviewScheduleBreak.create({
+          data: {
+            organizationId: ctx.organizationId,
+            jobId,
+            scheduledAt: br.scheduledAt,
+            durationMinutes: br.durationMinutes,
+            label: br.label,
+            notes: br.notes,
+          },
+        });
+      }
+      const interviewRows: InterviewCreatedWithDetails[] = [];
+      for (let i = 0; i < applications.length; i++) {
+        const app = applications[i];
+        const raw = String(typesMap[app.id] ?? '')
+          .trim()
+          .toLowerCase();
+        const perType = VALID_TYPES.includes(raw as InterviewType) ? (raw as InterviewType) : type;
+        const interview = await tx.interview.create({
+          data: {
+            organizationId: ctx.organizationId,
+            applicationId: app.id,
+            scheduledAt: new Date(interviewStarts[i].getTime()),
+            durationMinutes,
+            type: perType,
+            locationOrLink,
+            notes,
+          },
+          include: interviewCreateInclude,
+        });
+        interviewRows.push(interview);
+      }
+      return interviewRows;
     });
-    const results = await prisma.$transaction([...breakOps, ...interviewOps]);
-    const created: InterviewWithDetails[] = (
-      results.slice(breakCreates.length) as InterviewCreatedWithDetails[]
-    ).map((interview) => ({
+    const createdInterviews: InterviewWithDetails[] = created.map((interview) => ({
       id: interview.id,
       applicationId: interview.applicationId,
       scheduledAt: interview.scheduledAt.toISOString(),
@@ -249,9 +259,10 @@ export async function POST(request: NextRequest) {
         job: jobToSummary(interview.application.job),
       },
     }));
-    return NextResponse.json({ interviews: created, breaksCreated: breakCreates.length });
+    return NextResponse.json({ interviews: createdInterviews, breaksCreated: breakCreates.length });
   } catch (e) {
     console.error('POST /api/interviews/bulk error:', e);
     return NextResponse.json({ error: 'Failed to create interviews.' }, { status: 500 });
   }
+  });
 }

@@ -8,6 +8,9 @@ import { getOrCreateRecruitmentSettings, resolveJobCompanyAndClientId } from '@/
 import { isDemoMode } from '@/lib/deployment-config';
 import { resolveEntityIdOrDefault } from '@/lib/entity-request';
 import { getActiveEntities, loadOperatingEntitiesSettings } from '@/lib/operating-entities';
+import { withOrgContext } from '@/lib/org-context';
+import { withTenant } from '@/lib/tenant-api';
+import type { Prisma } from '@prisma/client';
 
 type PrismaJobForListing = {
   id: string;
@@ -71,76 +74,98 @@ function prismaJobToListing(job: PrismaJobForListing): JobListing {
   };
 }
 
+async function resolvePublicCareersOrganizationId(): Promise<string | null> {
+  const row = await prisma.recruitmentSettings.findUnique({
+    where: { id: 'default' },
+    select: { organizationId: true },
+  });
+  return row?.organizationId ?? null;
+}
+
+async function listJobs(
+  db: Prisma.TransactionClient,
+  organizationId: string,
+  request: NextRequest,
+  activeOnly: boolean,
+): Promise<JobListing[]> {
+  const { searchParams } = new URL(request.url);
+  const keyword = searchParams.get('keyword')?.toLowerCase();
+  const location = searchParams.get('location')?.toLowerCase();
+  const category = searchParams.get('category');
+  const now = new Date();
+  const recruitmentSettings = activeOnly ? await getOrCreateRecruitmentSettings(db) : null;
+  let employerCompany: string | undefined;
+  if (isDemoMode()) {
+    const entityId = await resolveEntityIdOrDefault(request);
+    const oe = await loadOperatingEntitiesSettings();
+    employerCompany = getActiveEntities(oe).find((e) => e.id === entityId)?.legalName;
+  }
+  const jobs = await db.job.findMany({
+    where: {
+      organizationId,
+      ...(employerCompany ? { company: employerCompany } : {}),
+      ...(activeOnly
+        ? {
+            isActive: true,
+            OR: [{ applicationDeadline: null }, { applicationDeadline: { gt: now } }],
+            AND: [{ OR: [{ applicationStartAt: null }, { applicationStartAt: { lte: now } }] }],
+          }
+        : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { title: { contains: keyword, mode: 'insensitive' } },
+              { company: { contains: keyword, mode: 'insensitive' } },
+              { description: { contains: keyword, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+      ...(location ? { location: { contains: location, mode: 'insensitive' } } : {}),
+      ...(category ? { category } : {}),
+    },
+    include: { client: true, _count: { select: { applications: true } } },
+    orderBy: { postedDate: 'desc' },
+  });
+  return jobs.map((job) => {
+    const listing = prismaJobToListing(job as unknown as PrismaJobForListing);
+    if (activeOnly) {
+      if (job.concealCompany) listing.company = 'Confidential';
+      else if (recruitmentSettings?.employerName?.trim()) listing.company = recruitmentSettings.employerName.trim();
+      if (!(job as { salaryPublic?: boolean }).salaryPublic) listing.salary = undefined;
+    }
+    return listing;
+  });
+}
+
 export async function GET(request: NextRequest) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
   }
-  const { searchParams } = new URL(request.url);
-  const activeOnly = searchParams.get('activeOnly') === 'true';
-  const keyword = searchParams.get('keyword')?.toLowerCase();
-  const location = searchParams.get('location')?.toLowerCase();
-  const category = searchParams.get('category');
+  const activeOnly = new URL(request.url).searchParams.get('activeOnly') === 'true';
 
-  try {
-    const now = new Date();
-    const recruitmentSettings = activeOnly ? await getOrCreateRecruitmentSettings(prisma) : null;
-    let employerCompany: string | undefined;
-    if (isDemoMode()) {
-      const entityId = await resolveEntityIdOrDefault(request);
-      const oe = await loadOperatingEntitiesSettings();
-      employerCompany = getActiveEntities(oe).find((e) => e.id === entityId)?.legalName;
+  if (activeOnly) {
+    try {
+      const orgId = await resolvePublicCareersOrganizationId();
+      if (!orgId) return NextResponse.json([]);
+      const list = await withOrgContext(orgId, (tx) => listJobs(tx, orgId, request, true));
+      return NextResponse.json(list);
+    } catch (_e) {
+      return NextResponse.json({ error: 'Failed to load jobs.' }, { status: 500 });
     }
-    const jobs = await prisma.job.findMany({
-        where: {
-          ...(employerCompany ? { company: employerCompany } : {}),
-          ...(activeOnly
-            ? {
-                isActive: true,
-                OR: [
-                  { applicationDeadline: null },
-                  { applicationDeadline: { gt: now } },
-                ],
-                AND: [
-                  {
-                    OR: [
-                      { applicationStartAt: null },
-                      { applicationStartAt: { lte: now } },
-                    ],
-                  },
-                ],
-              }
-            : {}),
-          ...(keyword
-            ? {
-                OR: [
-                  { title: { contains: keyword, mode: 'insensitive' } },
-                  { company: { contains: keyword, mode: 'insensitive' } },
-                  { description: { contains: keyword, mode: 'insensitive' } },
-                ],
-              }
-            : {}),
-          ...(location ? { location: { contains: location, mode: 'insensitive' } } : {}),
-          ...(category ? { category } : {}),
-        },
-        include: { client: true, _count: { select: { applications: true } } },
-        orderBy: { postedDate: 'desc' },
-      });
-    const list = jobs.map((job) => {
-      const listing = prismaJobToListing(job as unknown as PrismaJobForListing);
-      if (activeOnly) {
-        if (job.concealCompany) listing.company = 'Confidential';
-        else if (recruitmentSettings?.employerName?.trim()) listing.company = recruitmentSettings.employerName.trim();
-        if (!(job as { salaryPublic?: boolean }).salaryPublic) listing.salary = undefined;
-      }
-      return listing;
-    });
-    return NextResponse.json(list);
-  } catch (_e) {
-    return NextResponse.json({ error: 'Failed to load jobs.' }, { status: 500 });
   }
+
+  return withTenant(request, async (ctx) => {
+    try {
+      const list = await ctx.run((tx) => listJobs(tx, ctx.organizationId, request, false));
+      return NextResponse.json(list);
+    } catch (_e) {
+      return NextResponse.json({ error: 'Failed to load jobs.' }, { status: 500 });
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   let body: unknown;
   try {
     body = await request.json();
@@ -188,9 +213,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
   }
   try {
-    const { company: resolvedName, clientId: linked } = await resolveJobCompanyAndClientId(
-      prisma,
-      company || undefined
+    const { company: resolvedName, clientId: linked } = await ctx.run((tx) =>
+      resolveJobCompanyAndClientId(tx, company || undefined),
     );
     company = resolvedName;
     resolvedClientId = linked;
@@ -276,27 +300,30 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const year = new Date().getFullYear();
-    const prefix = `JOB-${year}-`;
-    const existing = await prisma.job.findMany({
-        where: { referenceId: { startsWith: prefix } },
+    const job = await ctx.run(async (tx) => {
+      const year = new Date().getFullYear();
+      const prefix = `JOB-${year}-`;
+      const existing = await tx.job.findMany({
+        where: ctx.where({ referenceId: { startsWith: prefix } }),
         select: { referenceId: true },
         orderBy: { referenceId: 'desc' },
         take: 1,
       });
-      const nextNum = existing.length === 0
-        ? 1
-        : (parseInt(existing[0].referenceId?.replace(prefix, '') || '0', 10) + 1);
+      const nextNum =
+        existing.length === 0
+          ? 1
+          : parseInt(existing[0].referenceId?.replace(prefix, '') || '0', 10) + 1;
       const referenceId = `${prefix}${String(nextNum).padStart(4, '0')}`;
 
       const baseSlug = jobSlugBase(input.title, input.location);
       const slug = await ensureUniqueSlug(baseSlug, async (s) => {
-        const existing = await prisma.job.findUnique({ where: { slug: s } });
-        return !!existing;
+        const found = await tx.job.findFirst({ where: ctx.where({ slug: s }) });
+        return !!found;
       });
 
-    const job = await prisma.job.create({
+      return tx.job.create({
         data: {
+          organizationId: ctx.organizationId,
           referenceId,
           slug,
           title: input.title,
@@ -323,8 +350,10 @@ export async function POST(request: NextRequest) {
           applicationDeadline: applicationDeadline ?? null,
         },
       });
+    });
     return NextResponse.json(prismaJobToListing(job as unknown as PrismaJobForListing));
   } catch (_e) {
     return NextResponse.json({ error: 'Failed to create job.' }, { status: 500 });
   }
+  });
 }

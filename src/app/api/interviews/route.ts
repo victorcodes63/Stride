@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { withTenant } from '@/lib/tenant-api';
 import type {
   InterviewWithDetails,
   CreateInterviewBody,
@@ -46,6 +46,7 @@ function jobToSummary(job: {
 }
 
 export async function GET(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   try {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json([]);
@@ -78,18 +79,20 @@ export async function GET(request: NextRequest) {
     if (inviteSent === 'true') where.inviteSentAt = { not: null };
     if (inviteSent === 'false') where.inviteSentAt = null;
 
-    const interviews = await prisma.interview.findMany({
-      where,
-      include: {
-        application: {
-          include: {
-            candidate: true,
-            job: { include: { client: true } },
+    const interviews = await ctx.run((tx) =>
+      tx.interview.findMany({
+        where: ctx.where(where),
+        include: {
+          application: {
+            include: {
+              candidate: true,
+              job: { include: { client: true } },
+            },
           },
         },
-      },
-      orderBy: { scheduledAt: 'asc' },
-    });
+        orderBy: { scheduledAt: 'asc' },
+      }),
+    );
     const list: InterviewWithDetails[] = interviews.map((i) => ({
       id: i.id,
       applicationId: i.applicationId,
@@ -146,11 +149,13 @@ export async function GET(request: NextRequest) {
     console.error('GET /api/interviews error:', e);
     return NextResponse.json({ error: 'Failed to load interviews.' }, { status: 500 });
   }
+  });
 }
 
 const VALID_TYPES: InterviewType[] = ['phone', 'video', 'onsite'];
 
 export async function POST(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   let body: unknown;
   try {
     body = await request.json();
@@ -190,10 +195,12 @@ export async function POST(request: NextRequest) {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
-    const application = await prisma.application.findUnique({
-      where: { id: applicationId },
-      select: { id: true, status: true },
-    });
+    const application = await ctx.run((tx) =>
+      tx.application.findFirst({
+        where: ctx.where({ id: applicationId }),
+        select: { id: true, status: true },
+      }),
+    );
     if (!application) {
       return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
     }
@@ -204,24 +211,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const interview = await prisma.interview.create({
-      data: {
-        applicationId,
-        scheduledAt,
-        durationMinutes,
-        type,
-        locationOrLink,
-        notes,
-      },
-      include: {
-        application: {
-          include: {
-            candidate: true,
-            job: { include: { client: true } },
+    const interview = await ctx.run((tx) =>
+      tx.interview.create({
+        data: {
+          organizationId: ctx.organizationId,
+          applicationId,
+          scheduledAt,
+          durationMinutes,
+          type,
+          locationOrLink,
+          notes,
+        },
+        include: {
+          application: {
+            include: {
+              candidate: true,
+              job: { include: { client: true } },
+            },
           },
         },
-      },
-    });
+      }),
+    );
 
     const out: InterviewWithDetails = {
       id: interview.id,
@@ -279,4 +289,5 @@ export async function POST(request: NextRequest) {
     console.error('POST /api/interviews error:', e);
     return NextResponse.json({ error: 'Failed to create interview.' }, { status: 500 });
   }
+  });
 }

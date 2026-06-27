@@ -4,12 +4,13 @@
  * Sends rejection email to each rejected applicant in the selection.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getInMemoryApplications } from '@/lib/applications-store';
 import { sendApplicationRejectedEmail } from '@/lib/email';
+import { withTenant } from '@/lib/tenant-api';
 import type { ApplicationWithDetails } from '@/types/dashboard';
 
 export async function POST(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   let body: unknown;
   try {
     body = await request.json();
@@ -28,10 +29,12 @@ export async function POST(request: NextRequest) {
 
   try {
     if (process.env.DATABASE_URL) {
-      const rows = await prisma.application.findMany({
-        where: { id: { in: ids } },
-        include: { candidate: true, job: { include: { client: true } } },
-      });
+      const rows = await ctx.run((tx) =>
+        tx.application.findMany({
+          where: ctx.where({ id: { in: ids } }),
+          include: { candidate: true, job: { include: { client: true } } },
+        }),
+      );
       applications = rows.map((a) => ({
         id: a.id,
         jobId: a.jobId,
@@ -119,5 +122,6 @@ export async function POST(request: NextRequest) {
     failed: failed.length,
     details: results,
     ...(failed.length > 0 && { failedEmails: failed.map((f) => f.email) }),
+  });
   });
 }

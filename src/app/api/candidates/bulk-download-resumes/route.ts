@@ -5,8 +5,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import archiver from 'archiver';
-import { prisma } from '@/lib/prisma';
 import { getInMemoryCandidates } from '@/lib/applications-store';
+import { withTenant } from '@/lib/tenant-api';
 import type { CandidateSummary } from '@/types/dashboard';
 
 function sanitizeFileName(name: string): string {
@@ -28,6 +28,7 @@ async function fetchResumeBuffer(urlOrPath: string, baseUrl: string): Promise<Bu
 }
 
 export async function POST(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   let body: unknown;
   try {
     body = await request.json();
@@ -51,9 +52,11 @@ export async function POST(request: NextRequest) {
 
   try {
     if (process.env.DATABASE_URL) {
-      const rows = await prisma.candidate.findMany({
-        where: { id: { in: ids } },
-      });
+      const rows = await ctx.run((tx) =>
+        tx.candidate.findMany({
+          where: ctx.where({ id: { in: ids } }),
+        }),
+      );
       candidates = rows.map((c) => ({
         id: c.id,
         firstName: c.firstName,
@@ -121,5 +124,6 @@ export async function POST(request: NextRequest) {
       'Content-Disposition': `attachment; filename="candidate-resumes-${date}.zip"`,
       'Content-Length': String(zipBuffer.length),
     },
+  });
   });
 }

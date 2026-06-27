@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getInMemoryCandidates } from '@/lib/applications-store';
+import { withTenant } from '@/lib/tenant-api';
 import type { CandidateListItem, CandidatesListApiResponse } from '@/types/dashboard';
 
 export async function GET(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get('jobId') || undefined;
   const minExperience = searchParams.get('minExperience');
@@ -27,10 +28,12 @@ export async function GET(request: NextRequest) {
       // When jobId is set, we want candidates who applied to this job; otherwise all candidates.
       let candidateIdsSet: Set<string> | undefined;
       if (jobId) {
-        const apps = await prisma.application.findMany({
-          where: { jobId },
-          select: { candidateId: true },
-        });
+        const apps = await ctx.run((tx) =>
+          tx.application.findMany({
+            where: ctx.where({ jobId }),
+            select: { candidateId: true },
+          }),
+        );
         candidateIdsSet = new Set(apps.map((a) => a.candidateId));
         if (candidateIdsSet.size === 0) {
           return NextResponse.json({ candidates: [], total: 0, page: 1, totalPages: 1 });
@@ -38,9 +41,12 @@ export async function GET(request: NextRequest) {
       }
       if (employerCompany?.trim()) {
         const q = employerCompany.trim().toLowerCase();
-        const apps = await prisma.application.findMany({
-          select: { candidateId: true, formData: true },
-        });
+        const apps = await ctx.run((tx) =>
+          tx.application.findMany({
+            where: ctx.where(),
+            select: { candidateId: true, formData: true },
+          }),
+        );
         const employerMatchedIds = new Set(
           apps
             .filter((a) => {
@@ -88,27 +94,29 @@ export async function GET(request: NextRequest) {
         ];
       }
 
-      const [candidates, total] = await Promise.all([
-        prisma.candidate.findMany({
-          where: Object.keys(where).length ? where : undefined,
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take: limit,
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            location: true,
-            experience: true,
-            education: true,
-            resumePath: true,
-          },
-        }),
-        prisma.candidate.count({
-          where: Object.keys(where).length ? where : undefined,
-        }),
-      ]);
+      const [candidates, total] = await ctx.run((tx) =>
+        Promise.all([
+          tx.candidate.findMany({
+            where: ctx.where(Object.keys(where).length ? where : undefined),
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              location: true,
+              experience: true,
+              education: true,
+              resumePath: true,
+            },
+          }),
+          tx.candidate.count({
+            where: ctx.where(Object.keys(where).length ? where : undefined),
+          }),
+        ]),
+      );
 
       const list: CandidateListItem[] = candidates.map((c) => ({
         id: c.id,
@@ -157,5 +165,6 @@ export async function GET(request: NextRequest) {
     total,
     page,
     totalPages: Math.max(1, Math.ceil(total / limit)),
+  });
   });
 }

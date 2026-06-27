@@ -6,6 +6,7 @@ import {
   updateInMemoryApplicationNotes,
 } from '@/lib/applications-store';
 import { reportApiError } from '@/lib/monitoring';
+import { withTenant } from '@/lib/tenant-api';
 import type { ApplicationWithDetails, ApplicationStatus } from '@/types/dashboard';
 import { createAssessmentAttemptsForApplication } from '@/lib/assessment-attempts';
 
@@ -47,6 +48,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  return withTenant(request, async (ctx) => {
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: 'Application id required' }, { status: 400 });
@@ -54,10 +56,12 @@ export async function GET(
 
   try {
     if (process.env.DATABASE_URL) {
-      const application = await prisma.application.findUnique({
-        where: { id },
-        include: { candidate: true, job: { include: { client: true } } },
-      });
+      const application = await ctx.run((tx) =>
+        tx.application.findFirst({
+          where: ctx.where({ id }),
+          include: { candidate: true, job: { include: { client: true } } },
+        }),
+      );
       if (!application) {
         return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
       }
@@ -116,12 +120,14 @@ export async function GET(
     return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
   }
   return NextResponse.json(app);
+  });
 }
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  return withTenant(request, async (ctx) => {
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: 'Application id required' }, { status: 400 });
@@ -145,14 +151,16 @@ export async function PATCH(
 
   try {
     if (process.env.DATABASE_URL) {
-      const application = await prisma.application.update({
-        where: { id },
-        data: {
-          ...(status && { status: status as ApplicationStatus }),
-          ...(notes !== undefined && { notes }),
-        },
-        include: { candidate: true, job: { include: { client: true } } },
-      });
+      const application = await ctx.run((tx) =>
+        tx.application.update({
+          where: { id },
+          data: {
+            ...(status && { status: status as ApplicationStatus }),
+            ...(notes !== undefined && { notes }),
+          },
+          include: { candidate: true, job: { include: { client: true } } },
+        }),
+      );
       const result: ApplicationWithDetails = {
         id: application.id,
         jobId: application.jobId,
@@ -234,4 +242,5 @@ export async function PATCH(
   const app = updateInMemoryApplicationNotes(id, notes ?? null);
   if (!app) return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
   return NextResponse.json(app);
+  });
 }

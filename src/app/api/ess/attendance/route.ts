@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireEssUser } from '@/lib/ess-api-auth';
+import { withEssTenant } from '@/lib/ess-tenant-api';
 
 function parseDateOnly(value: string | null): Date | undefined {
   if (!value) return undefined;
@@ -14,145 +13,147 @@ function addDays(date: Date, days: number): Date {
 }
 
 export async function GET(request: NextRequest) {
-  if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  return withEssTenant(request, async (ctx) => {
+    if (!ctx.employeeId) return NextResponse.json({ items: [], page: 1, pageSize: 20, total: 0, totalPages: 1 });
 
-  const user = await requireEssUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-  if (!user.employeeId) return NextResponse.json({ items: [], page: 1, pageSize: 20, total: 0, totalPages: 1 });
+    const params = request.nextUrl.searchParams;
+    const page = Math.max(1, Number(params.get('page') || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(params.get('pageSize') || 20)));
+    const from = parseDateOnly(params.get('from'));
+    const to = parseDateOnly(params.get('to'));
 
-  const params = request.nextUrl.searchParams;
-  const page = Math.max(1, Number(params.get('page') || 1));
-  const pageSize = Math.min(100, Math.max(1, Number(params.get('pageSize') || 20)));
-  const from = parseDateOnly(params.get('from'));
-  const to = parseDateOnly(params.get('to'));
+    const where = ctx.where({
+      employeeId: ctx.employeeId,
+      ...(from || to
+        ? {
+            workDate: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lte: to } : {}),
+            },
+          }
+        : {}),
+    });
 
-  const where = {
-    employeeId: user.employeeId,
-    ...(from || to
-      ? {
-          workDate: {
-            ...(from ? { gte: from } : {}),
-            ...(to ? { lte: to } : {}),
-          },
-        }
-      : {}),
-  };
-
-  const [total, summaries] = await Promise.all([
-    prisma.attendanceDaySummary.count({ where }),
-    prisma.attendanceDaySummary.findMany({
-      where,
-      orderBy: { workDate: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: {
-        id: true,
-        workDate: true,
-        firstInAt: true,
-        lastOutAt: true,
-        minutesWorked: true,
-        overtimeMinutes: true,
-        lateMinutes: true,
-        status: true,
-      },
-    }),
-  ]);
-
-  const workDates = summaries.map((s) => s.workDate);
-  const [shiftAssignments, exceptions] = await Promise.all([
-    workDates.length
-      ? prisma.shiftAssignment.findMany({
-          where: {
-            employeeId: user.employeeId,
-            workDate: { in: workDates },
-          },
+    const [total, summaries] = await ctx.run((tx) =>
+      Promise.all([
+        tx.attendanceDaySummary.count({ where }),
+        tx.attendanceDaySummary.findMany({
+          where,
+          orderBy: { workDate: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
           select: {
+            id: true,
             workDate: true,
-            startsAt: true,
-            endsAt: true,
-            shiftTemplate: { select: { name: true } },
-          },
-          orderBy: [{ workDate: 'desc' }, { startsAt: 'asc' }],
-        })
-      : Promise.resolve([]),
-    workDates.length
-      ? prisma.attendanceException.findMany({
-          where: {
-            employeeId: user.employeeId,
-            workDate: { in: workDates },
-          },
-          select: {
-            workDate: true,
-            type: true,
+            firstInAt: true,
+            lastOutAt: true,
+            minutesWorked: true,
+            overtimeMinutes: true,
+            lateMinutes: true,
             status: true,
-            description: true,
-            resolvedByUser: { select: { name: true, email: true } },
           },
-        })
-      : Promise.resolve([]),
-  ]);
+        }),
+      ]),
+    );
 
-  const assignmentByDate = new Map<string, (typeof shiftAssignments)[number]>();
-  for (const assignment of shiftAssignments) {
-    const key = assignment.workDate.toISOString().slice(0, 10);
-    if (!assignmentByDate.has(key)) assignmentByDate.set(key, assignment);
-  }
+    const workDates = summaries.map((s) => s.workDate);
+    const [shiftAssignments, exceptions] = await ctx.run((tx) =>
+      Promise.all([
+        workDates.length
+          ? tx.shiftAssignment.findMany({
+              where: ctx.where({
+                employeeId: ctx.employeeId!,
+                workDate: { in: workDates },
+              }),
+              select: {
+                workDate: true,
+                startsAt: true,
+                endsAt: true,
+                shiftTemplate: { select: { name: true } },
+              },
+              orderBy: [{ workDate: 'desc' }, { startsAt: 'asc' }],
+            })
+          : Promise.resolve([]),
+        workDates.length
+          ? tx.attendanceException.findMany({
+              where: ctx.where({
+                employeeId: ctx.employeeId!,
+                workDate: { in: workDates },
+              }),
+              select: {
+                workDate: true,
+                type: true,
+                status: true,
+                description: true,
+                resolvedByUser: { select: { name: true, email: true } },
+              },
+            })
+          : Promise.resolve([]),
+      ]),
+    );
 
-  const exceptionsByDate = new Map<string, typeof exceptions>();
-  for (const item of exceptions) {
-    const key = item.workDate.toISOString().slice(0, 10);
-    const current = exceptionsByDate.get(key) ?? [];
-    current.push(item);
-    exceptionsByDate.set(key, current);
-  }
+    const assignmentByDate = new Map<string, (typeof shiftAssignments)[number]>();
+    for (const assignment of shiftAssignments) {
+      const key = assignment.workDate.toISOString().slice(0, 10);
+      if (!assignmentByDate.has(key)) assignmentByDate.set(key, assignment);
+    }
 
-  const items = summaries.map((row) => {
-    const dateKey = row.workDate.toISOString().slice(0, 10);
-    const assignment = assignmentByDate.get(dateKey) ?? null;
-    const rowExceptions = exceptionsByDate.get(dateKey) ?? [];
+    const exceptionsByDate = new Map<string, typeof exceptions>();
+    for (const item of exceptions) {
+      const key = item.workDate.toISOString().slice(0, 10);
+      const current = exceptionsByDate.get(key) ?? [];
+      current.push(item);
+      exceptionsByDate.set(key, current);
+    }
 
-    const missingOut = rowExceptions.some((item) => item.type === 'missing_check_out' && item.status === 'open');
-    const missingIn = rowExceptions.some((item) => item.type === 'missing_check_in' && item.status === 'open');
-    const correctedBy = rowExceptions.find((item) => item.resolvedByUser?.name || item.resolvedByUser?.email)?.resolvedByUser;
+    const items = summaries.map((row) => {
+      const dateKey = row.workDate.toISOString().slice(0, 10);
+      const assignment = assignmentByDate.get(dateKey) ?? null;
+      const rowExceptions = exceptionsByDate.get(dateKey) ?? [];
 
-    const derivedStatus = missingOut || missingIn
-      ? 'pending_review'
-      : row.lateMinutes > 0
-        ? 'late'
-        : row.status === 'approved'
-          ? 'corrected'
-          : 'complete';
+      const missingOut = rowExceptions.some((item) => item.type === 'missing_check_out' && item.status === 'open');
+      const missingIn = rowExceptions.some((item) => item.type === 'missing_check_in' && item.status === 'open');
+      const correctedBy = rowExceptions.find((item) => item.resolvedByUser?.name || item.resolvedByUser?.email)?.resolvedByUser;
 
-    const note = missingOut
-      ? 'Missing clock-out — supervisor notified'
-      : missingIn
-        ? 'Missing clock-in — supervisor notified'
-        : derivedStatus === 'corrected'
-          ? `Corrected by ${correctedBy?.name || correctedBy?.email || 'supervisor'}`
-          : null;
+      const derivedStatus = missingOut || missingIn
+        ? 'pending_review'
+        : row.lateMinutes > 0
+          ? 'late'
+          : row.status === 'approved'
+            ? 'corrected'
+            : 'complete';
 
-    return {
-      date: row.workDate.toISOString(),
-      shiftName: assignment?.shiftTemplate?.name || 'Unscheduled',
-      scheduledStart: assignment?.startsAt.toISOString() ?? null,
-      scheduledEnd: assignment?.endsAt.toISOString() ?? null,
-      clockIn: row.firstInAt?.toISOString() ?? null,
-      clockOut: row.lastOutAt?.toISOString() ?? null,
-      totalHours: Number((row.minutesWorked / 60).toFixed(1)),
-      overtimeHours: Number((row.overtimeMinutes / 60).toFixed(1)),
-      lateMinutes: row.lateMinutes,
-      status: derivedStatus,
-      note,
-    };
-  });
+      const note = missingOut
+        ? 'Missing clock-out — supervisor notified'
+        : missingIn
+          ? 'Missing clock-in — supervisor notified'
+          : derivedStatus === 'corrected'
+            ? `Corrected by ${correctedBy?.name || correctedBy?.email || 'supervisor'}`
+            : null;
 
-  return NextResponse.json({
-    items,
-    page,
-    pageSize,
-    total,
-    totalPages: Math.max(1, Math.ceil(total / pageSize)),
-    from: from?.toISOString() ?? null,
-    to: to ? addDays(to, 1).toISOString() : null,
+      return {
+        date: row.workDate.toISOString(),
+        shiftName: assignment?.shiftTemplate?.name || 'Unscheduled',
+        scheduledStart: assignment?.startsAt.toISOString() ?? null,
+        scheduledEnd: assignment?.endsAt.toISOString() ?? null,
+        clockIn: row.firstInAt?.toISOString() ?? null,
+        clockOut: row.lastOutAt?.toISOString() ?? null,
+        totalHours: Number((row.minutesWorked / 60).toFixed(1)),
+        overtimeHours: Number((row.overtimeMinutes / 60).toFixed(1)),
+        lateMinutes: row.lateMinutes,
+        status: derivedStatus,
+        note,
+      };
+    });
+
+    return NextResponse.json({
+      items,
+      page,
+      pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      from: from?.toISOString() ?? null,
+      to: to ? addDays(to, 1).toISOString() : null,
+    });
   });
 }

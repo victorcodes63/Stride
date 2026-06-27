@@ -1,44 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireEssUser } from '@/lib/ess-api-auth';
+import { withEssTenant } from '@/lib/ess-tenant-api';
 
 export async function GET(request: NextRequest) {
-  if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
-  const user = await requireEssUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-  if (user.role !== 'manager' && user.role !== 'hr') {
-    return NextResponse.json({ error: 'Insufficient role.' }, { status: 403 });
-  }
+  return withEssTenant(request, async (ctx) => {
+    if (ctx.essUser.role !== 'manager' && ctx.essUser.role !== 'hr') {
+      return NextResponse.json({ error: 'Insufficient role.' }, { status: 403 });
+    }
 
-  const teamLeaveWhere =
-    user.role === 'hr'
-      ? { status: 'pending' as const }
-      : {
-          status: 'pending' as const,
-          ...(user.employeeId
-            ? { employee: { managerEmployeeId: user.employeeId } }
-            : { employeeId: 'none' }),
-        };
+    const teamLeaveWhere =
+      ctx.essUser.role === 'hr'
+        ? ctx.where({ status: 'pending' as const })
+        : ctx.where({
+            status: 'pending' as const,
+            ...(ctx.employeeId
+              ? { employee: { managerEmployeeId: ctx.employeeId } }
+              : { employeeId: 'none' }),
+          });
 
-  const [leavePending, onLeaveThisWeek] = await Promise.all([
-    prisma.leaveApplication.count({ where: teamLeaveWhere }),
-    prisma.leaveApplication.count({
-      where: {
-        status: 'approved',
-        startDate: { lte: new Date() },
-        endDate: { gte: new Date() },
-        ...(user.role === 'hr'
-          ? {}
-          : user.employeeId
-            ? { employee: { managerEmployeeId: user.employeeId } }
-            : { employeeId: 'none' }),
-      },
-    }),
-  ]);
+    const onLeaveWhere =
+      ctx.essUser.role === 'hr'
+        ? ctx.where({
+            status: 'approved',
+            startDate: { lte: new Date() },
+            endDate: { gte: new Date() },
+          })
+        : ctx.where({
+            status: 'approved',
+            startDate: { lte: new Date() },
+            endDate: { gte: new Date() },
+            ...(ctx.employeeId
+              ? { employee: { managerEmployeeId: ctx.employeeId } }
+              : { employeeId: 'none' }),
+          });
 
-  return NextResponse.json({
-    leavePending,
-    onLeaveThisWeek,
-    attendancePending: 0,
+    const [leavePending, onLeaveThisWeek] = await ctx.run((tx) =>
+      Promise.all([
+        tx.leaveApplication.count({ where: teamLeaveWhere }),
+        tx.leaveApplication.count({ where: onLeaveWhere }),
+      ]),
+    );
+
+    return NextResponse.json({
+      leavePending,
+      onLeaveThisWeek,
+      attendancePending: 0,
+    });
   });
 }

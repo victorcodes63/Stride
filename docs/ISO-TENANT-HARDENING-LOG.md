@@ -7,7 +7,7 @@ Branch: `iso/tenant-hardening` (app repo) — **not pushed to main**
 | RAV-245 ISO-01 | done | Demo branding fallbacks removed; `deployment-cell.ts`; VICTOR TODO env split |
 | RAV-246 ISO-02 | pending | |
 | RAV-247 ISO-03 | pending | |
-| RAV-248 ISO-04 | pending | |
+| RAV-248 ISO-04 | done | ATS, leave, time, vertical modules + ESS shell routes migrated to withTenant/withEssTenant |
 | RAV-249 ISO-05 | pending | |
 | RAV-250 ISO-06 | pending | Handoff only — no DB role flip |
 

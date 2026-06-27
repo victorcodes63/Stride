@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireEssUser } from '@/lib/ess-api-auth';
+import type { Prisma } from '@prisma/client';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
-import { logAuditEvent } from '@/lib/audit-events';
+import { withEssTenant } from '@/lib/ess-tenant-api';
 
 function lineTotal(quantity: number, unitPrice: number) {
   return Math.round(quantity * unitPrice * 100) / 100;
 }
 
-async function resolveRequesterUserId(essEmail: string, employeeEmail: string | null | undefined) {
+async function resolveRequesterUserId(
+  tx: Prisma.TransactionClient,
+  essEmail: string,
+  employeeEmail: string | null | undefined,
+) {
   const email = employeeEmail?.trim() || essEmail;
-  const user = await prisma.user.findFirst({
+  const user = await tx.user.findFirst({
     where: { email: { equals: email, mode: 'insensitive' } },
     select: { id: true },
   });
@@ -18,140 +21,149 @@ async function resolveRequesterUserId(essEmail: string, employeeEmail: string | 
 }
 
 export async function GET(request: NextRequest) {
-  const user = await requireEssUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return withEssTenant(request, async (ctx) => {
+    const moduleBlock = requireModule('procurement', getEffectiveModulesFromRequest(request));
+    if (moduleBlock) return moduleBlock;
 
-  const moduleBlock = requireModule('procurement', getEffectiveModulesFromRequest(request));
-  if (moduleBlock) return moduleBlock;
+    if (!ctx.essUser.employeeId) return NextResponse.json({ requests: [] });
 
-  if (!user.employeeId) return NextResponse.json({ requests: [] });
+    const requests = await ctx.run(async (tx) => {
+      const employee = await tx.employee.findFirst({
+        where: ctx.where({ id: ctx.essUser.employeeId! }),
+        select: { email: true },
+      });
+      const requesterUserId = await resolveRequesterUserId(tx, ctx.essUser.email, employee?.email);
+      if (!requesterUserId) return [];
 
-  const employee = await prisma.employee.findUnique({
-    where: { id: user.employeeId },
-    select: { email: true },
-  });
-  const requesterUserId = await resolveRequesterUserId(user.email, employee?.email);
-  if (!requesterUserId) return NextResponse.json({ requests: [] });
+      return tx.purchaseRequest.findMany({
+        where: ctx.where({ requestedByUserId: requesterUserId }),
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          requestNumber: true,
+          title: true,
+          status: true,
+          totalAmount: true,
+          currency: true,
+          submittedAt: true,
+          createdAt: true,
+        },
+      });
+    });
 
-  const requests = await prisma.purchaseRequest.findMany({
-    where: { requestedByUserId: requesterUserId },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-    select: {
-      id: true,
-      requestNumber: true,
-      title: true,
-      status: true,
-      totalAmount: true,
-      currency: true,
-      submittedAt: true,
-      createdAt: true,
-    },
-  });
+    await ctx.audit({
+      action: 'ess.procurement.list',
+      entityType: 'PurchaseRequest',
+      route: 'GET /api/ess/procurement/purchase-requests',
+      metadata: { employeeId: ctx.essUser.employeeId },
+    });
 
-  await logAuditEvent({
-    actor: { userId: null, email: user.email, name: user.name },
-    action: 'ess.procurement.list',
-    entityType: 'PurchaseRequest',
-    route: 'GET /api/ess/procurement/purchase-requests',
-    metadata: { employeeId: user.employeeId },
-  });
-
-  return NextResponse.json({
-    requests: requests.map((r) => ({
-      ...r,
-      totalAmount: Number(r.totalAmount),
-      submittedAt: r.submittedAt?.toISOString() ?? null,
-      createdAt: r.createdAt.toISOString(),
-    })),
+    return NextResponse.json({
+      requests: requests.map((r) => ({
+        ...r,
+        totalAmount: Number(r.totalAmount),
+        submittedAt: r.submittedAt?.toISOString() ?? null,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    });
   });
 }
 
 export async function POST(request: NextRequest) {
-  const user = await requireEssUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return withEssTenant(request, async (ctx) => {
+    const moduleBlock = requireModule('procurement', getEffectiveModulesFromRequest(request));
+    if (moduleBlock) return moduleBlock;
 
-  const moduleBlock = requireModule('procurement', getEffectiveModulesFromRequest(request));
-  if (moduleBlock) return moduleBlock;
+    if (!ctx.essUser.employeeId) {
+      return NextResponse.json({ error: 'No linked employee profile' }, { status: 400 });
+    }
 
-  if (!user.employeeId) {
-    return NextResponse.json({ error: 'No linked employee profile' }, { status: 400 });
-  }
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
 
-  const employee = await prisma.employee.findUnique({
-    where: { id: user.employeeId },
-    include: { department: { select: { name: true } } },
-  });
-  if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    const justification = typeof body.justification === 'string' ? body.justification.trim() : '';
+    const item = typeof body.item === 'string' ? body.item.trim() : '';
+    const quantity = Number(body.quantity) || 0;
+    const unitPrice = Number(body.unitPrice) || 0;
+    const submit = body.submit === true;
 
-  const requesterUserId = await resolveRequesterUserId(user.email, employee.email);
-  if (!requesterUserId) {
-    return NextResponse.json(
-      { error: 'Your account is not linked to a staff user for procurement. Contact HR.' },
-      { status: 400 },
-    );
-  }
+    if (!title || !justification || !item || quantity <= 0 || unitPrice <= 0) {
+      return NextResponse.json(
+        { error: 'Title, justification, item, quantity, and unit price are required.' },
+        { status: 400 },
+      );
+    }
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+    const result = await ctx.run(async (tx) => {
+      const employee = await tx.employee.findFirst({
+        where: ctx.where({ id: ctx.essUser.employeeId! }),
+        include: { department: { select: { name: true } } },
+      });
+      if (!employee) return { kind: 'no_employee' as const };
 
-  const title = typeof body.title === 'string' ? body.title.trim() : '';
-  const justification = typeof body.justification === 'string' ? body.justification.trim() : '';
-  const item = typeof body.item === 'string' ? body.item.trim() : '';
-  const quantity = Number(body.quantity) || 0;
-  const unitPrice = Number(body.unitPrice) || 0;
-  const submit = body.submit === true;
+      const requesterUserId = await resolveRequesterUserId(tx, ctx.essUser.email, employee.email);
+      if (!requesterUserId) return { kind: 'no_user' as const };
 
-  if (!title || !justification || !item || quantity <= 0 || unitPrice <= 0) {
-    return NextResponse.json(
-      { error: 'Title, justification, item, quantity, and unit price are required.' },
-      { status: 400 },
-    );
-  }
+      const totalAmount = lineTotal(quantity, unitPrice);
+      const count = await tx.purchaseRequest.count({
+        where: ctx.where({ outsourcingClientId: employee.outsourcingClientId }),
+      });
+      const requestNumber = `PR-${String(count + 1).padStart(4, '0')}`;
 
-  const totalAmount = lineTotal(quantity, unitPrice);
-  const count = await prisma.purchaseRequest.count({
-    where: { outsourcingClientId: employee.outsourcingClientId },
-  });
-  const requestNumber = `PR-${String(count + 1).padStart(4, '0')}`;
-
-  const created = await prisma.purchaseRequest.create({
-    data: {
-      organizationId: employee.organizationId,
-      outsourcingClientId: employee.outsourcingClientId,
-      requestNumber,
-      title,
-      department: employee.department?.name ?? null,
-      justification,
-      totalAmount,
-      status: submit ? 'submitted' : 'draft',
-      submittedAt: submit ? new Date() : null,
-      requestedByUserId: requesterUserId,
-      lines: {
-        create: {
+      const created = await tx.purchaseRequest.create({
+        data: {
           organizationId: employee.organizationId,
-          item,
-          quantity,
-          unitPrice,
-          sortOrder: 0,
+          outsourcingClientId: employee.outsourcingClientId,
+          requestNumber,
+          title,
+          department: employee.department?.name ?? null,
+          justification,
+          totalAmount,
+          status: submit ? 'submitted' : 'draft',
+          submittedAt: submit ? new Date() : null,
+          requestedByUserId: requesterUserId,
+          lines: {
+            create: {
+              organizationId: employee.organizationId,
+              item,
+              quantity,
+              unitPrice,
+              sortOrder: 0,
+            },
+          },
         },
-      },
-    },
-    select: { id: true, requestNumber: true, status: true },
-  });
+        select: { id: true, requestNumber: true, status: true },
+      });
 
-  await logAuditEvent({
-    actor: { userId: null, email: user.email, name: user.name },
-    action: submit ? 'ess.procurement.submitted' : 'ess.procurement.created',
-    entityType: 'PurchaseRequest',
-    entityId: created.id,
-    route: 'POST /api/ess/procurement/purchase-requests',
-    metadata: { employeeId: user.employeeId, requestNumber: created.requestNumber },
-  });
+      return { kind: 'created' as const, created };
+    });
 
-  return NextResponse.json(created, { status: 201 });
+    if (result.kind === 'no_employee') {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+    if (result.kind === 'no_user') {
+      return NextResponse.json(
+        { error: 'Your account is not linked to a staff user for procurement. Contact HR.' },
+        { status: 400 },
+      );
+    }
+
+    const { created } = result;
+
+    await ctx.audit({
+      action: submit ? 'ess.procurement.submitted' : 'ess.procurement.created',
+      entityType: 'PurchaseRequest',
+      entityId: created.id,
+      route: 'POST /api/ess/procurement/purchase-requests',
+      metadata: { employeeId: ctx.essUser.employeeId, requestNumber: created.requestNumber },
+    });
+
+    return NextResponse.json(created, { status: 201 });
+  });
 }

@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-import { prisma } from '@/lib/prisma';
-import { requireEssUser } from '@/lib/ess-api-auth';
+import { withEssTenant } from '@/lib/ess-tenant-api';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, context: RouteContext) {
-  const user = await requireEssUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!user.employeeId) return NextResponse.json({ error: 'No employee profile' }, { status: 400 });
+  return withEssTenant(request, async (ctx) => {
+    if (!ctx.essUser.employeeId) return NextResponse.json({ error: 'No employee profile' }, { status: 400 });
 
-  const { id } = await context.params;
-  const grievance = await prisma.grievance.findFirst({
-    where: { id, employeeId: user.employeeId },
-    include: {
-      against: { select: { firstName: true, lastName: true } },
-      documents: { select: { id: true, title: true, fileName: true, createdAt: true } },
-    },
+    const { id } = await context.params;
+    const grievance = await ctx.run((tx) =>
+      tx.grievance.findFirst({
+        where: ctx.where({ id, employeeId: ctx.essUser.employeeId! }),
+        include: {
+          against: { select: { firstName: true, lastName: true } },
+          documents: { select: { id: true, title: true, fileName: true, createdAt: true } },
+        },
+      }),
+    );
+
+    if (!grievance) return NextResponse.json({ error: 'Grievance not found' }, { status: 404 });
+    return NextResponse.json(grievance);
   });
-
-  if (!grievance) return NextResponse.json({ error: 'Grievance not found' }, { status: 404 });
-  return NextResponse.json(grievance);
 }

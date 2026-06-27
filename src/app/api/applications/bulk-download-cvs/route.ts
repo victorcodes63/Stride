@@ -5,8 +5,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import archiver from 'archiver';
-import { prisma } from '@/lib/prisma';
 import { getInMemoryApplications } from '@/lib/applications-store';
+import { withTenant } from '@/lib/tenant-api';
 import type { ApplicationWithDetails } from '@/types/dashboard';
 
 function getResumePath(app: ApplicationWithDetails): string | null {
@@ -32,6 +32,7 @@ async function fetchResumeBuffer(urlOrPath: string, baseUrl: string): Promise<Bu
 }
 
 export async function POST(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
   let body: unknown;
   try {
     body = await request.json();
@@ -55,10 +56,12 @@ export async function POST(request: NextRequest) {
 
   try {
     if (process.env.DATABASE_URL) {
-      const rows = await prisma.application.findMany({
-        where: { id: { in: ids } },
-        include: { candidate: true, job: { include: { client: true } } },
-      });
+      const rows = await ctx.run((tx) =>
+        tx.application.findMany({
+          where: ctx.where({ id: { in: ids } }),
+          include: { candidate: true, job: { include: { client: true } } },
+        }),
+      );
       applications = rows.map((a) => ({
         id: a.id,
         jobId: a.jobId,
@@ -159,5 +162,6 @@ export async function POST(request: NextRequest) {
       'Content-Disposition': `attachment; filename="shortlisted-cvs-${date}.zip"`,
       'Content-Length': String(zipBuffer.length),
     },
+  });
   });
 }

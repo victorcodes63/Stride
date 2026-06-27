@@ -6,6 +6,7 @@ const COOKIE = 'ess_session';
 
 export type EssUser = {
   id: string;
+  organizationId: string;
   employeeId: string | null;
   name: string;
   email: string;
@@ -23,6 +24,7 @@ export async function requireEssUser(request: NextRequest): Promise<EssUser | nu
     where: { id: parsed.userId },
     select: {
       id: true,
+      organizationId: true,
       employeeId: true,
       name: true,
       email: true,
@@ -36,6 +38,7 @@ export async function requireEssUser(request: NextRequest): Promise<EssUser | nu
 
   return {
     id: user.id,
+    organizationId: user.organizationId,
     employeeId: user.employeeId,
     name: user.name,
     email: user.email,

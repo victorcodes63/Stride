@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import type {
   InterviewWithDetails,
   InterviewType,
   InterviewDurationMinutes,
   InterviewStatus,
   UpdateInterviewBody,
+  ConfirmationStatus,
 } from '@/types/dashboard';
-import type { Prisma } from '@prisma/client';
+import { withTenant } from '@/lib/tenant-api';
 
 const VALID_TYPES: InterviewType[] = ['phone', 'video', 'onsite'];
 const VALID_DURATIONS: InterviewDurationMinutes[] = [30, 45, 60];
@@ -46,7 +47,26 @@ function jobToSummary(job: {
   };
 }
 
-function toInterviewWithDetails(i: Awaited<ReturnType<typeof prisma.interview.findUnique>> & { application: { candidate: unknown; job: { client: { name: string } | null } } }) {
+function toInterviewWithDetails(
+  i: {
+    id: string;
+    applicationId: string;
+    scheduledAt: Date;
+    durationMinutes: number;
+    type: string;
+    locationOrLink: string | null;
+    notes: string | null;
+    status: string;
+    inviteSentAt: Date | null;
+    officialLetterPath: string | null;
+    confirmationStatus: string;
+    confirmationNotes: string | null;
+    confirmationAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    application: { candidate: unknown; job: { client: { name: string } | null } };
+  } | null,
+) {
   if (!i) return null;
   const app = i.application as {
     id: string;
@@ -65,7 +85,7 @@ function toInterviewWithDetails(i: Awaited<ReturnType<typeof prisma.interview.fi
     status: i.status as InterviewStatus,
     inviteSentAt: i.inviteSentAt?.toISOString() ?? null,
     officialLetterPath: i.officialLetterPath,
-    confirmationStatus: (i.confirmationStatus ?? 'pending') as import('@/types/dashboard').ConfirmationStatus,
+    confirmationStatus: (i.confirmationStatus ?? 'pending') as ConfirmationStatus,
     confirmationNotes: i.confirmationNotes,
     confirmationAt: i.confirmationAt?.toISOString() ?? null,
     createdAt: i.createdAt.toISOString(),
@@ -111,87 +131,95 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = (await params).id;
-  if (!id) {
-    return NextResponse.json({ error: 'Interview ID required.' }, { status: 400 });
-  }
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-  const b = body as UpdateInterviewBody;
-  const updates: Prisma.InterviewUpdateInput = {};
-  if (b.scheduledAt !== undefined) {
-    const d = new Date(b.scheduledAt);
-    if (!Number.isNaN(d.getTime())) updates.scheduledAt = d;
-  }
-  if (b.durationMinutes !== undefined && VALID_DURATIONS.includes(b.durationMinutes)) {
-    updates.durationMinutes = b.durationMinutes;
-  }
-  if (b.type !== undefined && VALID_TYPES.includes(b.type)) updates.type = b.type;
-  if (b.locationOrLink !== undefined) {
-    const loc = typeof b.locationOrLink === 'string' ? b.locationOrLink.trim() : '';
-    if (!loc) {
-      return NextResponse.json({ error: 'locationOrLink is required (e.g. Zoom link or office address).' }, { status: 400 });
+  return withTenant(request, async (ctx) => {
+    const id = (await params).id;
+    if (!id) {
+      return NextResponse.json({ error: 'Interview ID required.' }, { status: 400 });
     }
-    updates.locationOrLink = loc;
-  }
-  if (b.notes !== undefined) updates.notes = b.notes ?? null;
-  if (b.status !== undefined && ['scheduled', 'completed', 'cancelled'].includes(b.status)) {
-    updates.status = b.status as InterviewStatus;
-  }
-  if (b.officialLetterPath !== undefined) updates.officialLetterPath = b.officialLetterPath ?? null;
-  if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'No valid fields to update.' }, { status: 400 });
-  }
-  try {
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
-    const interview = await prisma.interview.update({
-      where: { id },
-      data: updates,
-      include: {
-        application: {
+    const b = body as UpdateInterviewBody;
+    const updates: Prisma.InterviewUpdateInput = {};
+    if (b.scheduledAt !== undefined) {
+      const d = new Date(b.scheduledAt);
+      if (!Number.isNaN(d.getTime())) updates.scheduledAt = d;
+    }
+    if (b.durationMinutes !== undefined && VALID_DURATIONS.includes(b.durationMinutes)) {
+      updates.durationMinutes = b.durationMinutes;
+    }
+    if (b.type !== undefined && VALID_TYPES.includes(b.type)) updates.type = b.type;
+    if (b.locationOrLink !== undefined) {
+      const loc = typeof b.locationOrLink === 'string' ? b.locationOrLink.trim() : '';
+      if (!loc) {
+        return NextResponse.json({ error: 'locationOrLink is required (e.g. Zoom link or office address).' }, { status: 400 });
+      }
+      updates.locationOrLink = loc;
+    }
+    if (b.notes !== undefined) updates.notes = b.notes ?? null;
+    if (b.status !== undefined && ['scheduled', 'completed', 'cancelled'].includes(b.status)) {
+      updates.status = b.status as InterviewStatus;
+    }
+    if (b.officialLetterPath !== undefined) updates.officialLetterPath = b.officialLetterPath ?? null;
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update.' }, { status: 400 });
+    }
+    try {
+      if (!process.env.DATABASE_URL) {
+        return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+      }
+      const existing = await ctx.run((tx) =>
+        tx.interview.findFirst({ where: ctx.where({ id }), select: { id: true } }),
+      );
+      if (!existing) return NextResponse.json({ error: 'Interview not found.' }, { status: 404 });
+      const interview = await ctx.run((tx) =>
+        tx.interview.update({
+          where: { id },
+          data: updates,
           include: {
-            candidate: true,
-            job: { include: { client: true } },
+            application: {
+              include: {
+                candidate: true,
+                job: { include: { client: true } },
+              },
+            },
           },
-        },
-      },
-    });
-    const out = toInterviewWithDetails(interview as Parameters<typeof toInterviewWithDetails>[0]);
-    return NextResponse.json(out);
-  } catch (e) {
-    if (e && typeof e === 'object' && 'code' in e && e.code === 'P2025') {
-      return NextResponse.json({ error: 'Interview not found.' }, { status: 404 });
+        }),
+      );
+      const out = toInterviewWithDetails(interview);
+      return NextResponse.json(out);
+    } catch (e) {
+      console.error('PATCH /api/interviews/[id] error:', e);
+      return NextResponse.json({ error: 'Failed to update interview.' }, { status: 500 });
     }
-    console.error('PATCH /api/interviews/[id] error:', e);
-    return NextResponse.json({ error: 'Failed to update interview.' }, { status: 500 });
-  }
+  });
 }
 
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = (await params).id;
-  if (!id) {
-    return NextResponse.json({ error: 'Interview ID required.' }, { status: 400 });
-  }
-  try {
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  return withTenant(_request, async (ctx) => {
+    const id = (await params).id;
+    if (!id) {
+      return NextResponse.json({ error: 'Interview ID required.' }, { status: 400 });
     }
-    await prisma.interview.delete({ where: { id } });
-    return new NextResponse(null, { status: 204 });
-  } catch (e) {
-    if (e && typeof e === 'object' && 'code' in e && e.code === 'P2025') {
-      return NextResponse.json({ error: 'Interview not found.' }, { status: 404 });
+    try {
+      if (!process.env.DATABASE_URL) {
+        return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+      }
+      const existing = await ctx.run((tx) =>
+        tx.interview.findFirst({ where: ctx.where({ id }), select: { id: true } }),
+      );
+      if (!existing) return NextResponse.json({ error: 'Interview not found.' }, { status: 404 });
+      await ctx.run((tx) => tx.interview.delete({ where: { id } }));
+      return new NextResponse(null, { status: 204 });
+    } catch (e) {
+      console.error('DELETE /api/interviews/[id] error:', e);
+      return NextResponse.json({ error: 'Failed to delete interview.' }, { status: 500 });
     }
-    console.error('DELETE /api/interviews/[id] error:', e);
-    return NextResponse.json({ error: 'Failed to delete interview.' }, { status: 500 });
-  }
+  });
 }
