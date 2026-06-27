@@ -2,6 +2,16 @@ import { prisma } from '@/lib/prisma';
 import type { UserRole } from '@prisma/client';
 import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
 import { withOrgContext } from '@/lib/org-context';
+import { isDemoSandboxCell } from '@/lib/deployment-cell';
+
+export class NoOrgMembershipForLoginError extends Error {
+  constructor(
+    message = 'No organization access for this account. Ask your administrator for an invitation.',
+  ) {
+    super(message);
+    this.name = 'NoOrgMembershipForLoginError';
+  }
+}
 
 export type ResolvedMembership = {
   id: string;
@@ -107,32 +117,45 @@ export async function membershipForLogin(
     }
 
     const normalizedEmail = email?.trim().toLowerCase();
+    let verifiedDomainOrgId: string | null = null;
     if (normalizedEmail && normalizedEmail.includes('@')) {
       const resolved = await resolveOrgByEmail(normalizedEmail, 'staff');
       if (resolved?.verifiedDomain) {
+        verifiedDomainOrgId = resolved.organizationId;
         const domainMembership = await resolveMembership(userId, resolved.organizationId, db);
         if (domainMembership) return domainMembership;
       }
     }
 
-    const demoPack = process.env.DEMO_PACK?.trim();
-    if (demoPack) {
-      const demoSlug = `demo-${demoPack}`;
-      const demoMembership = await db.organizationMembership.findFirst({
-        where: {
-          userId,
-          status: 'active',
-          organization: { slug: demoSlug },
-        },
-        include: {
-          organization: { select: { id: true, name: true, slug: true } },
-        },
-      });
-      if (demoMembership) return demoMembership;
+    if (isDemoSandboxCell()) {
+      const demoPack = process.env.DEMO_PACK?.trim();
+      if (demoPack) {
+        const demoSlug = `demo-${demoPack}`;
+        const demoMembership = await db.organizationMembership.findFirst({
+          where: {
+            userId,
+            status: 'active',
+            organization: { slug: demoSlug },
+          },
+          include: {
+            organization: { select: { id: true, name: true, slug: true } },
+          },
+        });
+        if (demoMembership) return demoMembership;
+      }
     }
 
     const resolved = await resolveMembership(userId, preferredOrgId, db);
     if (resolved) return resolved;
-    return ensureDefaultMembership(userId, userRole);
+
+    if (verifiedDomainOrgId) {
+      throw new NoOrgMembershipForLoginError();
+    }
+
+    if (isDemoSandboxCell()) {
+      return ensureDefaultMembership(userId, userRole);
+    }
+
+    throw new NoOrgMembershipForLoginError();
   });
 }

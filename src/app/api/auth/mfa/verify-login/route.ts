@@ -5,6 +5,7 @@ import { verifyTotpCode } from '@/lib/mfa-totp';
 import { getStaffSessionMaxAgeSeconds } from '@/lib/auth-session';
 import { logAuditEvent } from '@/lib/audit-events';
 import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
+import { NoOrgMembershipForLoginError } from '@/lib/org-membership';
 
 const STAFF_SESSION_COOKIE = 'staff_session';
 
@@ -49,19 +50,26 @@ export async function POST(request: NextRequest) {
     metadata: { mfa: true, role: user.role },
   });
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }).catch(() => null);
-  const sessionValue = await buildStaffSessionForUser({
-    provider: 'local',
-    userId: user.id,
-    userRole: user.role,
-    email: user.email,
-  });
-  const response = NextResponse.json({ success: true });
-  response.cookies.set(STAFF_SESSION_COOKIE, sessionValue, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: getStaffSessionMaxAgeSeconds(),
-    path: '/',
-  });
-  return response;
+  try {
+    const sessionValue = await buildStaffSessionForUser({
+      provider: 'local',
+      userId: user.id,
+      userRole: user.role,
+      email: user.email,
+    });
+    const response = NextResponse.json({ success: true });
+    response.cookies.set(STAFF_SESSION_COOKIE, sessionValue, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: getStaffSessionMaxAgeSeconds(),
+      path: '/',
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof NoOrgMembershipForLoginError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    throw error;
+  }
 }

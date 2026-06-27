@@ -7,6 +7,7 @@ import { logAuditEvent } from '@/lib/audit-events';
 import { createAuthChallengeToken } from '@/lib/auth-challenge';
 import { assertAccountLoginAllowed } from '@/lib/account-login-guard';
 import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
+import { NoOrgMembershipForLoginError } from '@/lib/org-membership';
 import { assertCredentialsLoginEnabled } from '@/lib/oauth/assert-credentials-enabled';
 import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
 
@@ -166,6 +167,16 @@ export async function POST(request: NextRequest) {
     });
     return response;
   } catch (error) {
+    if (error instanceof NoOrgMembershipForLoginError) {
+      await logAuditEvent({
+        actor: { userId: null, email: null, name: null },
+        action: 'auth.login.failed',
+        entityType: 'User',
+        route: 'POST /api/auth/login',
+        metadata: { reason: 'no_org_membership' },
+      });
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     await reportApiError({
       route: 'POST /api/auth/login',
       message: error instanceof Error ? error.message : String(error),
