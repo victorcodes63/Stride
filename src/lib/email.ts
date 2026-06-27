@@ -69,6 +69,14 @@ function logDevEmail(params: {
   cc?: string;
   attachments?: EmailAttachment[];
 }): EmailSendResult {
+  const isProd = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+  if (isProd) {
+    return {
+      sent: false,
+      reason: 'resend_not_configured',
+      error: 'RESEND_API_KEY is not configured on this deployment.',
+    };
+  }
   console.log('[email] RESEND_API_KEY not set — logging email instead of sending:');
   console.log(JSON.stringify({ from: FROM_EMAIL, replyTo: REPLY_TO, ...params, html: `[${params.html.length} chars]` }, null, 2));
   return { sent: true, messageId: 'dev-console-log' };
