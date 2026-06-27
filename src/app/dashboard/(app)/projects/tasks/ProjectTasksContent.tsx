@@ -111,7 +111,7 @@ export default function ProjectTasksContent() {
             type="button"
             onClick={() => setShowForm((v) => !v)}
             disabled={!projects.length}
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand-primary)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            className="btn-primary dash-panel-cta inline-flex items-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
             New task
@@ -180,9 +180,7 @@ export default function ProjectTasksContent() {
             key={s || 'all'}
             type="button"
             onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-3 py-1 text-sm ${
-              statusFilter === s ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'
-            }`}
+            className={`dash-filter-pill ${statusFilter === s ? 'dash-filter-pill--active' : ''}`}
           >
             {s ? s.replace('_', ' ') : 'All open'}
           </button>

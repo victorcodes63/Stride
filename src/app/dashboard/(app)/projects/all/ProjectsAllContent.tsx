@@ -99,7 +99,7 @@ export default function ProjectsAllContent() {
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand-primary)] px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+            className="btn-primary dash-panel-cta inline-flex items-center gap-2 px-3 py-2 text-sm"
           >
             <Plus className="h-4 w-4" />
             New project
@@ -167,9 +167,7 @@ export default function ProjectsAllContent() {
             key={s || 'all'}
             type="button"
             onClick={() => setFilter(s)}
-            className={`rounded-full px-3 py-1 text-sm ${
-              filter === s ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-            }`}
+            className={`dash-filter-pill ${filter === s ? 'dash-filter-pill--active' : ''}`}
           >
             {s ? s.replace('_', ' ') : 'All'}
           </button>

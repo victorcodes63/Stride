@@ -440,6 +440,62 @@ html.dark .dashboard-stat-card {
   border-color: rgba(255, 255, 255, 0.75);
 }
 
+/* Panel header CTAs — fixed coral + white; not remapped by utility bridge */
+.dash-panel-cta,
+.page-header-actions .btn-primary {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: #ffffff;
+}
+
+.dash-panel-cta:hover:not(:disabled),
+.page-header-actions .btn-primary:hover:not(:disabled) {
+  border-color: var(--brand-primary-hover);
+  background: var(--brand-primary-hover);
+  color: #ffffff;
+}
+
+.dash-panel-cta svg,
+.page-header-actions .btn-primary svg {
+  color: #ffffff;
+}
+
+.dash-panel-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Status / filter pills — avoid inverted neutral-900 (white) in dark mode */
+.dash-filter-pill {
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  border: 1px solid var(--dash-border-subtle);
+  background: var(--dash-surface-raised);
+  color: var(--dash-text-muted);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.dash-filter-pill:hover:not(.dash-filter-pill--active) {
+  background: var(--dash-hover);
+  color: var(--dash-text-body);
+}
+
+.dash-filter-pill--active {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: #ffffff;
+}
+
+.dash-filter-pill--active:hover {
+  background: var(--brand-primary-hover);
+  color: #ffffff;
+}
+
 /* Featured module / quick-link tiles — brand coral, not primary-900 maroon */
 .dash-feature-link {
   border-color: var(--brand-primary);
@@ -822,6 +878,234 @@ html:not([data-table-zebra]) .dashboard-data-table tbody tr:hover {
   color: var(--dash-warning-fg);
 }
 
+/* ── Table avatars, status chips, and inline icons (mode-aware) ── */
+
+.dash-avatar-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  background: var(--dash-avatar-bg);
+  color: var(--dash-avatar-fg);
+  box-shadow: inset 0 0 0 1px var(--dash-avatar-ring);
+}
+
+.dash-avatar-chip--0 {
+  --dash-avatar-bg: color-mix(in srgb, var(--color-primary-500) 14%, var(--dash-surface-solid));
+  --dash-avatar-fg: var(--color-primary-800);
+  --dash-avatar-ring: color-mix(in srgb, var(--color-primary-500) 28%, transparent);
+}
+
+.dash-avatar-chip--1 {
+  --dash-avatar-bg: color-mix(in srgb, #0ea5e9 14%, var(--dash-surface-solid));
+  --dash-avatar-fg: #075985;
+  --dash-avatar-ring: color-mix(in srgb, #0ea5e9 28%, transparent);
+}
+
+.dash-avatar-chip--2 {
+  --dash-avatar-bg: color-mix(in srgb, #8b5cf6 14%, var(--dash-surface-solid));
+  --dash-avatar-fg: #5b21b6;
+  --dash-avatar-ring: color-mix(in srgb, #8b5cf6 28%, transparent);
+}
+
+.dash-avatar-chip--3 {
+  --dash-avatar-bg: color-mix(in srgb, #10b981 14%, var(--dash-surface-solid));
+  --dash-avatar-fg: #047857;
+  --dash-avatar-ring: color-mix(in srgb, #10b981 28%, transparent);
+}
+
+.dash-avatar-chip--4 {
+  --dash-avatar-bg: color-mix(in srgb, #f59e0b 16%, var(--dash-surface-solid));
+  --dash-avatar-fg: #92400e;
+  --dash-avatar-ring: color-mix(in srgb, #f59e0b 30%, transparent);
+}
+
+.dash-avatar-chip--5 {
+  --dash-avatar-bg: color-mix(in srgb, #f43f5e 14%, var(--dash-surface-solid));
+  --dash-avatar-fg: #be123c;
+  --dash-avatar-ring: color-mix(in srgb, #f43f5e 28%, transparent);
+}
+
+html.dark .dash-avatar-chip--0 {
+  --dash-avatar-bg: color-mix(in srgb, var(--color-primary-400) 22%, var(--dash-surface-raised));
+  --dash-avatar-fg: #fecaca;
+  --dash-avatar-ring: color-mix(in srgb, var(--color-primary-400) 38%, transparent);
+}
+
+html.dark .dash-avatar-chip--1 {
+  --dash-avatar-bg: color-mix(in srgb, #38bdf8 22%, var(--dash-surface-raised));
+  --dash-avatar-fg: #e0f2fe;
+  --dash-avatar-ring: color-mix(in srgb, #38bdf8 38%, transparent);
+}
+
+html.dark .dash-avatar-chip--2 {
+  --dash-avatar-bg: color-mix(in srgb, #a78bfa 22%, var(--dash-surface-raised));
+  --dash-avatar-fg: #ede9fe;
+  --dash-avatar-ring: color-mix(in srgb, #a78bfa 38%, transparent);
+}
+
+html.dark .dash-avatar-chip--3 {
+  --dash-avatar-bg: color-mix(in srgb, #34d399 22%, var(--dash-surface-raised));
+  --dash-avatar-fg: #d1fae5;
+  --dash-avatar-ring: color-mix(in srgb, #34d399 38%, transparent);
+}
+
+html.dark .dash-avatar-chip--4 {
+  --dash-avatar-bg: color-mix(in srgb, #fbbf24 24%, var(--dash-surface-raised));
+  --dash-avatar-fg: #fef3c7;
+  --dash-avatar-ring: color-mix(in srgb, #fbbf24 40%, transparent);
+}
+
+html.dark .dash-avatar-chip--5 {
+  --dash-avatar-bg: color-mix(in srgb, #fb7185 22%, var(--dash-surface-raised));
+  --dash-avatar-fg: #ffe4e6;
+  --dash-avatar-ring: color-mix(in srgb, #fb7185 38%, transparent);
+}
+
+.dash-status-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+  background: var(--dash-chip-bg);
+  color: var(--dash-chip-fg);
+  box-shadow: inset 0 0 0 1px var(--dash-chip-ring);
+}
+
+.dash-status-chip--success {
+  --dash-chip-bg: var(--dash-success-bg);
+  --dash-chip-fg: var(--dash-success-fg);
+  --dash-chip-ring: var(--dash-success-border);
+}
+
+.dash-status-chip--warning {
+  --dash-chip-bg: var(--dash-warning-bg);
+  --dash-chip-fg: var(--dash-warning-fg);
+  --dash-chip-ring: var(--dash-warning-border);
+}
+
+.dash-status-chip--danger {
+  --dash-chip-bg: var(--dash-danger-bg);
+  --dash-chip-fg: var(--dash-danger-fg);
+  --dash-chip-ring: var(--dash-danger-border);
+}
+
+.dash-status-chip--info {
+  --dash-chip-bg: var(--swatch-sky-bg);
+  --dash-chip-fg: var(--swatch-sky-fg);
+  --dash-chip-ring: var(--swatch-sky-border);
+}
+
+.dash-status-chip--neutral {
+  --dash-chip-bg: var(--dash-surface-muted);
+  --dash-chip-fg: var(--dash-text-muted);
+  --dash-chip-ring: var(--dash-border);
+}
+
+.dash-status-chip--primary {
+  --dash-chip-bg: color-mix(in srgb, var(--color-primary-500) 12%, var(--dash-surface-solid));
+  --dash-chip-fg: var(--color-primary-800);
+  --dash-chip-ring: color-mix(in srgb, var(--color-primary-500) 24%, transparent);
+}
+
+html.dark .dash-status-chip--primary {
+  --dash-chip-bg: color-mix(in srgb, var(--color-primary-400) 18%, var(--dash-surface-raised));
+  --dash-chip-fg: #fecaca;
+  --dash-chip-ring: color-mix(in srgb, var(--color-primary-400) 32%, transparent);
+}
+
+.dash-table-meta-icon {
+  flex-shrink: 0;
+  color: var(--dash-text-faint);
+}
+
+.dash-table-icon-btn {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: var(--dash-text-muted);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.dash-table-icon-btn:hover {
+  background: var(--dash-hover);
+  color: var(--dash-text-strong);
+}
+
+.dash-table-icon-btn--danger {
+  color: var(--dash-danger-fg);
+}
+
+.dash-table-icon-btn--danger:hover {
+  background: var(--dash-danger-bg);
+  color: var(--dash-danger-fg);
+}
+
+.dash-entity-chip {
+  display: inline-flex;
+  max-width: 10rem;
+  align-items: center;
+  gap: 0.25rem;
+  overflow: hidden;
+  border-radius: 0.375rem;
+  background: var(--dash-surface-muted);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--dash-text-body);
+}
+
+.dash-entity-chip .dash-table-meta-icon {
+  color: var(--dash-text-faint);
+}
+
+/* Safety net: pastel -100 chips that still use Tailwind utilities in tables */
+html.dark .dashboard-canvas .bg-primary-100 {
+  background-color: color-mix(in srgb, var(--color-primary-400) 18%, var(--dash-surface-raised));
+}
+
+html.dark .dashboard-canvas .bg-sky-100 {
+  background-color: color-mix(in srgb, #38bdf8 18%, var(--dash-surface-raised));
+}
+
+html.dark .dashboard-canvas .bg-violet-100 {
+  background-color: color-mix(in srgb, #a78bfa 18%, var(--dash-surface-raised));
+}
+
+html.dark .dashboard-canvas .bg-emerald-100 {
+  background-color: color-mix(in srgb, #34d399 18%, var(--dash-surface-raised));
+}
+
+html.dark .dashboard-canvas .bg-amber-100 {
+  background-color: color-mix(in srgb, #fbbf24 20%, var(--dash-surface-raised));
+}
+
+html.dark .dashboard-canvas .bg-rose-100 {
+  background-color: color-mix(in srgb, #fb7185 18%, var(--dash-surface-raised));
+}
+
+html.dark .dashboard-canvas .text-primary-800,
+html.dark .dashboard-canvas .text-sky-800,
+html.dark .dashboard-canvas .text-violet-800,
+html.dark .dashboard-canvas .text-emerald-800,
+html.dark .dashboard-canvas .text-amber-900,
+html.dark .dashboard-canvas .text-rose-800 {
+  color: var(--dash-text-strong);
+}
+
+html.dark .dashboard-canvas .text-emerald-700 {
+  color: var(--dash-success-fg);
+}
+
 /* Dashboard chrome utility classes */
 .dash-sidebar {
   border-color: var(--dash-chrome-border);
@@ -888,6 +1172,12 @@ html:not([data-table-zebra]) .dashboard-data-table tbody tr:hover {
   box-shadow: var(--dash-shadow-lg);
 }
 
+html.dark .dash-popover {
+  box-shadow:
+    var(--dash-shadow-lg),
+    0 0 0 1px var(--dash-border);
+}
+
 .dash-popover-header {
   border-color: var(--dash-border-subtle);
   background: var(--dash-surface-muted);
@@ -895,6 +1185,53 @@ html:not([data-table-zebra]) .dashboard-data-table tbody tr:hover {
 
 .dash-popover-item:hover {
   background: var(--dash-hover);
+}
+
+/* Portaled popovers attach to document.body — outside .dashboard-canvas */
+html.dark .dash-popover .text-ink,
+html.dark .dash-popover .text-neutral-700,
+html.dark .dash-popover .text-neutral-800,
+html.dark .dash-popover .text-neutral-900 {
+  color: var(--dash-text-strong);
+}
+
+html.dark .dash-popover .text-neutral-400 {
+  color: var(--dash-text-faint);
+}
+
+html.dark .dash-popover .text-neutral-500,
+html.dark .dash-popover .text-neutral-600 {
+  color: var(--dash-text-muted);
+}
+
+html.dark .dash-popover .text-primary-600,
+html.dark .dash-popover .text-primary-700,
+html.dark .dash-popover .text-primary-800,
+html.dark .dash-popover .text-primary-900 {
+  color: var(--brand-primary, #ff5436);
+}
+
+html.dark .dash-popover a.text-primary-700,
+html.dark .dash-popover a.text-primary-800,
+html.dark .dash-popover a.hover\:text-primary-800:hover {
+  color: var(--brand-primary, #ff5436);
+}
+
+html.dark .dash-popover .bg-neutral-50,
+html.dark .dash-popover .bg-neutral-100 {
+  background-color: var(--dash-surface-raised);
+}
+
+html.dark .dash-popover .border-neutral-200 {
+  border-color: var(--dash-border);
+}
+
+html.dark .dash-popover .bg-amber-50 {
+  background-color: color-mix(in srgb, var(--dash-warning-fg) 18%, var(--dash-surface-raised));
+}
+
+html.dark .dash-popover .text-amber-800 {
+  color: var(--dash-warning-fg);
 }
 
 .dash-collapse-btn {
@@ -1275,8 +1612,8 @@ html.dark .dashboard-canvas .ring-primary-200\/50 {
   align-items: center;
   justify-content: center;
   border-radius: 0.375rem;
-  border: 1px solid rgba(255, 84, 54, 0.35);
-  background: var(--color-primary-800);
+  border: 1px solid transparent;
+  background: var(--brand-primary);
   font-size: 0.875rem;
   font-weight: 600;
   color: #ffffff;
@@ -1285,7 +1622,7 @@ html.dark .dashboard-canvas .ring-primary-200\/50 {
 }
 
 .dash-auth-submit:hover:not(:disabled) {
-  background: var(--color-primary-900);
+  background: var(--brand-primary-hover);
   box-shadow: 0 4px 10px rgba(255, 84, 54, 0.28);
 }
 
