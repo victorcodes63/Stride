@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireStaffUser } from '@/lib/staff-api-auth';
+import { withAccountsTenant } from '@/lib/accounts-tenant-api';
 import { getAccountsAccess } from '@/lib/accounts-access';
 import { reportApiError } from '@/lib/monitoring';
 import {
-  buildPayrollInvoiceLines,
   buildRecurringBillLines,
   createDraftAccountsInvoice,
   dueDateFromIssue,
@@ -25,90 +23,107 @@ function parseMonthYear(body: Record<string, unknown>) {
   return { month, year };
 }
 
-async function loadBillingContext(clientId: string) {
-  const client = await prisma.accountsClient.findUnique({
-    where: { id: clientId },
-    include: {
-      outsourcingClient: {
-        select: {
-          id: true,
-          serviceFeeType: true,
-          serviceFeeAmount: true,
-          paymentTerms: true,
-          currency: true,
-        },
-      },
-    },
-  });
-  if (!client) return null;
-  return client;
-}
-
 export async function POST(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const access = await getAccountsAccess(user.id, user.role);
-  if (!access.hasAccountsAccess || !access.canManageInvoices) {
-    return NextResponse.json({ error: 'No permission to create invoices.' }, { status: 403 });
-  }
-
-  try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
-    if (!clientId) return NextResponse.json({ error: 'clientId is required.' }, { status: 400 });
-
-    const period = parseMonthYear(body);
-    if (!period) return NextResponse.json({ error: 'Valid month (1–12) and year are required.' }, { status: 400 });
-
-    const client = await loadBillingContext(clientId);
-    if (!client) return NextResponse.json({ error: 'Client not found.' }, { status: 404 });
-
-    const profile = {
-      serviceFeeType: client.outsourcingClient?.serviceFeeType ?? null,
-      serviceFeeAmount: client.outsourcingClient?.serviceFeeAmount
-        ? Number(client.outsourcingClient.serviceFeeAmount)
-        : null,
-      paymentTerms: client.outsourcingClient?.paymentTerms ?? null,
-      currency: client.outsourcingClient?.currency ?? client.currency,
-    };
-
-    const headcount = client.outsourcingClient
-      ? await prisma.employee.count({
-          where: { outsourcingClientId: client.outsourcingClient.id, employmentStatus: 'active' },
-        })
-      : 0;
-
-    const lines = buildRecurringBillLines({
-      month: period.month,
-      year: period.year,
-      headcount,
-      profile,
-    });
-    if (lines.length === 0) {
-      return NextResponse.json({ error: 'No billable amount for this client (check service fee settings).' }, { status: 400 });
+  return withAccountsTenant(request, async (ctx) => {
+    const access = await getAccountsAccess(ctx.staff.id, ctx.staff.role);
+    if (!access.canManageInvoices) {
+      return NextResponse.json({ error: 'No permission to create invoices.' }, { status: 403 });
     }
 
-    const issueDate = new Date(Date.UTC(period.year, period.month - 1, 1, 12, 0, 0));
-    const dueDate = dueDateFromIssue(issueDate, profile.paymentTerms);
+    try {
+      const body = (await request.json()) as Record<string, unknown>;
+      const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
+      if (!clientId) return NextResponse.json({ error: 'clientId is required.' }, { status: 400 });
 
-    const invoice = await prisma.$transaction((tx) =>
-      createDraftAccountsInvoice(tx, {
-        clientId,
-        issueDate,
-        dueDate,
-        currency: profile.currency ?? 'KES',
-        notes: `Auto-generated recurring bill for ${period.month}/${period.year} (${headcount} employees).`,
-        lines,
-      }),
-    );
+      const period = parseMonthYear(body);
+      if (!period) return NextResponse.json({ error: 'Valid month (1–12) and year are required.' }, { status: 400 });
 
-    return NextResponse.json({ invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, headcount, lines }, { status: 201 });
-  } catch (error) {
-    await reportApiError({
-      route: 'POST /api/accounts/billing/recurring',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to generate recurring invoice.' }, { status: 500 });
-  }
+      const result = await ctx.run(async (tx) => {
+        const client = await tx.accountsClient.findFirst({
+          where: ctx.where({ id: clientId }),
+          include: {
+            outsourcingClient: {
+              select: {
+                id: true,
+                serviceFeeType: true,
+                serviceFeeAmount: true,
+                paymentTerms: true,
+                currency: true,
+              },
+            },
+          },
+        });
+        if (!client) throw Object.assign(new Error('CLIENT_NOT_FOUND'), { code: 'CLIENT_NOT_FOUND' });
+
+        const profile = {
+          serviceFeeType: client.outsourcingClient?.serviceFeeType ?? null,
+          serviceFeeAmount: client.outsourcingClient?.serviceFeeAmount
+            ? Number(client.outsourcingClient.serviceFeeAmount)
+            : null,
+          paymentTerms: client.outsourcingClient?.paymentTerms ?? null,
+          currency: client.outsourcingClient?.currency ?? client.currency,
+        };
+
+        const headcount = client.outsourcingClient
+          ? await tx.employee.count({
+              where: {
+                organizationId: ctx.organizationId,
+                outsourcingClientId: client.outsourcingClient.id,
+                employmentStatus: 'active',
+              },
+            })
+          : 0;
+
+        const lines = buildRecurringBillLines({
+          month: period.month,
+          year: period.year,
+          headcount,
+          profile,
+        });
+        if (lines.length === 0) {
+          throw Object.assign(new Error('NO_BILLABLE'), { code: 'NO_BILLABLE' });
+        }
+
+        const issueDate = new Date(Date.UTC(period.year, period.month - 1, 1, 12, 0, 0));
+        const dueDate = dueDateFromIssue(issueDate, profile.paymentTerms);
+
+        const invoice = await createDraftAccountsInvoice(tx, {
+          clientId,
+          issueDate,
+          dueDate,
+          currency: profile.currency ?? 'KES',
+          notes: `Auto-generated recurring bill for ${period.month}/${period.year} (${headcount} employees).`,
+          lines,
+        });
+
+        return { invoice, headcount, lines };
+      });
+
+      return NextResponse.json(
+        {
+          invoiceId: result.invoice.id,
+          invoiceNumber: result.invoice.invoiceNumber,
+          headcount: result.headcount,
+          lines: result.lines,
+        },
+        { status: 201 },
+      );
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err.code === 'CLIENT_NOT_FOUND') {
+        return NextResponse.json({ error: 'Client not found.' }, { status: 404 });
+      }
+      if (err.code === 'NO_BILLABLE') {
+        return NextResponse.json(
+          { error: 'No billable amount for this client (check service fee settings).' },
+          { status: 400 },
+        );
+      }
+      await reportApiError({
+        route: 'POST /api/accounts/billing/recurring',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to generate recurring invoice.' }, { status: 500 });
+    }
+  });
 }

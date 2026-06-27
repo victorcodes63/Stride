@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { getAccountsAccess } from '@/lib/accounts-access';
+import { withAccountsTenant } from '@/lib/accounts-tenant-api';
 import { computeInvoiceVatFromLines } from '@/lib/accounts-invoice-totals';
 import { generateAccountsInvoicePdf } from '@/lib/accounts-invoice-pdf';
 import { reportApiError } from '@/lib/monitoring';
@@ -13,83 +11,82 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const access = await getAccountsAccess(user.id, user.role);
-  if (!access.hasAccountsAccess) {
-    return NextResponse.json({ error: 'No access to Accounts.' }, { status: 403 });
-  }
-
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
 
-  try {
-    const cn = await prisma.accountsCreditNote.findUnique({
-      where: { id },
-      include: {
-        client: { select: { name: true } },
-        originalInvoice: { select: { invoiceNumber: true } },
-        lines: { orderBy: { sortOrder: 'asc' } },
-      },
-    });
+  return withAccountsTenant(request, async (ctx) => {
+    try {
+      const cn = await ctx.run(async (tx) => {
+        const row = await tx.accountsCreditNote.findFirst({
+          where: ctx.where({ id }),
+          include: {
+            client: { select: { name: true } },
+            originalInvoice: { select: { invoiceNumber: true } },
+            lines: { orderBy: { sortOrder: 'asc' } },
+          },
+        });
+        if (!row) return null;
 
-    if (!cn) return NextResponse.json({ error: 'Credit note not found' }, { status: 404 });
+        const { subtotalExVat, vatAmount, totalIncVat } = computeInvoiceVatFromLines(
+          row.lines,
+          row.vatRateBps,
+        );
 
-    const { subtotalExVat, vatAmount, totalIncVat } = computeInvoiceVatFromLines(
-      cn.lines,
-      cn.vatRateBps,
-    );
+        const lines = row.lines.map((l, i) => ({
+          lineNo: i + 1,
+          item: l.item,
+          description: l.description,
+          amountExVat: String(l.amountExVat),
+        }));
 
-    const lines = cn.lines.map((l, i) => ({
-      lineNo: i + 1,
-      item: l.item,
-      description: l.description,
-      amountExVat: String(l.amountExVat),
-    }));
+        const paymentDetails = await resolvePaymentDetails(tx, {
+          paymentAccountId: row.paymentAccountId,
+          paymentBank: row.paymentBank,
+        });
 
-    const paymentDetails = await resolvePaymentDetails(prisma, {
-      paymentAccountId: cn.paymentAccountId,
-      paymentBank: cn.paymentBank,
-    });
+        const pdfBytes = await generateAccountsInvoicePdf({
+          kind: 'credit_note',
+          documentNumber: row.creditNoteNumber,
+          originalInvoiceNumber: row.originalInvoice.invoiceNumber,
+          clientName: row.client.name,
+          issueDate: row.issueDate.toISOString().slice(0, 10),
+          dueDate: null,
+          currency: row.currency,
+          vatRateBps: row.vatRateBps,
+          status: 'issued',
+          notes: row.notes,
+          subtotalExVat,
+          vatAmount,
+          totalIncVat,
+          lines,
+          paymentDetails,
+        });
 
-    const pdfBytes = await generateAccountsInvoicePdf({
-      kind: 'credit_note',
-      documentNumber: cn.creditNoteNumber,
-      originalInvoiceNumber: cn.originalInvoice.invoiceNumber,
-      clientName: cn.client.name,
-      issueDate: cn.issueDate.toISOString().slice(0, 10),
-      dueDate: null,
-      currency: cn.currency,
-      vatRateBps: cn.vatRateBps,
-      status: 'issued',
-      notes: cn.notes,
-      subtotalExVat,
-      vatAmount,
-      totalIncVat,
-      lines,
-      paymentDetails,
-    });
+        return { pdfBytes, creditNoteNumber: row.creditNoteNumber };
+      });
 
-    const q = request.nextUrl.searchParams.get('disposition');
-    const isInline = q === 'inline';
-    const filename = `Credit-note-${cn.creditNoteNumber}.pdf`;
+      if (!cn) return NextResponse.json({ error: 'Credit note not found' }, { status: 404 });
 
-    return new NextResponse(Buffer.from(pdfBytes), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': isInline
-          ? `inline; filename="${filename}"`
-          : `attachment; filename="${filename}"`,
-        'Cache-Control': 'private, no-store',
-      },
-    });
-  } catch (error) {
-    await reportApiError({
-      route: 'GET /api/accounts/credit-notes/[id]/pdf',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to generate PDF.' }, { status: 500 });
-  }
+      const q = request.nextUrl.searchParams.get('disposition');
+      const isInline = q === 'inline';
+      const filename = `Credit-note-${cn.creditNoteNumber}.pdf`;
+
+      return new NextResponse(Buffer.from(cn.pdfBytes), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': isInline
+            ? `inline; filename="${filename}"`
+            : `attachment; filename="${filename}"`,
+          'Cache-Control': 'private, no-store',
+        },
+      });
+    } catch (error) {
+      await reportApiError({
+        route: 'GET /api/accounts/credit-notes/[id]/pdf',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to generate PDF.' }, { status: 500 });
+    }
+  });
 }

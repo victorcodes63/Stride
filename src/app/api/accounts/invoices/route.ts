@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
-import { requireStaffUser } from '@/lib/staff-api-auth';
 import { getAccountsAccess } from '@/lib/accounts-access';
+import { withAccountsTenant } from '@/lib/accounts-tenant-api';
 import { computeInvoiceVatFromSubtotal } from '@/lib/accounts-invoice-totals';
 import { sumCreditTotalsByInvoiceIds } from '@/lib/accounts-credit-note-totals';
 import { reportApiError } from '@/lib/monitoring';
 import { getOrCreatePrimaryAccountsClient } from '@/lib/primary-accounts-client';
 import { requireRecentSensitiveAuth } from '@/lib/admin-security';
-import { logAuditEvent } from '@/lib/audit-events';
-import { withTenant } from '@/lib/tenant-api';
 import {
   paymentBankForAccountId,
   resolvePaymentAccountId,
@@ -37,12 +34,7 @@ function str(v: unknown): string | null {
 }
 
 export async function GET(request: NextRequest) {
-  return withTenant(request, async (ctx) => {
-    const access = await getAccountsAccess(ctx.staff.id, ctx.staff.role);
-    if (!access.hasAccountsAccess) {
-      return NextResponse.json({ error: 'No access to Accounts.' }, { status: 403 });
-    }
-
+  return withAccountsTenant(request, async (ctx) => {
     try {
       const list = await ctx.run(async (tx) => {
         let clientId = request.nextUrl.searchParams.get('clientId')?.trim() || undefined;
@@ -167,23 +159,18 @@ export async function GET(request: NextRequest) {
 
 /** Create invoice; uses global sequential invoiceNumber across all clients. */
 export async function POST(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return withAccountsTenant(request, async (ctx) => {
+    const access = await getAccountsAccess(ctx.staff.id, ctx.staff.role);
+    if (!access.canManageInvoices) {
+      return NextResponse.json(
+        { error: 'You do not have permission to create invoices.' },
+        { status: 403 },
+      );
+    }
+    const reauthError = requireRecentSensitiveAuth(request, ctx.staff.id);
+    if (reauthError) return reauthError;
 
-  const access = await getAccountsAccess(user.id, user.role);
-  if (!access.hasAccountsAccess) {
-    return NextResponse.json({ error: 'No access to Accounts.' }, { status: 403 });
-  }
-  if (!access.canManageInvoices) {
-    return NextResponse.json(
-      { error: 'You do not have permission to create invoices.' },
-      { status: 403 },
-    );
-  }
-  const reauthError = requireRecentSensitiveAuth(request, user.id);
-  if (reauthError) return reauthError;
-
-  let body: unknown;
+    let body: unknown;
   try {
     body = await request.json();
   } catch {
@@ -299,8 +286,8 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  try {
-    const result = await prisma.$transaction(async (tx) => {
+    try {
+      const result = await ctx.run(async (tx) => {
       const client = await tx.accountsClient.findUnique({
         where: { id: clientId },
         select: {
@@ -364,48 +351,48 @@ export async function POST(request: NextRequest) {
         select: { id: true, invoiceNumber: true },
       });
 
-      return inv;
-    });
+        return inv;
+      });
 
-    await logAuditEvent({
-      actor: { userId: user.id, email: user.email, name: user.name },
-      action: 'accounts.invoice.created',
-      entityType: 'AccountsInvoice',
-      entityId: result.id,
-      route: 'POST /api/accounts/invoices',
-      metadata: { invoiceNumber: result.invoiceNumber, clientId },
-    });
-    return NextResponse.json(
-      { id: result.id, invoiceNumber: result.invoiceNumber },
-      { status: 201 },
-    );
-  } catch (error: unknown) {
-    const err = error as { code?: string };
-    if (err.code === 'PAYMENT_ACCOUNT_NOT_FOUND') {
-      return NextResponse.json({ error: 'Payment account not found or inactive.' }, { status: 400 });
-    }
-    if (err.code === 'CLIENT_NOT_FOUND') {
-      return NextResponse.json({ error: 'Billing client not found.' }, { status: 404 });
-    }
-    if (err.code === 'CONTRACT_NOT_FOUND') {
+      await ctx.audit({
+        action: 'accounts.invoice.created',
+        entityType: 'AccountsInvoice',
+        entityId: result.id,
+        route: 'POST /api/accounts/invoices',
+        metadata: { invoiceNumber: result.invoiceNumber, clientId },
+      });
       return NextResponse.json(
-        { error: 'Contract not found or does not belong to this client.' },
-        { status: 400 },
+        { id: result.id, invoiceNumber: result.invoiceNumber },
+        { status: 201 },
       );
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err.code === 'PAYMENT_ACCOUNT_NOT_FOUND') {
+        return NextResponse.json({ error: 'Payment account not found or inactive.' }, { status: 400 });
+      }
+      if (err.code === 'CLIENT_NOT_FOUND') {
+        return NextResponse.json({ error: 'Billing client not found.' }, { status: 404 });
+      }
+      if (err.code === 'CONTRACT_NOT_FOUND') {
+        return NextResponse.json(
+          { error: 'Contract not found or does not belong to this client.' },
+          { status: 400 },
+        );
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return NextResponse.json(
+          {
+            error:
+              'Invoice number conflict. Another request may have issued an invoice—refresh and try again.',
+          },
+          { status: 409 },
+        );
+      }
+      await reportApiError({
+        route: 'POST /api/accounts/invoices',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to create invoice.' }, { status: 500 });
     }
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return NextResponse.json(
-        {
-          error:
-            'Invoice number conflict. Another request may have issued an invoice—refresh and try again.',
-        },
-        { status: 409 },
-      );
-    }
-    await reportApiError({
-      route: 'POST /api/accounts/invoices',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to create invoice.' }, { status: 500 });
-  }
+  });
 }
