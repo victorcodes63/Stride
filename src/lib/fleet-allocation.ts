@@ -1,4 +1,8 @@
 import type { FleetTripStatus, PrismaClient } from '@prisma/client';
+import {
+  assertDriverEligibleForAllocation,
+  FleetCredentialGateError,
+} from '@/lib/fleet-credential-gate';
 
 /** Trip statuses where vehicle/driver are considered committed (double-booking block). */
 export const ACTIVE_ALLOCATION_TRIP_STATUSES: FleetTripStatus[] = [
@@ -49,6 +53,15 @@ export async function assertFleetAllocationAvailable(
   }
 
   if (input.driverId) {
+    try {
+      await assertDriverEligibleForAllocation(prisma, input.driverId);
+    } catch (e) {
+      if (e instanceof FleetCredentialGateError) {
+        throw new FleetAllocationConflictError(e.message);
+      }
+      throw e;
+    }
+
     const conflict = await prisma.fleetTrip.findFirst({
       where: { ...scope, driverId: input.driverId },
       select: { tripNumber: true, status: true },

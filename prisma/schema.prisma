@@ -1998,6 +1998,8 @@ model User {
   assetsAssigned                   CompanyAsset[]             @relation("AssetAssignedByUser")
   fleetComplianceChecks            FleetTripComplianceCheck[] @relation("FleetComplianceCheckedBy")
   fleetTripDocumentsUploaded       FleetTripDocument[]        @relation("FleetTripDocumentUploader")
+  fleetTripDocumentsVerified       FleetTripDocument[]        @relation("FleetTripDocumentVerifier")
+  fleetIncidentsOwned              FleetIncident[]            @relation("FleetIncidentOwner")
   fleetDriverEvaluations           FleetDriverEvaluation[]    @relation("FleetDriverEvaluationBy")
   purchaseRequestsRequested        PurchaseRequest[]          @relation("PurchaseRequestRequester")
   purchaseRequestsReviewed         PurchaseRequest[]          @relation("PurchaseRequestReviewer")
@@ -2398,6 +2400,7 @@ model AccountsClient {
   clientPayments AccountsClientPayment[]
   staffAccess    AccountsStaffAccess[]
   payrolls       Payroll[]
+  fleetCustomers FleetCustomer[]
 
   @@index([type])
   @@index([name])
@@ -3550,6 +3553,8 @@ model FleetCustomer {
   organizationId String @db.Uuid
 
   outsourcingClientId String
+  /// Optional link to accounts debtor profile for fleet client billing (FLT-10 / RAV-211).
+  accountsClientId    String?
   name                String
   contactName         String?
   contactPhone        String?
@@ -3558,11 +3563,13 @@ model FleetCustomer {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  orders FleetOrder[]
-  trips  FleetTrip[]
+  client         OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  accountsClient AccountsClient?   @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
+  orders         FleetOrder[]
+  trips          FleetTrip[]
 
   @@index([outsourcingClientId, name])
+  @@index([accountsClientId])
 }
 
 model FleetOrder {
@@ -3715,10 +3722,13 @@ model FleetTripDocument {
   fileSize         Int?
   mimeType         String?
   uploadedByUserId String?
+  verifiedAt       DateTime?
+  verifiedByUserId String?
   createdAt        DateTime              @default(now())
 
   trip       FleetTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
   uploadedBy User?     @relation("FleetTripDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  verifiedBy User?     @relation("FleetTripDocumentVerifier", fields: [verifiedByUserId], references: [id], onDelete: SetNull)
 
   @@index([tripId, createdAt(sort: Desc)])
 }
@@ -3789,6 +3799,8 @@ model FleetIncident {
   title               String
   description         String                @db.Text
   resolution          String?               @db.Text
+  ownerUserId         String?
+  escalatedAt         DateTime?
   reportedAt          DateTime              @default(now())
   resolvedAt          DateTime?
   createdAt           DateTime              @default(now())
@@ -3796,9 +3808,11 @@ model FleetIncident {
 
   client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
   trip   FleetTrip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  owner  User?             @relation("FleetIncidentOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([outsourcingClientId, status])
   @@index([tripId])
+  @@index([ownerUserId])
 }
 
 enum FleetGeofenceType {

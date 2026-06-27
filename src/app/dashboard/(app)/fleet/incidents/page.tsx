@@ -31,6 +31,8 @@ type IncidentRow = {
   title: string;
   description: string;
   reportedAt: string;
+  ownerName: string | null;
+  needsEscalation: boolean;
 };
 
 export default function FleetIncidentsPage() {
@@ -76,6 +78,25 @@ export default function FleetIncidentsPage() {
     }
   }
 
+  async function escalate(id: string) {
+    setSavingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/fleet/incidents/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ escalate: true }),
+      });
+      if (!res.ok) throw new Error('Unable to escalate incident.');
+      const updated = (await res.json()) as IncidentRow;
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...updated, needsEscalation: false } : r)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to escalate incident.');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   const listStatus = loading ? 'loading' : error ? 'error' : 'success';
 
   return (
@@ -111,6 +132,12 @@ export default function FleetIncidentsPage() {
                       <td className="col-primary">
                         <p className="font-medium">{row.title}</p>
                         <p className="mt-0.5 text-xs text-neutral-500">{row.incidentTypeLabel}</p>
+                        {row.ownerName ? (
+                          <p className="mt-0.5 text-xs text-neutral-500">Owner: {row.ownerName}</p>
+                        ) : null}
+                        {row.needsEscalation ? (
+                          <p className="mt-1 text-xs font-medium text-red-600">Needs escalation</p>
+                        ) : null}
                       </td>
                       <td>
                         <Link
@@ -136,6 +163,16 @@ export default function FleetIncidentsPage() {
                         </span>
                       </td>
                       <td className="col-right">
+                        {row.needsEscalation ? (
+                          <button
+                            type="button"
+                            disabled={savingId === row.id}
+                            onClick={() => void escalate(row.id)}
+                            className="mr-2 text-xs font-medium text-red-600 hover:text-red-700"
+                          >
+                            Escalate
+                          </button>
+                        ) : null}
                         {row.status === 'open' ? (
                           <button
                             type="button"

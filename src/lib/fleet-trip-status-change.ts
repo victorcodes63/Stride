@@ -6,6 +6,7 @@ import {
 } from '@/lib/fleet-status';
 import { fleetTripDetailInclude } from '@/lib/fleet-api';
 import { tripHasRoutePlan, tripPlanningGateError } from '@/lib/fleet-planning';
+import { assertTripStatusGates } from '@/lib/fleet-credential-gate';
 
 export type ApplyTripStatusChangeInput = {
   tripId: string;
@@ -66,6 +67,11 @@ export async function applyTripStatusChange(
     ) {
       throw new TripStatusTransitionError(tripPlanningGateError(existing));
     }
+    await assertTripStatusGates(tx, tripId, to, actor);
+  }
+
+  if (to === 'in_transit' || to === 'delivered') {
+    await assertTripStatusGates(tx, tripId, to, actor);
   }
 
   const shouldSetDelivery =

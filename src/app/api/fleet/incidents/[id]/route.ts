@@ -20,6 +20,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const body = (await request.json().catch(() => null)) as {
       status?: string;
       resolution?: string;
+      ownerUserId?: string;
+      escalate?: boolean;
     } | null;
 
     const nextStatus = body?.status as FleetIncidentStatus | undefined;
@@ -38,24 +40,36 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         data: {
           ...(nextStatus ? { status: nextStatus } : {}),
           ...(body?.resolution !== undefined ? { resolution: body.resolution.trim() || null } : {}),
+          ...(body?.ownerUserId !== undefined
+            ? { ownerUserId: body.ownerUserId.trim() || null }
+            : {}),
+          ...(body?.escalate ? { escalatedAt: new Date() } : {}),
           ...((nextStatus === 'resolved' || nextStatus === 'closed') && !existing.resolvedAt
             ? { resolvedAt: new Date() }
             : {}),
         },
         include: {
+          owner: { select: { name: true } },
           trip: {
             select: { id: true, tripNumber: true, origin: true, destination: true },
           },
         },
       });
 
-      if (nextStatus) {
+      if (nextStatus || body?.escalate) {
         await tx.fleetTripEvent.create({
           data: {
+            organizationId: ctx.organizationId,
             tripId: row.tripId,
             eventType: 'incident_update',
-            message: `Incident "${row.title}" marked ${FLEET_INCIDENT_STATUS_LABELS[nextStatus].toLowerCase()}.`,
-            metadata: { incidentId: id, status: nextStatus, actorEmail: ctx.staff.email },
+            message: body?.escalate
+              ? `Incident "${row.title}" escalated.`
+              : `Incident "${row.title}" marked ${nextStatus ? FLEET_INCIDENT_STATUS_LABELS[nextStatus].toLowerCase() : 'updated'}.`,
+            metadata: {
+              incidentId: id,
+              status: nextStatus ?? row.status,
+              actorEmail: ctx.staff.email,
+            },
           },
         });
       }
@@ -77,8 +91,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       title: updated.title,
       description: updated.description,
       resolution: updated.resolution,
+      ownerName: updated.owner?.name ?? null,
       reportedAt: updated.reportedAt.toISOString(),
       resolvedAt: updated.resolvedAt?.toISOString() ?? null,
+      escalatedAt: updated.escalatedAt?.toISOString() ?? null,
     });
   });
 }

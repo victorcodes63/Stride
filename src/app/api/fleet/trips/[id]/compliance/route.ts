@@ -7,6 +7,7 @@ import {
   ensureTripComplianceChecks,
   FLEET_COMPLIANCE_CHECK_TYPES,
 } from '@/lib/fleet-compliance';
+import { syncDriverLicenceComplianceCheck } from '@/lib/fleet-credential-gate';
 import {
   applyTripStatusChange,
   TripStatusTransitionError,
@@ -44,7 +45,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     await ensureTripComplianceChecks(prisma, id);
 
+    const tripWithDriver = await prisma.fleetTrip.findFirst({
+      where: { id },
+      select: { driverId: true },
+    });
+
     const updated = await prisma.$transaction(async (tx) => {
+      if (tripWithDriver?.driverId) {
+        await syncDriverLicenceComplianceCheck(tx, id, tripWithDriver.driverId);
+      }
+
       await tx.fleetTripComplianceCheck.update({
         where: {
           tripId_checkType: {

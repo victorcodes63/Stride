@@ -24,8 +24,18 @@ type BillingRow = {
   actualDeliveryAt: string | null;
 };
 
+type AgeingSummary = {
+  current: number;
+  '1-30': number;
+  '31-60': number;
+  '61-90': number;
+  '90+': number;
+  totalOutstanding: number;
+};
+
 export default function FleetBillingPage() {
   const [rows, setRows] = useState<BillingRow[]>([]);
+  const [ageing, setAgeing] = useState<AgeingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invoicingId, setInvoicingId] = useState<string | null>(null);
@@ -37,9 +47,16 @@ export default function FleetBillingPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/fleet/billing/queue');
-      if (!res.ok) throw new Error('Unable to load billing queue.');
-      setRows((await res.json()) as BillingRow[]);
+      const [queueRes, ageingRes] = await Promise.all([
+        fetch('/api/fleet/billing/queue'),
+        fetch('/api/fleet/billing/ageing'),
+      ]);
+      if (!queueRes.ok) throw new Error('Unable to load billing queue.');
+      setRows((await queueRes.json()) as BillingRow[]);
+      if (ageingRes.ok) {
+        const data = (await ageingRes.json()) as { summary: AgeingSummary };
+        setAgeing(data.summary);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to load billing queue.');
     } finally {
@@ -91,6 +108,26 @@ export default function FleetBillingPage() {
       {lastInvoice ? (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Invoice #{lastInvoice.invoiceNumber} created for trip {lastInvoice.tripNumber}.
+        </div>
+      ) : null}
+
+      {ageing ? (
+        <div className="mb-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {(
+            [
+              ['Current', ageing.current],
+              ['1–30 days', ageing['1-30']],
+              ['31–60 days', ageing['31-60']],
+              ['61–90 days', ageing['61-90']],
+              ['90+ days', ageing['90+']],
+              ['Total AR', ageing.totalOutstanding],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label} className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">{label}</p>
+              <p className="mt-1 text-lg font-semibold text-ink">KES {value.toLocaleString()}</p>
+            </div>
+          ))}
         </div>
       ) : null}
 

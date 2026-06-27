@@ -5,6 +5,7 @@ import { withFleetTenant } from '@/lib/fleet-tenant-api';
 import { orderToListRow } from '@/lib/fleet-orders-api';
 import { nextFleetTripNumber } from '@/lib/fleet-numbers';
 import { ensureTripComplianceChecks } from '@/lib/fleet-compliance';
+import { syncDriverLicenceComplianceCheck } from '@/lib/fleet-credential-gate';
 import { FLEET_ORDER_STATUSES } from '@/lib/fleet-order-status';
 import {
   assertFleetAllocationAvailable,
@@ -145,6 +146,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         await ensureTripComplianceChecks(prisma, trip.id);
 
         if (allocation.driverId) {
+          await prisma.$transaction((tx) =>
+            syncDriverLicenceComplianceCheck(tx, trip.id, allocation.driverId!),
+          );
           await prisma.fleetDriver.update({
             where: { id: allocation.driverId },
             data: { status: 'on_trip' },

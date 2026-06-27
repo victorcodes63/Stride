@@ -53,10 +53,26 @@ export default function FleetTripDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error('Unable to update trip status.');
-      setTrip((await res.json()) as FleetTripDetail);
+      const data = (await res.json().catch(() => ({}))) as FleetTripDetail & { error?: string };
+      if (!res.ok) throw new Error(data.error || 'Unable to update trip status.');
+      setTrip(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to update trip status.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function dispatchTrip() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/fleet/trips/${tripId}/dispatch`, { method: 'POST' });
+      const data = (await res.json().catch(() => ({}))) as FleetTripDetail & { error?: string };
+      if (!res.ok) throw new Error(data.error || 'Unable to dispatch trip.');
+      setTrip(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to dispatch trip.');
     } finally {
       setSaving(false);
     }
@@ -178,8 +194,20 @@ export default function FleetTripDetailPage() {
               <p className="mt-2 text-xs text-neutral-500">
                 Move the trip through each logistics workflow stage.
               </p>
+              {trip.status === 'loaded' ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void dispatchTrip()}
+                  className="mt-4 w-full rounded-lg bg-primary-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-primary-600 disabled:opacity-50"
+                >
+                  {saving ? 'Dispatching…' : 'Dispatch (generate delivery note)'}
+                </button>
+              ) : null}
               <div className="mt-4 space-y-2">
-                {[trip.status, ...getAllowedNextTripStatuses(trip.status, 'staff')].map((status) => (
+                {[trip.status, ...getAllowedNextTripStatuses(trip.status, 'staff')]
+                  .filter((status) => !(trip.status === 'loaded' && status === 'in_transit'))
+                  .map((status) => (
                   <button
                     key={status}
                     type="button"
@@ -195,6 +223,7 @@ export default function FleetTripDetailPage() {
                   </button>
                 ))}
               </div>
+              {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
             </aside>
           </div>
         ) : null}

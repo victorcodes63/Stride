@@ -15,6 +15,7 @@ export function FleetTripDocumentsSection({ tripId, documents, onUpdated }: Prop
   const [docType, setDocType] = useState<string>('pod');
   const [title, setTitle] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [validatingId, setValidatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleUpload(e: React.FormEvent) {
@@ -51,11 +52,32 @@ export function FleetTripDocumentsSection({ tripId, documents, onUpdated }: Prop
     }
   }
 
+  async function validatePod(documentId: string, approved: boolean) {
+    setValidatingId(documentId);
+    setError(null);
+    try {
+      const res = await fetch(`/api/fleet/trips/${tripId}/pod/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId, approved }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error || 'POD validation failed.');
+      }
+      onUpdated((await res.json()) as FleetTripDetail);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'POD validation failed.');
+    } finally {
+      setValidatingId(null);
+    }
+  }
+
   return (
     <section className="rounded-xl border border-neutral-200 bg-white p-6">
       <h2 className="text-sm font-semibold text-ink">Trip documents</h2>
       <p className="mt-1 text-xs text-neutral-500">
-        Delivery notes, transport permits, and signed proof of delivery (POD).
+        Delivery notes, transport permits, and signed proof of delivery (POD). Operations must verify POD before delivery is confirmed.
       </p>
 
       {documents.length > 0 ? (
@@ -73,15 +95,34 @@ export function FleetTripDocumentsSection({ tripId, documents, onUpdated }: Prop
                   {' · '}
                   {new Date(doc.createdAt).toLocaleString()}
                 </p>
+                {doc.docType === 'pod' && doc.verifiedAt ? (
+                  <p className="mt-1 text-xs font-medium text-emerald-700">
+                    Verified{doc.verifiedByName ? ` by ${doc.verifiedByName}` : ''}
+                    {' · '}
+                    {new Date(doc.verifiedAt).toLocaleString()}
+                  </p>
+                ) : null}
               </div>
-              <a
-                href={doc.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium text-primary-600 hover:text-primary-700"
-              >
-                View file
-              </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={doc.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                >
+                  View file
+                </a>
+                {doc.docType === 'pod' && !doc.verifiedAt ? (
+                  <button
+                    type="button"
+                    disabled={validatingId === doc.id}
+                    onClick={() => void validatePod(doc.id, true)}
+                    className="rounded-md bg-primary-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-600 disabled:opacity-50"
+                  >
+                    {validatingId === doc.id ? 'Verifying…' : 'Approve POD'}
+                  </button>
+                ) : null}
+              </div>
             </li>
           ))}
         </ul>

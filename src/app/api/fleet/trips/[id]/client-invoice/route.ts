@@ -14,7 +14,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const trip = await prisma.fleetTrip.findFirst({
       where: fleetTenantWhere(ctx, { id }),
-      include: { customer: { select: { name: true } } },
+      include: { customer: { select: { name: true, contactEmail: true } } },
     });
 
     if (!trip) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -31,9 +31,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
       const invoice = await createFleetClientInvoice(prisma, {
         tripId: trip.id,
+        customerId: trip.customerId,
+        organizationId: ctx.organizationId,
         outsourcingClientId: ctx.workspaceClientId,
         tripNumber: trip.tripNumber,
         customerName: trip.customer.name,
+        customerContactEmail: trip.customer.contactEmail,
         origin: trip.origin,
         destination: trip.destination,
         plannedDistanceKm: trip.plannedDistanceKm,

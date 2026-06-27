@@ -20,7 +20,10 @@ export const fleetTripDetailInclude = {
   },
   documents: {
     orderBy: { createdAt: 'desc' as const },
-    include: { uploadedBy: { select: { name: true } } },
+    include: {
+      uploadedBy: { select: { name: true } },
+      verifiedBy: { select: { name: true } },
+    },
   },
 } as const;
 
@@ -47,6 +50,8 @@ export type FleetTripDocumentRow = {
   mimeType: string | null;
   createdAt: string;
   uploadedByName: string | null;
+  verifiedAt: string | null;
+  verifiedByName: string | null;
 };
 
 export type FleetTripListRow = {
@@ -154,6 +159,8 @@ export function tripToDetail(trip: {
     mimeType: string | null;
     createdAt: Date;
     uploadedBy: { name: string } | null;
+    verifiedAt?: Date | null;
+    verifiedBy?: { name: string } | null;
   }[];
 }): FleetTripDetail {
   const complianceChecks = (trip.complianceChecks ?? []).map((c) => ({
@@ -178,6 +185,8 @@ export function tripToDetail(trip: {
     mimeType: d.mimeType,
     createdAt: d.createdAt.toISOString(),
     uploadedByName: d.uploadedBy?.name ?? null,
+    verifiedAt: d.verifiedAt?.toISOString() ?? null,
+    verifiedByName: d.verifiedBy?.name ?? null,
   }));
 
   return {
