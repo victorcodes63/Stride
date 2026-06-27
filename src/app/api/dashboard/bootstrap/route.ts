@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { loadCompanySetupSettings } from '@/lib/company-setup';
+import { loadCompanySetupSettingsForOrg } from '@/lib/company-setup';
 import { getAuthProvidersSummary } from '@/lib/auth-providers';
 import { getDeploymentSummary } from '@/lib/deployment-config';
 import { reportApiError } from '@/lib/monitoring';
 import {
   isMultiEntityEnvEnabled,
-  loadOperatingEntitiesSettings,
+  loadOperatingEntitiesSettingsForOrg,
   shouldShowEntitySwitcher,
   toPublicEntities,
 } from '@/lib/operating-entities';
@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
     try {
       const [fullUser, setup, entitySettings, memberships] = await Promise.all([
         ctx.run((tx) => tx.user.findUnique({ where: { id: ctx.staff.id } })),
-        loadCompanySetupSettings(),
-        loadOperatingEntitiesSettings(),
+        loadCompanySetupSettingsForOrg(ctx.organizationId),
+        loadOperatingEntitiesSettingsForOrg(ctx.organizationId),
         ctx.run((tx) => listActiveMemberships(ctx.staff.id, tx as typeof prisma)),
       ]);
 

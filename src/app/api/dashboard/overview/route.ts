@@ -1,7 +1,7 @@
 import { CredentialStatus } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { loadCompanySetupSettings } from '@/lib/company-setup';
+import { loadCompanySetupSettingsForOrg } from '@/lib/company-setup';
 import {
   getUserPinnedNavHrefs,
 } from '@/lib/dashboard-nav-preferences';
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     const [fullUser, clientId, setup] = await Promise.all([
       metricsOnly ? Promise.resolve(null) : prisma.user.findUnique({ where: { id: staffUser.id } }),
       resolvePrimaryWorkspaceClientId(prisma, undefined, request, staffUser.currentOrgId),
-      metricsOnly ? Promise.resolve(null) : loadCompanySetupSettings(),
+      metricsOnly ? Promise.resolve(null) : loadCompanySetupSettingsForOrg(staffUser.currentOrgId),
     ]);
 
     if (!metricsOnly && !fullUser) {

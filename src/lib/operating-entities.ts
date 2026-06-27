@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { withOrgContext } from '@/lib/org-context';
 import { getDefaultCountry, getDefaultCurrency, getWorkspaceDefaults, isMultiEntityEnvEnabled } from '@/lib/deployment-config';
 import { loadCompanySetupSettings } from '@/lib/company-setup';
 import { isMultiContextDemoEnabled } from '@/lib/demo-entity-slug';
@@ -237,6 +238,30 @@ export async function loadOperatingEntitiesSettings(): Promise<OperatingEntities
       return buildDefaultOperatingEntitiesSettings(setup.orgName || getWorkspaceDefaults().name);
     }
     return sanitizeOperatingEntitiesSettings(row.value);
+  } catch {
+    return buildDefaultOperatingEntitiesSettings();
+  }
+}
+
+/** Tenant-scoped operating entities — avoids leaking demo SwiftFreight config into new orgs. */
+export async function loadOperatingEntitiesSettingsForOrg(
+  organizationId: string,
+): Promise<OperatingEntitiesSettings> {
+  if (!process.env.DATABASE_URL) {
+    return buildDefaultOperatingEntitiesSettings();
+  }
+  try {
+    return await withOrgContext(organizationId, async (tx) => {
+      const row = await tx.systemSetting.findUnique({
+        where: { key: OPERATING_ENTITIES_SETTINGS_KEY },
+      });
+      const org = await tx.organization.findUnique({
+        where: { id: organizationId },
+        select: { name: true, country: true, currency: true },
+      });
+      if (row) return sanitizeOperatingEntitiesSettings(row.value);
+      return buildDefaultOperatingEntitiesSettings(org?.name);
+    });
   } catch {
     return buildDefaultOperatingEntitiesSettings();
   }

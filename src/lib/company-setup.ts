@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { withOrgContext } from '@/lib/org-context';
 import { DEFAULT_BRAND_LOGO_SRC, DEFAULT_LANDING_PATH } from '@/lib/brand-constants';
 import {
   DEFAULT_PRIMARY_COLOR,
@@ -268,6 +269,35 @@ export async function loadCompanySetupSettings(contextId?: string | null): Promi
       if (row) return sanitizeCompanySetup(row.value);
     }
     return { ...DEFAULT_COMPANY_SETUP };
+  } catch {
+    return { ...DEFAULT_COMPANY_SETUP };
+  }
+}
+
+/** Tenant-scoped company setup — new orgs get blank defaults with their org name, not demo SwiftFreight. */
+export async function loadCompanySetupSettingsForOrg(
+  organizationId: string,
+): Promise<CompanySetupSettings> {
+  if (!process.env.DATABASE_URL) return { ...DEFAULT_COMPANY_SETUP };
+  try {
+    return await withOrgContext(organizationId, async (tx) => {
+      const row = await tx.systemSetting.findUnique({
+        where: { key: COMPANY_SETUP_SETTINGS_KEY },
+      });
+      if (row) return sanitizeCompanySetup(row.value);
+      const org = await tx.organization.findUnique({
+        where: { id: organizationId },
+        select: { name: true },
+      });
+      const orgName = org?.name?.trim();
+      if (!orgName) return { ...DEFAULT_COMPANY_SETUP };
+      return sanitizeCompanySetup({
+        ...DEFAULT_COMPANY_SETUP,
+        orgName,
+        payslipLegalName: orgName,
+        careersEmployerName: orgName,
+      });
+    });
   } catch {
     return { ...DEFAULT_COMPANY_SETUP };
   }

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import type { UserRole } from '@prisma/client';
+import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
 import { withOrgContext } from '@/lib/org-context';
 
 export type ResolvedMembership = {
@@ -97,11 +98,21 @@ export async function membershipForLogin(
   userId: string,
   userRole: UserRole,
   preferredOrgId?: string | null,
+  email?: string | null,
 ): Promise<ResolvedMembership> {
   return withLoginUserScope(userId, async (db) => {
     if (preferredOrgId) {
       const preferred = await resolveMembership(userId, preferredOrgId, db);
       if (preferred) return preferred;
+    }
+
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (normalizedEmail && normalizedEmail.includes('@')) {
+      const resolved = await resolveOrgByEmail(normalizedEmail, 'staff');
+      if (resolved?.verifiedDomain) {
+        const domainMembership = await resolveMembership(userId, resolved.organizationId, db);
+        if (domainMembership) return domainMembership;
+      }
     }
 
     const demoPack = process.env.DEMO_PACK?.trim();
