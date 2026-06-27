@@ -7,6 +7,7 @@ import { brandConfig } from '@/lib/brand.config';
 import { usePublicBrand } from '@/components/BrandProvider';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { getMetadataTitle } from '@/lib/brand';
+import { MicrosoftIcon, GoogleIcon } from '@/components/auth/OAuthBrandIcons';
 import { OAuthEmailDivider } from '@/components/auth/OAuthProviderButtons';
 import { LoginCard, LoginPageShell } from '@/components/auth/LoginPageShell';
 import type { LoginPublicConfig } from '@/lib/login-public-config';
@@ -38,6 +39,7 @@ function MicrosoftSignInButton({ email }: { email: string }) {
   const href = `/api/auth/microsoft/start?email=${encodeURIComponent(email)}`;
   return (
     <a href={href} className="dash-auth-oauth-btn dash-auth-oauth-btn--microsoft">
+      <MicrosoftIcon />
       <span>Continue with Microsoft</span>
     </a>
   );
@@ -47,6 +49,7 @@ function GoogleSignInButton({ email }: { email: string }) {
   const href = `/api/auth/google/start?email=${encodeURIComponent(email)}`;
   return (
     <a href={href} className="dash-auth-oauth-btn dash-auth-oauth-btn--google">
+      <GoogleIcon />
       <span>Continue with Google</span>
     </a>
   );

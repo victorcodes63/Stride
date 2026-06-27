@@ -1658,6 +1658,10 @@ html.dark .dashboard-canvas .ring-primary-200\/50 {
   transition: border-color 150ms ease, background-color 150ms ease;
 }
 
+.dash-auth-oauth-btn svg {
+  flex-shrink: 0;
+}
+
 .dash-auth-oauth-btn:hover {
   border-color: color-mix(in srgb, var(--brand-primary) 30%, var(--dash-border));
   background: var(--dash-surface-muted);
