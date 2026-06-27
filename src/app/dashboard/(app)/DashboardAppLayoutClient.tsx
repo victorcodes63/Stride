@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import DashboardNav, { readSidebarCollapsed, writeSidebarCollapsed } from '@/components/dashboard/DashboardNav';
 import { DashboardSidebarPoweredBy } from '@/components/dashboard/DashboardSidebarPoweredBy';
 import DashboardTopbar from '@/components/dashboard/DashboardTopbar';
@@ -12,7 +13,7 @@ import {
   isPastDueBannerVisible,
   isPastDueReadOnly,
 } from '@/lib/account-readonly';
-import { ChevronLeft, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronDown, LogOut, Palette, User } from 'lucide-react';
 import type { UserSummary } from '@/types/dashboard';
 import { STAFF_USER_TYPE_LABELS } from '@/lib/staff-permissions';
 import { EntityProvider, type Entity } from '@/components/EntitySwitcher';
@@ -24,7 +25,6 @@ import { DashboardDomainProvider } from '@/contexts/dashboard-domain';
 import { DashboardOverviewLayoutProvider } from '@/contexts/dashboard-overview-layout';
 import { DashboardModuleOrderProvider } from '@/contexts/dashboard-module-order';
 import { SkipToMain } from '@/components/a11y/SkipToMain';
-import { PlatformLoadingOverlay } from '@/components/platform/PlatformLoadingOverlay';
 import { PlatformNavigationLoader } from '@/components/platform/PlatformNavigationLoader';
 import {
  DASHBOARD_MAIN_PADDING_BOTTOM,
@@ -212,6 +212,20 @@ export default function DashboardAppLayoutClient({
  window.location.href = '/dashboard/login';
  };
 
+ const [userMenuOpen, setUserMenuOpen] = useState(false);
+ const userMenuRef = useRef<HTMLDivElement>(null);
+
+ useEffect(() => {
+ if (!userMenuOpen) return;
+ const onDocClick = (event: MouseEvent) => {
+ if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+ setUserMenuOpen(false);
+ }
+ };
+ document.addEventListener('mousedown', onDocClick);
+ return () => document.removeEventListener('mousedown', onDocClick);
+ }, [userMenuOpen]);
+
  const closeSidebarOnMobile = () => {
  if (window.matchMedia('(max-width: 1023px)').matches) setSidebar(false);
  };
@@ -235,7 +249,6 @@ export default function DashboardAppLayoutClient({
  >
  <div className="dashboard-canvas h-screen overflow-hidden">
  <PlatformNavigationLoader />
- {sessionBootstrapping ? <PlatformLoadingOverlay /> : null}
  <SkipToMain />
  {showBackdrop ? (
  <button
@@ -286,6 +299,7 @@ export default function DashboardAppLayoutClient({
 
  <div className="mt-auto flex-shrink-0 border-t dash-user-footer">
  <div className="p-2.5">
+ <div className="relative" ref={userMenuRef}>
  <div className="flex items-center gap-2.5 rounded-xl border px-2 py-2 shadow-sm backdrop-blur-sm dash-user-card">
  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700">
  <span className="text-xs font-bold text-white">{initials}</span>
@@ -299,13 +313,49 @@ export default function DashboardAppLayoutClient({
  </div>
  <button
  type="button"
- onClick={handleLogout}
- title="Sign out"
- aria-label="Sign out"
- className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-danger/10 hover:text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+ onClick={() => setUserMenuOpen((open) => !open)}
+ title="Account menu"
+ aria-label="Account menu"
+ aria-expanded={userMenuOpen}
+ className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
  >
- <LogOut className="h-4 w-4" strokeWidth={1.75} />
+ <ChevronDown className={`h-4 w-4 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} strokeWidth={1.75} />
  </button>
+ </div>
+ {userMenuOpen ? (
+ <div className="dash-popover absolute bottom-full left-0 right-0 z-50 mb-1.5 overflow-hidden rounded-xl border py-1 shadow-lg">
+ <Link
+ href="/dashboard/settings#appearance"
+ onClick={() => {
+ setUserMenuOpen(false);
+ closeSidebarOnMobile();
+ }}
+ className="dash-popover-item flex items-center gap-3 px-3 py-2.5 text-sm text-[var(--dash-text)] transition-colors hover:text-[var(--brand-primary)]"
+ >
+ <Palette className="h-4 w-4 text-[var(--dash-text-muted)]" strokeWidth={1.75} />
+ Appearance
+ </Link>
+ <Link
+ href="/dashboard"
+ onClick={() => {
+ setUserMenuOpen(false);
+ closeSidebarOnMobile();
+ }}
+ className="dash-popover-item flex items-center gap-3 px-3 py-2.5 text-sm text-[var(--dash-text)] transition-colors hover:text-[var(--brand-primary)]"
+ >
+ <User className="h-4 w-4 text-[var(--dash-text-muted)]" />
+ Dashboard home
+ </Link>
+ <button
+ type="button"
+ onClick={() => void handleLogout()}
+ className="flex w-full items-center gap-3 px-3 py-2.5 text-sm text-[var(--dash-text)] transition-colors hover:bg-danger/10 hover:text-danger"
+ >
+ <LogOut className="h-4 w-4 text-neutral-500" />
+ Sign out
+ </button>
+ </div>
+ ) : null}
  </div>
  </div>
  <DashboardSidebarPoweredBy />

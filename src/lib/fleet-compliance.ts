@@ -1,4 +1,5 @@
 import type { FleetComplianceCheckType, FleetComplianceResult, PrismaClient } from '@prisma/client';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
 export const FLEET_COMPLIANCE_CHECK_TYPES: FleetComplianceCheckType[] = [
   'driver_licence',
@@ -29,11 +30,11 @@ export function fleetComplianceResultBadgeClass(result: FleetComplianceResult): 
   switch (result) {
     case 'passed':
     case 'waived':
-      return 'bg-emerald-50 text-emerald-800';
+      return dashStatusChip('success');
     case 'failed':
-      return 'bg-red-50 text-red-800';
+      return dashStatusChip('danger');
     default:
-      return 'bg-amber-50 text-amber-800';
+      return dashStatusChip('warning');
   }
 }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getOrCreatePrimaryWorkspaceClient } from '@/lib/primary-workspace-client';
 import { entityScopedClientWhere, resolveEntityIdOrDefault } from '@/lib/entity-request';
+import { withTenant } from '@/lib/tenant-api';
 
 type ClientWithCounts = Awaited<
   ReturnType<typeof prisma.outsourcingClient.findMany>
@@ -87,91 +88,102 @@ function mapClientToJson(c: ClientWithCounts) {
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json([], { status: 200 });
-    }
-    const entityId = await resolveEntityIdOrDefault(request);
-    if (entityId) {
-      const scoped = await prisma.outsourcingClient.findFirst({
-        where: entityScopedClientWhere(entityId),
-        include: { _count: { select: { employees: true, departments: true } } },
-      });
-      if (!scoped) {
+  return withTenant(request, async (ctx) => {
+    try {
+      if (!process.env.DATABASE_URL) {
+        return NextResponse.json([], { status: 200 });
+      }
+      const entityId = await resolveEntityIdOrDefault(request);
+      if (entityId) {
+        const scoped = await ctx.run((tx) =>
+          tx.outsourcingClient.findFirst({
+            where: entityScopedClientWhere(entityId, ctx.organizationId),
+            include: { _count: { select: { employees: true, departments: true } } },
+          }),
+        );
+        if (!scoped) {
+          return NextResponse.json([]);
+        }
+        const row = mapClientToJson(scoped as ClientWithCounts);
+        const label = row.county ? `${row.name} — ${row.county}` : row.name;
+        return NextResponse.json([{ ...row, label }]);
+      }
+      const primary = await getOrCreatePrimaryWorkspaceClient(prisma, ctx.organizationId);
+      const primaryFull = await ctx.run((tx) =>
+        tx.outsourcingClient.findUnique({
+          where: { id: primary.id },
+          include: { _count: { select: { employees: true, departments: true } } },
+        }),
+      );
+      if (!primaryFull) {
         return NextResponse.json([]);
       }
-      const row = mapClientToJson(scoped as ClientWithCounts);
-      const label = row.county ? `${row.name} — ${row.county}` : row.name;
-      return NextResponse.json([{ ...row, label }]);
+      const rest = await ctx.run((tx) =>
+        tx.outsourcingClient.findMany({
+          where: { organizationId: ctx.organizationId, id: { not: primary.id } },
+          orderBy: { name: 'asc' },
+          include: { _count: { select: { employees: true, departments: true } } },
+        }),
+      );
+      const ordered: ClientWithCounts[] = [primaryFull as ClientWithCounts, ...(rest as ClientWithCounts[])];
+      const mapped = ordered.map((c) => mapClientToJson(c as ClientWithCounts));
+      const nameLowerCounts = mapped.reduce((m, row) => {
+        const k = row.name.trim().toLowerCase();
+        m.set(k, (m.get(k) ?? 0) + 1);
+        return m;
+      }, new Map<string, number>());
+      const withLabels = mapped.map((row) => {
+        const dup = (nameLowerCounts.get(row.name.trim().toLowerCase()) ?? 0) > 1;
+        const label = dup
+          ? `${row.name} (${row.id.slice(0, 8)}…)`
+          : row.county
+            ? `${row.name} — ${row.county}`
+            : row.name;
+        return { ...row, label };
+      });
+      return NextResponse.json(withLabels);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('[outsourcing/clients]', e);
+      return NextResponse.json(
+        {
+          error: 'Failed to load outsourcing clients',
+          ...(process.env.NODE_ENV === 'development' && { detail: msg }),
+        },
+        { status: 500 },
+      );
     }
-    /** Same client as employees/payroll default (`getOrCreatePrimaryWorkspaceClient` = oldest workspace). */
-    const primary = await getOrCreatePrimaryWorkspaceClient(prisma);
-    const primaryFull = await prisma.outsourcingClient.findUnique({
-      where: { id: primary.id },
-      include: { _count: { select: { employees: true, departments: true } } },
-    });
-    if (!primaryFull) {
-      return NextResponse.json([]);
-    }
-    const rest = await prisma.outsourcingClient.findMany({
-      where: { id: { not: primary.id } },
-      orderBy: { name: 'asc' },
-      include: { _count: { select: { employees: true, departments: true } } },
-    });
-    const ordered: ClientWithCounts[] = [primaryFull as ClientWithCounts, ...(rest as ClientWithCounts[])];
-    const mapped = ordered.map((c) => mapClientToJson(c as ClientWithCounts));
-    const nameLowerCounts = mapped.reduce((m, row) => {
-      const k = row.name.trim().toLowerCase();
-      m.set(k, (m.get(k) ?? 0) + 1);
-      return m;
-    }, new Map<string, number>());
-    const withLabels = mapped.map((row) => {
-      const dup = (nameLowerCounts.get(row.name.trim().toLowerCase()) ?? 0) > 1;
-      const label = dup
-        ? `${row.name} (${row.id.slice(0, 8)}…)`
-        : row.county
-          ? `${row.name} — ${row.county}`
-          : row.name;
-      return { ...row, label };
-    });
-    return NextResponse.json(withLabels);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error('[outsourcing/clients]', e);
-    return NextResponse.json(
-      {
-        error: 'Failed to load outsourcing clients',
-        ...(process.env.NODE_ENV === 'development' && { detail: msg }),
-      },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-  const b = body as Record<string, unknown>;
-  const data = parseClientBody(b);
-  if (!data.name) {
-    return NextResponse.json({ error: 'Client name is required.' }, { status: 400 });
-  }
-
-  try {
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+  return withTenant(request, async (ctx) => {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
-    const client = await prisma.outsourcingClient.create({
-      data,
-      include: { _count: { select: { employees: true, departments: true } } },
-    });
-    return NextResponse.json(mapClientToJson(client));
-  } catch (e) {
-    console.error('[outsourcing/clients POST]', e);
-    return NextResponse.json({ error: 'Failed to create outsourcing client' }, { status: 500 });
-  }
+    const b = body as Record<string, unknown>;
+    const data = parseClientBody(b);
+    if (!data.name) {
+      return NextResponse.json({ error: 'Client name is required.' }, { status: 400 });
+    }
+
+    try {
+      if (!process.env.DATABASE_URL) {
+        return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+      }
+      const client = await ctx.run((tx) =>
+        tx.outsourcingClient.create({
+          data,
+          include: { _count: { select: { employees: true, departments: true } } },
+        }),
+      );
+      return NextResponse.json(mapClientToJson(client));
+    } catch (e) {
+      console.error('[outsourcing/clients POST]', e);
+      return NextResponse.json({ error: 'Failed to create outsourcing client' }, { status: 500 });
+    }
+  });
 }

@@ -50,10 +50,7 @@ export default function ConstructionOverviewPage() {
         title="Sites & plant"
         description="Site hierarchy, plant asset tracking, and subcontractor accounts payable on the Stride projects core."
         actions={
-          <Link
-            href="/dashboard/construction/sites"
-            className="inline-flex h-9 items-center rounded-md bg-primary-500 px-4 text-sm font-medium text-white hover:bg-primary-600"
-          >
+          <Link href="/dashboard/construction/sites" className="btn-primary inline-flex items-center gap-2">
             View sites
           </Link>
         }

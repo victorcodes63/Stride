@@ -53,6 +53,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       managerSummary?: string;
       overallManagerRating?: number;
       ratings?: Array<{ dimension: string; managerScore: number }>;
+      goals?: Array<{ id: string; managerScore: number }>;
       complete?: boolean;
     };
 
@@ -76,6 +77,20 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
               dimension: rating.dimension,
             },
             data: { managerScore: rating.managerScore },
+          });
+        }
+      }
+
+      if (body.goals?.length) {
+        for (const goal of body.goals) {
+          await tx.performanceGoal.updateMany({
+            where: {
+              id: goal.id,
+              organizationId: ctx.organizationId,
+              employeeId: review.employeeId,
+              cycleId: review.cycleId,
+            },
+            data: { managerScore: goal.managerScore },
           });
         }
       }

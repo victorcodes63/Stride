@@ -5,6 +5,7 @@ import { PieChart, Loader2, AlertCircle, Plus, TrendingUp, Wallet, Target } from
 import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 
 type BudgetRow = {
  id: string;
@@ -119,20 +120,17 @@ export default function BudgetsContent() {
  />
 
  {totals && (
- <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
- {[
- { label: 'Total allocated', value: fmtMoney(totals.allocated), icon: Target, color: 'text-primary-900' },
- { label: 'Total spent', value: fmtMoney(totals.spent), icon: TrendingUp, color: 'text-amber-700' },
- { label: 'Remaining', value: fmtMoney(totals.allocated - totals.spent), icon: Wallet, color: totals.allocated - totals.spent >= 0 ? 'text-emerald-700' : 'text-red-700' },
- ].map((s, i) => (
- <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
- className="dashboard-stat-card">
- <div className="inline-flex rounded-lg p-2 mb-2 bg-primary-50 text-primary-700"><s.icon className="w-4 h-4" /></div>
- <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-0.5">{s.label}</p>
- <p className={`text-xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
- </motion.div>
- ))}
- </div>
+ <DashboardStatGrid columns={3} className="mb-6 gap-3">
+ <DashboardMetricCard label="Total allocated" value={fmtMoney(totals.allocated)} icon={Target} tone="primary" />
+ <DashboardMetricCard label="Total spent" value={fmtMoney(totals.spent)} icon={TrendingUp} tone="amber" />
+ <DashboardMetricCard
+ label="Remaining"
+ value={fmtMoney(totals.allocated - totals.spent)}
+ hint={totals.allocated - totals.spent >= 0 ? 'Within budget' : 'Over budget'}
+ icon={Wallet}
+ tone={totals.allocated - totals.spent >= 0 ? 'emerald' : 'rose'}
+ />
+ </DashboardStatGrid>
  )}
 
  {showForm && (

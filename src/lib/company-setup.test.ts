@@ -15,14 +15,13 @@ describe('company-setup', () => {
     expect(result.dashboardTableZebraStriping).toBe(true);
   });
 
-  it('filters oauth providers by company toggles', () => {
+  it('filters oauth providers by auth method', () => {
     const setup = sanitizeCompanySetup({
-      staffEnableMicrosoftLogin: true,
-      staffEnableGoogleLogin: false,
+      staffAuthMethod: 'microsoft',
     });
     const providers = getEffectiveOAuthProviders('staff', setup);
-    expect(providers.find((p) => p.key === 'microsoft')?.enabled).toBe(true);
-    expect(providers.find((p) => p.key === 'google')?.enabled).toBe(false);
+    expect(providers).toHaveLength(1);
+    expect(providers[0]?.key).toBe('microsoft');
   });
 
   it('builds provisioning checklist', () => {

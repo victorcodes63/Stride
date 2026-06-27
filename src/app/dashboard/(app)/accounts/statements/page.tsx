@@ -5,6 +5,7 @@ import { Scale, Loader2, AlertCircle, Building2, Wallet, ChevronDown, ChevronRig
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 
 type StatementEntry = {
   date: string;
@@ -325,36 +326,35 @@ export default function AccountsStatementsPage() {
       </div>
 
       {!loading && !error && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <div className="dashboard-stat-card">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-1">
-              {tab === 'client' ? 'Total invoiced' : 'Total billed'}
-            </p>
-            <p className="text-xl font-bold text-primary-900 tabular-nums">
-              {fmtMoney(
-                tab === 'client'
-                  ? (clientStatements ?? []).reduce((s, c) => s + c.summary.totalInvoiced, 0)
-                  : (vendorStatements ?? []).reduce((s, v) => s + v.summary.totalBilled, 0),
-              )}
-            </p>
-          </div>
-          <div className="dashboard-stat-card">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-1">Total paid</p>
-            <p className="text-xl font-bold text-emerald-700 tabular-nums">
-              {fmtMoney(
-                tab === 'client'
-                  ? (clientStatements ?? []).reduce((s, c) => s + c.summary.totalPaid, 0)
-                  : (vendorStatements ?? []).reduce((s, v) => s + v.summary.totalPaid, 0),
-              )}
-            </p>
-          </div>
-          <div className="dashboard-stat-card">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-1">Outstanding</p>
-            <p className={`text-xl font-bold tabular-nums ${totalBalance > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
-              {fmtMoney(totalBalance)}
-            </p>
-          </div>
-        </div>
+        <DashboardStatGrid columns={3} className="mb-6 gap-3">
+          <DashboardMetricCard
+            label={tab === 'client' ? 'Total invoiced' : 'Total billed'}
+            value={fmtMoney(
+              tab === 'client'
+                ? (clientStatements ?? []).reduce((s, c) => s + c.summary.totalInvoiced, 0)
+                : (vendorStatements ?? []).reduce((s, v) => s + v.summary.totalBilled, 0),
+            )}
+            icon={Building2}
+            tone="primary"
+          />
+          <DashboardMetricCard
+            label="Total paid"
+            value={fmtMoney(
+              tab === 'client'
+                ? (clientStatements ?? []).reduce((s, c) => s + c.summary.totalPaid, 0)
+                : (vendorStatements ?? []).reduce((s, v) => s + v.summary.totalPaid, 0),
+            )}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <DashboardMetricCard
+            label="Outstanding"
+            value={fmtMoney(totalBalance)}
+            hint={totalBalance > 0 ? 'Requires follow-up' : 'All clear'}
+            icon={Wallet}
+            tone={totalBalance > 0 ? 'amber' : 'emerald'}
+          />
+        </DashboardStatGrid>
       )}
 
       {!loading && !error && ageingSummary && ageingSummary.total > 0 && (

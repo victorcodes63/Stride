@@ -19,10 +19,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Valid year and month (1-12) required' }, { status: 400 });
     }
 
-    const clientId = await resolvePrimaryWorkspaceClientId(
+      const clientId = await resolvePrimaryWorkspaceClientId(
       prisma,
       searchParams.get('clientId'),
       request,
+      ctx.organizationId,
     );
 
     const overview = await buildEmployeeLeaveOverview(prisma, { clientId, year, month });

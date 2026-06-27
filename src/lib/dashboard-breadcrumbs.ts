@@ -73,6 +73,17 @@ const SEGMENT_LABELS: Record<string, string> = {
   facilities: 'Facilities',
   governance: 'Governance',
   fleet: 'Fleet',
+  orders: 'Transport orders',
+  customers: 'Customers',
+  planning: 'Route planning',
+  tracking: 'Live tracking',
+  geofences: 'Geofences',
+  'driving-time': 'Driving time',
+  alarms: 'Events & alarms',
+  service: 'Service planning',
+  defects: 'Defect reports',
+  environmental: 'Environmental',
+  drivers: 'Drivers',
 };
 
 /** Routes not in the sidebar catalog but still reachable. */

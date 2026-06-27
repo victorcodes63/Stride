@@ -272,7 +272,7 @@ export default function HseIncidentsContent() {
         actions={
           <button
             type="button"
-            className="inline-flex h-9 items-center rounded-md bg-primary-500 px-4 text-sm font-medium text-white hover:bg-primary-600"
+            className="btn-primary inline-flex items-center gap-2"
             onClick={() => setShowLogForm(true)}
           >
             Log incident

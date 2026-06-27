@@ -1783,16 +1783,19 @@ async function main() {
   const skipOperatingEntitiesSeed = process.env.DEMO_MULTI_CONTEXT === 'true';
 
   const existingKeWorkspace = await prisma.outsourcingClient.findFirst({
-    where: skipOperatingEntitiesSeed
-      ? { entityCode: keSlug }
-      : {
-          OR: [
-            { entityCode: keSlug },
-            { entityCode: 'ke' },
-            { name: pack.workspace.name },
-            ...pack.legacyWorkspaceNames.map((name) => ({ name })),
-          ],
-        },
+    where: {
+      organizationId: demoOrganizationId,
+      ...(skipOperatingEntitiesSeed
+        ? { entityCode: keSlug }
+        : {
+            OR: [
+              { entityCode: keSlug },
+              { entityCode: 'ke' },
+              { name: pack.workspace.name },
+              ...pack.legacyWorkspaceNames.map((name) => ({ name })),
+            ],
+          }),
+    },
     select: { id: true },
   });
   const keClient = existingKeWorkspace
@@ -1828,9 +1831,13 @@ async function main() {
         },
       });
 
-  let ugClient = await prisma.outsourcingClient.findFirst({ where: { entityCode: ugSlug } });
+  let ugClient = await prisma.outsourcingClient.findFirst({
+    where: { organizationId: demoOrganizationId, entityCode: ugSlug },
+  });
   if (!ugClient && !skipOperatingEntitiesSeed) {
-    ugClient = await prisma.outsourcingClient.findFirst({ where: { entityCode: 'ug' } });
+    ugClient = await prisma.outsourcingClient.findFirst({
+      where: { organizationId: demoOrganizationId, entityCode: 'ug' },
+    });
   }
   if (!ugClient) {
     ugClient = await prisma.outsourcingClient.create({

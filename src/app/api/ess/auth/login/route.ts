@@ -4,11 +4,15 @@ import { prisma } from '@/lib/prisma';
 import { getEssSessionMaxAgeSeconds } from '@/lib/ess-session';
 import { logAuditEvent } from '@/lib/audit-events';
 import { assertAccountLoginAllowed } from '@/lib/account-login-guard';
+import { assertCredentialsLoginEnabled } from '@/lib/oauth/assert-credentials-enabled';
 
 const ESS_SESSION_COOKIE = 'ess_session';
 const COOKIE_MAX_AGE = getEssSessionMaxAgeSeconds();
 
 export async function POST(request: NextRequest) {
+  const credentialsBlocked = await assertCredentialsLoginEnabled('ess');
+  if (credentialsBlocked) return credentialsBlocked;
+
   let body: unknown;
   try {
     body = await request.json();

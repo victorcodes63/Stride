@@ -4,7 +4,7 @@ import path from 'path';
 import { prisma } from '@/lib/prisma';
 import { requireStaffUser } from '@/lib/staff-api-auth';
 import { canAccessDisciplinaryRecords } from '@/lib/hr-access';
-import { generateShowCauseLetterPdf, generateWarningLetterPdf } from '@/lib/disciplinary-letters';
+import { generateOutcomeLetterPdf, generateShowCauseLetterPdf, generateWarningLetterPdf } from '@/lib/disciplinary-letters';
 import { logAuditEvent } from '@/lib/audit-events';
 import { getJurisdictionPolicy } from '@/lib/east-africa-hr-policy';
 
@@ -42,7 +42,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           responseDays: policy.defaultShowCauseDays,
           jurisdictionCode: disciplinaryCase.laborJurisdiction,
         })
-      : await generateWarningLetterPdf((letterType || 'WRITTEN_WARNING') as 'VERBAL_WARNING' | 'WRITTEN_WARNING' | 'FINAL_WARNING', base);
+      : letterType === 'SUSPENSION' || letterType === 'TERMINATION'
+        ? await generateOutcomeLetterPdf(letterType, base)
+        : await generateWarningLetterPdf((letterType || 'WRITTEN_WARNING') as 'VERBAL_WARNING' | 'WRITTEN_WARNING' | 'FINAL_WARNING', base);
 
   const fileName = `${disciplinaryCase.caseNumber}-${letterType || 'LETTER'}-${Date.now()}.pdf`;
   const dir = path.join(process.cwd(), 'public', 'uploads', 'documents');

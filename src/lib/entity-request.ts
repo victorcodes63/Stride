@@ -59,8 +59,11 @@ export async function resolveEntityIdOrDefault(
 }
 
 /** Safe `where` filter for rows linked to OutsourcingClient.entityCode */
-export function entityScopedClientWhere(entityId: string): Prisma.OutsourcingClientWhereInput {
-  return { entityCode: entityId };
+export function entityScopedClientWhere(
+  entityId: string,
+  organizationId?: string,
+): Prisma.OutsourcingClientWhereInput {
+  return organizationId ? { entityCode: entityId, organizationId } : { entityCode: entityId };
 }
 
 /** Shared list filter helper for entity-bound employee/workforce queries. */

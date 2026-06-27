@@ -18,6 +18,12 @@ import { companySetupKeyForContext, parseDemoEntitySlug } from '@/lib/demo-entit
 import { isCustomLogo } from '@/lib/resolve-public-brand';
 import { getOAuthStartPath, type OAuthAudience } from '@/lib/oauth-utils';
 import {
+  getPortalAuthMethod,
+  parsePortalAuthMethod,
+  syncAuthMethodFields,
+  type PortalAuthMethod,
+} from '@/lib/company-setup-auth';
+import {
   allModulesAdminEnabled,
   defaultModuleAdminFlags,
   resolveEffectiveModules,
@@ -28,6 +34,8 @@ import {
 export const COMPANY_SETUP_SETTINGS_KEY = 'admin.company.setup';
 
 export type DashboardBannerTone = 'info' | 'warning' | 'success';
+
+export type { PortalAuthMethod } from '@/lib/company-setup-auth';
 
 export type CompanySetupSettings = {
   // Brand identity
@@ -40,10 +48,12 @@ export type CompanySetupSettings = {
   faviconSrc: string;
   primaryColor: string;
   secondaryColor: string;
-  // Login
+  // Login — one primary method per portal (legacy booleans kept in sync)
+  staffAuthMethod: PortalAuthMethod;
   staffEnableMicrosoftLogin: boolean;
   staffEnableGoogleLogin: boolean;
   staffEnableEmailLogin: boolean;
+  essAuthMethod: PortalAuthMethod;
   essEnableMicrosoftLogin: boolean;
   essEnableGoogleLogin: boolean;
   essEnableEmailLogin: boolean;
@@ -92,11 +102,13 @@ export const DEFAULT_COMPANY_SETUP: CompanySetupSettings = {
   faviconSrc: '',
   primaryColor: DEFAULT_PRIMARY_COLOR,
   secondaryColor: DEFAULT_SECONDARY_COLOR,
-  staffEnableMicrosoftLogin: true,
-  staffEnableGoogleLogin: true,
+  staffAuthMethod: 'credentials',
+  staffEnableMicrosoftLogin: false,
+  staffEnableGoogleLogin: false,
   staffEnableEmailLogin: true,
-  essEnableMicrosoftLogin: true,
-  essEnableGoogleLogin: true,
+  essAuthMethod: 'credentials',
+  essEnableMicrosoftLogin: false,
+  essEnableGoogleLogin: false,
   essEnableEmailLogin: true,
   staffLoginWelcomeTitle: '',
   staffLoginWelcomeSubtitle: '',
@@ -131,6 +143,7 @@ export type PublicCompanySetup = {
   staff: {
     welcomeTitle: string;
     welcomeSubtitle: string;
+    authMethod: PortalAuthMethod;
     microsoftLoginEnabled: boolean;
     googleLoginEnabled: boolean;
     emailLoginEnabled: boolean;
@@ -139,6 +152,7 @@ export type PublicCompanySetup = {
     welcomeTitle: string;
     welcomeSubtitle: string;
     portalTitle: string;
+    authMethod: PortalAuthMethod;
     microsoftLoginEnabled: boolean;
     googleLoginEnabled: boolean;
     emailLoginEnabled: boolean;
@@ -179,7 +193,11 @@ function bool(raw: Record<string, unknown>, key: keyof CompanySetupSettings, fal
 export function sanitizeCompanySetup(value: unknown): CompanySetupSettings {
   const raw = (value ?? {}) as Record<string, unknown>;
   const d = DEFAULT_COMPANY_SETUP;
-  return {
+  const msOk = isMicrosoftOAuthConfigured();
+  const googleOk = isGoogleOAuthConfigured();
+  const oauthConfigured = { microsoft: msOk, google: googleOk };
+
+  const partial: CompanySetupSettings = {
     appName: str(raw, 'appName'),
     orgName: str(raw, 'orgName'),
     tagline: str(raw, 'tagline'),
@@ -189,9 +207,11 @@ export function sanitizeCompanySetup(value: unknown): CompanySetupSettings {
     faviconSrc: str(raw, 'faviconSrc'),
     primaryColor: sanitizeHexColor(raw.primaryColor, d.primaryColor),
     secondaryColor: sanitizeHexColor(raw.secondaryColor, d.secondaryColor),
+    staffAuthMethod: parsePortalAuthMethod(raw.staffAuthMethod) ?? d.staffAuthMethod,
     staffEnableMicrosoftLogin: bool(raw, 'staffEnableMicrosoftLogin', d.staffEnableMicrosoftLogin),
     staffEnableGoogleLogin: bool(raw, 'staffEnableGoogleLogin', d.staffEnableGoogleLogin),
     staffEnableEmailLogin: bool(raw, 'staffEnableEmailLogin', d.staffEnableEmailLogin),
+    essAuthMethod: parsePortalAuthMethod(raw.essAuthMethod) ?? d.essAuthMethod,
     essEnableMicrosoftLogin: bool(raw, 'essEnableMicrosoftLogin', d.essEnableMicrosoftLogin),
     essEnableGoogleLogin: bool(raw, 'essEnableGoogleLogin', d.essEnableGoogleLogin),
     essEnableEmailLogin: bool(raw, 'essEnableEmailLogin', d.essEnableEmailLogin),
@@ -228,6 +248,8 @@ export function sanitizeCompanySetup(value: unknown): CompanySetupSettings {
     publicFooterText: str(raw, 'publicFooterText'),
     hidePoweredBy: bool(raw, 'hidePoweredBy', d.hidePoweredBy),
   };
+
+  return syncAuthMethodFields(partial, oauthConfigured);
 }
 
 export async function loadEffectiveModules(): Promise<Record<ModuleKey, boolean>> {
@@ -305,21 +327,25 @@ export async function persistCompanySetupSettings(
 }
 
 export function toPublicCompanySetup(setup: CompanySetupSettings): PublicCompanySetup {
+  const staffMethod = getPortalAuthMethod(setup, 'staff');
+  const essMethod = getPortalAuthMethod(setup, 'ess');
   return {
     staff: {
       welcomeTitle: setup.staffLoginWelcomeTitle,
       welcomeSubtitle: setup.staffLoginWelcomeSubtitle,
-      microsoftLoginEnabled: setup.staffEnableMicrosoftLogin,
-      googleLoginEnabled: setup.staffEnableGoogleLogin,
-      emailLoginEnabled: setup.staffEnableEmailLogin,
+      authMethod: staffMethod,
+      microsoftLoginEnabled: staffMethod === 'microsoft',
+      googleLoginEnabled: staffMethod === 'google',
+      emailLoginEnabled: staffMethod === 'credentials',
     },
     ess: {
       welcomeTitle: setup.essLoginWelcomeTitle,
       welcomeSubtitle: setup.essLoginWelcomeSubtitle,
       portalTitle: setup.essPortalTitle,
-      microsoftLoginEnabled: setup.essEnableMicrosoftLogin,
-      googleLoginEnabled: setup.essEnableGoogleLogin,
-      emailLoginEnabled: setup.essEnableEmailLogin,
+      authMethod: essMethod,
+      microsoftLoginEnabled: essMethod === 'microsoft',
+      googleLoginEnabled: essMethod === 'google',
+      emailLoginEnabled: essMethod === 'credentials',
     },
     legal: {
       privacyPolicyUrl: setup.privacyPolicyUrl,
@@ -337,7 +363,16 @@ export function buildProvisioningChecklist(setup: CompanySetupSettings): Provisi
   const blobOk = Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
   const msOk = isMicrosoftOAuthConfigured();
   const googleOk = isGoogleOAuthConfigured();
-  const demoOff = !isDemoMode() && !isPublicDemoMode();
+  const staffAuthMethod = getPortalAuthMethod(setup, 'staff', { microsoft: msOk, google: googleOk });
+  const essAuthMethod = getPortalAuthMethod(setup, 'ess', { microsoft: msOk, google: googleOk });
+  const staffAuthOk =
+    staffAuthMethod === 'credentials' ||
+    (staffAuthMethod === 'microsoft' && msOk) ||
+    (staffAuthMethod === 'google' && googleOk);
+  const essAuthOk =
+    essAuthMethod === 'credentials' ||
+    (essAuthMethod === 'microsoft' && msOk) ||
+    (essAuthMethod === 'google' && googleOk);
 
   return [
     {
@@ -376,32 +411,44 @@ export function buildProvisioningChecklist(setup: CompanySetupSettings): Provisi
       category: 'infra',
     },
     {
-      id: 'microsoft',
-      label: 'Microsoft SSO',
-      ok: msOk || !setup.staffEnableMicrosoftLogin,
-      detail: msOk
-        ? 'Azure AD credentials configured'
-        : setup.staffEnableMicrosoftLogin
-          ? 'Enabled in UI but MS_* env vars missing'
-          : 'Disabled (OK if not using Microsoft)',
+      id: 'staff-auth',
+      label: 'Staff sign-in method',
+      ok: staffAuthOk,
+      detail: staffAuthOk
+        ? staffAuthMethod === 'credentials'
+          ? 'Email and password enabled'
+          : staffAuthMethod === 'microsoft'
+            ? 'Microsoft SSO configured'
+            : 'Google SSO configured'
+        : staffAuthMethod === 'microsoft'
+          ? 'Microsoft selected but MS_* env vars missing'
+          : staffAuthMethod === 'google'
+            ? 'Google selected but GOOGLE_* env vars missing'
+            : 'Configure a sign-in method in Staff sign-in',
       category: 'auth',
     },
     {
-      id: 'google',
-      label: 'Google SSO',
-      ok: googleOk || !setup.staffEnableGoogleLogin,
-      detail: googleOk
-        ? 'Google OAuth configured'
-        : setup.staffEnableGoogleLogin
-          ? 'Enabled in UI but GOOGLE_* env vars missing'
-          : 'Disabled (OK if not using Google)',
+      id: 'ess-auth',
+      label: 'ESS sign-in method',
+      ok: essAuthOk,
+      detail: essAuthOk
+        ? essAuthMethod === 'credentials'
+          ? 'Email and password enabled'
+          : essAuthMethod === 'microsoft'
+            ? 'Microsoft SSO configured'
+            : 'Google SSO configured'
+        : essAuthMethod === 'microsoft'
+          ? 'Microsoft selected but MS_* env vars missing'
+          : essAuthMethod === 'google'
+            ? 'Google selected but GOOGLE_* env vars missing'
+            : 'Configure a sign-in method in Employee portal',
       category: 'auth',
     },
     {
       id: 'demo-off',
       label: 'Demo mode disabled',
-      ok: demoOff,
-      detail: demoOff ? 'Production mode' : 'DEMO_MODE is on — turn off for paying clients',
+      ok: !isDemoMode() && !isPublicDemoMode(),
+      detail: !isDemoMode() && !isPublicDemoMode() ? 'Production mode' : 'DEMO_MODE is on — turn off for paying clients',
       category: 'infra',
     },
   ];
@@ -411,24 +458,17 @@ export function getEffectiveOAuthProviders(
   audience: OAuthAudience,
   setup: CompanySetupSettings,
 ): EffectiveOAuthProvider[] {
-  const enabledMap =
-    audience === 'ess'
-      ? {
-          microsoft: setup.essEnableMicrosoftLogin,
-          google: setup.essEnableGoogleLogin,
-        }
-      : {
-          microsoft: setup.staffEnableMicrosoftLogin,
-          google: setup.staffEnableGoogleLogin,
-        };
+  const method = getPortalAuthMethod(setup, audience);
 
-  return (['microsoft', 'google'] as const).map((key) => ({
-    key,
-    label: key === 'microsoft' ? 'Microsoft' : 'Google',
-    configured: key === 'microsoft' ? isMicrosoftOAuthConfigured() : isGoogleOAuthConfigured(),
-    enabled: enabledMap[key],
-    startPath: getOAuthStartPath(audience, key),
-  }));
+  return (['microsoft', 'google'] as const)
+    .filter((key) => method === key)
+    .map((key) => ({
+      key,
+      label: key === 'microsoft' ? 'Microsoft' : 'Google',
+      configured: key === 'microsoft' ? isMicrosoftOAuthConfigured() : isGoogleOAuthConfigured(),
+      enabled: true,
+      startPath: getOAuthStartPath(audience, key),
+    }));
 }
 
 export async function getPublicOAuthProviders(audience: OAuthAudience) {

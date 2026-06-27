@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import {
   DashboardTable,
   DashboardTableActionButton,
@@ -122,19 +123,11 @@ export default function DashboardJobsPage() {
  <DashboardPageHeader
  title="Job openings"
  description="Manage postings and publish roles to your careers page."
- actions={
- <Link
- href="/dashboard/jobs/new"
- className="inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] sm:min-h-0 bg-primary-900 text-white rounded-xl text-sm font-semibold shadow-sm shadow-primary-900/10 hover:bg-primary-800 transition-colors shrink-0"
- >
- <Plus className="w-5 h-5" strokeWidth={2.25} />
- Post a job
- </Link>
- }
+ actions={[{ href: '/dashboard/jobs/new', label: 'Post a job', icon: Plus }]}
  />
 
  {error && (
- <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-800 text-sm">
+ <div className="mb-6 rounded-lg border border-[var(--dash-danger-border)] bg-[var(--dash-danger-bg)] p-4 text-sm text-[var(--dash-danger-fg)]">
  {error}
  </div>
  )}
@@ -176,28 +169,10 @@ export default function DashboardJobsPage() {
  </DashboardTableCard>
  ) : (
  <>
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
- <div className="relative overflow-hidden dashboard-surface p-5 shadow-sm">
- <div className="absolute right-4 top-1/2 -translate-y-1/2 rounded-xl bg-primary-50 p-3 text-primary-700">
- <Briefcase className="w-5 h-5" strokeWidth={1.75} />
- </div>
- <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-1">
- Open roles
- </p>
- <p className="text-3xl font-bold text-primary-900 tabular-nums">{activeCount}</p>
- <p className="text-xs text-neutral-500 mt-1">Accepting applications</p>
- </div>
- <div className="relative overflow-hidden dashboard-surface p-5 shadow-sm">
- <div className="absolute right-4 top-1/2 -translate-y-1/2 rounded-xl bg-emerald-50 p-3 text-emerald-700">
- <Users className="w-5 h-5" strokeWidth={1.75} />
- </div>
- <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-1">
- Total applications
- </p>
- <p className="text-3xl font-bold text-primary-900 tabular-nums">{totalApplications}</p>
- <p className="text-xs text-neutral-500 mt-1">Across all listings</p>
- </div>
- </div>
+ <DashboardStatGrid columns={2} className="mb-6 gap-4">
+ <DashboardMetricCard label="Open roles" value={activeCount} hint="Accepting applications" icon={Briefcase} tone="primary" />
+ <DashboardMetricCard label="Total applications" value={totalApplications} hint="Across all listings" icon={Users} tone="emerald" />
+ </DashboardStatGrid>
 
  <DashboardTableCard>
  <DashboardTableToolbar label={null}>

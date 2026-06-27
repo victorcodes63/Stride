@@ -69,17 +69,13 @@ export default function FleetOverviewPage() {
   return (
     <DashboardPage>
       <DashboardPageHeader
-        eyebrow="Fleet & Logistics"
+        eyebrow="06 — Fleet & Logistics"
         title="Operations overview"
-        description="Live trips, fleet availability, and exceptions across your logistics workflow."
-        actions={
-          <Link
-            href="/dashboard/fleet/trips"
-            className="inline-flex h-9 items-center rounded-md bg-primary-500 px-4 text-sm font-medium text-white hover:bg-primary-600"
-          >
-            Open trip board
-          </Link>
-        }
+        description="End-to-end transport workflow — from customer order intake through delivery, settlement, and client billing."
+        actions={[
+          { href: '/dashboard/fleet/orders?new=1', label: 'New order', icon: Route },
+          { href: '/dashboard/fleet/trips', label: 'Trip board', icon: Route, variant: 'secondary' },
+        ]}
       />
 
       <DashboardAsyncState
@@ -117,6 +113,12 @@ export default function FleetOverviewPage() {
             </DashboardStatGrid>
 
             <div className="mb-6 flex flex-wrap gap-3 text-sm">
+              <Link href="/dashboard/fleet/orders" className="font-medium text-primary-600 hover:underline">
+                Transport orders
+              </Link>
+              <Link href="/dashboard/fleet/tracking" className="font-medium text-primary-600 hover:underline">
+                Live tracking
+              </Link>
               <Link href="/dashboard/fleet/compliance" className="font-medium text-primary-600 hover:underline">
                 Compliance dashboard
               </Link>
@@ -128,6 +130,9 @@ export default function FleetOverviewPage() {
               </Link>
               <Link href="/dashboard/fleet/incidents" className="font-medium text-primary-600 hover:underline">
                 Incidents
+              </Link>
+              <Link href="/dashboard/fleet/reports" className="font-medium text-primary-600 hover:underline">
+                Performance reports
               </Link>
             </div>
 

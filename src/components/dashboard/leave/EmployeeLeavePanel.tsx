@@ -13,6 +13,7 @@ import {
 } from '@/components/dashboard/DashboardDataTable';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
 import type { EmployeeLeaveOverview } from '@/lib/leave/employee-overview';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
 
 type LeaveRow = {
@@ -35,10 +36,10 @@ const SECTION_TABS = ['queue', 'calendar', 'accrual', 'liability'] as const;
 type SectionTab = (typeof SECTION_TABS)[number];
 
 function statusBadge(status: string) {
-  if (status === 'pending') return 'bg-amber-100 text-amber-900';
-  if (status === 'approved') return 'bg-emerald-100 text-emerald-900';
-  if (status === 'rejected') return 'bg-red-100 text-red-900';
-  return 'bg-neutral-100 text-neutral-700';
+  if (status === 'pending') return dashStatusChip('warning');
+  if (status === 'approved') return dashStatusChip('success');
+  if (status === 'rejected') return dashStatusChip('danger');
+  return dashStatusChip('neutral');
 }
 
 function queueTabLabel(value: QueueTab) {

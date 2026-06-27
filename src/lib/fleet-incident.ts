@@ -3,6 +3,7 @@ import type {
   FleetIncidentStatus,
   FleetIncidentType,
 } from '@prisma/client';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
 export const FLEET_INCIDENT_TYPES: FleetIncidentType[] = [
   'breakdown',
@@ -34,11 +35,11 @@ export const FLEET_INCIDENT_STATUS_LABELS: Record<FleetIncidentStatus, string> =
 export function fleetIncidentSeverityBadgeClass(severity: FleetIncidentSeverity): string {
   switch (severity) {
     case 'high':
-      return 'bg-red-50 text-red-800';
+      return dashStatusChip('danger');
     case 'medium':
-      return 'bg-amber-50 text-amber-800';
+      return dashStatusChip('warning');
     default:
-      return 'bg-neutral-100 text-neutral-700';
+      return dashStatusChip('neutral');
   }
 }
 
@@ -46,10 +47,10 @@ export function fleetIncidentStatusBadgeClass(status: FleetIncidentStatus): stri
   switch (status) {
     case 'resolved':
     case 'closed':
-      return 'bg-emerald-50 text-emerald-800';
+      return dashStatusChip('success');
     case 'investigating':
-      return 'bg-sky-50 text-sky-800';
+      return dashStatusChip('info');
     default:
-      return 'bg-red-50 text-red-800';
+      return dashStatusChip('danger');
   }
 }

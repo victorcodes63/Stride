@@ -52,10 +52,7 @@ export default function EnergyOverviewPage() {
         title="Permits & HSE"
         description="Site register, permit compliance calendar, and multi-entity HSE rollup for energy operators."
         actions={
-          <Link
-            href="/dashboard/energy/permits"
-            className="inline-flex h-9 items-center rounded-md bg-primary-500 px-4 text-sm font-medium text-white hover:bg-primary-600"
-          >
+          <Link href="/dashboard/energy/permits" className="btn-primary inline-flex items-center gap-2">
             View permits
           </Link>
         }

@@ -79,6 +79,43 @@ export async function generateWarningLetterPdf(
   return Buffer.from(await doc.save());
 }
 
+export async function generateOutcomeLetterPdf(
+  type: 'SUSPENSION' | 'TERMINATION',
+  input: BaseLetterInput & { effectiveDate?: string },
+): Promise<Buffer> {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([595, 842]);
+  const helvetica = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  let y = 790;
+
+  if (existsSync(LOGO_PATH)) {
+    const png = await doc.embedPng(readFileSync(LOGO_PATH));
+    page.drawImage(png, { x: 230, y: y - 40, width: 120, height: 40 });
+    y -= 52;
+  }
+  page.drawText(ADDRESS, { x: 60, y, size: 9, font: helvetica });
+  y -= 32;
+  page.drawText(input.date, { x: 60, y, size: 11, font: helvetica });
+  y -= 28;
+  page.drawText(`RE: ${type} - ${input.subject}`, { x: 60, y, size: 11, font: bold });
+  y -= 24;
+  const body =
+    type === 'SUSPENSION'
+      ? `Following the disciplinary process regarding ${input.incidentDescription}, you are suspended from duty effective ${input.effectiveDate ?? input.date}, pending completion of the investigation/hearing.`
+      : `Following the disciplinary process regarding ${input.incidentDescription}, your employment is terminated effective ${input.effectiveDate ?? input.date}, in accordance with applicable labour law and your contract.`;
+  page.drawText(body.slice(0, 200), { x: 60, y, size: 10, font: helvetica });
+  if (body.length > 200) {
+    y -= 14;
+    page.drawText(body.slice(200, 400), { x: 60, y, size: 10, font: helvetica });
+  }
+  y -= 36;
+  page.drawText(input.hrManagerName, { x: 60, y, size: 11, font: bold });
+  y -= 16;
+  page.drawText(input.hrManagerTitle, { x: 60, y, size: 11, font: helvetica });
+  return Buffer.from(await doc.save());
+}
+
 export async function generateShowCauseLetterPdf(
   input: BaseLetterInput & { responseDays?: number; jurisdictionCode?: string },
 ): Promise<Buffer> {

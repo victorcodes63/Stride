@@ -85,7 +85,7 @@ export function OAuthProviderButtons({
         },
       )
       .catch(() => {
-        onVisibleChange?.(true);
+        onVisibleChange?.(false);
       });
     return () => {
       cancelled = true;

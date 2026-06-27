@@ -18,6 +18,7 @@ import {
   Plus,
   Receipt,
   Route,
+  Shield,
   ShoppingCart,
   UserCog,
   UserPlus,
@@ -137,26 +138,43 @@ export function getDomainQuickActions(
         ],
       };
 
+    case 'fleet-logistics':
+      return {
+        primary: {
+          label: 'New transport order',
+          href: '/dashboard/fleet/orders?new=1',
+          icon: Route,
+          description: 'Customer order intake',
+        },
+        more: [
+          { label: 'Trip board', href: '/dashboard/fleet/trips', icon: Route },
+          { label: 'Live tracking', href: '/dashboard/fleet/tracking', icon: Route },
+          { label: 'Pre-trip compliance', href: '/dashboard/fleet/compliance', icon: Shield },
+          { label: 'Client billing', href: '/dashboard/fleet/billing', icon: Receipt },
+          { label: 'Settlements', href: '/dashboard/fleet/settlements', icon: Wallet },
+        ],
+      };
+
     case 'admin-operations':
       return {
         primary: {
-          label: 'New trip',
-          href: '/dashboard/fleet/trips',
-          icon: Route,
-          description: 'Fleet trip board',
+          label: 'Post announcement',
+          href: '/dashboard/announcements',
+          icon: Megaphone,
+          description: 'Company communications',
         },
         more: [
-          ...(on(modules, 'fleet')
-            ? [{ label: 'Fleet overview', href: '/dashboard/fleet', icon: Route }]
-            : []),
           ...(on(modules, 'communications')
-            ? [{ label: 'Post announcement', href: '/dashboard/announcements', icon: Megaphone }]
+            ? [{ label: 'Announcements', href: '/dashboard/announcements', icon: Megaphone }]
             : []),
           ...(on(modules, 'assets')
             ? [{ label: 'Register asset', href: '/dashboard/assets', icon: Building2 }]
             : []),
           ...(on(modules, 'hse')
             ? [{ label: 'Log HSE incident', href: '/dashboard/hse', icon: AlertTriangle }]
+            : []),
+          ...(on(modules, 'fleet')
+            ? [{ label: 'Fleet overview', href: '/dashboard/fleet', icon: Route }]
             : []),
         ],
       };

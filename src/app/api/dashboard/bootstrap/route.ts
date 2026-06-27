@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
         isControlPlaneSyncConfigured() &&
         (!entitlements || isEntitlementsStale(entitlements.syncedAt))
       ) {
-        entitlements = (await syncDeploymentEntitlements()) ?? entitlements;
+        // Refresh in background — do not block dashboard shell on control-plane latency.
+        void syncDeploymentEntitlements().catch(() => {});
       }
 
       const subscription = entitlements

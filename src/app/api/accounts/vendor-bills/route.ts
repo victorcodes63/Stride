@@ -40,7 +40,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const bills = await prisma.accountsVendorBill.findMany({
-      where: vendorId ? { vendorId } : {},
+      where: {
+        organizationId: user.currentOrgId,
+        ...(vendorId ? { vendorId } : {}),
+      },
       select: {
         id: true,
         vendorId: true,

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { normalizeKenyanMsisdn, formatMsisdnForDisplay } from '@/lib/payroll-disbursement/phone';
+import { parseB2CCallbackPayload } from '@/lib/payroll-disbursement/daraja-client';
+import { aggregateDarajaLinePoll } from '@/lib/payroll-disbursement/daraja-mpesa-provider';
 import { SimulatedMpesaProvider } from '@/lib/payroll-disbursement/simulated-mpesa-provider';
 
 describe('payroll-disbursement phone', () => {
@@ -59,5 +61,33 @@ describe('SimulatedMpesaProvider', () => {
     });
     expect(second.batchStatus).toBe('completed');
     expect(second.lines[0]?.status).toBe('completed');
+  });
+});
+
+describe('Daraja helpers', () => {
+  it('parses B2C success callback', () => {
+    const parsed = parseB2CCallbackPayload({
+      Result: {
+        ResultCode: 0,
+        ResultDesc: 'The service request is processed successfully.',
+        OriginatorConversationID: 'abc-123',
+        ConversationID: 'xyz-456',
+        ResultParameters: {
+          ResultParameter: [{ Key: 'TransactionReceipt', Value: 'QK123' }],
+        },
+      },
+    });
+    expect(parsed?.originatorConversationId).toBe('abc-123');
+    expect(parsed?.resultCode).toBe(0);
+    expect(parsed?.transactionId).toBe('QK123');
+  });
+
+  it('aggregates terminal Daraja line states', () => {
+    const poll = aggregateDarajaLinePoll([
+      { id: 'l1', status: 'completed', providerRef: 'QK1', failureReason: null },
+      { id: 'l2', status: 'failed', providerRef: null, failureReason: 'Insufficient funds' },
+    ]);
+    expect(poll.batchStatus).toBe('partial_failure');
+    expect(poll.lines).toHaveLength(2);
   });
 });

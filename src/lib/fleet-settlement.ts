@@ -1,4 +1,5 @@
 import type { FleetSettlementStatus, FleetSettlementType } from '@prisma/client';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
 export const FLEET_SETTLEMENT_STATUS_LABELS: Record<FleetSettlementStatus, string> = {
   pending: 'Pending',
@@ -14,11 +15,11 @@ export const FLEET_SETTLEMENT_TYPE_LABELS: Record<FleetSettlementType, string> =
 export function fleetSettlementStatusBadgeClass(status: FleetSettlementStatus): string {
   switch (status) {
     case 'paid':
-      return 'bg-emerald-50 text-emerald-800';
+      return dashStatusChip('success');
     case 'approved':
-      return 'bg-sky-50 text-sky-800';
+      return dashStatusChip('info');
     default:
-      return 'bg-amber-50 text-amber-800';
+      return dashStatusChip('warning');
   }
 }
 

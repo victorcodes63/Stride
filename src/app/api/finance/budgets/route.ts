@@ -1,109 +1,126 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireStaffUser } from '@/lib/staff-api-auth';
+import { withTenant } from '@/lib/tenant-api';
 import { reportApiError } from '@/lib/monitoring';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return withTenant(request, async (ctx) => {
+    try {
+      const year = request.nextUrl.searchParams.get('year');
+      const fiscalYear = year ? parseInt(year, 10) : new Date().getFullYear();
 
-  try {
-    const year = request.nextUrl.searchParams.get('year');
-    const fiscalYear = year ? parseInt(year, 10) : new Date().getFullYear();
+      const budgets = await ctx.run((tx) =>
+        tx.budget.findMany({
+          where: ctx.where({ fiscalYear }),
+          include: {
+            items: { orderBy: { name: 'asc' } },
+            _count: { select: { items: true } },
+          },
+          orderBy: { name: 'asc' },
+        }),
+      );
 
-    const budgets = await prisma.budget.findMany({
-      where: { fiscalYear },
-      include: {
-        items: { orderBy: { name: 'asc' } },
-        _count: { select: { items: true } },
-      },
-      orderBy: { name: 'asc' },
-    });
-
-    return NextResponse.json({
-      budgets: budgets.map((b) => ({
-        id: b.id,
-        name: b.name,
-        department: b.department,
-        category: b.category,
-        fiscalYear: b.fiscalYear,
-        periodType: b.periodType,
-        currency: b.currency,
-        allocatedAmount: Number(b.allocatedAmount),
-        spentAmount: Number(b.spentAmount),
-        utilizationPercent: Number(b.allocatedAmount) > 0
-          ? Math.round((Number(b.spentAmount) / Number(b.allocatedAmount)) * 10000) / 100
-          : 0,
-        status: b.status,
-        startDate: b.startDate.toISOString().split('T')[0],
-        endDate: b.endDate.toISOString().split('T')[0],
-        itemCount: b._count.items,
-        items: b.items.map((i) => ({
-          id: i.id,
-          name: i.name,
-          allocatedAmount: Number(i.allocatedAmount),
-          spentAmount: Number(i.spentAmount),
+      return NextResponse.json({
+        budgets: budgets.map((b) => ({
+          id: b.id,
+          name: b.name,
+          department: b.department,
+          category: b.category,
+          fiscalYear: b.fiscalYear,
+          periodType: b.periodType,
+          currency: b.currency,
+          allocatedAmount: Number(b.allocatedAmount),
+          spentAmount: Number(b.spentAmount),
+          utilizationPercent: Number(b.allocatedAmount) > 0
+            ? Math.round((Number(b.spentAmount) / Number(b.allocatedAmount)) * 10000) / 100
+            : 0,
+          status: b.status,
+          startDate: b.startDate.toISOString().split('T')[0],
+          endDate: b.endDate.toISOString().split('T')[0],
+          itemCount: b._count.items,
+          items: b.items.map((i) => ({
+            id: i.id,
+            name: i.name,
+            allocatedAmount: Number(i.allocatedAmount),
+            spentAmount: Number(i.spentAmount),
+          })),
         })),
-      })),
-    });
-  } catch (error) {
-    await reportApiError({
-      route: 'GET /api/finance/budgets',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to load budgets.' }, { status: 500 });
-  }
+      });
+    } catch (error) {
+      await reportApiError({
+        route: 'GET /api/finance/budgets',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to load budgets.' }, { status: 500 });
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return withTenant(request, async (ctx) => {
+    let body: Record<string, unknown>;
+    try {
+      body = (await request.json()) as Record<string, unknown>;
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
 
-  let body: any;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+    const name = typeof body.name === 'string' ? body.name : '';
+    const department = typeof body.department === 'string' ? body.department : undefined;
+    const category = typeof body.category === 'string' ? body.category : undefined;
+    const fiscalYear = typeof body.fiscalYear === 'number' ? body.fiscalYear : new Date().getFullYear();
+    const periodType = typeof body.periodType === 'string' ? body.periodType : 'annual';
+    const currency = typeof body.currency === 'string' ? body.currency : 'KES';
+    const allocatedAmount = body.allocatedAmount;
+    const startDate = body.startDate;
+    const endDate = body.endDate;
+    const notes = typeof body.notes === 'string' ? body.notes : undefined;
+    const items = body.items;
 
-  const { name, department, category, fiscalYear, periodType, currency, allocatedAmount, startDate, endDate, notes, items } = body;
-  if (!name?.trim()) return NextResponse.json({ error: 'Name is required.' }, { status: 400 });
-  if (!allocatedAmount || Number(allocatedAmount) <= 0) return NextResponse.json({ error: 'Valid allocated amount is required.' }, { status: 400 });
+    if (!name.trim()) return NextResponse.json({ error: 'Name is required.' }, { status: 400 });
+    if (!allocatedAmount || Number(allocatedAmount) <= 0) {
+      return NextResponse.json({ error: 'Valid allocated amount is required.' }, { status: 400 });
+    }
 
-  try {
-    const budget = await prisma.budget.create({
-      data: {
-        name: name.trim(),
-        department: department?.trim() || null,
-        category: category?.trim() || null,
-        fiscalYear: fiscalYear || new Date().getFullYear(),
-        periodType: periodType || 'annual',
-        currency: currency || 'KES',
-        allocatedAmount: Number(allocatedAmount),
-        startDate: new Date(startDate || `${fiscalYear || new Date().getFullYear()}-01-01`),
-        endDate: new Date(endDate || `${fiscalYear || new Date().getFullYear()}-12-31`),
-        notes: notes?.trim() || null,
-        createdByUserId: user.id,
-        status: 'draft',
-        items: Array.isArray(items) && items.length > 0
-          ? {
-              create: items.map((item: any) => ({
-                name: item.name?.trim() || 'Line item',
-                allocatedAmount: Number(item.allocatedAmount) || 0,
-              })),
-            }
-          : undefined,
-      },
-    });
+    try {
+      const budget = await ctx.run((tx) =>
+        tx.budget.create({
+          data: {
+            organizationId: ctx.organizationId,
+            name: name.trim(),
+            department: department?.trim() || null,
+            category: category?.trim() || null,
+            fiscalYear: fiscalYear || new Date().getFullYear(),
+            periodType: periodType as never,
+            currency: currency || 'KES',
+            allocatedAmount: Number(allocatedAmount),
+            startDate: new Date(String(startDate || `${fiscalYear || new Date().getFullYear()}-01-01`)),
+            endDate: new Date(String(endDate || `${fiscalYear || new Date().getFullYear()}-12-31`)),
+            notes: notes?.trim() || null,
+            createdByUserId: ctx.staff.id,
+            status: 'draft',
+            items:
+              Array.isArray(items) && items.length > 0
+                ? {
+                    create: items.map((item: Record<string, unknown>) => ({
+                      organizationId: ctx.organizationId,
+                      name: typeof item.name === 'string' ? item.name.trim() || 'Line item' : 'Line item',
+                      allocatedAmount: Number(item.allocatedAmount) || 0,
+                    })),
+                  }
+                : undefined,
+          },
+        }),
+      );
 
-    return NextResponse.json({ id: budget.id }, { status: 201 });
-  } catch (error) {
-    await reportApiError({
-      route: 'POST /api/finance/budgets',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to create budget.' }, { status: 500 });
-  }
+      return NextResponse.json({ id: budget.id }, { status: 201 });
+    } catch (error) {
+      await reportApiError({
+        route: 'POST /api/finance/budgets',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to create budget.' }, { status: 500 });
+    }
+  });
 }

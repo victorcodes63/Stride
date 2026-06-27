@@ -1,4 +1,5 @@
 import type { FleetDriverStatus, FleetMaintenanceType } from '@prisma/client';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
 export const FLEET_DRIVER_STATUS_LABELS: Record<FleetDriverStatus, string> = {
   available: 'Available',
@@ -22,14 +23,14 @@ export const FLEET_MAINTENANCE_TYPES = Object.keys(
 export function fleetDriverStatusBadgeClass(status: FleetDriverStatus): string {
   switch (status) {
     case 'available':
-      return 'bg-emerald-50 text-emerald-800';
+      return dashStatusChip('success');
     case 'on_trip':
-      return 'bg-blue-50 text-blue-800';
+      return dashStatusChip('info');
     case 'off_duty':
-      return 'bg-neutral-100 text-neutral-600';
+      return dashStatusChip('neutral');
     case 'suspended':
-      return 'bg-red-50 text-red-800';
+      return dashStatusChip('danger');
     default:
-      return 'bg-neutral-100 text-neutral-600';
+      return dashStatusChip('neutral');
   }
 }

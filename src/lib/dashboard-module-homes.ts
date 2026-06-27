@@ -185,17 +185,54 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         ],
       };
 
+    case 'fleet-logistics':
+      return {
+        domainId,
+        eyebrow: domain.marketingLabel,
+        title: 'Fleet & logistics',
+        description:
+          'End-to-end transport operations — order intake, dispatch, live tracking, compliance, settlements, and client billing. Built for Kenya road freight and cross-border corridors.',
+        workspaces: [
+          {
+            title: 'Orders & dispatch',
+            links: [
+              { href: '/dashboard/fleet/orders', label: 'Transport orders', note: 'Intake & validation', icon: ClipboardList },
+              { href: '/dashboard/fleet/planning', label: 'Route planning', note: 'Distance & fuel estimates', icon: Route },
+              { href: '/dashboard/fleet/trips', label: 'Trip board', note: 'Workflow kanban', icon: Route },
+              { href: '/dashboard/fleet/compliance', label: 'Pre-trip compliance', note: 'Licences & permits', icon: Shield },
+            ],
+          },
+          {
+            title: 'Monitoring',
+            links: [
+              { href: '/dashboard/fleet/tracking', label: 'Live tracking', note: 'Realtime positioning', icon: Truck },
+              { href: '/dashboard/fleet/geofences', label: 'Geofences', note: 'Depot & corridor zones', icon: Route },
+              { href: '/dashboard/fleet/driving-time', label: 'Driving time', note: 'Hours & rest compliance', icon: CalendarDays },
+              { href: '/dashboard/fleet/alarms', label: 'Events & alarms', note: 'Customisable alerts', icon: Bell },
+            ],
+          },
+          {
+            title: 'Commercial & assets',
+            links: [
+              { href: '/dashboard/fleet/vehicles', label: 'Vehicles', note: 'Fleet register', icon: Truck },
+              { href: '/dashboard/fleet/settlements', label: 'Settlements', note: 'Driver & partner pay', icon: Wallet },
+              { href: '/dashboard/fleet/billing', label: 'Client billing', note: 'Finance integration', icon: FileText },
+              { href: '/dashboard/fleet/reports', label: 'Performance reports', note: 'Utilisation & KPIs', icon: BarChart3 },
+            ],
+          },
+        ],
+      };
+
     case 'admin-operations':
       return {
         domainId,
         eyebrow: domain.marketingLabel,
         title: 'Admin & operations',
-        description: 'Fleet, assets, HSE, communications, reporting, and system administration.',
+        description: 'Assets, HSE, communications, reporting, and system administration.',
         workspaces: [
           {
             title: 'Operations',
             links: [
-              { href: '/dashboard/fleet', label: 'Fleet', note: 'Trips & vehicles', icon: Truck },
               { href: '/dashboard/assets', label: 'Assets', note: 'Equipment register', icon: Building2 },
               { href: '/dashboard/hse', label: 'HSE', note: 'Incidents & safety', icon: Shield },
             ],

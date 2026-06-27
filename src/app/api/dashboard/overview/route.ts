@@ -94,6 +94,10 @@ export async function GET(request: NextRequest) {
   }
 
   const metricsOnly = request.nextUrl.searchParams.get('metricsOnly') === '1';
+  const sliceParam = request.nextUrl.searchParams.get('slice');
+  const slice = sliceParam === 'core' || sliceParam === 'details' ? sliceParam : 'all';
+  const loadCore = slice === 'all' || slice === 'core';
+  const loadDetails = slice === 'all' || slice === 'details';
 
   const now = new Date();
   const month = now.getMonth() + 1;
@@ -105,7 +109,7 @@ export async function GET(request: NextRequest) {
   try {
     const [fullUser, clientId, setup] = await Promise.all([
       metricsOnly ? Promise.resolve(null) : prisma.user.findUnique({ where: { id: staffUser.id } }),
-      resolvePrimaryWorkspaceClientId(prisma, undefined, request),
+      resolvePrimaryWorkspaceClientId(prisma, undefined, request, staffUser.currentOrgId),
       metricsOnly ? Promise.resolve(null) : loadCompanySetupSettings(),
     ]);
 
@@ -123,190 +127,202 @@ export async function GET(request: NextRequest) {
     const licensed = (key: ModuleKey) =>
       metricsOnly ? isModuleLicensed(key) : isModuleLicensed(key) && modules![key] !== false;
 
-    const [
-      me,
-      totalStaff,
-      attendanceSummaries,
-      onDuty,
-      openAttendanceExceptions,
-      outsourcingLeave,
-      staffLeave,
-      payrollAgg,
-      payrollDenied,
-      credentialCounts,
-      onboardingTasks,
-      pinnedHrefs,
-      notificationRows,
-      unreadNotifications,
-      accountsClientRow,
-      invoicesOutstanding,
-      vendorBillsOutstanding,
-      activeFleetTrips,
-      openFleetIncidents,
-      pendingPurchaseRequests,
-    ] = await Promise.all([
-      metricsOnly ? Promise.resolve(null) : userRowToSummary(fullUser!),
-      licensed('core')
-        ? prisma.employee.count({ where: employeeScope })
-        : Promise.resolve(0),
-      licensed('time')
-        ? prisma.attendanceDaySummary.findMany({
-            where: attendanceWhere,
-            include: {
-              employee: { select: { firstName: true, lastName: true } },
-            },
-            orderBy: [{ firstInAt: 'desc' }, { employee: { lastName: 'asc' } }],
-            take: 8,
-          })
-        : Promise.resolve([]),
-      licensed('time')
-        ? prisma.attendanceDaySummary.count({
-            where: { ...attendanceWhere, firstInAt: { not: null } },
-          })
-        : Promise.resolve(0),
-      licensed('time')
-        ? prisma.attendanceException.count({
-            where: {
-              status: 'open',
-              employee: employeeScope,
-              workDate: { gte: startToday, lte: startToday },
-            },
-          })
-        : Promise.resolve(0),
-      licensed('leave')
-        ? Promise.all([
-            prisma.leaveApplication.count({
-              where: { status: 'pending', employee: employeeScope },
-            }),
-            prisma.leaveApplication.count({
-              where: {
-                status: 'approved',
-                employee: employeeScope,
-                startDate: { lte: endToday },
-                endDate: { gte: startToday },
-              },
-            }),
-          ]).then(([pending, onLeaveToday]) => ({ pending, onLeaveToday }))
-        : Promise.resolve({ pending: 0, onLeaveToday: 0 }),
-      licensed('leave')
-        ? Promise.all([
-            prisma.staffLeaveApplication.count({ where: { status: 'pending' } }),
-            prisma.staffLeaveApplication.count({
-              where: {
-                status: 'approved',
-                startDate: { lte: endToday },
-                endDate: { gte: startToday },
-              },
-            }),
-          ]).then(([pending, onLeaveToday]) => ({ pending, onLeaveToday }))
-        : Promise.resolve({ pending: 0, onLeaveToday: 0 }),
-      licensed('payroll') && canAccessPayroll(staffUser)
-        ? prisma.payroll.aggregate({
-            where: { month, year, employee: employeeScope },
-            _sum: {
-              grossPay: true,
-              netPay: true,
-              paye: true,
-              nssf: true,
-              nhif: true,
-              ahl: true,
-            },
-          })
-        : Promise.resolve(null),
-      licensed('payroll') ? Promise.resolve(!canAccessPayroll(staffUser)) : Promise.resolve(true),
-      licensed('core') && canAccessCredentials(staffUser)
-        ? countScopedCredentials(employeeScope)
-        : Promise.resolve({ expiring: 0, expired: 0 }),
-      licensed('core')
-        ? (async () => {
-            const roleKeys = getRoleKeysForUser(staffUser);
-            return prisma.onboardingTask.findMany({
-              where: {
-                workflow: { employee: employeeScope },
-                status: { in: ['PENDING', 'OVERDUE'] },
-                OR: [{ assignedToId: staffUser.id }, { assignedRole: { in: roleKeys } }],
-              },
-              include: {
-                workflow: {
-                  include: { employee: { select: { firstName: true, lastName: true } } },
+    const corePromise = loadCore
+      ? Promise.all([
+          licensed('core')
+            ? prisma.employee.count({ where: employeeScope })
+            : Promise.resolve(0),
+          licensed('time')
+            ? prisma.attendanceDaySummary.count({
+                where: { ...attendanceWhere, firstInAt: { not: null } },
+              })
+            : Promise.resolve(0),
+          licensed('time')
+            ? prisma.attendanceException.count({
+                where: {
+                  status: 'open',
+                  employee: employeeScope,
+                  workDate: { gte: startToday, lte: startToday },
                 },
-              },
-              orderBy: [{ dueDate: 'asc' }, { order: 'asc' }],
-              take: 5,
-            });
-          })()
-        : Promise.resolve([]),
-      getUserPinnedNavHrefs(staffUser.id),
-      prisma.staffNotification.findMany({
-        where: { userId: staffUser.id, ...whereExcludeSeedStaffNotifications() },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-        select: {
-          id: true,
-          title: true,
-          body: true,
-          readAt: true,
-          href: true,
-          createdAt: true,
-        },
-      }),
-      prisma.staffNotification.count({
-        where: { userId: staffUser.id, readAt: null, ...whereExcludeSeedStaffNotifications() },
-      }),
-      licensed('accounts')
-        ? prisma.accountsClient.findFirst({
-            where: { outsourcingClientId: clientId },
-            select: { id: true },
-          })
-        : Promise.resolve(null),
-      licensed('accounts')
-        ? safeCount(() =>
-            prisma.accountsInvoice.count({
-              where: {
-                status: { in: ['unpaid', 'partial'] },
-                accountsClient: { outsourcingClientId: clientId },
-              },
-            }),
-          )
-        : Promise.resolve(0),
-      licensed('accounts')
-        ? safeCount(() =>
-            prisma.accountsVendorBill.count({
-              where: { status: { in: ['unpaid', 'partial'] } },
-            }),
-          )
-        : Promise.resolve(0),
-      licensed('fleet')
-        ? safeCount(() =>
-            prisma.fleetTrip.count({
-              where: {
-                outsourcingClientId: clientId,
-                status: { in: ['allocated', 'compliance_check', 'loaded', 'in_transit'] },
-              },
-            }),
-          )
-        : Promise.resolve(0),
-      licensed('fleet')
-        ? safeCount(() =>
-            prisma.fleetIncident.count({
-              where: {
-                outsourcingClientId: clientId,
-                status: { in: ['open', 'investigating'] },
-              },
-            }),
-          )
-        : Promise.resolve(0),
-      licensed('core')
-        ? safeCount(() =>
-            prisma.purchaseRequest.count({
-              where: {
-                outsourcingClientId: clientId,
-                status: 'submitted',
-              },
-            }),
-          )
-        : Promise.resolve(0),
+              })
+            : Promise.resolve(0),
+          licensed('leave')
+            ? Promise.all([
+                prisma.leaveApplication.count({
+                  where: { status: 'pending', employee: employeeScope },
+                }),
+                prisma.leaveApplication.count({
+                  where: {
+                    status: 'approved',
+                    employee: employeeScope,
+                    startDate: { lte: endToday },
+                    endDate: { gte: startToday },
+                  },
+                }),
+              ]).then(([pending, onLeaveToday]) => ({ pending, onLeaveToday }))
+            : Promise.resolve({ pending: 0, onLeaveToday: 0 }),
+          licensed('leave')
+            ? Promise.all([
+                prisma.staffLeaveApplication.count({ where: { status: 'pending' } }),
+                prisma.staffLeaveApplication.count({
+                  where: {
+                    status: 'approved',
+                    startDate: { lte: endToday },
+                    endDate: { gte: startToday },
+                  },
+                }),
+              ]).then(([pending, onLeaveToday]) => ({ pending, onLeaveToday }))
+            : Promise.resolve({ pending: 0, onLeaveToday: 0 }),
+          licensed('payroll') && canAccessPayroll(staffUser)
+            ? prisma.payroll.aggregate({
+                where: { month, year, employee: employeeScope },
+                _sum: {
+                  grossPay: true,
+                  netPay: true,
+                  paye: true,
+                  nssf: true,
+                  nhif: true,
+                  ahl: true,
+                },
+              })
+            : Promise.resolve(null),
+          licensed('payroll') ? Promise.resolve(!canAccessPayroll(staffUser)) : Promise.resolve(true),
+          licensed('core') && canAccessCredentials(staffUser)
+            ? countScopedCredentials(employeeScope)
+            : Promise.resolve({ expiring: 0, expired: 0 }),
+          prisma.staffNotification.count({
+            where: { userId: staffUser.id, readAt: null, ...whereExcludeSeedStaffNotifications() },
+          }),
+          licensed('accounts')
+            ? prisma.accountsClient.findFirst({
+                where: { outsourcingClientId: clientId },
+                select: { id: true },
+              })
+            : Promise.resolve(null),
+          licensed('accounts')
+            ? safeCount(() =>
+                prisma.accountsInvoice.count({
+                  where: {
+                    status: { in: ['unpaid', 'partial'] },
+                    accountsClient: { outsourcingClientId: clientId },
+                  },
+                }),
+              )
+            : Promise.resolve(0),
+          licensed('accounts')
+            ? safeCount(() =>
+                prisma.accountsVendorBill.count({
+                  where: { status: { in: ['unpaid', 'partial'] } },
+                }),
+              )
+            : Promise.resolve(0),
+          licensed('fleet')
+            ? safeCount(() =>
+                prisma.fleetTrip.count({
+                  where: {
+                    outsourcingClientId: clientId,
+                    status: { in: ['allocated', 'compliance_check', 'loaded', 'in_transit'] },
+                  },
+                }),
+              )
+            : Promise.resolve(0),
+          licensed('fleet')
+            ? safeCount(() =>
+                prisma.fleetIncident.count({
+                  where: {
+                    outsourcingClientId: clientId,
+                    status: { in: ['open', 'investigating'] },
+                  },
+                }),
+              )
+            : Promise.resolve(0),
+          licensed('core')
+            ? safeCount(() =>
+                prisma.purchaseRequest.count({
+                  where: {
+                    outsourcingClientId: clientId,
+                    status: 'submitted',
+                  },
+                }),
+              )
+            : Promise.resolve(0),
+        ])
+      : Promise.resolve(null);
+
+    const detailsPromise = loadDetails
+      ? Promise.all([
+          licensed('time')
+            ? prisma.attendanceDaySummary.findMany({
+                where: attendanceWhere,
+                include: {
+                  employee: { select: { firstName: true, lastName: true } },
+                },
+                orderBy: [{ firstInAt: 'desc' }, { employee: { lastName: 'asc' } }],
+                take: 8,
+              })
+            : Promise.resolve([]),
+          licensed('core')
+            ? (async () => {
+                const roleKeys = getRoleKeysForUser(staffUser);
+                return prisma.onboardingTask.findMany({
+                  where: {
+                    workflow: { employee: employeeScope },
+                    status: { in: ['PENDING', 'OVERDUE'] },
+                    OR: [{ assignedToId: staffUser.id }, { assignedRole: { in: roleKeys } }],
+                  },
+                  include: {
+                    workflow: {
+                      include: { employee: { select: { firstName: true, lastName: true } } },
+                    },
+                  },
+                  orderBy: [{ dueDate: 'asc' }, { order: 'asc' }],
+                  take: 5,
+                });
+              })()
+            : Promise.resolve([]),
+          getUserPinnedNavHrefs(staffUser.id),
+          prisma.staffNotification.findMany({
+            where: { userId: staffUser.id, ...whereExcludeSeedStaffNotifications() },
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+            select: {
+              id: true,
+              title: true,
+              body: true,
+              readAt: true,
+              href: true,
+              createdAt: true,
+            },
+          }),
+        ])
+      : Promise.resolve(null);
+
+    const [me, coreResults, detailsResults] = await Promise.all([
+      metricsOnly ? Promise.resolve(null) : userRowToSummary(fullUser!),
+      corePromise,
+      detailsPromise,
     ]);
+
+    const totalStaff = coreResults?.[0] ?? 0;
+    const onDuty = coreResults?.[1] ?? 0;
+    const openAttendanceExceptions = coreResults?.[2] ?? 0;
+    const outsourcingLeave = coreResults?.[3] ?? { pending: 0, onLeaveToday: 0 };
+    const staffLeave = coreResults?.[4] ?? { pending: 0, onLeaveToday: 0 };
+    const payrollAgg = coreResults?.[5] ?? null;
+    const payrollDenied = coreResults?.[6] ?? true;
+    const credentialCounts = coreResults?.[7] ?? { expiring: 0, expired: 0 };
+    const unreadNotifications = coreResults?.[8] ?? 0;
+    const accountsClientRow = coreResults?.[9] ?? null;
+    const invoicesOutstanding = coreResults?.[10] ?? 0;
+    const vendorBillsOutstanding = coreResults?.[11] ?? 0;
+    const activeFleetTrips = coreResults?.[12] ?? 0;
+    const openFleetIncidents = coreResults?.[13] ?? 0;
+    const pendingPurchaseRequests = coreResults?.[14] ?? 0;
+
+    const attendanceSummaries = detailsResults?.[0] ?? [];
+    const onboardingTasks = detailsResults?.[1] ?? [];
+    const pinnedHrefs = detailsResults?.[2] ?? [];
+    const notificationRows = detailsResults?.[3] ?? [];
 
     const grossTotal = Number(payrollAgg?._sum.grossPay ?? 0);
     const netTotal = Number(payrollAgg?._sum.netPay ?? 0);

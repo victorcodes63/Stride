@@ -5,6 +5,8 @@ import {
   MARKETING_CTAS,
   MARKETING_HERO,
   MARKETING_ROUTES,
+  getMarketingHeroEyebrowLines,
+  getMarketingHeroTitleLead,
 } from '@/lib/marketing-config';
 import { HeroShaderBackground } from './HeroShaderBackground';
 import { HeroDashboardShowcase } from './HeroDashboardShowcase';
@@ -16,7 +18,10 @@ import {
 import './studio-craft-hero.css';
 
 function HeroSubcopy() {
-  const { sub, descriptionHighlight } = MARKETING_HERO;
+  const sub = MARKETING_HERO.sub ?? '';
+  const descriptionHighlight = MARKETING_HERO.descriptionHighlight ?? '';
+  if (!sub) return null;
+  if (!descriptionHighlight) return sub;
   const idx = sub.indexOf(descriptionHighlight);
   if (idx === -1) return sub;
   return (
@@ -29,6 +34,9 @@ function HeroSubcopy() {
 }
 
 export function StudioCraftHero() {
+  const eyebrowLines = getMarketingHeroEyebrowLines();
+  const titleLead = getMarketingHeroTitleLead();
+
   return (
     <section className="sc-hero-section relative flex min-h-0 flex-col overflow-x-clip md:min-h-svh">
       <div
@@ -66,14 +74,14 @@ export function StudioCraftHero() {
             >
               <span className="inline-flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sc-coral)]" aria-hidden />
-                {MARKETING_HERO.eyebrowLines[0]}
+                {eyebrowLines[0]}
               </span>
-              <span>{MARKETING_HERO.eyebrowLines[1]}</span>
+              {eyebrowLines[1] ? <span>{eyebrowLines[1]}</span> : null}
             </p>
 
             <h1 className="font-normal leading-[1.05] tracking-tight text-[var(--sc-ink)] text-[clamp(2rem,9vw,2.75rem)] min-[400px]:text-[44px] sm:text-6xl lg:text-7xl xl:text-[80px]">
               <span className="block sc-animate-fade-up" style={{ animationDelay: '160ms' }}>
-                {MARKETING_HERO.titleLines[0]}
+                {titleLead}
               </span>
               <span className="block sc-animate-fade-up" style={{ animationDelay: '240ms' }}>
                 business{' '}

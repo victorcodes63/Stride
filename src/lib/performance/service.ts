@@ -7,6 +7,27 @@ export const DEFAULT_RATING_DIMENSIONS = [
   'Communication',
 ] as const;
 
+export type GoalTemplateInput = { title: string; weightPercent: number; description?: string };
+
+export function parseCycleGoalTemplates(raw: unknown): GoalTemplateInput[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return DEFAULT_GOAL_TEMPLATES.map((g) => ({ ...g }));
+  }
+  return raw
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+    .map((item) => ({
+      title: String(item.title ?? 'Goal').trim(),
+      weightPercent: Number(item.weightPercent ?? 25),
+      description: typeof item.description === 'string' ? item.description : undefined,
+    }))
+    .filter((g) => g.title.length > 0);
+}
+
+export function parseCycleRatingDimensions(raw: unknown): string[] {
+  if (!Array.isArray(raw) || raw.length === 0) return [...DEFAULT_RATING_DIMENSIONS];
+  return raw.map((d) => String(d).trim()).filter(Boolean);
+}
+
 export const DEFAULT_GOAL_TEMPLATES = [
   { title: 'Deliver role KPIs on time', weightPercent: 50 },
   { title: 'Complete compliance and training requirements', weightPercent: 50 },
@@ -19,6 +40,25 @@ export function ratingLabel(score: number | null | undefined): string {
   if (score >= 3) return 'Meets expectations';
   if (score >= 2) return 'Needs improvement';
   return 'Unsatisfactory';
+}
+
+/** Resolve staff User id for an employee's line manager (email match), else fallback. */
+export async function resolveManagerUserId(
+  tx: Prisma.TransactionClient,
+  managerEmployeeId: string | null | undefined,
+  fallbackUserId: string | null,
+): Promise<string | null> {
+  if (!managerEmployeeId) return fallbackUserId;
+  const manager = await tx.employee.findFirst({
+    where: { id: managerEmployeeId },
+    select: { email: true },
+  });
+  if (!manager?.email?.trim()) return fallbackUserId;
+  const user = await tx.user.findFirst({
+    where: { email: { equals: manager.email.trim(), mode: 'insensitive' }, isActive: true },
+    select: { id: true },
+  });
+  return user?.id ?? fallbackUserId;
 }
 
 export type PerformanceReviewDto = {
@@ -84,6 +124,9 @@ export async function activatePerformanceCycle(
     return { ok: false as const, error: 'Only draft cycles can be activated' };
   }
 
+  const goalTemplates = parseCycleGoalTemplates(cycle.goalTemplates);
+  const ratingDimensions = parseCycleRatingDimensions(cycle.ratingDimensions);
+
   const employees = await tx.employee.findMany({
     where: {
       organizationId: input.organizationId,
@@ -108,15 +151,21 @@ export async function activatePerformanceCycle(
   });
 
   for (const employee of employees) {
+    const managerUserId = await resolveManagerUserId(
+      tx,
+      employee.managerEmployeeId,
+      adminUser?.id ?? null,
+    );
+
     await tx.performanceReview.create({
       data: {
         organizationId: input.organizationId,
         cycleId: cycle.id,
         employeeId: employee.id,
-        managerUserId: adminUser?.id ?? null,
+        managerUserId,
         status: 'not_started',
         ratings: {
-          create: DEFAULT_RATING_DIMENSIONS.map((dimension, sortOrder) => ({
+          create: ratingDimensions.map((dimension, sortOrder) => ({
             organizationId: input.organizationId,
             dimension,
             sortOrder,
@@ -126,11 +175,12 @@ export async function activatePerformanceCycle(
     });
 
     await tx.performanceGoal.createMany({
-      data: DEFAULT_GOAL_TEMPLATES.map((goal, sortOrder) => ({
+      data: goalTemplates.map((goal, sortOrder) => ({
         organizationId: input.organizationId,
         cycleId: cycle.id,
         employeeId: employee.id,
         title: goal.title,
+        description: goal.description ?? null,
         weightPercent: goal.weightPercent,
         sortOrder,
       })),

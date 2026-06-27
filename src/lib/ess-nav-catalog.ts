@@ -161,6 +161,13 @@ export const ESS_PAY_HUB_TILES: EssHubTileDef[] = [
 
 export const ESS_TEAM_HUB_TILES: EssHubTileDef[] = [
   {
+    href: '/ess/team/performance',
+    label: 'Performance reviews',
+    description: 'Complete manager reviews for your team',
+    icon: Target,
+    module: 'performance',
+  },
+  {
     href: '/ess/team/leave',
     label: 'Leave approvals',
     description: 'Review team leave requests',

@@ -1,17 +1,11 @@
-/** Deterministic avatar chip colors — light + dark mode safe. */
-export const DASHBOARD_AVATAR_PALETTE = [
-  'bg-primary-100 text-primary-800 ring-primary-200/80 dark:bg-primary-500/20 dark:text-primary-100 dark:ring-primary-500/35',
-  'bg-sky-100 text-sky-800 ring-sky-200/80 dark:bg-sky-500/20 dark:text-sky-100 dark:ring-sky-500/35',
-  'bg-violet-100 text-violet-800 ring-violet-200/80 dark:bg-violet-500/20 dark:text-violet-100 dark:ring-violet-500/35',
-  'bg-emerald-100 text-emerald-800 ring-emerald-200/80 dark:bg-emerald-500/20 dark:text-emerald-100 dark:ring-emerald-500/35',
-  'bg-amber-100 text-amber-900 ring-amber-200/80 dark:bg-amber-500/20 dark:text-amber-100 dark:ring-amber-500/35',
-  'bg-rose-100 text-rose-800 ring-rose-200/80 dark:bg-rose-500/20 dark:text-rose-100 dark:ring-rose-500/35',
-] as const;
+/** Deterministic avatar chip — uses `.dash-avatar-chip` tokens in dashboard-theme.css (mode-aware). */
+export const DASHBOARD_AVATAR_VARIANT_COUNT = 6;
 
 export function dashboardAvatarClass(seed: string): string {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  return DASHBOARD_AVATAR_PALETTE[Math.abs(hash) % DASHBOARD_AVATAR_PALETTE.length];
+  const index = Math.abs(hash) % DASHBOARD_AVATAR_VARIANT_COUNT;
+  return `dash-avatar-chip dash-avatar-chip--${index}`;
 }
 
 export function dashboardInitials(first: string, last: string): string {

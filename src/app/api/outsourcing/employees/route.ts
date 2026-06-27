@@ -46,8 +46,10 @@ export async function GET(request: NextRequest) {
       const employees = await ctx.run((tx) =>
         tx.employee.findMany({
           where: {
-            ...ctx.where(),
-            ...(clientId ? { outsourcingClientId: clientId } : {}),
+            client: {
+              organizationId: ctx.organizationId,
+              ...(clientId ? { id: clientId } : {}),
+            },
             ...(departmentId ? { departmentId } : {}),
             ...(jobTitle?.trim() ? { jobTitle: { equals: jobTitle.trim(), mode: 'insensitive' } } : {}),
             ...(managerEmployeeId?.trim() ? { managerEmployeeId: managerEmployeeId.trim() } : {}),

@@ -182,7 +182,7 @@ function buildStats(
           warn: (projectsSummary?.openTasks ?? 0) > 0,
         },
       ];
-    case 'admin-operations':
+    case 'fleet-logistics':
       return [
         {
           label: 'Active trips',
@@ -192,26 +192,53 @@ function buildStats(
           tone: 'primary',
         },
         {
-          label: 'Fleet vehicles',
-          value: fleet?.vehicles?.total ?? 0,
-          hint: `${fleet?.vehicles?.available ?? 0} available`,
+          label: 'Vehicles available',
+          value: fleet?.vehicles?.available ?? 0,
+          hint: `${fleet?.vehicles?.total ?? 0} in fleet`,
           href: '/dashboard/fleet/vehicles',
           tone: 'success',
         },
         {
-          label: 'Open incidents',
-          value: fleet?.incidents?.open ?? cross?.openFleetIncidents ?? 0,
-          hint: 'Needs review',
-          href: '/dashboard/fleet/compliance',
+          label: 'Open exceptions',
+          value: fleet?.trips?.exception ?? 0,
+          hint: 'Needs attention',
+          href: '/dashboard/fleet/trips',
           tone: 'warning',
-          warn: (fleet?.incidents?.open ?? cross?.openFleetIncidents ?? 0) > 0,
+          warn: (fleet?.trips?.exception ?? 0) > 0,
         },
         {
           label: 'Pending settlements',
           value: fleet?.settlements?.pending ?? 0,
-          hint: 'Fleet billing',
+          hint: 'Driver & partner pay',
           href: '/dashboard/fleet/settlements',
           tone: 'violet',
+          warn: (fleet?.settlements?.pending ?? 0) > 0,
+        },
+        {
+          label: 'Open incidents',
+          value: fleet?.incidents?.open ?? cross?.openFleetIncidents ?? 0,
+          hint: 'Fleet incidents',
+          href: '/dashboard/fleet/incidents',
+          tone: 'warning',
+          warn: (fleet?.incidents?.open ?? cross?.openFleetIncidents ?? 0) > 0,
+        },
+      ];
+    case 'admin-operations':
+      return [
+        {
+          label: 'Credential alerts',
+          value: (overview?.credentialsExpiring ?? 0) + (overview?.credentialsExpired ?? 0),
+          hint: 'Expiring or expired',
+          href: '/dashboard/credentials?status=expiring_soon',
+          tone: 'warning',
+          warn: ((overview?.credentialsExpiring ?? 0) + (overview?.credentialsExpired ?? 0)) > 0,
+        },
+        {
+          label: 'Active fleet trips',
+          value: cross?.activeFleetTrips ?? 0,
+          hint: 'Cross-module link',
+          href: '/dashboard/fleet/trips',
+          tone: 'primary',
         },
       ];
   }
@@ -230,11 +257,11 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
     let cancelled = false;
     setLoading(true);
 
-    const needsFleet = domainId === 'admin-operations';
+    const needsFleet = domainId === 'fleet-logistics' || domainId === 'admin-operations';
     const needsProjects = domainId === 'projects';
 
     Promise.all([
-      fetch('/api/dashboard/overview?metricsOnly=1', { credentials: 'include' }).then(async (r) =>
+      fetch('/api/dashboard/overview?metricsOnly=1&slice=core', { credentials: 'include' }).then(async (r) =>
         r.ok ? ((await r.json()) as OverviewMetrics) : null,
       ),
       needsFleet

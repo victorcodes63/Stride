@@ -303,7 +303,8 @@ export default function DashboardOverviewContent() {
   const { user: sessionUser, modules: sessionModules } = useDashboardSession();
   const { orderedDomains } = useDashboardModuleOrder();
   const { activeEntity, loading: entityLoading } = useEntity();
-  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [coreLoading, setCoreLoading] = useState(true);
+  const [detailsLoading, setDetailsLoading] = useState(true);
   const [totalStaff, setTotalStaff] = useState(0);
   const [onDuty, setOnDuty] = useState(0);
   const [pendingApprovals, setPendingApprovals] = useState(0);
@@ -332,49 +333,26 @@ export default function DashboardOverviewContent() {
     if (entityLoading) return;
 
     let cancelled = false;
-    setMetricsLoading(true);
+    setCoreLoading(true);
+    setDetailsLoading(true);
 
-    const run = async () => {
+    const loadCore = async () => {
       try {
-        const res = await fetch('/api/dashboard/overview?metricsOnly=1', { credentials: 'include' });
+        const res = await fetch('/api/dashboard/overview?metricsOnly=1&slice=core', { credentials: 'include' });
+        if (cancelled || !res.ok) return;
+        const data = await res.json();
         if (cancelled) return;
-        if (!res.ok) return;
-
-        const data = (await res.json()) as {
-          totalStaff?: number;
-          onDuty?: number;
-          pendingApprovals?: number;
-          attendanceRows?: AttendanceRow[];
-          openAttendanceExceptions?: number;
-          payroll?: {
-            denied?: boolean;
-            grossTotal?: number;
-            netTotal?: number;
-            deductionsTotal?: number;
-          };
-          myOnboardingTasks?: MyTaskRow[];
-          credentialsExpiring?: number;
-          credentialsExpired?: number;
-          pinnedHrefs?: string[];
-          notifications?: NotificationRow[];
-          unreadNotifications?: number;
-          crossModule?: OverviewCrossModuleMetrics;
-        };
 
         setTotalStaff(data.totalStaff ?? 0);
         setOnDuty(data.onDuty ?? 0);
         setPendingApprovals(data.pendingApprovals ?? 0);
-        setAttendanceRows(Array.isArray(data.attendanceRows) ? data.attendanceRows : []);
         setOpenAttendanceExceptions(data.openAttendanceExceptions ?? 0);
         setPayrollDenied(Boolean(data.payroll?.denied));
         setGrossTotal(data.payroll?.grossTotal ?? 0);
         setNetTotal(data.payroll?.netTotal ?? 0);
         setDeductionsTotal(data.payroll?.deductionsTotal ?? 0);
-        setMyOnboardingTasks(Array.isArray(data.myOnboardingTasks) ? data.myOnboardingTasks : []);
         setCredentialsExpiring(data.credentialsExpiring ?? 0);
         setCredentialsExpired(data.credentialsExpired ?? 0);
-        setPinnedHrefs(Array.isArray(data.pinnedHrefs) ? data.pinnedHrefs : []);
-        setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
         setUnreadNotifications(data.unreadNotifications ?? 0);
         setCrossModule({
           invoicesOutstanding: data.crossModule?.invoicesOutstanding ?? 0,
@@ -384,11 +362,29 @@ export default function DashboardOverviewContent() {
           pendingPurchaseRequests: data.crossModule?.pendingPurchaseRequests ?? 0,
         });
       } finally {
-        if (!cancelled) setMetricsLoading(false);
+        if (!cancelled) setCoreLoading(false);
       }
     };
 
-    void run();
+    const loadDetails = async () => {
+      try {
+        const res = await fetch('/api/dashboard/overview?metricsOnly=1&slice=details', { credentials: 'include' });
+        if (cancelled || !res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+
+        setAttendanceRows(Array.isArray(data.attendanceRows) ? data.attendanceRows : []);
+        setMyOnboardingTasks(Array.isArray(data.myOnboardingTasks) ? data.myOnboardingTasks : []);
+        setPinnedHrefs(Array.isArray(data.pinnedHrefs) ? data.pinnedHrefs : []);
+        setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
+      } finally {
+        if (!cancelled) setDetailsLoading(false);
+      }
+    };
+
+    void loadCore();
+    void loadDetails();
+
     return () => {
       cancelled = true;
     };
@@ -568,10 +564,10 @@ export default function DashboardOverviewContent() {
 
   const eligibleFullWidthWidgets = useMemo(() => {
     const ids: OverviewWidgetId[] = ['command-center'];
-    if (!metricsLoading && attentionItems.length > 0) ids.push('attention');
-    if (!metricsLoading && orderedKpiCards.length > 0) ids.push('snapshot');
+    if (!coreLoading && attentionItems.length > 0) ids.push('attention');
+    if (!coreLoading && orderedKpiCards.length > 0) ids.push('snapshot');
     return ids;
-  }, [metricsLoading, attentionItems.length, orderedKpiCards.length]);
+  }, [coreLoading, attentionItems.length, orderedKpiCards.length]);
 
   const orderedFullWidthWidgets = useMemo(
     () => resolveWidgetOrder(eligibleFullWidthWidgets, layout, FULL_WIDTH_OVERVIEW_WIDGETS),
@@ -579,13 +575,13 @@ export default function DashboardOverviewContent() {
   );
 
   const eligibleSidebarWidgets = useMemo(() => {
-    if (metricsLoading) return [];
-    const ids: OverviewWidgetId[] = ['shortcuts', 'notifications'];
-    if ((credentialsExpiring > 0 || credentialsExpired > 0) && modules.core !== false) {
+    const ids: OverviewWidgetId[] = ['shortcuts'];
+    if (!detailsLoading) ids.push('notifications');
+    if (!coreLoading && (credentialsExpiring > 0 || credentialsExpired > 0) && modules.core !== false) {
       ids.push('credentials');
     }
     return ids;
-  }, [metricsLoading, credentialsExpiring, credentialsExpired, modules.core]);
+  }, [coreLoading, detailsLoading, credentialsExpiring, credentialsExpired, modules.core]);
 
   const orderedSidebarWidgets = useMemo(
     () => resolveWidgetOrder(eligibleSidebarWidgets, layout, SIDEBAR_OVERVIEW_WIDGETS),
@@ -593,11 +589,19 @@ export default function DashboardOverviewContent() {
   );
 
   const showHrDetailsWidget =
-    !metricsLoading &&
+    !detailsLoading &&
+    !coreLoading &&
     showHrSection &&
     !(layout.hiddenWidgets ?? []).includes('hr-details');
 
-  if (!me) return <OverviewSkeleton />;
+  if (!me) {
+    return (
+      <div className="page-shell">
+        <div className="skeleton h-36 rounded-2xl" />
+        <OverviewMetricsSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="page-shell">
@@ -627,13 +631,17 @@ export default function DashboardOverviewContent() {
       ) : null}
 
       {orderedFullWidthWidgets.includes('command-center') ? (
-        <OverviewModuleCommandCenter
-          attentionByDomain={attentionByDomain}
-          domainSnapshots={domainSnapshots}
-        />
+        coreLoading ? (
+          <div className="skeleton h-44 rounded-xl" aria-hidden />
+        ) : (
+          <OverviewModuleCommandCenter
+            attentionByDomain={attentionByDomain}
+            domainSnapshots={domainSnapshots}
+          />
+        )
       ) : null}
 
-      {metricsLoading ? (
+      {coreLoading ? (
         <OverviewMetricsSkeleton />
       ) : (
         <>
@@ -925,7 +933,9 @@ export default function DashboardOverviewContent() {
                 ) : null
               }
             />
-            {notifications.length === 0 ? (
+            {detailsLoading ? (
+              <div className="skeleton mx-4 mb-4 h-24 rounded-lg sm:mx-5" aria-hidden />
+            ) : notifications.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-[var(--dash-text-muted)] sm:px-5">No recent notifications.</p>
             ) : (
               <ul className="divide-y divide-[var(--dash-border-subtle)]">

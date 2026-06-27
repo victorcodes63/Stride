@@ -13,7 +13,6 @@ import {
  FileText,
  Landmark,
  LayoutGrid,
- Loader2,
  PieChart,
  BarChart3,
  Receipt,
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardInlineLoading } from '@/components/dashboard/DashboardAsyncState';
 
 type ClientRow = {
  id: string;
@@ -206,19 +206,13 @@ export default function AccountsOverviewContent() {
  ];
 
  if (loading) {
- return (
- <div className="w-full min-w-0 flex flex-col items-center justify-center py-24 gap-4">
- <Loader2 className="w-9 h-9 text-primary-600 animate-spin" />
- <p className="text-sm text-neutral-500">Loading Accounts overview…</p>
- </div>
- );
+ return <DashboardInlineLoading label="Loading accounts overview…" />;
  }
 
  if (error) {
  return (
  <div className="w-full min-w-0 space-y-4">
       <DashboardPageHeader
-        variant="hero"
         eyebrow="Finance & payroll"
         title="Accounts"
         description="Manage billing clients, invoices, receipts, contracts, vendors, statements, and payroll from one place."
@@ -233,7 +227,6 @@ export default function AccountsOverviewContent() {
  return (
  <div className="w-full min-w-0 space-y-8 sm:space-y-10">
       <DashboardPageHeader
-        variant="hero"
         eyebrow="Finance & payroll"
         title="Accounts"
         description="Manage billing clients, invoices, receipts, contracts, vendors, statements, and payroll from one place."
@@ -241,7 +234,6 @@ export default function AccountsOverviewContent() {
           { href: '/dashboard/accounts/clients', label: 'Billing clients', icon: Building2, variant: 'primary' },
           { href: '/dashboard/accounts/invoices', label: 'All invoices', icon: LayoutGrid, variant: 'secondary' },
         ]}
-        className="sm:p-8"
       />
 
  {/* Snapshot */}

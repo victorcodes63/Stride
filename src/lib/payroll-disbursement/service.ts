@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 
 import { formatBankExportPaymentReference } from '@/lib/payroll-bank-export';
 import { normalizeKenyanMsisdn } from '@/lib/payroll-disbursement/phone';
+import { aggregateDarajaLinePoll } from '@/lib/payroll-disbursement/daraja-mpesa-provider';
 import { getPayrollDisbursementProvider } from '@/lib/payroll-disbursement/provider';
 import type { DisbursementRecipient } from '@/lib/payroll-disbursement/types';
 
@@ -266,12 +267,25 @@ export async function pollDisbursementBatch(
     return { ok: true as const, batch: full! };
   }
 
-  const poll = await provider.pollBatch({
-    batchId: batch.id,
-    providerRef: batch.providerRef,
-    pollCount: batch.pollCount,
-    lineIds: batch.lines.map((l) => l.id),
-  });
+  let poll =
+    provider.mode === 'daraja'
+      ? aggregateDarajaLinePoll(batch.lines)
+      : await provider.pollBatch({
+          batchId: batch.id,
+          providerRef: batch.providerRef,
+          pollCount: batch.pollCount,
+          lineIds: batch.lines.map((l) => l.id),
+        });
+
+  if (provider.mode === 'daraja' && poll.batchStatus === 'processing') {
+    const refreshed = await tx.payrollDisbursementBatch.findFirst({
+      where: { id: input.batchId, organizationId: input.organizationId },
+      include: { lines: true },
+    });
+    if (refreshed) {
+      poll = aggregateDarajaLinePoll(refreshed.lines);
+    }
+  }
 
   const now = new Date();
   for (const line of poll.lines) {

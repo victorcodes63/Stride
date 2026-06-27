@@ -1,6 +1,14 @@
 import { Prisma, WorkflowType, WorkflowStatus, OnboardingTaskStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { createWorkflowRun, getHrUserIds, sendNotification, transitionWorkflowRun } from '@/lib/notifications';
+import {
+  deriveOffboardingCheckpointState,
+  getUnsatisfiedOffboardingCheckpoints,
+  type OffboardingCheckpointKey,
+} from '@/lib/onboarding-checkpoints';
+
+export { deriveOffboardingCheckpointState, getUnsatisfiedOffboardingCheckpoints };
+export type { OffboardingCheckpointKey };
 
 const CLINICAL_KEYWORDS = [
   'doctor',
@@ -61,35 +69,6 @@ const OFFBOARDING_CHECKPOINTS = {
   finalSettlement: ['final pay', 'settle', 'loan', 'advance', 'settlement'],
   evidenceArchive: ['archive', 'records', 'certificate', 'signed', 'document'],
 } as const;
-
-type OffboardingCheckpointKey = keyof typeof OFFBOARDING_CHECKPOINTS;
-type OffboardingCheckpointState = Record<OffboardingCheckpointKey, { present: boolean; satisfied: boolean }>;
-
-export function deriveOffboardingCheckpointState(tasks: TaskShape[]): OffboardingCheckpointState {
-  const state: OffboardingCheckpointState = {
-    clearance: { present: false, satisfied: false },
-    assetRecovery: { present: false, satisfied: false },
-    accessRevocation: { present: false, satisfied: false },
-    finalSettlement: { present: false, satisfied: false },
-    evidenceArchive: { present: false, satisfied: false },
-  };
-
-  for (const checkpoint of Object.keys(OFFBOARDING_CHECKPOINTS) as OffboardingCheckpointKey[]) {
-    const matchingTasks = tasks.filter((task) => taskMatchesKeywords(task, OFFBOARDING_CHECKPOINTS[checkpoint]));
-    if (matchingTasks.length === 0) continue;
-    state[checkpoint].present = true;
-    state[checkpoint].satisfied = matchingTasks.some((task) => task.status === OnboardingTaskStatus.COMPLETED);
-  }
-  return state;
-}
-
-export function getUnsatisfiedOffboardingCheckpoints(tasks: TaskShape[]): OffboardingCheckpointKey[] {
-  const state = deriveOffboardingCheckpointState(tasks);
-  return (Object.keys(state) as OffboardingCheckpointKey[]).filter((checkpoint) => {
-    const item = state[checkpoint];
-    return item.present && !item.satisfied;
-  });
-}
 
 export function getTaskDependencyBlocker(params: {
   workflowType: WorkflowType;
@@ -194,10 +173,15 @@ export async function refreshWorkflowTaskSLAs(workflowId: string, now = new Date
   return { overdueMarked: overdueTaskIds.length, escalated };
 }
 
-async function selectDefaultTemplate(employeeId: string, type: WorkflowType, tx: Prisma.TransactionClient) {
+async function selectDefaultTemplate(
+  employeeId: string,
+  type: WorkflowType,
+  tx: Prisma.TransactionClient,
+  organizationId?: string,
+) {
   const employee = await tx.employee.findUnique({
     where: { id: employeeId },
-    select: { jobTitle: true, department: { select: { name: true } } },
+    select: { jobTitle: true, organizationId: true, department: { select: { name: true } } },
   });
   if (!employee) return null;
 
@@ -206,7 +190,12 @@ async function selectDefaultTemplate(employeeId: string, type: WorkflowType, tx:
     departmentName: employee.department?.name,
   });
 
-  const baseWhere: Prisma.OnboardingTemplateWhereInput = { type, isDefault: true };
+  const orgId = organizationId ?? employee.organizationId;
+  const baseWhere: Prisma.OnboardingTemplateWhereInput = {
+    type,
+    isDefault: true,
+    ...(orgId ? { organizationId: orgId } : {}),
+  };
   if (type === WorkflowType.ONBOARDING) {
     const preferredName = clinical ? 'clinical' : 'non-clinical';
     const preferred = await tx.onboardingTemplate.findFirst({
@@ -222,13 +211,17 @@ async function selectDefaultTemplate(employeeId: string, type: WorkflowType, tx:
   });
 }
 
-export async function startWorkflowForEmployee(params: { employeeId: string; type: WorkflowType }) {
-  const { employeeId, type } = params;
+export async function startWorkflowForEmployee(params: {
+  employeeId: string;
+  type: WorkflowType;
+  templateId?: string;
+}) {
+  const { employeeId, type, templateId } = params;
 
   const result = await prisma.$transaction(async (tx) => {
     const employee = await tx.employee.findUnique({
       where: { id: employeeId },
-      select: { id: true, firstName: true, lastName: true },
+      select: { id: true, firstName: true, lastName: true, organizationId: true },
     });
     if (!employee) return null;
 
@@ -238,16 +231,28 @@ export async function startWorkflowForEmployee(params: { employeeId: string; typ
     });
     if (existing) return { employee, workflow: existing, created: false };
 
-    const template = await selectDefaultTemplate(employeeId, type, tx);
+    const template = templateId
+      ? await tx.onboardingTemplate.findFirst({
+          where: { id: templateId, type, organizationId: employee.organizationId },
+          include: { steps: { orderBy: { order: 'asc' } } },
+        })
+      : await selectDefaultTemplate(employeeId, type, tx, employee.organizationId);
     if (!template) return null;
 
     const workflow = await tx.onboardingWorkflow.create({
-      data: { employeeId, templateId: template.id, type, status: WorkflowStatus.IN_PROGRESS },
+      data: {
+        organizationId: employee.organizationId,
+        employeeId,
+        templateId: template.id,
+        type,
+        status: WorkflowStatus.IN_PROGRESS,
+      },
     });
 
     if (template.steps.length > 0) {
       await tx.onboardingTask.createMany({
         data: template.steps.map((step) => ({
+          organizationId: employee.organizationId,
           workflowId: workflow.id,
           title: step.title,
           description: step.description,

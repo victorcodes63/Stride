@@ -10,6 +10,10 @@ import {
   type DashboardModuleDomain,
 } from '@/lib/dashboard-module-domains';
 import { domainReadinessDotClass } from '@/lib/dashboard-nav-readiness';
+import {
+  useWorkspaceControl,
+  WorkspaceAnchoredPopover,
+} from '@/components/dashboard/WorkspaceControlContext';
 
 function DomainReadinessDot({ readiness }: { readiness: DashboardModuleDomain['readiness'] }) {
   return (
@@ -20,20 +24,36 @@ function DomainReadinessDot({ readiness }: { readiness: DashboardModuleDomain['r
   );
 }
 
-export function DashboardModuleSwitcher() {
+type Props = {
+  /** When true, omits outer border for use inside a grouped workspace control. */
+  embedded?: boolean;
+};
+
+export function DashboardModuleSwitcher({ embedded = false }: Props) {
   const { activeDomain, setActiveDomainId } = useDashboardDomain();
   const { orderedDomains } = useDashboardModuleOrder();
-  const [open, setOpen] = useState(false);
+  const workspace = useWorkspaceControl();
+  const [localOpen, setLocalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const CurrentIcon = activeDomain.icon;
+
+  const open = embedded && workspace ? workspace.openPanel === 'module' : localOpen;
+
+  const setOpen = (next: boolean) => {
+    if (embedded && workspace) {
+      workspace.setOpenPanel(next ? 'module' : null);
+      return;
+    }
+    setLocalOpen(next);
+  };
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || embedded) return;
     function onClickOutside(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         setOpen(false);
@@ -41,14 +61,31 @@ export function DashboardModuleSwitcher() {
     }
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [open]);
+  }, [open, embedded]);
+
+  useEffect(() => {
+    if (!open || !embedded) return;
+    function onClickOutside(event: MouseEvent) {
+      const root = workspace?.rootRef.current;
+      const target = event.target as Node;
+      if (root && !root.contains(target)) {
+        const popover = document.getElementById('workspace-popover-module');
+        if (popover && popover.contains(target)) return;
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [open, embedded, workspace?.rootRef]);
 
   return (
-    <div className="relative shrink-0" ref={ref}>
+    <div className={`relative shrink-0 ${embedded ? 'min-w-0 flex-1' : ''}`} ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="dash-select-trigger flex h-9 max-w-[10.5rem] items-center gap-2 rounded-lg border px-2.5 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 sm:max-w-[11.5rem] lg:max-w-[13rem]"
+        onClick={() => setOpen(!open)}
+        className={`dash-select-trigger flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
+          embedded ? 'max-w-none border-0 rounded-none shadow-none' : 'max-w-[10.5rem] border sm:max-w-[11.5rem] lg:max-w-[13rem]'
+        }`}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label="Switch module"
@@ -61,12 +98,19 @@ export function DashboardModuleSwitcher() {
       </button>
 
       {open ? (
-        <div
-          className="dash-popover absolute left-0 top-full z-30 mt-1.5 w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border py-1"
-          role="listbox"
-          aria-label="Product modules"
+        <WorkspaceAnchoredPopover
+          open={open}
+          embedded={embedded}
+          className={`dash-popover overflow-hidden rounded-xl border py-1 ${
+            embedded ? '' : 'absolute left-0 top-full z-40 mt-1.5 w-[min(100vw-2rem,20rem)]'
+          }`}
         >
-          <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          <div
+            id={embedded ? 'workspace-popover-module' : undefined}
+            role="listbox"
+            aria-label="Product modules"
+          >
+          <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--dash-text-faint)]">
             Switch module
           </p>
           {orderedDomains.map((domain) => {
@@ -75,12 +119,12 @@ export function DashboardModuleSwitcher() {
             const locked = domain.access === 'locked';
             const content = (
               <>
-                <span className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${locked ? 'bg-neutral-50 opacity-60' : 'bg-neutral-100'}`}>
-                  <Icon className="h-4 w-4 text-neutral-600" strokeWidth={1.75} />
+                <span className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${locked ? 'bg-[var(--dash-surface-muted)] opacity-60' : 'bg-[var(--dash-surface-raised)]'}`}>
+                  <Icon className="h-4 w-4 text-[var(--dash-text-muted)]" strokeWidth={1.75} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
-                    <span className={`truncate text-sm font-medium ${isActive ? 'text-primary-800' : locked ? 'text-neutral-400' : 'text-ink'}`}>
+                    <span className={`truncate text-sm font-medium ${isActive ? 'text-primary-800' : locked ? 'text-neutral-400' : 'text-[var(--dash-text-strong)]'}`}>
                       {domain.shortLabel}
                     </span>
                     <DomainReadinessDot readiness={domain.readiness} />
@@ -90,7 +134,7 @@ export function DashboardModuleSwitcher() {
                       </span>
                     ) : null}
                   </span>
-                  <span className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-neutral-500">
+                  <span className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-[var(--dash-text-muted)]">
                     {domain.description}
                   </span>
                 </span>
@@ -135,10 +179,11 @@ export function DashboardModuleSwitcher() {
             >
               Customize order…
             </Link>
-            <span className="text-neutral-400"> · </span>
+            <span className="text-[var(--dash-text-faint)]"> · </span>
             Sidebar shows pages for the selected module. Use ⌘K to jump anywhere.
           </div>
-        </div>
+          </div>
+        </WorkspaceAnchoredPopover>
       ) : null}
     </div>
   );

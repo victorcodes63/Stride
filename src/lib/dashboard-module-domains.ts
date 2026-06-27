@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   ShoppingCart,
+  Truck,
   Users,
 } from 'lucide-react';
 import type { DashboardNavItem, DashboardNavSection } from '@/lib/dashboard-nav-catalog';
@@ -24,6 +25,7 @@ export type DashboardModuleDomainId =
   | 'procurement'
   | 'legal-documents'
   | 'projects'
+  | 'fleet-logistics'
   | 'admin-operations';
 
 export type DomainRollupReadiness = 'live' | 'partial' | 'planned';
@@ -50,7 +52,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     description: 'People, leave, time, payroll, recruitment, ESS, and training.',
     hubHref: '/dashboard/people',
     sectionIds: ['people-hr', 'recruitment', 'time-attendance', 'payroll', 'employee-self-service', 'development'],
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     id: 'finance',
@@ -93,11 +95,22 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     readiness: 'planned',
   },
   {
+    id: 'fleet-logistics',
+    marketingLabel: '06 — Fleet & Logistics',
+    shortLabel: 'Fleet',
+    icon: Truck,
+    description:
+      'Transport orders, trip dispatch, telematics, compliance, settlements, and client billing — Kenya-ready.',
+    hubHref: '/dashboard/fleet',
+    sectionIds: ['fleet-operations', 'fleet-monitoring', 'fleet-assets', 'fleet-commercial'],
+    readiness: 'partial',
+  },
+  {
     id: 'admin-operations',
-    marketingLabel: '06 — Admin & Operations',
+    marketingLabel: '07 — Admin & Operations',
     shortLabel: 'Admin',
     icon: LayoutGrid,
-    description: 'Fleet, assets, HSE, communications, reports, and system admin.',
+    description: 'Assets, HSE, communications, reports, and system admin.',
     hubHref: '/dashboard/operations',
     sectionIds: ['operations', 'communications-insight', 'admin'],
     readiness: 'partial',
@@ -144,10 +157,10 @@ export function resolveDomainForPath(pathname: string): DashboardModuleDomainId 
   if (path.startsWith('/dashboard/procurement')) return 'procurement';
   if (path.startsWith('/dashboard/legal')) return 'legal-documents';
   if (path.startsWith('/dashboard/projects')) return 'projects';
+  if (path.startsWith('/dashboard/fleet')) return 'fleet-logistics';
   if (path.startsWith('/dashboard/operations')) return 'admin-operations';
 
   if (
-    path.startsWith('/dashboard/fleet') ||
     path.startsWith('/dashboard/assets') ||
     path.startsWith('/dashboard/hse') ||
     path.startsWith('/dashboard/announcements') ||
@@ -202,7 +215,8 @@ export const DOMAIN_REQUIRED_MODULES: Record<DashboardModuleDomainId, ModuleKey[
   procurement: ['procurement'],
   'legal-documents': ['legal', 'documents'],
   projects: ['core'],
-  'admin-operations': ['fleet', 'assets', 'reports', 'communications'],
+  'fleet-logistics': ['fleet'],
+  'admin-operations': ['assets', 'reports', 'communications'],
 };
 
 export type DomainAccessState = 'active' | 'locked';
@@ -212,7 +226,9 @@ export function resolveDomainAccess(
   modules: Record<ModuleKey, boolean>,
   tier: DeploymentTier,
 ): DomainAccessState {
-  if (domainId === 'hr-payroll' || domainId === 'finance') return 'active';
+  if (domainId === 'hr-payroll' || domainId === 'finance' || domainId === 'fleet-logistics') {
+    return 'active';
+  }
 
   if (domainId === 'admin-operations' && !verticalAllowedOnTier(tier)) {
     const anyVertical = DOMAIN_REQUIRED_MODULES['admin-operations'].some(

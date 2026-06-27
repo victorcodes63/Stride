@@ -58,18 +58,21 @@ export async function GET(request: NextRequest) {
 
     // No joins to Client / OutsourcingClient: list uses denormalised `name` from billing row (sync updates it).
     const rows = await prisma.accountsClient.findMany({
-      where: activeEntity
-        ? {
-            OR: [
-              { type: 'custom' },
-              { type: 'recruitment' },
-              {
-                type: 'outsourcing',
-                outsourcingClient: { entityCode: activeEntity },
-              },
-            ],
-          }
-        : undefined,
+      where: {
+        organizationId: user.currentOrgId,
+        ...(activeEntity
+          ? {
+              OR: [
+                { type: 'custom' },
+                { type: 'recruitment' },
+                {
+                  type: 'outsourcing',
+                  outsourcingClient: { entityCode: activeEntity },
+                },
+              ],
+            }
+          : {}),
+      },
       select: {
         id: true,
         type: true,

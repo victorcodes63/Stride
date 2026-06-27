@@ -22,6 +22,7 @@ import {
  DashboardPageSkeleton,
 } from '@/components/dashboard/DashboardAsyncState';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
 import EmployeeDirectoryTable from '@/components/dashboard/EmployeeDirectoryTable';
 
 interface EmployeeRecord {
@@ -415,7 +416,7 @@ function EmployeesPageInner() {
  >
  <MoreHorizontal className="h-4 w-4" />
  Import / export
- <ChevronDown className="h-4 w-4 text-neutral-400" />
+ <ChevronDown className="h-4 w-4 text-[var(--dash-text-faint)]" />
  </button>
  {importMenuOpen ? (
  <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden dashboard-surface rounded-lg py-1 shadow-lg">
@@ -425,9 +426,9 @@ function EmployeesPageInner() {
  handleDownloadTemplate();
  setImportMenuOpen(false);
  }}
- className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-neutral-800"
+ className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--dash-text-body)] hover:bg-[var(--dash-hover)]"
  >
- <Download className="h-4 w-4 text-neutral-400" />
+ <Download className="h-4 w-4 text-[var(--dash-text-faint)]" />
  Download template
  </button>
  <button
@@ -437,9 +438,9 @@ function EmployeesPageInner() {
  setImportMenuOpen(false);
  }}
  disabled={importing}
- className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 dark:text-neutral-200 dark:hover:bg-neutral-800"
+ className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--dash-text-body)] hover:bg-[var(--dash-hover)] disabled:opacity-50"
  >
- <Upload className="h-4 w-4 text-neutral-400" />
+ <Upload className="h-4 w-4 text-[var(--dash-text-faint)]" />
  {importing ? 'Importing…' : 'Import Excel'}
  </button>
  </div>
@@ -511,23 +512,24 @@ function EmployeesPageInner() {
  </DashboardStatGrid>
 
  <div className="overflow-hidden dashboard-surface shadow-sm">
- <div className="space-y-4 border-b border-neutral-100 p-4 md:p-5">
+ <DashboardTableToolbar>
+ <div className="space-y-4">
  <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
  <div className="relative lg:col-span-3">
- <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+ <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dash-text-faint)]" />
  <input
  type="search"
  placeholder="Search name, email, EMP no…"
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
- className="h-10 w-full rounded-lg border border-neutral-200/80 bg-white/90 pl-9 pr-3 text-sm text-ink placeholder:text-neutral-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+ className="h-10 w-full rounded-lg border border-neutral-200/80 bg-white/90 pl-9 pr-3 text-sm text-ink placeholder:text-neutral-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-700 dark:bg-neutral-900/80"
  />
  </div>
  {clients.length > 1 ? (
  <select
  value={clientFilter}
  onChange={(e) => setClientFilter(e.target.value)}
- className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2"
+ className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2 dark:border-neutral-700 dark:bg-neutral-900/80"
  >
  <option value="">All clients</option>
  {clients.map((client) => (
@@ -540,7 +542,7 @@ function EmployeesPageInner() {
  <select
  value={departmentFilter}
  onChange={(e) => setDepartmentFilter(e.target.value)}
- className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2"
+ className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2 dark:border-neutral-700 dark:bg-neutral-900/80"
  >
  <option value="">All departments</option>
  {departments.map((dept) => (
@@ -552,7 +554,7 @@ function EmployeesPageInner() {
  <select
  value={positionFilter}
  onChange={(e) => setPositionFilter(e.target.value)}
- className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2"
+ className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2 dark:border-neutral-700 dark:bg-neutral-900/80"
  >
  <option value="">All positions</option>
  {uniquePositions.map((position) => (
@@ -564,7 +566,7 @@ function EmployeesPageInner() {
  <select
  value={presetFilter}
  onChange={(e) => setPresetFilter(e.target.value)}
- className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2"
+ className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2 dark:border-neutral-700 dark:bg-neutral-900/80"
  >
  <option value="all">All records</option>
  <option value="incomplete_profile">Incomplete profiles</option>
@@ -574,13 +576,11 @@ function EmployeesPageInner() {
  <option value="suspended">Suspended</option>
  </select>
  </div>
-
  <div className="flex flex-wrap items-center justify-between gap-3">
- <p className="text-sm text-neutral-500">
+ <p className="text-sm text-[var(--dash-text-muted)]">
  Showing <span className="font-medium text-ink tabular-nums">{filteredEmployees.length}</span> of{' '}
  <span className="tabular-nums">{employees.length}</span>
  </p>
- <div className="flex flex-wrap items-center gap-2">
  {hasActiveFilters ? (
  <button type="button" onClick={clearFilters} className="btn-secondary inline-flex items-center gap-1.5">
  <X className="h-3.5 w-3.5" />
@@ -589,7 +589,7 @@ function EmployeesPageInner() {
  ) : null}
  </div>
  </div>
- </div>
+ </DashboardTableToolbar>
 
  {selectedIds.size > 0 ? (
  <div className="border-b border-neutral-100 bg-neutral-50/90 px-4 py-4 md:px-5">

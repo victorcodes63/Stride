@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssAlert, EssCard, EssEmptyState, EssListItem, essInputClass, essPrimaryButtonClass } from '@/components/ess/EssUi';
@@ -79,13 +80,14 @@ export default function EssGrievancesPage() {
       </EssCard>
       <section className="space-y-2">
         {items.map((item) => (
-          <EssListItem
-            key={item.id}
-            title={item.subject}
-            subtitle={`${item.grievanceNumber} · ${item.category.replaceAll('_', ' ')}`}
-            meta={new Date(item.submittedAt).toLocaleDateString()}
-            trailing={<EssStatusPill status={item.status} />}
-          />
+          <Link key={item.id} href={`/ess/grievances/${item.id}`}>
+            <EssListItem
+              title={item.subject}
+              subtitle={`${item.grievanceNumber} · ${item.category.replaceAll('_', ' ')}`}
+              meta={new Date(item.submittedAt).toLocaleDateString()}
+              trailing={<EssStatusPill status={item.status} />}
+            />
+          </Link>
         ))}
         {!items.length ? (
           <EssEmptyState title="No grievances submitted" message="Cases you raise will appear here with their review status." />

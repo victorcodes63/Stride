@@ -1,40 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { forbiddenResponse } from '@/lib/demo-route-access';
+import { withTenant } from '@/lib/tenant-api';
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id: clientId } = await params;
-  if (!clientId) return NextResponse.json({ error: 'Client id required' }, { status: 400 });
+type RouteContext = { params: Promise<{ id: string }> };
 
-  try {
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json([], { status: 200 });
-    }
-    const departments = await prisma.department.findMany({
-      where: { outsourcingClientId: clientId },
-      orderBy: { name: 'asc' },
-      include: { _count: { select: { employees: true } } },
-    });
-    return NextResponse.json(
-      departments.map((d) => ({
-        id: d.id,
-        name: d.name,
-        employeeCount: d._count.employees,
-      }))
-    );
-  } catch (e) {
-    console.error('[departments GET]', e);
-    return NextResponse.json({ error: 'Failed to load departments' }, { status: 500 });
-  }
+async function assertClientInOrg(clientId: string, organizationId: string) {
+  return prisma.outsourcingClient.findFirst({
+    where: { id: clientId, organizationId },
+    select: { id: true },
+  });
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id: clientId } = await params;
+export async function GET(_request: NextRequest, context: RouteContext) {
+  const { id: clientId } = await context.params;
+  if (!clientId) return NextResponse.json({ error: 'Client id required' }, { status: 400 });
+
+  return withTenant(_request, async (ctx) => {
+    try {
+      if (!process.env.DATABASE_URL) {
+        return NextResponse.json([], { status: 200 });
+      }
+
+      const client = await ctx.run((tx) =>
+        tx.outsourcingClient.findFirst({
+          where: { id: clientId, organizationId: ctx.organizationId },
+          select: { id: true },
+        }),
+      );
+      if (!client) {
+        return forbiddenResponse('Client not found for this organization.');
+      }
+
+      const departments = await ctx.run((tx) =>
+        tx.department.findMany({
+          where: {
+            organizationId: ctx.organizationId,
+            outsourcingClientId: clientId,
+          },
+          orderBy: { name: 'asc' },
+          include: { _count: { select: { employees: true } } },
+        }),
+      );
+
+      return NextResponse.json(
+        departments.map((d) => ({
+          id: d.id,
+          name: d.name,
+          employeeCount: d._count.employees,
+        })),
+      );
+    } catch (e) {
+      console.error('[departments GET]', e);
+      return NextResponse.json({ error: 'Failed to load departments' }, { status: 500 });
+    }
+  });
+}
+
+export async function POST(request: NextRequest, context: RouteContext) {
+  const { id: clientId } = await context.params;
   if (!clientId) return NextResponse.json({ error: 'Client id required' }, { status: 400 });
 
   let body: unknown;
@@ -43,28 +67,42 @@ export async function POST(
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
-  const name = typeof (body as { name?: string }).name === 'string'
-    ? (body as { name: string }).name.trim()
-    : '';
+  const name =
+    typeof (body as { name?: string }).name === 'string' ? (body as { name: string }).name.trim() : '';
   if (!name) {
     return NextResponse.json({ error: 'Department name is required.' }, { status: 400 });
   }
 
-  try {
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+  return withTenant(request, async (ctx) => {
+    try {
+      if (!process.env.DATABASE_URL) {
+        return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+      }
+
+      const client = await assertClientInOrg(clientId, ctx.organizationId);
+      if (!client) {
+        return forbiddenResponse('Client not found for this organization.');
+      }
+
+      const department = await ctx.run((tx) =>
+        tx.department.create({
+          data: {
+            organizationId: ctx.organizationId,
+            outsourcingClientId: clientId,
+            name,
+          },
+          include: { _count: { select: { employees: true } } },
+        }),
+      );
+
+      return NextResponse.json({
+        id: department.id,
+        name: department.name,
+        employeeCount: department._count.employees,
+      });
+    } catch (e) {
+      console.error('[departments POST]', e);
+      return NextResponse.json({ error: 'Failed to create department' }, { status: 500 });
     }
-    const department = await prisma.department.create({
-      data: { outsourcingClientId: clientId, name },
-      include: { _count: { select: { employees: true } } },
-    });
-    return NextResponse.json({
-      id: department.id,
-      name: department.name,
-      employeeCount: department._count.employees,
-    });
-  } catch (e) {
-    console.error('[departments POST]', e);
-    return NextResponse.json({ error: 'Failed to create department' }, { status: 500 });
-  }
+  });
 }

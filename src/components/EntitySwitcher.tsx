@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { ChevronDown, Building2, Loader2 } from 'lucide-react';
 import { HRIS_ENTITY_COOKIE } from '@/lib/entity-constants';
 import { parseVerticalShowcasePackFromEntitySlug } from '@/lib/operating-entities';
+import {
+  useWorkspaceControl,
+  WorkspaceAnchoredPopover,
+} from '@/components/dashboard/WorkspaceControlContext';
 
 export type Entity = {
   id: string;
@@ -182,9 +186,54 @@ export function useEntity() {
   return useContext(EntityContext);
 }
 
-export function EntitySwitcher({ variant = 'default' }: { variant?: 'default' | 'topbar' }) {
+export function EntitySwitcher({
+  variant = 'default',
+  embedded = false,
+}: {
+  variant?: 'default' | 'topbar';
+  embedded?: boolean;
+}) {
   const { activeEntity, entities, showSwitcher, loading, setActiveEntity } = useEntity();
-  const [open, setOpen] = useState(false);
+  const workspace = useWorkspaceControl();
+  const [localOpen, setLocalOpen] = useState(false);
+
+  const open = embedded && workspace ? workspace.openPanel === 'entity' : localOpen;
+
+  const setOpen = (next: boolean) => {
+    if (embedded && workspace) {
+      workspace.setOpenPanel(next ? 'entity' : null);
+      return;
+    }
+    setLocalOpen(next);
+  };
+
+  useEffect(() => {
+    if (!open || embedded) return;
+    function onClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      const trigger = document.getElementById('entity-switcher-trigger');
+      if (trigger && !trigger.contains(target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [open, embedded]);
+
+  useEffect(() => {
+    if (!open || !embedded) return;
+    function onClickOutside(event: MouseEvent) {
+      const root = workspace?.rootRef.current;
+      const target = event.target as Node;
+      if (root && !root.contains(target)) {
+        const popover = document.getElementById('workspace-popover-entity');
+        if (popover && popover.contains(target)) return;
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [open, embedded, workspace?.rootRef]);
 
   if (loading) {
     if (variant === 'topbar') return null;
@@ -202,14 +251,17 @@ export function EntitySwitcher({ variant = 'default' }: { variant?: 'default' | 
 
   const isTopbar = variant === 'topbar';
   const triggerClass = isTopbar
-    ? 'dash-select-trigger flex h-9 max-w-[11rem] items-center gap-1.5 rounded-lg border px-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 sm:max-w-[13rem] lg:max-w-[15rem] lg:px-2.5'
+    ? `dash-select-trigger flex h-9 w-full items-center gap-1.5 rounded-lg px-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 lg:px-2.5 ${
+        embedded ? 'max-w-none border-0 rounded-none shadow-none' : 'max-w-[11rem] border sm:max-w-[13rem] lg:max-w-[15rem]'
+      }`
     : 'dash-select-trigger flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm transition-colors';
 
   return (
-    <div className="relative">
+    <div className={`relative ${embedded ? 'min-w-0 flex-1' : ''}`}>
       <button
+        id={embedded ? 'entity-switcher-trigger' : undefined}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(!open)}
         className={triggerClass}
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -245,19 +297,28 @@ export function EntitySwitcher({ variant = 'default' }: { variant?: 'default' | 
         />
       </button>
 
-      {open && (
+      {open ? (
         <>
-          <div className="fixed inset-0 z-10 bg-black/5" aria-hidden onClick={() => setOpen(false)} />
-          <div
-            className="dash-popover absolute right-0 top-full z-20 mt-1.5 w-64 overflow-hidden rounded-xl border"
-            role="listbox"
-            aria-label="Switch entity"
+          {!embedded ? (
+            <div className="fixed inset-0 z-[35] bg-black/5" aria-hidden onClick={() => setOpen(false)} />
+          ) : null}
+          <WorkspaceAnchoredPopover
+            open={open}
+            embedded={embedded}
+            className={`dash-popover overflow-hidden rounded-xl border ${
+              embedded ? '' : 'absolute right-0 top-full z-40 mt-1.5 w-64'
+            }`}
           >
+            <div
+              id={embedded ? 'workspace-popover-entity' : undefined}
+              role="listbox"
+              aria-label="Switch entity"
+            >
             <div className="dash-popover-header border-b px-3 py-2">
-              <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider">
+              <p className="text-xs text-[var(--dash-text-muted)] font-medium uppercase tracking-wider">
                 Switch company context
               </p>
-              <p className="mt-0.5 text-[10px] text-neutral-400">Switch operating entity</p>
+              <p className="mt-0.5 text-[10px] text-[var(--dash-text-faint)]">Switch operating entity</p>
             </div>
             {entities.map((entity) => (
               <button
@@ -276,20 +337,20 @@ export function EntitySwitcher({ variant = 'default' }: { variant?: 'default' | 
                 }`}
               >
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-raised)]"
                   aria-hidden
                 >
-                  <Building2 className="h-4 w-4 text-neutral-500" />
+                  <Building2 className="h-4 w-4 text-[var(--dash-text-muted)]" />
                 </span>
                 <div className="flex-1 min-w-0">
                   <p
                     className={`text-sm font-medium truncate ${
-                      activeEntity.id === entity.id ? 'text-primary-800' : 'text-ink'
+                      activeEntity.id === entity.id ? 'text-primary-800' : 'text-[var(--dash-text-strong)]'
                     }`}
                   >
                     {entity.name}
                   </p>
-                  <p className="text-xs text-neutral-500 truncate">
+                  <p className="text-xs text-[var(--dash-text-muted)] truncate">
                     {entity.sector ?? entity.country} · {entity.currency}
                   </p>
                 </div>
@@ -298,9 +359,10 @@ export function EntitySwitcher({ variant = 'default' }: { variant?: 'default' | 
                 )}
               </button>
             ))}
-          </div>
+            </div>
+          </WorkspaceAnchoredPopover>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

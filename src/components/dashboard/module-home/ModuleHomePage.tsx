@@ -96,7 +96,6 @@ export function ModuleHomePage({ meta, stats = [], loading = false, headerAction
   return (
     <DashboardPage>
       <DashboardPageHeader
-        variant="hero"
         eyebrow={meta.eyebrow}
         title={meta.title}
         description={meta.description}
@@ -104,7 +103,7 @@ export function ModuleHomePage({ meta, stats = [], loading = false, headerAction
         badges={[
           {
             bare: true,
-            label: <NavReadinessBadge readiness={domainReadinessToNav(domain.readiness)} hero />,
+            label: <NavReadinessBadge readiness={domainReadinessToNav(domain.readiness)} />,
           },
         ]}
       />

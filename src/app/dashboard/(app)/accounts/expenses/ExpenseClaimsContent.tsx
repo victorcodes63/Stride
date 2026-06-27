@@ -5,6 +5,8 @@ import { Receipt, Loader2, AlertCircle, Plus, CheckCircle, XCircle, Clock, Bankn
 import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { dashboardFilterInputClass } from '@/components/dashboard/DashboardFilterBar';
 
 type ClaimRow = {
  id: string;
@@ -136,23 +138,12 @@ export default function ExpenseClaimsContent() {
  />
 
  {stats && (
- <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
- {[
- { label: 'Total claims', value: stats.total, icon: Receipt, color: 'text-primary-900' },
- { label: 'Pending review', value: stats.pending, icon: Clock, color: 'text-blue-700' },
- { label: 'Approved', value: stats.approved, icon: CheckCircle, color: 'text-emerald-700' },
- { label: 'Total value', value: fmtMoney(stats.totalAmount), icon: Banknote, color: 'text-primary-900' },
- ].map((s, i) => (
- <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
- className="dashboard-stat-card">
- <div className="inline-flex rounded-lg p-2 mb-2 bg-primary-50 text-primary-700">
- <s.icon className="w-4 h-4" />
- </div>
- <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-0.5">{s.label}</p>
- <p className={`text-xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
- </motion.div>
- ))}
- </div>
+ <DashboardStatGrid columns={4} className="mb-6 gap-3">
+ <DashboardMetricCard label="Total claims" value={stats.total} hint="All periods" icon={Receipt} tone="primary" />
+ <DashboardMetricCard label="Pending review" value={stats.pending} hint="Awaiting approval" icon={Clock} tone="amber" />
+ <DashboardMetricCard label="Approved" value={stats.approved} hint="Ready to reimburse" icon={CheckCircle} tone="emerald" />
+ <DashboardMetricCard label="Total value" value={fmtMoney(stats.totalAmount)} hint="Claim amounts" icon={Banknote} tone="violet" />
+ </DashboardStatGrid>
  )}
 
  {showForm && (

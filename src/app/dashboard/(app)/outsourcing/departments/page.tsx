@@ -234,9 +234,9 @@ function DepartmentsPageInner() {
             No departments match &quot;{searchQuery.trim()}&quot;.
           </p>
         ) : (
-          <ul className="divide-y divide-neutral-100 border-t border-neutral-100">
+          <ul className="divide-y divide-[var(--dash-border-subtle)] border-t border-[var(--dash-border-subtle)]">
             {filteredDepartments.map((dept) => (
-              <li key={dept.id} className="group px-4 py-3 transition-colors hover:bg-neutral-50/60 md:px-5">
+              <li key={dept.id} className="group px-4 py-3 transition-colors hover:bg-[var(--dash-hover)] md:px-5">
                 {editingId === dept.id ? (
                   <div className="flex flex-1 flex-wrap items-center gap-2">
                     <input
@@ -260,14 +260,14 @@ function DepartmentsPageInner() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ring-1 ring-inset ${dashboardAvatarClass(dept.name)}`}
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ${dashboardAvatarClass(dept.name)}`}
                       >
                         {dashboardDeptInitials(dept.name)}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-medium text-ink">{dept.name}</p>
-                        <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
-                          <Users className="h-3.5 w-3.5 shrink-0" />
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-[var(--dash-text-muted)]">
+                          <Users className="dash-table-meta-icon h-3.5 w-3.5" />
                           {dept.employeeCount === 0 ? (
                             'No employees assigned'
                           ) : (
@@ -285,7 +285,7 @@ function DepartmentsPageInner() {
                           setEditingId(dept.id);
                           setEditName(dept.name);
                         }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-white hover:text-ink"
+                        className="dash-table-icon-btn"
                         aria-label={`Edit ${dept.name}`}
                       >
                         <Pencil className="h-4 w-4" />
@@ -294,7 +294,7 @@ function DepartmentsPageInner() {
                         type="button"
                         onClick={() => handleDelete(dept.id, dept.name)}
                         disabled={deletingId === dept.id}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                        className="dash-table-icon-btn dash-table-icon-btn--danger disabled:opacity-50"
                         aria-label={`Delete ${dept.name}`}
                       >
                         <Trash2 className="h-4 w-4" />

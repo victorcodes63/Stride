@@ -44,6 +44,7 @@ export type EmployeeDirectoryRecord = {
 const PAGE_SIZE = 25;
 
 import { dashboardAvatarClass, dashboardInitials } from '@/lib/dashboard-avatar-palette';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
 function employmentStatusLabel(status: string) {
   switch (status) {
@@ -63,15 +64,15 @@ function employmentStatusLabel(status: string) {
 function employmentStatusClass(status: string) {
   switch (status) {
     case 'probation':
-      return 'bg-amber-50 text-amber-800 ring-amber-200/70 dark:bg-amber-500/15 dark:text-amber-100 dark:ring-amber-500/30';
+      return dashStatusChip('warning');
     case 'on_leave':
-      return 'bg-sky-50 text-sky-800 ring-sky-200/70 dark:bg-sky-500/15 dark:text-sky-100 dark:ring-sky-500/30';
+      return dashStatusChip('info');
     case 'suspended':
-      return 'bg-red-50 text-red-800 ring-red-200/70 dark:bg-red-500/15 dark:text-red-100 dark:ring-red-500/30';
+      return dashStatusChip('danger');
     case 'terminated':
-      return 'bg-neutral-100 text-neutral-600 ring-neutral-200/70 dark:bg-neutral-500/15 dark:text-neutral-300 dark:ring-neutral-500/30';
+      return dashStatusChip('neutral');
     default:
-      return 'bg-emerald-50 text-emerald-800 ring-emerald-200/70 dark:bg-emerald-500/15 dark:text-emerald-100 dark:ring-emerald-500/30';
+      return dashStatusChip('success');
   }
 }
 
@@ -250,7 +251,7 @@ function ExpandedDetails({
               <span className="text-neutral-600">{field.key}</span>
               <span
                 className={`inline-flex h-5 min-w-[3.25rem] items-center justify-center rounded-full px-2 text-[11px] font-medium ${
-                  field.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'
+                  field.ok ? dashStatusChip('success') : dashStatusChip('warning')
                 }`}
               >
                 {field.ok ? 'Done' : 'Missing'}
@@ -376,7 +377,7 @@ export default function EmployeeDirectoryTable({
                       <button
                         type="button"
                         onClick={() => setExpandedId(expanded ? null : employee.id)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--dash-text-faint)] transition-colors hover:bg-[var(--dash-hover)] hover:text-[var(--dash-text-strong)]"
                         aria-expanded={expanded}
                         aria-label={expanded ? 'Hide details' : 'Show details'}
                       >
@@ -386,7 +387,7 @@ export default function EmployeeDirectoryTable({
                     <td className="col-primary px-3 py-3 align-middle">
                       <div className="flex min-w-0 items-center gap-3">
                         <div
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1 ring-inset ${palette}`}
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${palette}`}
                         >
                           {dashboardInitials(employee.firstName, employee.lastName)}
                         </div>
@@ -412,8 +413,8 @@ export default function EmployeeDirectoryTable({
                     {showClientColumn ? (
                       <td className="hidden px-3 py-3 align-middle md:table-cell">
                         {employee.clientName ? (
-                          <span className="inline-flex max-w-[160px] items-center gap-1 truncate rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700">
-                            <Building2 className="h-3 w-3 shrink-0 text-neutral-400" />
+                          <span className="dash-entity-chip">
+                            <Building2 className="dash-table-meta-icon h-3 w-3 shrink-0" />
                             <span className="truncate">{employee.clientName}</span>
                           </span>
                         ) : (
@@ -423,7 +424,7 @@ export default function EmployeeDirectoryTable({
                     ) : null}
                     <td className="px-3 py-3 align-middle">
                       <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${employmentStatusClass(employee.employmentStatus)}`}
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${employmentStatusClass(employee.employmentStatus)}`}
                       >
                         {employmentStatusLabel(employee.employmentStatus)}
                       </span>
@@ -449,7 +450,7 @@ export default function EmployeeDirectoryTable({
                           <a
                             href={`mailto:${employee.email}`}
                             title={employee.email}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-primary-50 hover:text-primary-700 dark:text-neutral-300 dark:hover:bg-primary-500/15 dark:hover:text-primary-100"
+                            className="dash-table-icon-btn"
                           >
                             <Mail className="h-4 w-4" />
                           </a>
@@ -462,7 +463,7 @@ export default function EmployeeDirectoryTable({
                           <a
                             href={`tel:${employee.phone}`}
                             title={employee.phone}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-primary-50 hover:text-primary-700 dark:text-neutral-300 dark:hover:bg-primary-500/15 dark:hover:text-primary-100"
+                            className="dash-table-icon-btn"
                           >
                             <Phone className="h-4 w-4" />
                           </a>

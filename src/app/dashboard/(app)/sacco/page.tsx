@@ -71,10 +71,7 @@ export default function SaccoOverviewPage() {
         title="Member operations"
         description="Member register, BOSA/FOSA ledger, dividend runs, and SASRA-aligned reporting."
         actions={
-          <Link
-            href="/dashboard/sacco/members"
-            className="inline-flex h-9 items-center rounded-md bg-primary-500 px-4 text-sm font-medium text-white hover:bg-primary-600"
-          >
+          <Link href="/dashboard/sacco/members" className="btn-primary inline-flex items-center gap-2">
             Manage members
           </Link>
         }

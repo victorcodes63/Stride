@@ -5,6 +5,7 @@ import { BarChart3, Loader2, AlertCircle, TrendingUp, TrendingDown, DollarSign, 
 import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 
 type FinancialReport = {
  year: number;
@@ -103,37 +104,19 @@ export default function FinancialReportsContent() {
 
  {!loading && !error && s && (
  <div className="space-y-6">
- <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
- {[
- { label: 'Total revenue', value: fmtMoney(s.totalRevenue), icon: TrendingUp, color: 'text-emerald-700', bg: 'bg-emerald-50 text-emerald-700' },
- { label: 'Total expenses', value: fmtMoney(s.totalExpenses), icon: TrendingDown, color: 'text-red-700', bg: 'bg-red-50 text-red-700' },
- { label: 'Net income', value: fmtMoney(s.netIncome), icon: DollarSign, color: s.netIncome >= 0 ? 'text-emerald-700' : 'text-red-700', bg: 'bg-primary-50 text-primary-700' },
- { label: 'Receivables', value: fmtMoney(s.outstandingReceivables), icon: ArrowUpRight, color: 'text-blue-700', bg: 'bg-blue-50 text-blue-700' },
- ].map((card, i) => (
- <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
- className="dashboard-stat-card">
- <div className={`inline-flex rounded-lg p-2 mb-2 ${card.bg}`}><card.icon className="w-4 h-4" /></div>
- <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-0.5">{card.label}</p>
- <p className={`text-lg font-bold tabular-nums ${card.color}`}>{card.value}</p>
- </motion.div>
- ))}
- </div>
+ <DashboardStatGrid columns={4} className="gap-3">
+ <DashboardMetricCard label="Total revenue" value={fmtMoney(s.totalRevenue)} icon={TrendingUp} tone="emerald" />
+ <DashboardMetricCard label="Total expenses" value={fmtMoney(s.totalExpenses)} icon={TrendingDown} tone="rose" />
+ <DashboardMetricCard label="Net income" value={fmtMoney(s.netIncome)} icon={DollarSign} tone={s.netIncome >= 0 ? 'emerald' : 'rose'} />
+ <DashboardMetricCard label="Receivables" value={fmtMoney(s.outstandingReceivables)} icon={ArrowUpRight} tone="primary" />
+ </DashboardStatGrid>
 
- <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
- {[
- { label: 'Payables', value: fmtMoney(s.outstandingPayables), icon: ArrowDownRight, color: 'text-amber-700', bg: 'bg-amber-50 text-amber-700' },
- { label: 'Cash received', value: fmtMoney(s.totalReceived), icon: DollarSign, color: 'text-emerald-700', bg: 'bg-emerald-50 text-emerald-700' },
- { label: 'Budget utilization', value: `${s.budgetUtilization}%`, icon: Target, color: s.budgetUtilization > 100 ? 'text-red-700' : 'text-primary-900', bg: 'bg-primary-50 text-primary-700' },
- { label: 'Expense claims', value: fmtMoney(s.expenseClaimsTotal), icon: PieChart, color: 'text-indigo-700', bg: 'bg-indigo-50 text-indigo-700' },
- ].map((card, i) => (
- <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 + i * 0.04 }}
- className="dashboard-stat-card">
- <div className={`inline-flex rounded-lg p-2 mb-2 ${card.bg}`}><card.icon className="w-4 h-4" /></div>
- <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-0.5">{card.label}</p>
- <p className={`text-lg font-bold tabular-nums ${card.color}`}>{card.value}</p>
- </motion.div>
- ))}
- </div>
+ <DashboardStatGrid columns={4} className="gap-3">
+ <DashboardMetricCard label="Payables" value={fmtMoney(s.outstandingPayables)} icon={ArrowDownRight} tone="amber" />
+ <DashboardMetricCard label="Cash received" value={fmtMoney(s.totalReceived)} icon={DollarSign} tone="emerald" />
+ <DashboardMetricCard label="Budget utilization" value={`${s.budgetUtilization}%`} icon={Target} tone={s.budgetUtilization > 100 ? 'rose' : 'violet'} />
+ <DashboardMetricCard label="Expense claims" value={fmtMoney(s.expenseClaimsTotal)} icon={PieChart} tone="primary" />
+ </DashboardStatGrid>
 
  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
  <div className="dashboard-surface p-5">

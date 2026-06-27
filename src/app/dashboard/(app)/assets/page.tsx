@@ -8,6 +8,7 @@ import {
  assetCategoryLabel,
  assetStatusLabel,
 } from '@/lib/asset-categories';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 import { DashboardAsyncState, DashboardInlineLoading } from '@/components/dashboard/DashboardAsyncState';
 import {
   DashboardTable,
@@ -79,17 +80,17 @@ const emptyForm = {
 function statusBadgeClass(status: string) {
  switch (status) {
  case 'available':
- return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+ return dashStatusChip('success');
  case 'assigned':
- return 'bg-sky-50 text-sky-800 border-sky-200';
+ return dashStatusChip('info');
  case 'maintenance':
- return 'bg-primary-50 text-primary-800 border-primary-200';
+ return dashStatusChip('primary');
  case 'retired':
- return 'bg-neutral-100 text-neutral-600 border-neutral-200';
+ return dashStatusChip('neutral');
  case 'lost':
- return 'bg-red-50 text-red-800 border-red-200';
+ return dashStatusChip('danger');
  default:
- return 'bg-neutral-50 text-neutral-700 border-neutral-200';
+ return dashStatusChip('neutral');
  }
 }
 
@@ -391,7 +392,7 @@ function AssetsPageContent() {
  <td className="px-4 py-3 text-neutral-600">{assetCategoryLabel(asset.category)}</td>
  <td className="col-center px-4 py-3">
  <span
- className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${statusBadgeClass(asset.status)}`}
+ className={`${statusBadgeClass(asset.status)}`}
  >
  {assetStatusLabel(asset.status)}
  </span>

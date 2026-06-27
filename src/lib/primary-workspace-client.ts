@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import type { NextRequest } from 'next/server';
+import { requireStaffUser } from '@/lib/staff-api-auth';
 import { getWorkspaceDefaults } from '@/lib/deployment-config';
 import { resolveEntityIdOrDefault } from '@/lib/entity-request';
 import { getActiveEntities, loadOperatingEntitiesSettings } from '@/lib/operating-entities';
@@ -17,12 +18,15 @@ export async function getOrCreatePrimaryWorkspaceClient(
   const settings = await loadOperatingEntitiesSettings();
   const defaultEntity = settings.defaultEntityId;
   const existing = await db.outsourcingClient.findFirst({
-    where: { entityCode: defaultEntity },
+    where: { organizationId, entityCode: defaultEntity },
     orderBy: { createdAt: 'asc' },
   });
   if (existing) return existing;
 
-  const anyClient = await db.outsourcingClient.findFirst({ orderBy: { createdAt: 'asc' } });
+  const anyClient = await db.outsourcingClient.findFirst({
+    where: { organizationId },
+    orderBy: { createdAt: 'asc' },
+  });
   if (anyClient) return anyClient;
 
   const defaults = getWorkspaceDefaults();
@@ -47,12 +51,20 @@ export async function resolvePrimaryWorkspaceClientId(
   organizationId?: string,
 ) {
   const requested = requestedClientId?.trim();
+  let orgId = organizationId;
+  if (!orgId && request) {
+    const staff = await requireStaffUser(request as NextRequest);
+    orgId = staff?.currentOrgId;
+  }
+  if (!orgId) {
+    throw new Error('organizationId is required to resolve the primary workspace client.');
+  }
   if (request) {
     const entityId = await resolveEntityIdOrDefault(request);
     if (entityId) {
       if (requested) {
         const scoped = await db.outsourcingClient.findFirst({
-          where: { id: requested, entityCode: entityId },
+          where: { id: requested, organizationId: orgId, entityCode: entityId },
           select: { id: true },
         });
         if (!scoped) {
@@ -61,19 +73,14 @@ export async function resolvePrimaryWorkspaceClientId(
         return scoped.id;
       }
       const row = await db.outsourcingClient.findFirst({
-        where: { entityCode: entityId },
+        where: { organizationId: orgId, entityCode: entityId },
         select: { id: true },
       });
       if (row) return row.id;
     }
   }
   if (requested) return requested;
-  if (!organizationId) {
-    const fallback = await db.outsourcingClient.findFirst({ orderBy: { createdAt: 'asc' } });
-    if (fallback) return fallback.id;
-    throw new Error('organizationId is required to resolve the primary workspace client.');
-  }
-  const workspace = await getOrCreatePrimaryWorkspaceClient(db, organizationId);
+  const workspace = await getOrCreatePrimaryWorkspaceClient(db, orgId);
   return workspace.id;
 }
 

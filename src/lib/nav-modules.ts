@@ -52,8 +52,16 @@ export function isDashboardNavItemVisible(
     return enabled.construction;
   }
 
+  if (
+    sectionId === 'fleet-operations' ||
+    sectionId === 'fleet-monitoring' ||
+    sectionId === 'fleet-assets' ||
+    sectionId === 'fleet-commercial'
+  ) {
+    return enabled.fleet;
+  }
+
   if (sectionId === 'operations') {
-    if (href.startsWith('/dashboard/fleet')) return enabled.fleet;
     if (href.startsWith('/dashboard/assets')) return enabled.assets;
     if (href.startsWith('/dashboard/hse')) return enabled.hse;
     return false;

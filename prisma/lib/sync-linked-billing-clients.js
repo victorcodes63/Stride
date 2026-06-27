@@ -31,6 +31,7 @@ async function syncLinkedBillingClients(prisma) {
           contactPhone: c.contactPhone,
           type: 'recruitment',
           outsourcingClientId: null,
+          organizationId: c.organizationId,
         },
       });
     } else {
@@ -44,6 +45,7 @@ async function syncLinkedBillingClients(prisma) {
           contactPhone: c.contactPhone,
           recruitmentClientId: c.id,
           outsourcingClientId: null,
+          organizationId: c.organizationId,
         },
       });
     }
@@ -66,6 +68,7 @@ async function syncLinkedBillingClients(prisma) {
           contactPhone: c.contactPhone,
           type: 'outsourcing',
           recruitmentClientId: null,
+          organizationId: c.organizationId,
         },
       });
     } else {
@@ -79,6 +82,7 @@ async function syncLinkedBillingClients(prisma) {
           contactPhone: c.contactPhone,
           outsourcingClientId: c.id,
           recruitmentClientId: null,
+          organizationId: c.organizationId,
         },
       });
     }

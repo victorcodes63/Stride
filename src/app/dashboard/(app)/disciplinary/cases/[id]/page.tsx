@@ -43,11 +43,17 @@ export default function DisciplinaryCasePage() {
  const [data, setData] = useState<CaseDetail | null>(null);
  const [actionType, setActionType] = useState('VERBAL_WARNING');
  const [description, setDescription] = useState('');
+ const [overrideSequence, setOverrideSequence] = useState(false);
+ const [overrideReason, setOverrideReason] = useState('');
  const [error, setError] = useState<string | null>(null);
  const [jurisdiction, setJurisdiction] = useState('KE');
  const [showCauseDue, setShowCauseDue] = useState('');
  const [hearing, setHearing] = useState('');
  const [status, setStatus] = useState('OPEN');
+ const [resolution, setResolution] = useState('');
+ const [uploadTitle, setUploadTitle] = useState('');
+ const [uploading, setUploading] = useState(false);
+ const [uploadError, setUploadError] = useState<string | null>(null);
  const [savingMeta, setSavingMeta] = useState(false);
  const [complianceError, setComplianceError] = useState<string | null>(null);
 
@@ -60,6 +66,7 @@ export default function DisciplinaryCasePage() {
  setShowCauseDue(toLocalInput(body.showCauseResponseDueAt));
  setHearing(toLocalInput(body.hearingAt));
  setStatus(body.status);
+ setResolution(body.resolution ?? '');
  }
  }, [params.id]);
 
@@ -72,14 +79,22 @@ export default function DisciplinaryCasePage() {
  const res = await fetch(`/api/disciplinary/cases/${params.id}/actions`, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ type: actionType, description }),
+ body: JSON.stringify({
+ type: actionType,
+ description,
+ overrideSequence,
+ ...(overrideSequence ? { overrideReason } : {}),
+ }),
  });
  const body = await res.json().catch(() => ({}));
  if (!res.ok) {
  setError(body.error || 'Failed to add action');
+ if (body.requiresOverride) setOverrideSequence(true);
  return;
  }
  setDescription('');
+ setOverrideSequence(false);
+ setOverrideReason('');
  await load();
  }
 
@@ -102,6 +117,7 @@ export default function DisciplinaryCasePage() {
  body: JSON.stringify({
  laborJurisdiction: jurisdiction,
  status,
+ resolution: resolution.trim() || null,
  showCauseResponseDueAt: showCauseDue ? new Date(showCauseDue).toISOString() : null,
  hearingAt: hearing ? new Date(hearing).toISOString() : null,
  }),
@@ -110,6 +126,56 @@ export default function DisciplinaryCasePage() {
  setSavingMeta(false);
  if (!res.ok) {
  setComplianceError(body.error || 'Save failed');
+ return;
+ }
+ await load();
+ }
+
+ async function uploadDocument(file: File) {
+ if (!uploadTitle.trim()) {
+ setUploadError('Enter a document title.');
+ return;
+ }
+ setUploading(true);
+ setUploadError(null);
+ try {
+ const form = new FormData();
+ form.append('file', file);
+ form.append('title', uploadTitle.trim());
+ const res = await fetch(`/api/disciplinary/cases/${params.id}/documents`, {
+ method: 'POST',
+ body: form,
+ });
+ const body = await res.json().catch(() => ({}));
+ if (!res.ok) throw new Error(body.error || 'Upload failed');
+ setUploadTitle('');
+ await load();
+ } catch (e) {
+ setUploadError(e instanceof Error ? e.message : 'Upload failed');
+ } finally {
+ setUploading(false);
+ }
+ }
+
+ async function closeCase() {
+ setStatus('CLOSED');
+ setSavingMeta(true);
+ setComplianceError(null);
+ const res = await fetch(`/api/disciplinary/cases/${params.id}`, {
+ method: 'PUT',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ laborJurisdiction: jurisdiction,
+ status: 'CLOSED',
+ resolution: resolution.trim() || 'Case closed by HR.',
+ showCauseResponseDueAt: showCauseDue ? new Date(showCauseDue).toISOString() : null,
+ hearingAt: hearing ? new Date(hearing).toISOString() : null,
+ }),
+ });
+ const body = await res.json().catch(() => ({}));
+ setSavingMeta(false);
+ if (!res.ok) {
+ setComplianceError(body.error || 'Close failed');
  return;
  }
  await load();
@@ -147,10 +213,19 @@ export default function DisciplinaryCasePage() {
  <button
  type="button"
  onClick={() => void generateLetter(action.type, action.id)}
- className="mt-2 rounded border border-neutral-300 px-2 py-1 text-xs"
+ className="mt-2 rounded border border-neutral-300 px-2 py-1 text-xs mr-1"
  >
  Generate letter
  </button>
+ {(action.type === 'SUSPENSION' || action.type === 'TERMINATION') && (
+ <button
+ type="button"
+ onClick={() => void generateLetter(action.type, action.id)}
+ className="mt-2 rounded border border-neutral-300 px-2 py-1 text-xs"
+ >
+ Outcome letter
+ </button>
+ )}
  </div>
  ))}
  </div>
@@ -180,6 +255,18 @@ export default function DisciplinaryCasePage() {
  className="min-w-[12rem] flex-1 rounded border border-neutral-300 px-2 py-1 text-sm"
  placeholder="Action details"
  />
+ {overrideSequence ? (
+ <input
+ value={overrideReason}
+ onChange={(e) => setOverrideReason(e.target.value)}
+ className="min-w-full rounded border border-amber-300 bg-amber-50 px-2 py-1 text-sm"
+ placeholder="Override reason (required to skip sequence)"
+ />
+ ) : null}
+ <label className="flex items-center gap-2 text-xs text-neutral-600">
+ <input type="checkbox" checked={overrideSequence} onChange={(e) => setOverrideSequence(e.target.checked)} />
+ Override progressive discipline sequence
+ </label>
  <button type="button" onClick={() => void addAction()} className="rounded bg-primary-900 px-3 py-1 text-sm text-white">
  Save
  </button>
@@ -192,7 +279,7 @@ export default function DisciplinaryCasePage() {
  <p className="text-sm font-semibold text-primary-900">Documents</p>
  <div className="mt-2 space-y-2">
  {data.documents.length === 0 ? (
- <p className="text-xs text-neutral-500">No documents yet. Generate a letter or upload from the API.</p>
+ <p className="text-xs text-neutral-500">No documents yet. Upload evidence or generate a letter.</p>
  ) : (
  data.documents.map((doc) => (
  <a
@@ -204,6 +291,27 @@ export default function DisciplinaryCasePage() {
  </a>
  ))
  )}
+ </div>
+ <div className="mt-3 space-y-2 border-t border-neutral-100 pt-3">
+ <input
+ type="text"
+ className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
+ placeholder="Document title"
+ value={uploadTitle}
+ onChange={(e) => setUploadTitle(e.target.value)}
+ />
+ <input
+ type="file"
+ className="w-full text-xs"
+ onChange={(e) => {
+ const file = e.target.files?.[0];
+ if (file) void uploadDocument(file);
+ e.target.value = '';
+ }}
+ disabled={uploading}
+ />
+ {uploadError ? <p className="text-xs text-red-600">{uploadError}</p> : null}
+ {uploading ? <p className="text-xs text-neutral-500">Uploading…</p> : null}
  </div>
  </div>
  <div className="dashboard-stat-card">
@@ -240,6 +348,14 @@ export default function DisciplinaryCasePage() {
  value={hearing}
  onChange={(e) => setHearing(e.target.value)}
  />
+ <label className="block text-xs font-medium text-neutral-600">Resolution / outcome</label>
+ <textarea
+ className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
+ rows={3}
+ value={resolution}
+ onChange={(e) => setResolution(e.target.value)}
+ placeholder="Final outcome, sanctions applied, or dismissal of allegations…"
+ />
  {complianceError ? <p className="text-xs text-red-600">{complianceError}</p> : null}
  <button
  type="button"
@@ -248,6 +364,14 @@ export default function DisciplinaryCasePage() {
  className="w-full rounded bg-primary-900 py-2 text-sm text-white disabled:opacity-50"
  >
  {savingMeta ? 'Saving…' : 'Save compliance fields'}
+ </button>
+ <button
+ type="button"
+ disabled={savingMeta}
+ onClick={() => void closeCase()}
+ className="w-full rounded border border-neutral-300 py-2 text-sm text-neutral-800 disabled:opacity-50"
+ >
+ Close case
  </button>
  </div>
  </div>

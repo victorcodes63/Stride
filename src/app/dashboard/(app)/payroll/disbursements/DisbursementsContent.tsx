@@ -1,11 +1,32 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, Download, Loader2, RefreshCw, Smartphone } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Download,
+  Loader2,
+  RefreshCw,
+  Smartphone,
+  Wallet,
+  XCircle,
+} from 'lucide-react';
 
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import {
+  DashboardTable,
+  DashboardTableCard,
+  DashboardTableCell,
+  DashboardTableEmpty,
+  DashboardTableHead,
+  DashboardTableMeta,
+  DashboardTableViewport,
+} from '@/components/dashboard/DashboardDataTable';
+import { dashStatusChip } from '@/lib/dashboard-status-chips';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
 
 type BatchSummary = {
@@ -39,17 +60,24 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  completed: 'bg-emerald-100 text-emerald-800',
-  processing: 'bg-amber-100 text-amber-800',
-  submitting: 'bg-amber-100 text-amber-800',
-  partial_failure: 'bg-orange-100 text-orange-800',
-  failed: 'bg-red-100 text-red-800',
-  draft: 'bg-zinc-100 text-zinc-700',
-};
-
 function statusClass(status: string) {
-  return STATUS_COLORS[status] ?? 'bg-zinc-100 text-zinc-700';
+  switch (status) {
+    case 'completed':
+      return dashStatusChip('success');
+    case 'processing':
+    case 'submitting':
+      return dashStatusChip('warning');
+    case 'partial_failure':
+      return dashStatusChip('warning');
+    case 'failed':
+      return dashStatusChip('danger');
+    default:
+      return dashStatusChip('neutral');
+  }
+}
+
+function statusLabel(status: string) {
+  return status.replace(/_/g, ' ');
 }
 
 export function DisbursementsContent() {
@@ -141,176 +169,271 @@ export function DisbursementsContent() {
 
   const bankExportHref = `/api/outsourcing/payroll/bank-export?month=${month}&year=${year}`;
 
+  const summary = useMemo(() => {
+    const totals = batches.reduce(
+      (acc, batch) => ({
+        lines: acc.lines + batch.totals.lines,
+        completed: acc.completed + batch.totals.completed,
+        failed: acc.failed + batch.totals.failed,
+        pending: acc.pending + batch.totals.pending,
+      }),
+      { lines: 0, completed: 0, failed: 0, pending: 0 },
+    );
+    const activeBatch = batches.find((b) =>
+      ['processing', 'submitting', 'partial_failure'].includes(b.status),
+    );
+    return { ...totals, batchCount: batches.length, activeBatch };
+  }, [batches]);
+
+  const periodLabel = `${MONTHS[month - 1]} ${year}`;
+
   return (
     <DashboardPage>
       <DashboardPageHeader
         title="M-Pesa & disbursements"
+        icon={Smartphone}
         description="Bulk salary disbursement via M-Pesa sandbox with per-employee payment status. Bank CSV export remains available for RTGS runs."
+        meta={
+          <span className="text-[var(--dash-text-subtle)]">
+            Provider mode:{' '}
+            <span className="font-mono text-xs text-[var(--dash-text-body)]">{providerMode}</span>
+            {providerMode === 'simulated' ? (
+              <> — poll twice to simulate M-Pesa processing → completed.</>
+            ) : null}
+            {' · '}
+            <Link href="/dashboard/payroll" className="text-primary-600 hover:underline">
+              Payroll runs
+            </Link>
+          </span>
+        }
+        actions={
+          <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+            <select
+              value={month}
+              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
+              className="dash-auth-input rounded-lg px-3 py-2 text-sm"
+              aria-label="Month"
+            >
+              {MONTHS.map((label, i) => (
+                <option key={label} value={i + 1}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value, 10) || year)}
+              className="dash-auth-input w-28 rounded-lg px-3 py-2 text-sm"
+              min={2020}
+              max={2100}
+              aria-label="Year"
+            />
+            <button
+              type="button"
+              onClick={() => void loadBatches()}
+              disabled={loading}
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Refresh
+            </button>
+            <a href={bankExportHref} className="btn-secondary inline-flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Bank CSV
+            </a>
+            <button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={submitting}
+              className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
+              Disburse via M-Pesa
+            </button>
+          </div>
+        }
       />
 
-      <div className="mb-6 flex flex-wrap items-end gap-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <label className="text-sm">
-          <span className="text-zinc-500">Month</span>
-          <select
-            className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2"
-            value={month}
-            onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-          >
-            {MONTHS.map((label, i) => (
-              <option key={label} value={i + 1}>{label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="text-zinc-500">Year</span>
-          <input
-            type="number"
-            className="mt-1 block w-28 rounded-lg border border-zinc-200 px-3 py-2"
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value, 10))}
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => void loadBatches()}
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-          disabled={loading}
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Refresh
-        </button>
-        <a
-          href={bankExportHref}
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-50"
-        >
-          <Download className="h-4 w-4" />
-          Bank CSV export
-        </a>
-        <button
-          type="button"
-          onClick={() => void handleSubmit()}
-          disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
-          Disburse via M-Pesa (sandbox)
-        </button>
-      </div>
-
-      <p className="mb-4 text-sm text-zinc-600">
-        Provider mode: <span className="font-mono text-xs">{providerMode}</span>
-        {providerMode === 'simulated' ? (
-          <> — poll twice to simulate M-Pesa processing → completed.</>
-        ) : null}
-        {' '}
-        <Link href="/dashboard/payroll" className="text-blue-600 hover:underline">Payroll runs</Link>
-      </p>
-
       {error ? (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-[var(--dash-danger-border)] bg-[var(--dash-danger-bg)] p-3 text-sm text-[var(--dash-danger-fg)]">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           {error}
         </div>
       ) : null}
 
+      <DashboardStatGrid columns={4} className="mb-6 gap-3 sm:gap-4">
+        <DashboardMetricCard
+          label="Batches"
+          value={summary.batchCount}
+          hint={`${periodLabel} period`}
+          icon={Wallet}
+          tone="primary"
+        />
+        <DashboardMetricCard
+          label="Paid"
+          value={summary.completed}
+          hint={summary.lines > 0 ? `${Math.round((summary.completed / summary.lines) * 100)}% of lines` : 'No lines yet'}
+          icon={CheckCircle2}
+          tone="emerald"
+        />
+        <DashboardMetricCard
+          label="Pending"
+          value={summary.pending}
+          hint={summary.activeBatch ? `Active batch: ${statusLabel(summary.activeBatch.status)}` : 'No active processing'}
+          icon={Clock}
+          tone="amber"
+        />
+        <DashboardMetricCard
+          label="Failed"
+          value={summary.failed}
+          hint={summary.failed > 0 ? 'Review lines below' : 'All clear'}
+          icon={XCircle}
+          tone={summary.failed > 0 ? 'rose' : 'primary'}
+        />
+      </DashboardStatGrid>
+
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold">Batches this period</h2>
-          {batches.length === 0 ? (
-            <p className="mt-3 text-sm text-zinc-500">No M-Pesa batches yet for {MONTHS[month - 1]} {year}.</p>
+        <DashboardTableCard>
+          <DashboardTableMeta
+            title="Batches this period"
+            description={
+              batches.length === 0
+                ? `No M-Pesa batches yet for ${periodLabel}.`
+                : `${batches.length} batch${batches.length === 1 ? '' : 'es'} · select to view employee lines`
+            }
+          />
+          {loading ? (
+            <div className="flex items-center gap-2 p-8 text-sm text-[var(--dash-text-muted)]">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Loading batches…
+            </div>
+          ) : batches.length === 0 ? (
+            <DashboardTableEmpty
+              title="No disbursement batches"
+              description={`Submit a disbursement for ${periodLabel} to create your first M-Pesa batch.`}
+            />
           ) : (
-            <ul className="mt-3 divide-y divide-zinc-100">
-              {batches.map((batch) => (
-                <li key={batch.id} className="flex items-center justify-between gap-3 py-3">
-                  <button
-                    type="button"
-                    className="text-left text-sm hover:underline"
-                    onClick={() => void loadBatchDetail(batch.id)}
-                  >
-                    <span className={`inline rounded px-2 py-0.5 text-xs font-medium ${statusClass(batch.status)}`}>
-                      {batch.status}
-                    </span>
-                    <span className="ml-2 text-zinc-600">
-                      {batch.totals.completed}/{batch.totals.lines} paid
-                    </span>
-                  </button>
-                  {['processing', 'submitting', 'partial_failure'].includes(batch.status) ? (
-                    <button
-                      type="button"
-                      className="text-xs font-medium text-blue-600 hover:underline"
-                      disabled={polling}
-                      onClick={() => void handlePoll(batch.id)}
+            <ul className="divide-y divide-[var(--dash-border)]">
+              {batches.map((batch) => {
+                const isSelected = selected?.id === batch.id;
+                const needsPoll = ['processing', 'submitting', 'partial_failure'].includes(batch.status);
+                return (
+                  <li key={batch.id}>
+                    <div
+                      className={`flex items-center justify-between gap-3 px-4 py-3 sm:px-5 ${
+                        isSelected ? 'bg-[var(--dash-surface-muted)]' : ''
+                      }`}
                     >
-                      Poll status
-                    </button>
-                  ) : null}
-                </li>
-              ))}
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => void loadBatchDetail(batch.id)}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusClass(batch.status)}`}>
+                            {statusLabel(batch.status)}
+                          </span>
+                          <span className="text-sm text-[var(--dash-text-body)]">
+                            {batch.totals.completed}/{batch.totals.lines} paid
+                          </span>
+                          {batch.submittedAt ? (
+                            <span className="text-xs text-[var(--dash-text-subtle)]">
+                              {new Date(batch.submittedAt).toLocaleString()}
+                            </span>
+                          ) : null}
+                        </div>
+                        {batch.failureSummary ? (
+                          <p className="mt-1 text-xs text-[var(--dash-warning-fg)]">{batch.failureSummary}</p>
+                        ) : null}
+                      </button>
+                      {needsPoll ? (
+                        <button
+                          type="button"
+                          className="shrink-0 text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
+                          disabled={polling}
+                          onClick={() => void handlePoll(batch.id)}
+                        >
+                          {polling ? 'Polling…' : 'Poll status'}
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
-        </section>
+        </DashboardTableCard>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold">Employee payments</h2>
+        <DashboardTableCard>
+          <DashboardTableMeta
+            title="Employee payments"
+            description={
+              selected
+                ? `Batch ${statusLabel(selected.status)} · ${selected.totals.completed}/${selected.totals.lines} completed`
+                : 'Select a batch or submit a new disbursement.'
+            }
+            actions={
+              selected && ['processing', 'submitting', 'partial_failure'].includes(selected.status) ? (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
+                  disabled={polling}
+                  onClick={() => void handlePoll(selected.id)}
+                >
+                  {polling ? 'Polling…' : 'Poll M-Pesa status'}
+                </button>
+              ) : null
+            }
+          />
           {!selected ? (
-            <p className="mt-3 text-sm text-zinc-500">Select a batch or submit a new disbursement.</p>
+            <DashboardTableEmpty
+              title="No batch selected"
+              description="Choose a batch from the left panel or disburse salaries for this period."
+            />
+          ) : (selected.lines ?? []).length === 0 ? (
+            <DashboardTableEmpty title="No payment lines" description="This batch has no employee lines yet." />
           ) : (
-            <>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                <span className={`rounded px-2 py-0.5 text-xs font-medium ${statusClass(selected.status)}`}>
-                  {selected.status}
-                </span>
-                {selected.failureSummary ? (
-                  <span className="text-orange-700">{selected.failureSummary}</span>
-                ) : null}
-                {['processing', 'submitting', 'partial_failure'].includes(selected.status) ? (
-                  <button
-                    type="button"
-                    className="text-xs font-medium text-blue-600 hover:underline"
-                    disabled={polling}
-                    onClick={() => void handlePoll(selected.id)}
-                  >
-                    {polling ? 'Polling…' : 'Poll M-Pesa status'}
-                  </button>
-                ) : null}
-              </div>
-              <div className="mt-4 max-h-[28rem] overflow-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b text-zinc-500">
-                      <th className="py-2 pr-2">Employee</th>
-                      <th className="py-2 pr-2">Phone</th>
-                      <th className="py-2 pr-2 text-right">Net</th>
-                      <th className="py-2">Status</th>
+            <DashboardTableViewport minWidth={640}>
+              <DashboardTable>
+                <thead>
+                  <tr>
+                    <DashboardTableHead>Employee</DashboardTableHead>
+                    <DashboardTableHead>Phone</DashboardTableHead>
+                    <DashboardTableHead className="text-right">Net</DashboardTableHead>
+                    <DashboardTableHead>Status</DashboardTableHead>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selected.lines ?? []).map((line) => (
+                    <tr key={line.id}>
+                      <DashboardTableCell>
+                        <div className="font-medium text-[var(--dash-text-strong)]">{line.employeeName}</div>
+                        {line.employeeNumber ? (
+                          <div className="text-xs text-[var(--dash-text-subtle)]">{line.employeeNumber}</div>
+                        ) : null}
+                      </DashboardTableCell>
+                      <DashboardTableCell>
+                        <span className="font-mono text-xs">{line.phone ?? '—'}</span>
+                      </DashboardTableCell>
+                      <DashboardTableCell numeric className="text-right">
+                        {formatCurrency(line.amount)}
+                      </DashboardTableCell>
+                      <DashboardTableCell>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusClass(line.status)}`}>
+                          {statusLabel(line.status)}
+                        </span>
+                        {line.failureReason ? (
+                          <div className="mt-1 text-xs text-[var(--dash-danger-fg)]">{line.failureReason}</div>
+                        ) : null}
+                      </DashboardTableCell>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {(selected.lines ?? []).map((line) => (
-                      <tr key={line.id} className="border-b border-zinc-50">
-                        <td className="py-2 pr-2">
-                          <div className="font-medium">{line.employeeName}</div>
-                          {line.employeeNumber ? (
-                            <div className="text-xs text-zinc-500">{line.employeeNumber}</div>
-                          ) : null}
-                        </td>
-                        <td className="py-2 pr-2 font-mono text-xs">{line.phone ?? '—'}</td>
-                        <td className="py-2 pr-2 text-right tabular-nums">{formatCurrency(line.amount)}</td>
-                        <td className="py-2">
-                          <span className={`rounded px-1.5 py-0.5 text-xs ${statusClass(line.status)}`}>
-                            {line.status}
-                          </span>
-                          {line.failureReason ? (
-                            <div className="text-xs text-red-600">{line.failureReason}</div>
-                          ) : null}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                  ))}
+                </tbody>
+              </DashboardTable>
+            </DashboardTableViewport>
           )}
-        </section>
+        </DashboardTableCard>
       </div>
     </DashboardPage>
   );

@@ -1,64 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { getAccountsAccess } from '@/lib/accounts-access';
+import { withAccountsTenant } from '@/lib/accounts-tenant-api';
 import { reportApiError } from '@/lib/monitoring';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const user = await requireStaffUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return withAccountsTenant(request, async (ctx) => {
+    try {
+      const reportType = request.nextUrl.searchParams.get('type') || 'summary';
+      const year = parseInt(request.nextUrl.searchParams.get('year') || String(new Date().getFullYear()), 10);
+      const orgId = ctx.organizationId;
+      const yearStart = new Date(`${year}-01-01`);
+      const yearEnd = new Date(`${year + 1}-01-01`);
 
-  const access = await getAccountsAccess(user.id, user.role);
-  if (!access.hasAccountsAccess) {
-    return NextResponse.json({ error: 'No access to Finance.' }, { status: 403 });
-  }
-
-  try {
-    const reportType = request.nextUrl.searchParams.get('type') || 'summary';
-    const year = parseInt(request.nextUrl.searchParams.get('year') || String(new Date().getFullYear()), 10);
-
-    const [invoices, payments, vendorBills, vendorPayments, budgets, expenses] = await Promise.all([
-      prisma.accountsInvoice.findMany({
-        where: { issueDate: { gte: new Date(`${year}-01-01`), lt: new Date(`${year + 1}-01-01`) } },
-        select: {
-          id: true,
-          issueDate: true,
-          status: true,
-          currency: true,
-          vatRateBps: true,
-          totalOverrideIncVat: true,
-          lines: { select: { amountExVat: true } },
-        },
-      }),
-      prisma.accountsClientPayment.findMany({
-        where: { receivedAt: { gte: new Date(`${year}-01-01`), lt: new Date(`${year + 1}-01-01`) } },
-        select: { amount: true, receivedAt: true },
-      }),
-      prisma.accountsVendorBill.findMany({
-        where: { issueDate: { gte: new Date(`${year}-01-01`), lt: new Date(`${year + 1}-01-01`) } },
-        select: {
-          id: true,
-          issueDate: true,
-          status: true,
-          vatRateBps: true,
-          lines: { select: { amountExVat: true } },
-        },
-      }),
-      prisma.accountsVendorPayment.findMany({
-        where: { paidAt: { gte: new Date(`${year}-01-01`), lt: new Date(`${year + 1}-01-01`) } },
-        select: { amount: true, paidAt: true },
-      }),
-      prisma.budget.findMany({
-        where: { fiscalYear: year },
-        select: { allocatedAmount: true, spentAmount: true, department: true, status: true },
-      }),
-      prisma.expenseClaim.findMany({
-        where: { createdAt: { gte: new Date(`${year}-01-01`), lt: new Date(`${year + 1}-01-01`) } },
-        select: { totalAmount: true, status: true },
-      }),
-    ]);
+      const [invoices, payments, vendorBills, vendorPayments, budgets, expenses] = await ctx.run((tx) =>
+        Promise.all([
+          tx.accountsInvoice.findMany({
+            where: { organizationId: orgId, issueDate: { gte: yearStart, lt: yearEnd } },
+            select: {
+              id: true,
+              issueDate: true,
+              status: true,
+              currency: true,
+              vatRateBps: true,
+              totalOverrideIncVat: true,
+              lines: { select: { amountExVat: true } },
+            },
+          }),
+          tx.accountsClientPayment.findMany({
+            where: { organizationId: orgId, receivedAt: { gte: yearStart, lt: yearEnd } },
+            select: { amount: true, receivedAt: true },
+          }),
+          tx.accountsVendorBill.findMany({
+            where: { organizationId: orgId, issueDate: { gte: yearStart, lt: yearEnd } },
+            select: {
+              id: true,
+              issueDate: true,
+              status: true,
+              vatRateBps: true,
+              lines: { select: { amountExVat: true } },
+            },
+          }),
+          tx.accountsVendorPayment.findMany({
+            where: { organizationId: orgId, paidAt: { gte: yearStart, lt: yearEnd } },
+            select: { amount: true, paidAt: true },
+          }),
+          tx.budget.findMany({
+            where: { organizationId: orgId, fiscalYear: year },
+            select: { allocatedAmount: true, spentAmount: true, department: true, status: true },
+          }),
+          tx.expenseClaim.findMany({
+            where: { organizationId: orgId, createdAt: { gte: yearStart, lt: yearEnd } },
+            select: { totalAmount: true, status: true },
+          }),
+        ]),
+      );
 
     const totalRevenue = invoices.reduce((sum, inv) => {
       const subtotal = inv.lines.reduce((s, l) => s + Number(l.amountExVat), 0);
@@ -134,11 +130,12 @@ export async function GET(request: NextRequest) {
         paid: vendorBills.filter((b) => b.status === 'paid').length,
       },
     });
-  } catch (error) {
-    await reportApiError({
-      route: 'GET /api/finance/reports',
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Failed to generate financial report.' }, { status: 500 });
-  }
+    } catch (error) {
+      await reportApiError({
+        route: 'GET /api/finance/reports',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to generate financial report.' }, { status: 500 });
+    }
+  });
 }

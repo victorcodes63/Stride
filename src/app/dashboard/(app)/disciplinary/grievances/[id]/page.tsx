@@ -17,6 +17,7 @@ type GrievanceDetail = {
  investigationNotes: string | null;
  resolution: string | null;
  submittedAt: string;
+ documents?: Array<{ id: string; title: string; fileName: string }>;
  employee: { firstName: string; lastName: string; email: string | null };
  against: { firstName: string; lastName: string } | null;
 };
@@ -28,6 +29,8 @@ export default function AdminGrievanceDetailPage() {
  const [status, setStatus] = useState('');
  const [investigationNotes, setInvestigationNotes] = useState('');
  const [resolution, setResolution] = useState('');
+ const [uploadTitle, setUploadTitle] = useState('');
+ const [uploading, setUploading] = useState(false);
  const [saving, setSaving] = useState(false);
  const [error, setError] = useState<string | null>(null);
 
@@ -68,6 +71,20 @@ export default function AdminGrievanceDetailPage() {
  return;
  }
  await load();
+ }
+
+ async function uploadDocument(file: File) {
+ if (!data || !uploadTitle.trim()) return;
+ setUploading(true);
+ const form = new FormData();
+ form.append('file', file);
+ form.append('title', uploadTitle.trim());
+ const res = await fetch(`/api/grievances/${data.id}/documents`, { method: 'POST', body: form });
+ setUploading(false);
+ if (res.ok) {
+ setUploadTitle('');
+ await load();
+ }
  }
 
  if (error && !data) {
@@ -150,6 +167,36 @@ export default function AdminGrievanceDetailPage() {
  >
  {saving ? 'Saving…' : 'Save'}
  </button>
+ </div>
+ </div>
+ <div className="dashboard-stat-card">
+ <p className="text-sm font-semibold text-primary-900">Documents</p>
+ <ul className="mt-2 space-y-1 text-sm">
+ {(data.documents ?? []).length === 0 ? (
+ <li className="text-xs text-neutral-500">No attachments yet.</li>
+ ) : (
+ data.documents!.map((doc) => (
+ <li key={doc.id}>{doc.title} ({doc.fileName})</li>
+ ))
+ )}
+ </ul>
+ <div className="mt-3 space-y-2 border-t border-neutral-100 pt-3">
+ <input
+ className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
+ placeholder="Document title"
+ value={uploadTitle}
+ onChange={(e) => setUploadTitle(e.target.value)}
+ />
+ <input
+ type="file"
+ className="w-full text-xs"
+ disabled={uploading}
+ onChange={(e) => {
+ const file = e.target.files?.[0];
+ if (file) void uploadDocument(file);
+ e.target.value = '';
+ }}
+ />
  </div>
  </div>
  </div>
