@@ -187,11 +187,20 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
       };
     }
 
+    if (def.key === 'reports') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'All /api/reports/* routes use withTenant() + org-scoped queries (ISO-03).',
+      };
+    }
+
     if (def.key === 'core') {
       return {
         ...base,
         phase: 'routes-partial',
-        notes: 'Exemplar: outsourcing/employees + dashboard/bootstrap use withTenant().',
+        notes:
+          'Exemplar: outsourcing/employees, dashboard/bootstrap, overview, notifications, search, overview-stats use withTenant().',
       };
     }
 

@@ -1,48 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
-import { requireStaffUser } from '@/lib/staff-api-auth';
-import { unauthorizedResponse } from '@/lib/demo-route-access';
+import { withTenant } from '@/lib/tenant-api';
+import { reportApiError } from '@/lib/monitoring';
 
 /**
  * Workforce leave counts for the primary outsourcing client (same scope as /outsourcing/employees).
  */
 export async function GET(request: NextRequest) {
-  try {
-    const user = await requireStaffUser(request);
-    if (!user) return unauthorizedResponse();
+  return withTenant(request, async (ctx) => {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
 
-    const requestedClientId = request.nextUrl.searchParams.get('clientId') || undefined;
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, requestedClientId, request);
+    try {
+      const requestedClientId = request.nextUrl.searchParams.get('clientId') || undefined;
+      const clientId = await ctx.run((tx) =>
+        resolvePrimaryWorkspaceClientId(tx, requestedClientId, request, ctx.organizationId),
+      );
 
-    const startToday = new Date();
-    startToday.setHours(0, 0, 0, 0);
-    const endToday = new Date();
-    endToday.setHours(23, 59, 59, 999);
+      const startToday = new Date();
+      startToday.setHours(0, 0, 0, 0);
+      const endToday = new Date();
+      endToday.setHours(23, 59, 59, 999);
 
-    const [pendingApprovals, onLeaveToday] = await Promise.all([
-      prisma.leaveApplication.count({
-        where: {
-          status: 'pending',
-          employee: { outsourcingClientId: clientId },
-        },
-      }),
-      prisma.leaveApplication.count({
-        where: {
-          status: 'approved',
-          employee: { outsourcingClientId: clientId },
-          startDate: { lte: endToday },
-          endDate: { gte: startToday },
-        },
-      }),
-    ]);
+      const [pendingApprovals, onLeaveToday] = await ctx.run((tx) =>
+        Promise.all([
+          tx.leaveApplication.count({
+            where: {
+              status: 'pending',
+              employee: {
+                outsourcingClientId: clientId,
+                client: { organizationId: ctx.organizationId },
+              },
+            },
+          }),
+          tx.leaveApplication.count({
+            where: {
+              status: 'approved',
+              employee: {
+                outsourcingClientId: clientId,
+                client: { organizationId: ctx.organizationId },
+              },
+              startDate: { lte: endToday },
+              endDate: { gte: startToday },
+            },
+          }),
+        ]),
+      );
 
-    return NextResponse.json({ pendingApprovals, onLeaveToday });
-  } catch (e) {
-    console.error('[outsourcing/overview-stats]', e);
-    return NextResponse.json({ error: 'Failed to load overview stats.' }, { status: 500 });
-  }
+      return NextResponse.json({ pendingApprovals, onLeaveToday });
+    } catch (error) {
+      await reportApiError({
+        route: 'GET /api/outsourcing/overview-stats',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to load overview stats.' }, { status: 500 });
+    }
+  });
 }

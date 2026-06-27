@@ -32,6 +32,7 @@
     "db:tenancy:patch": "node scripts/patch-tenant-schema.mjs",
     "db:tenancy:migration": "node scripts/build-tenancy-migration.mjs",
     "test:rls": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-rls.ts",
+    "test:cross-tenant": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-cross-tenant-api.ts",
     "test:tenant-audit": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-tenant-audit.ts",
     "audit:module-tenant": "npx tsx scripts/audit-module-tenant-gate.ts",
     "audit:dashboard-mock": "node scripts/audit-dashboard-mock-routes.mjs",

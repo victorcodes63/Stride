@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireStaffUser } from '@/lib/staff-api-auth';
+import { requireStaffUser, type StaffUser } from '@/lib/staff-api-auth';
 import { toSimplePdf } from '@/lib/report-export';
 
 export async function requireReportsUser(request: NextRequest) {
@@ -9,6 +9,14 @@ export async function requireReportsUser(request: NextRequest) {
     return { ok: false as const, response: NextResponse.json({ error: 'Not authorized.' }, { status: 403 }) };
   }
   return { ok: true as const, user };
+}
+
+/** Role gate for report routes already inside withTenant(). */
+export function assertReportsStaffRole(staff: StaffUser): NextResponse | null {
+  if (staff.role !== 'admin' && staff.role !== 'staff') {
+    return NextResponse.json({ error: 'Not authorized.' }, { status: 403 });
+  }
+  return null;
 }
 
 export function parseFormat(request: NextRequest): 'json' | 'csv' | 'pdf' {
