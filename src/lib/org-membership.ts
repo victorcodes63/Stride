@@ -3,6 +3,9 @@ import type { UserRole } from '@prisma/client';
 import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
 import { withOrgContext } from '@/lib/org-context';
 import { isDemoSandboxCell } from '@/lib/deployment-cell';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-constants';
+
+export { DEFAULT_ORGANIZATION_ID } from '@/lib/org-constants';
 
 export class NoOrgMembershipForLoginError extends Error {
   constructor(
@@ -23,9 +26,6 @@ export type ResolvedMembership = {
     slug: string;
   };
 };
-
-/** Default org created by tenancy migration (single-tenant backfill). */
-export const DEFAULT_ORGANIZATION_ID = '00000000-0000-4000-8000-000000000001';
 
 /** Set RLS login scope so membership rows for this user are readable pre-session. */
 async function withLoginUserScope<T>(

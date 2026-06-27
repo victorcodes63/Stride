@@ -14,7 +14,7 @@ import {
 } from '@/lib/auth/org-auth-config';
 import type { PortalAudience } from '@/lib/company-setup-auth';
 import type { PortalAuthMethod } from '@/lib/company-setup-auth';
-import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-constants';
 
 export type ResolvedOrgForEmail = {
   organizationId: string;

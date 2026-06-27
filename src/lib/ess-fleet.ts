@@ -1,7 +1,12 @@
 import type { FleetTripStatus, Prisma, PrismaClient } from '@prisma/client';
+import {
+  canTransitionTripStatus,
+  DRIVER_TRIP_STATUS_TRANSITIONS,
+} from '@/lib/fleet-status';
 
 type Db = PrismaClient | Prisma.TransactionClient;
-import { canTransitionTripStatus } from '@/lib/fleet-status';
+
+export { DRIVER_TRIP_STATUS_TRANSITIONS };
 
 export const DRIVER_ACTIVE_TRIP_STATUSES: FleetTripStatus[] = [
   'allocated',

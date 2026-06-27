@@ -5,7 +5,7 @@
 import type { AuthProvider, OrganizationAuthConfig } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withOrgContext } from '@/lib/org-context';
-import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-constants';
 import { getStaffAllowedDomains } from '@/lib/staff-allowed-domains';
 import type { PortalAuthMethod } from '@/lib/company-setup-auth';
 import type { PortalAudience } from '@/lib/company-setup-auth';
