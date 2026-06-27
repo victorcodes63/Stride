@@ -235,7 +235,7 @@ export async function loadOperatingEntitiesSettings(): Promise<OperatingEntities
     const row = await prisma.systemSetting.findUnique({ where: { key: OPERATING_ENTITIES_SETTINGS_KEY } });
     if (!row) {
       const setup = await loadCompanySetupSettings();
-      return buildDefaultOperatingEntitiesSettings(setup.orgName || getWorkspaceDefaults().name);
+      return buildDefaultOperatingEntitiesSettings(setup.orgName || undefined);
     }
     return sanitizeOperatingEntitiesSettings(row.value);
   } catch {

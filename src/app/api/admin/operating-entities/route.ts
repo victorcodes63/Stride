@@ -13,7 +13,7 @@ import {
   type OperatingEntitiesSettings,
 } from '@/lib/operating-entities';
 import { loadCompanySetupSettings } from '@/lib/company-setup';
-import { getWorkspaceDefaults } from '@/lib/deployment-config';
+import { GENERIC_ORG_PLACEHOLDER } from '@/lib/deployment-cell';
 
 export async function GET(request: NextRequest) {
   const { error } = await requireAdminActor(request);
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       ...settings,
       envMultiEntityEnabled: isMultiEntityEnvEnabled(),
       defaults: buildDefaultOperatingEntitiesSettings(
-        (await loadCompanySetupSettings()).orgName || getWorkspaceDefaults().name,
+        (await loadCompanySetupSettings()).orgName || GENERIC_ORG_PLACEHOLDER,
       ),
     });
   } catch (e) {

@@ -1,10 +1,14 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { brand } from '@/lib/brand';
+import { isDemoSandboxCell, GENERIC_ORG_PLACEHOLDER } from '@/lib/deployment-cell';
 
 const DEFAULT_ID = 'default' as const;
 
 /** Public employer name when DB is not configured (align with job form default). */
 export function recruitmentEmployerNameFromEnv(): string {
+  if (!isDemoSandboxCell()) {
+    return GENERIC_ORG_PLACEHOLDER;
+  }
   return (
     process.env.NEXT_PUBLIC_RECRUITMENT_EMPLOYER_NAME?.trim() ||
     process.env.RECRUITMENT_EMPLOYER_NAME?.trim() ||

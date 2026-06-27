@@ -9,6 +9,12 @@ import {
   getDeploymentTier,
   type DeploymentTier,
 } from '@/lib/deployment-tier';
+import {
+  envTenantDisplayName,
+  GENERIC_ORG_PLACEHOLDER,
+  isDemoSandboxCell,
+  resolveTenantDisplayName,
+} from '@/lib/deployment-cell';
 
 function trimEnv(key: string): string | undefined {
   const v = process.env[key];
@@ -63,10 +69,10 @@ export type WorkspaceDefaults = {
 };
 
 /** Defaults used when bootstrapping the primary workspace on a fresh database. */
-export function getWorkspaceDefaults(): WorkspaceDefaults {
+export function getWorkspaceDefaults(organizationName?: string | null): WorkspaceDefaults {
   const country = getDefaultCountry();
   return {
-    name: trimEnv('PROVISION_ORG_NAME') ?? brand.orgName,
+    name: resolveTenantDisplayName(organizationName),
     employeeNumberPrefix: trimEnv('PROVISION_EMPLOYEE_PREFIX') ?? (country === 'UG' ? 'EMP' : 'EMP'),
     currency: getDefaultCurrency(),
     contactName: trimEnv('PROVISION_CONTACT_NAME') ?? null,
@@ -120,7 +126,9 @@ export function getDeploymentSummary(): DeploymentSummary {
     publicDemoMode: isPublicDemoMode(),
     country: getDefaultCountry(),
     currency: getDefaultCurrency(),
-    orgName: getWorkspaceDefaults().name,
+    orgName: isDemoSandboxCell()
+      ? (envTenantDisplayName() ?? GENERIC_ORG_PLACEHOLDER)
+      : GENERIC_ORG_PLACEHOLDER,
     appName: brand.appName,
     multiEntityEnvEnabled: isMultiEntityEnvEnabled(),
     deploymentTier: getDeploymentTier(),

@@ -10,13 +10,13 @@ import {
   resolveEntitySlugOrDefault,
 } from '@/lib/operating-entities';
 import { recruitmentEmployerNameFromEnv } from '@/lib/recruitment-workspace';
-import { getSiteMode } from '@/lib/site-mode';
+import { isDemoSandboxCell } from '@/lib/deployment-cell';
 
 /** Stale outsourcing demo rows that must not drive public careers branding. */
 const LEGACY_CAREERS_EMPLOYER = /nyati\s+sacco/i;
 
 function shouldPreferEnvCareersEmployer(operatingEntityLegalName: string | undefined): boolean {
-  if (getSiteMode() === 'app') return true;
+  if (isDemoSandboxCell()) return true;
   const legal = operatingEntityLegalName?.trim();
   return Boolean(legal && LEGACY_CAREERS_EMPLOYER.test(legal));
 }

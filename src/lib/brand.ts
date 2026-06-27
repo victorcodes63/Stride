@@ -11,6 +11,7 @@ import {
   DEFAULT_PRIMARY_COLOR,
   DEFAULT_SECONDARY_COLOR,
 } from '@/lib/brand-theme';
+import { envTenantDisplayName, GENERIC_ORG_PLACEHOLDER } from '@/lib/deployment-cell';
 
 function trimEnv(key: string): string | undefined {
   const v = process.env[key];
@@ -24,7 +25,7 @@ const STRIDE_LOGO = normalizeLogoSrc(DEFAULT_BRAND_LOGO_SRC);
 /** Env-level defaults — org/contact only; product identity is fixed in brandConfig. */
 export const brand = {
   appName: brandConfig.productName,
-  orgName: trimEnv('NEXT_PUBLIC_ORG_NAME') ?? 'Your Organisation',
+  orgName: envTenantDisplayName() ?? GENERIC_ORG_PLACEHOLDER,
   tagline: brandConfig.tagline,
   contactEmail: trimEnv('NEXT_PUBLIC_CONTACT_EMAIL') ?? brandConfig.supportEmail,
   contactPhone: trimEnv('NEXT_PUBLIC_CONTACT_PHONE') ?? '',

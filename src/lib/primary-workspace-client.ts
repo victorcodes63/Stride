@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { requireStaffUser } from '@/lib/staff-api-auth';
 import { getWorkspaceDefaults } from '@/lib/deployment-config';
 import { resolveEntityIdOrDefault } from '@/lib/entity-request';
-import { getActiveEntities, loadOperatingEntitiesSettings } from '@/lib/operating-entities';
+import { getActiveEntities, loadOperatingEntitiesSettingsForOrg } from '@/lib/operating-entities';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -15,7 +15,7 @@ export async function getOrCreatePrimaryWorkspaceClient(
   db: DbClient,
   organizationId: string,
 ) {
-  const settings = await loadOperatingEntitiesSettings();
+  const settings = await loadOperatingEntitiesSettingsForOrg(organizationId);
   const defaultEntity = settings.defaultEntityId;
   const existing = await db.outsourcingClient.findFirst({
     where: { organizationId, entityCode: defaultEntity },
@@ -29,7 +29,11 @@ export async function getOrCreatePrimaryWorkspaceClient(
   });
   if (anyClient) return anyClient;
 
-  const defaults = getWorkspaceDefaults();
+  const org = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { name: true },
+  });
+  const defaults = getWorkspaceDefaults(org?.name);
   return db.outsourcingClient.create({
     data: {
       organizationId,
