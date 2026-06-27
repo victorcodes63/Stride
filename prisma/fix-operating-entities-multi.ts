@@ -3,6 +3,7 @@ import {
   OPERATING_ENTITIES_SETTINGS_KEY,
   buildVerticalShowcaseOperatingEntitiesSettings,
 } from '../src/lib/operating-entities';
+import { SEED_DEFAULT_ORG_ID, systemSettingUpsert } from './system-setting-seed';
 
 const prisma = new PrismaClient();
 
@@ -20,11 +21,7 @@ async function main() {
 
   const settings = buildVerticalShowcaseOperatingEntitiesSettings(clients);
 
-  await prisma.systemSetting.upsert({
-    where: { key: OPERATING_ENTITIES_SETTINGS_KEY },
-    update: { value: settings },
-    create: { key: OPERATING_ENTITIES_SETTINGS_KEY, value: settings },
-  });
+  await systemSettingUpsert(prisma, SEED_DEFAULT_ORG_ID, OPERATING_ENTITIES_SETTINGS_KEY, settings);
 
   console.log(`Updated switcher with ${settings.entities.length} showcase context(s):`);
   for (const e of settings.entities) console.log(`  · ${e.legalName} (${e.id})`);

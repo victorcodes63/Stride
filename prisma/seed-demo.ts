@@ -24,6 +24,7 @@ import { companySetupKeyForContext, demoEntitySlug } from '../src/lib/demo-entit
 import { d, daysFromToday } from './demo-packs/date-helpers';
 import { calculateStatutoryForPayroll } from '../src/lib/payroll-calc';
 import { ensureUniqueSlug, jobSlugBase } from '../src/lib/slug';
+import { systemSettingUpsert } from './system-setting-seed';
 
 const basePrisma = new PrismaClient();
 type PrismaCompatClient = PrismaClient & Record<string, unknown>;
@@ -138,14 +139,12 @@ async function ensureStaffOrgMembership(userId: string, role: UserRole) {
 async function seedPackCompanySetup() {
   const setup = buildCompanySetupFromPack(pack);
   const key = companySetupKeyForContext(pack.id);
-  await prisma.systemSetting.upsert({
-    where: { key },
-    update: { value: setup as unknown as Prisma.InputJsonValue },
-    create: {
-      key,
-      value: setup as unknown as Prisma.InputJsonValue,
-    },
-  });
+  await systemSettingUpsert(
+    prisma,
+    demoOrganizationId,
+    key,
+    setup as unknown as Prisma.InputJsonValue,
+  );
   console.log(`→ Company setup seeded for ${setup.orgName} [${key}]`);
 }
 
@@ -1897,11 +1896,12 @@ async function main() {
         },
       ],
     });
-    await prisma.systemSetting.upsert({
-      where: { key: OPERATING_ENTITIES_SETTINGS_KEY },
-      update: { value: demoEntitySettings },
-      create: { key: OPERATING_ENTITIES_SETTINGS_KEY, value: demoEntitySettings },
-    });
+    await systemSettingUpsert(
+      prisma,
+      demoOrganizationId,
+      OPERATING_ENTITIES_SETTINGS_KEY,
+      demoEntitySettings,
+    );
   }
 
   await prisma.outsourcingClient.deleteMany({

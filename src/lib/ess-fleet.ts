@@ -1,4 +1,6 @@
-import type { FleetTripStatus, PrismaClient } from '@prisma/client';
+import type { FleetTripStatus, Prisma, PrismaClient } from '@prisma/client';
+
+type Db = PrismaClient | Prisma.TransactionClient;
 import { canTransitionTripStatus } from '@/lib/fleet-status';
 
 export const DRIVER_ACTIVE_TRIP_STATUSES: FleetTripStatus[] = [
@@ -13,7 +15,7 @@ export function driverCanSetTripStatus(current: FleetTripStatus, next: FleetTrip
   return canTransitionTripStatus(current, next, 'driver');
 }
 
-export async function getFleetDriverForEmployee(prisma: PrismaClient, employeeId: string) {
+export async function getFleetDriverForEmployee(prisma: Db, employeeId: string) {
   return prisma.fleetDriver.findUnique({
     where: { employeeId },
     select: {

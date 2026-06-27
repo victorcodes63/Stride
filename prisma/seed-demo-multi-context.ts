@@ -13,6 +13,7 @@ import {
   OPERATING_ENTITIES_SETTINGS_KEY,
   sanitizeOperatingEntitiesSettings,
 } from '../src/lib/operating-entities';
+import { SEED_DEFAULT_ORG_ID, systemSettingUpsert } from './system-setting-seed';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -50,11 +51,7 @@ async function seedCombinedOperatingEntities() {
     entities,
   });
 
-  await prisma.systemSetting.upsert({
-    where: { key: OPERATING_ENTITIES_SETTINGS_KEY },
-    update: { value: settings },
-    create: { key: OPERATING_ENTITIES_SETTINGS_KEY, value: settings },
-  });
+  await systemSettingUpsert(prisma, SEED_DEFAULT_ORG_ID, OPERATING_ENTITIES_SETTINGS_KEY, settings);
 
   console.log(`→ Operating entities: ${entities.length} contexts in entity switcher`);
   for (const e of entities) {

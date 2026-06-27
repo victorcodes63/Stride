@@ -40,7 +40,7 @@ async function main() {
         ? { ...row.value, moduleAdminFlags: ALL_ON }
         : { moduleAdminFlags: ALL_ON };
     await prisma.systemSetting.update({
-      where: { key: row.key },
+      where: { organizationId_key: { organizationId: row.organizationId, key: row.key } },
       data: { value },
     });
     console.log(`✓ ${row.key}`);

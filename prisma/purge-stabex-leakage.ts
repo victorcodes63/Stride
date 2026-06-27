@@ -57,7 +57,7 @@ async function scrubSettingsJson() {
       JSON.stringify(row.value).replace(/stabex international/gi, 'Demo Corporation').replace(/stabex/gi, 'Demo'),
     );
     await prisma.systemSetting.update({
-      where: { key: row.key },
+      where: { organizationId_key: { organizationId: row.organizationId, key: row.key } },
       data: { value: next as Prisma.InputJsonValue },
     });
     updated++;

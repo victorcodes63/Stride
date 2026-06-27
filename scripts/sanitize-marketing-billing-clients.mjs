@@ -176,7 +176,10 @@ async function main() {
   for (const row of setupRows) {
     const patched = patchStrings(row.value);
     if (JSON.stringify(patched) !== JSON.stringify(row.value)) {
-      await prisma.systemSetting.update({ where: { key: row.key }, data: { value: patched } });
+      await prisma.systemSetting.update({
+        where: { organizationId_key: { organizationId: row.organizationId, key: row.key } },
+        data: { value: patched },
+      });
       console.log(`  Company setup: patched ${row.key}`);
       setupPatched += 1;
     }

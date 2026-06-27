@@ -13,6 +13,7 @@ import {
   buildVerticalShowcaseOperatingEntitiesSettings,
 } from '../src/lib/operating-entities';
 import { UNIFIED_DEMO_EMAIL } from './demo-packs/build-from-generic';
+import { SEED_DEFAULT_ORG_ID, systemSettingUpsert } from './system-setting-seed';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -37,11 +38,7 @@ async function seedCombinedOperatingEntities() {
     return;
   }
 
-  await prisma.systemSetting.upsert({
-    where: { key: OPERATING_ENTITIES_SETTINGS_KEY },
-    update: { value: settings },
-    create: { key: OPERATING_ENTITIES_SETTINGS_KEY, value: settings },
-  });
+  await systemSettingUpsert(prisma, SEED_DEFAULT_ORG_ID, OPERATING_ENTITIES_SETTINGS_KEY, settings);
 
   console.log(`→ Vertical switcher: ${settings.entities.length} company contexts (one per sector)`);
   for (const e of settings.entities) {
