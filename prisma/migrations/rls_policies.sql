@@ -1216,8 +1216,18 @@ ALTER TABLE "OrganizationAuthConfig" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "OrganizationAuthConfig_tenant_rw" ON "OrganizationAuthConfig";
 CREATE POLICY "OrganizationAuthConfig_tenant_rw" ON "OrganizationAuthConfig"
   FOR ALL
-  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
-  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+  USING (
+    CASE
+      WHEN coalesce(current_setting('app.current_org', true), '') = '' THEN false
+      ELSE "organizationId" = current_setting('app.current_org', true)::uuid
+    END
+  )
+  WITH CHECK (
+    CASE
+      WHEN coalesce(current_setting('app.current_org', true), '') = '' THEN false
+      ELSE "organizationId" = current_setting('app.current_org', true)::uuid
+    END
+  );
 
 DROP POLICY IF EXISTS "OrganizationAuthConfig_insert_bootstrap" ON "OrganizationAuthConfig";
 CREATE POLICY "OrganizationAuthConfig_insert_bootstrap" ON "OrganizationAuthConfig"
@@ -1233,8 +1243,18 @@ ALTER TABLE "OrganizationEmailDomain" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "OrganizationEmailDomain_tenant_rw" ON "OrganizationEmailDomain";
 CREATE POLICY "OrganizationEmailDomain_tenant_rw" ON "OrganizationEmailDomain"
   FOR ALL
-  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
-  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+  USING (
+    CASE
+      WHEN coalesce(current_setting('app.current_org', true), '') = '' THEN false
+      ELSE "organizationId" = current_setting('app.current_org', true)::uuid
+    END
+  )
+  WITH CHECK (
+    CASE
+      WHEN coalesce(current_setting('app.current_org', true), '') = '' THEN false
+      ELSE "organizationId" = current_setting('app.current_org', true)::uuid
+    END
+  );
 
 DROP POLICY IF EXISTS "OrganizationEmailDomain_insert_bootstrap" ON "OrganizationEmailDomain";
 CREATE POLICY "OrganizationEmailDomain_insert_bootstrap" ON "OrganizationEmailDomain"
