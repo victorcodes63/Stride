@@ -36,6 +36,9 @@ Thumbs.db
 # Vercel
 .vercel
 
+# Generated email preview exports (scripts/send-all-test-emails.ts)
+email-previews/
+
 # Prisma
 prisma/migrations/**/migration_lock.toml
 

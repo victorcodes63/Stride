@@ -34,10 +34,10 @@ export const brand = {
   wordmark: brandConfig.productName,
 } as const;
 
-export const mailFromName = trimEnv('SMTP_FROM_NAME') ?? `${brandConfig.productName} HR`;
+export const mailFromName = trimEnv('SMTP_FROM_NAME') ?? brandConfig.productName;
 
 export const accountsMailFromName =
-  trimEnv('ACCOUNTS_SMTP_FROM_NAME') ?? `${brandConfig.productName} HR (Accounts)`;
+  trimEnv('ACCOUNTS_SMTP_FROM_NAME') ?? `${brandConfig.productName} Accounts`;
 
 export function getSiteUrl(): string {
   return (

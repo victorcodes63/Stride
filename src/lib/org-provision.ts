@@ -2,6 +2,7 @@ import { hash } from "bcryptjs";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getLocalePack } from "@/lib/country-config";
+import { setOrgContext } from "@/lib/org-context";
 
 export type ProvisionOrgInput = {
   organizationSlug: string;
@@ -31,6 +32,54 @@ function slugify(raw: string): string {
     .slice(0, 48);
 }
 
+function extractEmailDomain(email: string): string | null {
+  const normalized = email.trim().toLowerCase();
+  const at = normalized.lastIndexOf("@");
+  if (at <= 0) return null;
+  return normalized.slice(at + 1);
+}
+
+async function ensureProvisionAuthBootstrap(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  adminEmail: string,
+): Promise<void> {
+  await setOrgContext(tx, organizationId);
+
+  const emailDomain = extractEmailDomain(adminEmail);
+  if (emailDomain) {
+    await tx.organizationEmailDomain.upsert({
+      where: {
+        organizationId_domain: { organizationId, domain: emailDomain },
+      },
+      create: {
+        organizationId,
+        domain: emailDomain,
+        verificationToken: `provision-${emailDomain}`,
+        verifiedAt: new Date(),
+        updatedAt: new Date(),
+      },
+      update: {
+        verifiedAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  await tx.organizationAuthConfig.upsert({
+    where: { organizationId },
+    create: {
+      organizationId,
+      staffEnabledProviders: ["credentials"],
+      essEnabledProviders: ["credentials"],
+      updatedAt: new Date(),
+    },
+    update: {
+      updatedAt: new Date(),
+    },
+  });
+}
+
 export async function provisionOrganization(
   input: ProvisionOrgInput,
 ): Promise<ProvisionOrgResult> {
@@ -56,6 +105,9 @@ export async function provisionOrganization(
     if (!user) {
       throw new Error("Organization exists but admin user not found");
     }
+    await prisma.$transaction(async (tx) => {
+      await ensureProvisionAuthBootstrap(tx, existingOrg.id, adminEmail);
+    });
     return {
       organizationId: existingOrg.id,
       organizationSlug: existingOrg.slug,
@@ -127,6 +179,8 @@ export async function provisionOrganization(
         metadata: { customerSlug: input.customerSlug ?? null, country },
       },
     });
+
+    await ensureProvisionAuthBootstrap(tx, org.id, adminEmail);
 
     return { org, user };
   });

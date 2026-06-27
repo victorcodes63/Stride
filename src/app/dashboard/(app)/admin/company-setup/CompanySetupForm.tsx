@@ -391,7 +391,7 @@ export function CompanySetupForm({
  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
  <Field label="Support email"><input type="email" value={form.contactEmail} onChange={(e) => setForm((f) => ({ ...f, contactEmail: e.target.value }))} className={inputClass} placeholder={resolvedBrand.contactEmail} /></Field>
  <Field label="Phone"><input value={form.contactPhone} onChange={(e) => setForm((f) => ({ ...f, contactPhone: e.target.value }))} className={inputClass} /></Field>
- <Field label="Email sender name"><input value={form.emailFromName} onChange={(e) => setForm((f) => ({ ...f, emailFromName: e.target.value }))} className={inputClass} placeholder={`${resolvedBrand.appName} HR`} /></Field>
+ <Field label="Email sender name"><input value={form.emailFromName} onChange={(e) => setForm((f) => ({ ...f, emailFromName: e.target.value }))} className={inputClass} placeholder={resolvedBrand.appName} /></Field>
  <Field label="Public site footer text" hint="Shown on careers and marketing pages">
  <textarea value={form.publicFooterText} onChange={(e) => setForm((f) => ({ ...f, publicFooterText: e.target.value }))} rows={3} className={inputClass} placeholder="A short about blurb for your organisation." />
  </Field>

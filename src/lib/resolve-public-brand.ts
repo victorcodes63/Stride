@@ -58,7 +58,7 @@ export function resolvePublicBrand(setup: CompanySetupSettings): PublicBrand {
     privacyPolicyUrl: setup.privacyPolicyUrl?.trim() || '/privacy',
     termsUrl: setup.termsUrl?.trim() || '/terms',
     supportUrl: setup.supportUrl?.trim() || '',
-    emailFromName: pickString(setup.emailFromName, `${brandConfig.productName} HR`),
+    emailFromName: pickString(setup.emailFromName, brandConfig.productName),
     careersEmployerName: pickString(setup.careersEmployerName, recruitmentEmployerNameFromEnv()),
     careersTagline: pickString(setup.careersTagline, pickString(setup.tagline, productTagline)),
     careersHeroImageUrl: pickString(setup.careersHeroImageUrl, ''),
