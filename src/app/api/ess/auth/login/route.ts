@@ -10,9 +10,6 @@ const ESS_SESSION_COOKIE = 'ess_session';
 const COOKIE_MAX_AGE = getEssSessionMaxAgeSeconds();
 
 export async function POST(request: NextRequest) {
-  const credentialsBlocked = await assertCredentialsLoginEnabled('ess');
-  if (credentialsBlocked) return credentialsBlocked;
-
   let body: unknown;
   try {
     body = await request.json();
@@ -23,6 +20,9 @@ export async function POST(request: NextRequest) {
   const b = body as Record<string, unknown>;
   const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
   const password = typeof b.password === 'string' ? b.password : '';
+
+  const credentialsBlocked = await assertCredentialsLoginEnabled('ess', email);
+  if (credentialsBlocked) return credentialsBlocked;
 
   if (!email || !password) {
     await logAuditEvent({

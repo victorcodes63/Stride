@@ -15,13 +15,13 @@ const COOKIE_MAX_AGE = getStaffSessionMaxAgeSeconds();
 
 export async function POST(request: NextRequest) {
   try {
-    const credentialsBlocked = await assertCredentialsLoginEnabled('staff');
-    if (credentialsBlocked) return credentialsBlocked;
-
     const body = await request.json();
     const { email, password } = body;
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     const normalizedPassword = typeof password === 'string' ? password : '';
+
+    const credentialsBlocked = await assertCredentialsLoginEnabled('staff', normalizedEmail);
+    if (credentialsBlocked) return credentialsBlocked;
 
     const staffEmail = process.env.STAFF_EMAIL;
     if (!process.env.DATABASE_URL) {
