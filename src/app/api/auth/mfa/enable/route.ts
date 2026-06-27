@@ -32,5 +32,18 @@ export async function POST(request: NextRequest) {
     entityId: user.id,
     route: 'POST /api/auth/mfa/enable',
   });
+  try {
+    const { sendNotification } = await import('@/lib/notifications');
+    await sendNotification({
+      event: 'mfa_enabled',
+      recipientUserIds: [user.id],
+      title: 'Two-factor authentication enabled',
+      body: 'MFA was enabled on your account.',
+      priority: 'info',
+      channel: 'email',
+    });
+  } catch {
+    // non-blocking
+  }
   return NextResponse.json({ success: true, backupCodes });
 }

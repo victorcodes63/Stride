@@ -16,7 +16,16 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
-      await new Promise((r) => setTimeout(r, 800));
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Something went wrong. Please try again.');
+        return;
+      }
       setSubmitted(true);
     } catch {
       setError('Something went wrong. Please try again.');

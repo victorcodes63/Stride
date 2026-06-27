@@ -38,13 +38,17 @@ export async function GET(request: NextRequest) {
     if (recipients.length === 0) continue;
 
     await sendNotification({
-      event: 'employee_created',
+      event: 'onboarding_task_overdue',
       recipientUserIds: recipients,
       title: 'Overdue onboarding task',
       body: `"${task.title}" for ${task.workflow.employee.firstName} ${task.workflow.employee.lastName} was due on ${task.dueDate?.toISOString().slice(0, 10)}.`,
       href: `/dashboard/onboarding/${task.workflowId}`,
       priority: 'urgent',
-      channel: 'in_app',
+      channel: 'both',
+      metadata: {
+        body: `"${task.title}" for ${task.workflow.employee.firstName} ${task.workflow.employee.lastName} was due on ${task.dueDate?.toISOString().slice(0, 10)}.`,
+        href: `/dashboard/onboarding/${task.workflowId}`,
+      },
     });
   }
 

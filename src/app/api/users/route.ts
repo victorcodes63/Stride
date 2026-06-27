@@ -8,8 +8,6 @@ import { isStaffUserType } from '@/lib/staff-permissions';
 import type { StaffUserType, UserRole } from '@/types/dashboard';
 import { userRowToSummary } from '@/lib/user-summary-api';
 import { logAuditEvent } from '@/lib/audit-events';
-import { sendNotification } from '@/lib/notifications';
-import { brand } from '@/lib/brand';
 
 const ROUNDS = 10;
 const ROLES: UserRole[] = ['admin', 'staff', 'viewer'];
@@ -160,18 +158,12 @@ export async function POST(request: NextRequest) {
       metadata: { role: user.role, staffUserType: user.staffUserType },
     });
     try {
-      await sendNotification({
-        event: 'user_invited',
-        recipientUserIds: [user.id],
-        title: `Welcome to ${brand.appName}`,
-        body: `An account has been created for you. Log in with ${user.email}.`,
-        href: '/dashboard/login',
-        priority: 'info',
-        channel: 'email',
-        metadata: {
-          email: user.email,
-          loginUrl: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || ''}/dashboard/login`,
-        },
+      const { sendAccountInviteEmail } = await import('@/lib/email');
+      await sendAccountInviteEmail({
+        to: user.email,
+        name: user.name ?? '',
+        portal: 'staff',
+        userId: user.id,
       });
     } catch (err) {
       console.error('[notifications] Failed to send user_invited:', err);

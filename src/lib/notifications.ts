@@ -378,7 +378,7 @@ export async function sendNotification(payload: NotificationPayload): Promise<vo
             recipientUserId: user.id,
             channel: 'email',
             status: result.sent ? 'sent' : 'failed',
-            provider: result.sent ? 'email' : null,
+            provider: result.sent ? 'resend' : null,
             error: result.sent ? null : result.error,
             metadata: payload.metadata,
           });
@@ -443,7 +443,7 @@ export async function sendNotification(payload: NotificationPayload): Promise<vo
             recipientEssPortalUserId: user.id,
             channel: 'email',
             status: result.sent ? 'sent' : 'failed',
-            provider: result.sent ? 'email' : null,
+            provider: result.sent ? 'resend' : null,
             error: result.sent ? null : result.error,
             metadata: payload.metadata,
           });

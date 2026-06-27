@@ -112,6 +112,18 @@ export async function POST(request: NextRequest) {
       metadata: { email: user.email, role: user.role },
     });
 
+    try {
+      const { sendAccountInviteEmail } = await import('@/lib/email');
+      await sendAccountInviteEmail({
+        to: user.email,
+        name: user.name ?? '',
+        portal: 'ess',
+        userId: user.id,
+      });
+    } catch (err) {
+      console.error('[ess-portal-users] Failed to send invite email:', err);
+    }
+
     return NextResponse.json({
       id: user.id,
       employeeId: user.employeeId,

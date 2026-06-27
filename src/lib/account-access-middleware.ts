@@ -16,6 +16,7 @@ const ACCOUNT_EXEMPT_PREFIXES = [
   '/api/health',
   '/dashboard/login',
   '/dashboard/forgot-password',
+  '/dashboard/reset-password',
   '/dashboard/account-suspended',
   '/ess/login',
   '/ess/account-suspended',
