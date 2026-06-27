@@ -40,6 +40,7 @@ import { isGoogleOAuthConfigured, isMicrosoftOAuthConfigured } from '@/lib/auth-
 import { applyAuthMethodToSetup, type PortalAuthMethod } from '@/lib/company-setup-auth';
 import { syncCompanySetupToOrgAuth } from '@/lib/auth/sync-company-setup-auth';
 import { listOrganizationEmailDomains, formatDnsTxtRecord } from '@/lib/auth/domain-verification';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
 
 export async function GET(request: NextRequest) {
   const { error, actor } = await requireAdminActor(request);
@@ -53,7 +54,8 @@ export async function GET(request: NextRequest) {
   try {
     const storageKey = companySetupStorageKeyFromRequest(request);
     const entitySlug = request.cookies.get(HRIS_ENTITY_COOKIE)?.value ?? null;
-    const setup = await loadCompanySetupForStorageKey(storageKey);
+    const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
+    const setup = await loadCompanySetupForStorageKey(storageKey, organizationId);
     const licensed = listLicensedModules();
     const subscription = entitlements
       ? {
@@ -134,7 +136,8 @@ export async function PATCH(request: NextRequest) {
   }
 
   const storageKey = companySetupStorageKeyFromRequest(request);
-  const current = await loadCompanySetupForStorageKey(storageKey);
+  const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
+  const current = await loadCompanySetupForStorageKey(storageKey, organizationId);
   const capabilities = getCompanySetupCapabilities(tier);
   const oauthConfigured = {
     microsoft: isMicrosoftOAuthConfigured(),
@@ -175,7 +178,12 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
 
-    await persistCompanySetupSettings(storageKey, merged, actor?.userId ?? null);
+    await persistCompanySetupSettings(
+      storageKey,
+      merged,
+      actor?.userId ?? null,
+      organizationId,
+    );
 
     if (actor?.organizationId) {
       const bodyObj = body as Record<string, unknown>;

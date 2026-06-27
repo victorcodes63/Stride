@@ -8,6 +8,7 @@ import { horizontalQuotaForTier } from '@/lib/entitlement-buckets';
 import type { ModuleKey } from '@/lib/modules';
 import { planIdToTier } from '@/lib/entitlements-resolver';
 import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
+import { systemSettingCreate, systemSettingWhere } from '@/lib/system-setting-store';
 import { withOrgContext } from '@/lib/org-context';
 import { prisma } from '@/lib/prisma';
 import { verifyWebhookSignature, WEBHOOK_SIGNATURE_HEADER } from '@/lib/webhook-signing';
@@ -85,12 +86,8 @@ async function persistEntitlements(
   }
 
   await tx.systemSetting.upsert({
-    where: { key: DEPLOYMENT_ENTITLEMENTS_KEY },
-    create: {
-      key: DEPLOYMENT_ENTITLEMENTS_KEY,
-      value,
-      organizationId: DEFAULT_ORGANIZATION_ID,
-    },
+    where: systemSettingWhere(DEFAULT_ORGANIZATION_ID, DEPLOYMENT_ENTITLEMENTS_KEY),
+    create: systemSettingCreate(DEFAULT_ORGANIZATION_ID, DEPLOYMENT_ENTITLEMENTS_KEY, value),
     update: { value },
   });
 }

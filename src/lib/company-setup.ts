@@ -1,5 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { withOrgContext } from '@/lib/org-context';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
+import {
+  systemSettingCreate,
+  systemSettingWhere,
+} from '@/lib/system-setting-store';
 import { DEFAULT_BRAND_LOGO_SRC, DEFAULT_LANDING_PATH } from '@/lib/brand-constants';
 import {
   DEFAULT_PRIMARY_COLOR,
@@ -265,7 +270,9 @@ export async function loadCompanySetupSettings(contextId?: string | null): Promi
     : [COMPANY_SETUP_SETTINGS_KEY];
   try {
     for (const key of keys) {
-      const row = await prisma.systemSetting.findUnique({ where: { key } });
+      const row = await prisma.systemSetting.findUnique({
+        where: systemSettingWhere(DEFAULT_ORGANIZATION_ID, key),
+      });
       if (row) return sanitizeCompanySetup(row.value);
     }
     return { ...DEFAULT_COMPANY_SETUP };
@@ -282,7 +289,7 @@ export async function loadCompanySetupSettingsForOrg(
   try {
     return await withOrgContext(organizationId, async (tx) => {
       const row = await tx.systemSetting.findUnique({
-        where: { key: COMPANY_SETUP_SETTINGS_KEY },
+        where: systemSettingWhere(organizationId, COMPANY_SETUP_SETTINGS_KEY),
       });
       if (row) return sanitizeCompanySetup(row.value);
       const org = await tx.organization.findUnique({
@@ -329,13 +336,20 @@ export function companySetupContextLabel(entitySlug: string | null | undefined):
   return labels[contextId] ?? contextId;
 }
 
-export async function loadCompanySetupForStorageKey(key: string): Promise<CompanySetupSettings> {
+export async function loadCompanySetupForStorageKey(
+  key: string,
+  organizationId: string = DEFAULT_ORGANIZATION_ID,
+): Promise<CompanySetupSettings> {
   if (!process.env.DATABASE_URL) return { ...DEFAULT_COMPANY_SETUP };
   try {
-    const row = await prisma.systemSetting.findUnique({ where: { key } });
+    const row = await prisma.systemSetting.findUnique({
+      where: systemSettingWhere(organizationId, key),
+    });
     if (row) return sanitizeCompanySetup(row.value);
     if (key !== COMPANY_SETUP_SETTINGS_KEY) {
-      const legacy = await prisma.systemSetting.findUnique({ where: { key: COMPANY_SETUP_SETTINGS_KEY } });
+      const legacy = await prisma.systemSetting.findUnique({
+        where: systemSettingWhere(organizationId, COMPANY_SETUP_SETTINGS_KEY),
+      });
       if (legacy) return sanitizeCompanySetup(legacy.value);
     }
     return { ...DEFAULT_COMPANY_SETUP };
@@ -348,11 +362,17 @@ export async function persistCompanySetupSettings(
   key: string,
   merged: CompanySetupSettings,
   updatedByUserId: string | null,
+  organizationId: string,
 ): Promise<void> {
   await prisma.systemSetting.upsert({
-    where: { key },
-    update: { value: merged, updatedByUserId },
-    create: { key, value: merged, updatedByUserId },
+    where: systemSettingWhere(organizationId, key),
+    update: { value: merged as unknown as import('@prisma/client').Prisma.InputJsonValue, updatedByUserId },
+    create: systemSettingCreate(
+      organizationId,
+      key,
+      merged as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      updatedByUserId,
+    ),
   });
 }
 

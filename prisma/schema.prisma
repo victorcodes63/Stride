@@ -2146,8 +2146,8 @@ model AuditEvent {
 }
 
 model SystemSetting {
-  key            String @id
   organizationId String @db.Uuid
+  key            String
 
   value           Json
   updatedByUserId String?
@@ -2155,6 +2155,9 @@ model SystemSetting {
   updatedAt       DateTime @updatedAt
 
   updatedBy User? @relation("SystemSettingUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@id([organizationId, key])
+  @@index([key])
 }
 
 // --- Internal staff leave (not outsourcing employees) ---

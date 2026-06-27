@@ -12,6 +12,7 @@ import {
   toPublicCompanySetup,
 } from '@/lib/company-setup';
 import { HRIS_ENTITY_COOKIE } from '@/lib/entity-constants';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
 
 const FIELD_MAP = {
   logo: ['logoSrc', 'logoPngPath'] as const,
@@ -40,7 +41,8 @@ export async function POST(request: NextRequest) {
 
     const uploaded = await uploadBrandingImage(file, kind);
     const storageKey = companySetupStorageKeyFromRequest(request);
-    const current = await loadCompanySetupForStorageKey(storageKey);
+    const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
+    const current = await loadCompanySetupForStorageKey(storageKey, organizationId);
     const patch: Record<string, string> = {};
     for (const field of FIELD_MAP[kind]) {
       patch[field] = uploaded.path;
@@ -51,7 +53,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
 
-    await persistCompanySetupSettings(storageKey, merged, actor?.userId ?? null);
+    await persistCompanySetupSettings(
+      storageKey,
+      merged,
+      actor?.userId ?? null,
+      organizationId,
+    );
 
     await logAuditEvent({
       actor,

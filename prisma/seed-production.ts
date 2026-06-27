@@ -269,16 +269,28 @@ async function main() {
   await seedStaffLeaveTypes(user.id);
   await seedRecruitmentSettings(workspaceDefaults.name, workspaceDefaults.contactEmail);
 
+  const defaultOrgId = '00000000-0000-4000-8000-000000000001';
+
   await prisma.systemSetting.upsert({
-    where: { key: COMPANY_SETUP_SETTINGS_KEY },
+    where: { organizationId_key: { organizationId: defaultOrgId, key: COMPANY_SETUP_SETTINGS_KEY } },
     update: { value: DEFAULT_COMPANY_SETUP },
-    create: { key: COMPANY_SETUP_SETTINGS_KEY, value: DEFAULT_COMPANY_SETUP },
+    create: {
+      organizationId: defaultOrgId,
+      key: COMPANY_SETUP_SETTINGS_KEY,
+      value: DEFAULT_COMPANY_SETUP,
+    },
   });
 
   await prisma.systemSetting.upsert({
-    where: { key: OPERATING_ENTITIES_SETTINGS_KEY },
+    where: {
+      organizationId_key: { organizationId: defaultOrgId, key: OPERATING_ENTITIES_SETTINGS_KEY },
+    },
     update: { value: entitySettings },
-    create: { key: OPERATING_ENTITIES_SETTINGS_KEY, value: entitySettings },
+    create: {
+      organizationId: defaultOrgId,
+      key: OPERATING_ENTITIES_SETTINGS_KEY,
+      value: entitySettings,
+    },
   });
 
   const deptCount = await prisma.department.count({

@@ -14,6 +14,8 @@ import {
 } from '@/lib/operating-entities';
 import { loadCompanySetupSettings } from '@/lib/company-setup';
 import { GENERIC_ORG_PLACEHOLDER } from '@/lib/deployment-cell';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
+import { systemSettingCreate, systemSettingWhere } from '@/lib/system-setting-store';
 
 export async function GET(request: NextRequest) {
   const { error } = await requireAdminActor(request);
@@ -58,10 +60,17 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
 
+    const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
+
     await prisma.systemSetting.upsert({
-      where: { key: OPERATING_ENTITIES_SETTINGS_KEY },
+      where: systemSettingWhere(organizationId, OPERATING_ENTITIES_SETTINGS_KEY),
       update: { value: merged, updatedByUserId: actor?.userId ?? null },
-      create: { key: OPERATING_ENTITIES_SETTINGS_KEY, value: merged, updatedByUserId: actor?.userId ?? null },
+      create: systemSettingCreate(
+        organizationId,
+        OPERATING_ENTITIES_SETTINGS_KEY,
+        merged as unknown as import('@prisma/client').Prisma.InputJsonValue,
+        actor?.userId ?? null,
+      ),
     });
 
     await syncOperatingEntitiesToOutsourcingClients(prisma, merged);

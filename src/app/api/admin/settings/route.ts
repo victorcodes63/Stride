@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { requireAdminActor } from '@/lib/admin-security';
 import { logAuditEvent } from '@/lib/audit-events';
 import type { SystemSettingsPayload } from '@/types/dashboard';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
+import { systemSettingCreate, systemSettingWhere } from '@/lib/system-setting-store';
 
 const SETTINGS_KEY = 'admin.platform.settings';
 
@@ -38,14 +40,18 @@ function sanitizeSettings(value: unknown): SystemSettingsPayload {
 }
 
 export async function GET(request: NextRequest) {
-  const { error } = await requireAdminActor(request);
+  const { error, actor } = await requireAdminActor(request);
   if (error) return error;
+
+  const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
 
   try {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
-    const row = await prisma.systemSetting.findUnique({ where: { key: SETTINGS_KEY } });
+    const row = await prisma.systemSetting.findUnique({
+      where: systemSettingWhere(organizationId, SETTINGS_KEY),
+    });
     if (!row) return NextResponse.json(DEFAULT_SETTINGS);
     return NextResponse.json(sanitizeSettings(row.value));
   } catch (e) {
@@ -67,14 +73,24 @@ export async function PATCH(request: NextRequest) {
 
   const settings = sanitizeSettings(body);
 
+  const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
+
   try {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
     await prisma.systemSetting.upsert({
-      where: { key: SETTINGS_KEY },
-      update: { value: settings as unknown as Prisma.InputJsonValue, updatedByUserId: actor?.userId ?? null },
-      create: { key: SETTINGS_KEY, value: settings as unknown as Prisma.InputJsonValue, updatedByUserId: actor?.userId ?? null },
+      where: systemSettingWhere(organizationId, SETTINGS_KEY),
+      update: {
+        value: settings as unknown as Prisma.InputJsonValue,
+        updatedByUserId: actor?.userId ?? null,
+      },
+      create: systemSettingCreate(
+        organizationId,
+        SETTINGS_KEY,
+        settings as unknown as Prisma.InputJsonValue,
+        actor?.userId ?? null,
+      ),
     });
 
     await logAuditEvent({

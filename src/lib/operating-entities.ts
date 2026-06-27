@@ -1,6 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { withOrgContext } from '@/lib/org-context';
+import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
+import { systemSettingCreate, systemSettingWhere } from '@/lib/system-setting-store';
 import { getDefaultCountry, getDefaultCurrency, getWorkspaceDefaults, isMultiEntityEnvEnabled } from '@/lib/deployment-config';
 import { loadCompanySetupSettings } from '@/lib/company-setup';
 import { isMultiContextDemoEnabled } from '@/lib/demo-entity-slug';
@@ -232,7 +234,9 @@ export async function loadOperatingEntitiesSettings(): Promise<OperatingEntities
     return buildDefaultOperatingEntitiesSettings(setup.orgName || undefined);
   }
   try {
-    const row = await prisma.systemSetting.findUnique({ where: { key: OPERATING_ENTITIES_SETTINGS_KEY } });
+    const row = await prisma.systemSetting.findUnique({
+      where: systemSettingWhere(DEFAULT_ORGANIZATION_ID, OPERATING_ENTITIES_SETTINGS_KEY),
+    });
     if (!row) {
       const setup = await loadCompanySetupSettings();
       return buildDefaultOperatingEntitiesSettings(setup.orgName || undefined);
@@ -253,7 +257,7 @@ export async function loadOperatingEntitiesSettingsForOrg(
   try {
     return await withOrgContext(organizationId, async (tx) => {
       const row = await tx.systemSetting.findUnique({
-        where: { key: OPERATING_ENTITIES_SETTINGS_KEY },
+        where: systemSettingWhere(organizationId, OPERATING_ENTITIES_SETTINGS_KEY),
       });
       const org = await tx.organization.findUnique({
         where: { id: organizationId },
