@@ -30,7 +30,7 @@ type EntityConfigResponse = {
 
 type EntityProviderProps = {
   children: ReactNode;
-  /** When set (e.g. from /api/dashboard/bootstrap), skips a separate entities fetch. */
+  /** undefined = waiting for bootstrap; null/object = resolved tenant config. */
   initialConfig?: EntityConfigResponse | null;
 };
 
@@ -113,7 +113,7 @@ export function EntityProvider({ children, initialConfig = null }: EntityProvide
     return [FALLBACK_ENTITY];
   });
   const [showSwitcher, setShowSwitcher] = useState(Boolean(initialConfig?.showSwitcher));
-  const [loading, setLoading] = useState(!initialConfig);
+  const [loading, setLoading] = useState(initialConfig === undefined);
   const [activeEntity, setActiveEntityState] = useState<Entity>(() => {
     if (initialConfig?.entities?.length) {
       return pickPreferredEntity(initialConfig.entities, initialConfig.defaultEntityId ?? initialConfig.entities[0]!.id);
@@ -122,11 +122,11 @@ export function EntityProvider({ children, initialConfig = null }: EntityProvide
   });
 
   useEffect(() => {
-    if (initialConfig?.entities?.length) {
-      const list = initialConfig.entities;
-      const defaultId = initialConfig.defaultEntityId ?? list[0]!.id;
+    if (initialConfig !== undefined) {
+      const list = initialConfig?.entities?.length ? initialConfig.entities : [FALLBACK_ENTITY];
+      const defaultId = initialConfig?.defaultEntityId ?? list[0]!.id;
       setEntities(list);
-      setShowSwitcher(Boolean(initialConfig.showSwitcher));
+      setShowSwitcher(Boolean(initialConfig?.showSwitcher));
       const preferred = pickPreferredEntity(list, defaultId);
       syncEntityCookie(preferred.id);
       setActiveEntityState(preferred);
@@ -134,26 +134,10 @@ export function EntityProvider({ children, initialConfig = null }: EntityProvide
       return;
     }
 
-    let cancelled = false;
-    fetch('/api/config/entities')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: EntityConfigResponse | null) => {
-        if (cancelled || !data) return;
-        const list = Array.isArray(data.entities) && data.entities.length > 0 ? data.entities : [FALLBACK_ENTITY];
-        const defaultId = data.defaultEntityId ?? list[0]!.id;
-        setEntities(list);
-        setShowSwitcher(Boolean(data.showSwitcher));
-        const preferred = pickPreferredEntity(list, defaultId);
-        syncEntityCookie(preferred.id);
-        setActiveEntityState(preferred);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    // Bootstrap supplies tenant-scoped entity config — never fetch global demo settings.
+    setEntities([FALLBACK_ENTITY]);
+    setShowSwitcher(false);
+    setLoading(true);
   }, [initialConfig]);
 
   useLayoutEffect(() => {

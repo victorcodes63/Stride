@@ -17,6 +17,7 @@ import { ChevronLeft, ChevronDown, LogOut, Palette, User } from 'lucide-react';
 import type { UserSummary } from '@/types/dashboard';
 import { STAFF_USER_TYPE_LABELS } from '@/lib/staff-permissions';
 import { EntityProvider, type Entity } from '@/components/EntitySwitcher';
+import { BOOTSTRAP_PENDING_MODULES } from '@/lib/bootstrap-pending-modules';
 import type { ModuleKey } from '@/lib/modules';
 import type { DeploymentTier } from '@/lib/deployment-tier';
 import { writeModuleAdminFlagsCookie } from '@/lib/module-cookie';
@@ -50,26 +51,7 @@ type BootstrapPayload = {
  };
 };
 
-const ALL_MODULES_ON: Record<ModuleKey, boolean> = {
- core: true,
- leave: true,
- time: true,
- payroll: true,
- ats: true,
- performance: true,
- hse: true,
- accounts: true,
- disciplinary: true,
- reports: true,
- assets: true,
- fleet: true,
- ess: true,
- communications: true,
- training: true,
- documents: true,
- procurement: true,
- legal: true,
-};
+const ALL_MODULES_ON: Record<ModuleKey, boolean> = BOOTSTRAP_PENDING_MODULES;
 
 const SIDEBAR_WIDTH = DASHBOARD_SIDEBAR_WIDTH;
 
@@ -96,7 +78,7 @@ export default function DashboardAppLayoutClient({
  const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
  const [enabledModules, setEnabledModules] = useState<Record<ModuleKey, boolean>>(ALL_MODULES_ON);
  const [deploymentTier, setDeploymentTier] = useState<DeploymentTier>('growth');
- const [entityBootstrap, setEntityBootstrap] = useState<BootstrapPayload | null>(null);
+ const [entityBootstrap, setEntityBootstrap] = useState<BootstrapPayload | undefined>(undefined);
  const [pastDueBanner, setPastDueBanner] = useState<{
   visible: boolean;
   graceDaysRemaining: number | null;
@@ -130,7 +112,11 @@ export default function DashboardAppLayoutClient({
  if (data.deploymentTier) setDeploymentTier(data.deploymentTier);
  if (data.moduleAdminFlags) writeModuleAdminFlagsCookie(data.moduleAdminFlags);
  setCanAccessCompanySetup(data.deployment?.canAccessCompanySetup === true);
- setEntityBootstrap(data);
+ setEntityBootstrap({
+  entities: data.entities,
+  defaultEntityId: data.defaultEntityId,
+  showEntitySwitcher: data.showEntitySwitcher,
+ });
  if (data.entitlements) {
   const { accountStatus, pastDueSince } = data.entitlements;
   const visible = isPastDueBannerVisible(accountStatus);

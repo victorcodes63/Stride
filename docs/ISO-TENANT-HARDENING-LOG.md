@@ -11,15 +11,18 @@ Branch: `iso/tenant-hardening` (app repo) — **not pushed to main**
 | RAV-249 ISO-05 | done | SystemSetting composite PK + all loader/seed updates |
 | RAV-250 ISO-06 | handoff | VICTOR TODO only — no DB role flip |
 
-## Verify log
+## Verify log (deploy 2026-06-27)
 
 | Check | Result |
 |-------|--------|
 | `npm test -- --run deployment-cell org-membership` | 6/6 pass |
-| `npm run audit:module-tenant` | 277/277 (100%) — all modules tenant-safe |
-| `npm run test:rls` | Skipped locally — no DATABASE_URL (VICTOR: run on staging) |
-| `npm run test:cross-tenant` | Skipped locally — no DATABASE_URL |
-| `npx prisma generate` | OK after ISO-05 schema change |
+| `npm run audit:module-tenant` | 277/277 (100%) |
+| `npm run test:rls` | PASS (owner URL for setup) |
+| `npm run test:cross-tenant` | PASS |
+| `audit-default-org-memberships.ts` | 30 default-org memberships; 4 dual-org (review) |
+| Vercel production deploy | https://app.getstride.co.ke — READY |
+| ISO-01 demo vars stripped | ✓ production env |
+| ISO-06 stride_app flip | ✓ DATABASE_URL on Vercel production |
 
 ## Commits (newest first)
 

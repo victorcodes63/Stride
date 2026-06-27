@@ -1,24 +1,27 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { withTenant } from '@/lib/tenant-api';
 import {
   isMultiEntityEnvEnabled,
-  loadOperatingEntitiesSettings,
+  loadOperatingEntitiesSettingsForOrg,
   shouldShowEntitySwitcher,
   toPublicEntities,
 } from '@/lib/operating-entities';
 
 export const dynamic = 'force-dynamic';
 
-/** Public read — active entities for dashboard switcher (no secrets). */
-export async function GET() {
-  const settings = await loadOperatingEntitiesSettings();
-  const entities = toPublicEntities(settings);
-  const showSwitcher = shouldShowEntitySwitcher(settings);
+/** Tenant-scoped entities for dashboard switcher (requires staff session). */
+export async function GET(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
+    const settings = await loadOperatingEntitiesSettingsForOrg(ctx.organizationId);
+    const entities = toPublicEntities(settings);
+    const showSwitcher = shouldShowEntitySwitcher(settings);
 
-  return NextResponse.json({
-    entities,
-    defaultEntityId: settings.defaultEntityId,
-    multiEntityEnabled: settings.multiEntityEnabled,
-    multiEntityEnvEnabled: isMultiEntityEnvEnabled(),
-    showSwitcher,
+    return NextResponse.json({
+      entities,
+      defaultEntityId: settings.defaultEntityId,
+      multiEntityEnabled: settings.multiEntityEnabled,
+      multiEntityEnvEnabled: isMultiEntityEnvEnabled(),
+      showSwitcher,
+    });
   });
 }

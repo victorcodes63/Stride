@@ -54,13 +54,13 @@ export function clampModuleAdminFlags(
   return next;
 }
 
-/** Per-org entitlements (pooled cell) with deployment-level fallback (dedicated / legacy). */
+/** Per-org entitlements (pooled cell) with deployment-level fallback (demo / legacy only). */
 export async function loadEntitlementsForAdminGuard(
   organizationId?: string | null,
 ): Promise<DeploymentEntitlements | null> {
   if (organizationId?.trim()) {
-    const orgEntitlements = await loadOrganizationEntitlements(organizationId.trim());
-    if (orgEntitlements) return orgEntitlements;
+    const { resolveSessionEntitlements } = await import('@/lib/resolve-session-entitlements');
+    return resolveSessionEntitlements(organizationId.trim());
   }
   return loadDeploymentEntitlements();
 }

@@ -12,20 +12,17 @@ import {
 import { listLicensedModules, MODULE_DEFINITIONS, resolveEffectiveModules } from '@/lib/modules';
 import { moduleAdminFlagsSetCookieHeader } from '@/lib/module-cookie';
 import { entitlementsSetCookieHeader } from '@/lib/entitlements-cookie';
-import {
-  isControlPlaneSyncConfigured,
-  syncDeploymentEntitlements,
-} from '@/lib/entitlements-resolver';
-import { loadDeploymentEntitlements } from '@/lib/entitlements-store';
-import { loadOrganizationEntitlements } from '@/lib/org-entitlements-store';
-import { isEntitlementsStale } from '@/lib/entitlements-types';
-import { planIdToTier } from '@/lib/entitlements-resolver';
-import { isModuleEntitled } from '@/lib/entitlements-guard';
-import { getDeploymentTier } from '@/lib/deployment-tier';
 import { withTenant } from '@/lib/tenant-api';
 import { listActiveMemberships } from '@/lib/org-membership';
 import { prisma } from '@/lib/prisma';
 import { userRowToSummary } from '@/lib/user-summary-api';
+import {
+  resolveSessionEntitlements,
+  subscriptionFromEntitlements,
+} from '@/lib/resolve-session-entitlements';
+import { planIdToTier } from '@/lib/entitlements-resolver';
+import { isModuleEntitled } from '@/lib/entitlements-guard';
+import { getDeploymentTier } from '@/lib/deployment-tier';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,25 +48,9 @@ export async function GET(request: NextRequest) {
       const licensed = listLicensedModules();
       const moduleAdminFlags = setup.moduleAdminFlags;
 
-      let entitlements = await loadOrganizationEntitlements(ctx.organizationId);
-      if (!entitlements) {
-        entitlements = await loadDeploymentEntitlements();
-      }
-      if (
-        isControlPlaneSyncConfigured() &&
-        (!entitlements || isEntitlementsStale(entitlements.syncedAt))
-      ) {
-        // Refresh in background — do not block dashboard shell on control-plane latency.
-        void syncDeploymentEntitlements().catch(() => {});
-      }
+      let entitlements = await resolveSessionEntitlements(ctx.organizationId);
 
-      const subscription = entitlements
-        ? {
-            subscribedModules: entitlements.modules,
-            accountStatus: entitlements.accountStatus,
-            verticalEnginesAllowed: entitlements.verticalEnginesAllowed,
-          }
-        : undefined;
+      const subscription = subscriptionFromEntitlements(entitlements);
 
       const modules = resolveEffectiveModules(moduleAdminFlags, subscription);
       const deploymentTier = entitlements
