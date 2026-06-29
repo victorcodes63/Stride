@@ -39,13 +39,14 @@ export type AccountsInvoicePdfInput = {
   branding?: Partial<InvoicePdfBranding>;
 };
 
-const GRAY_700 = rgb(55 / 255, 55 / 255, 55 / 255);
 const GRAY_600 = rgb(82 / 255, 82 / 255, 82 / 255);
 const GRAY_500 = rgb(115 / 255, 115 / 255, 115 / 255);
 const BORDER = rgb(229 / 255, 229 / 255, 229 / 255);
 const WHITE = rgb(1, 1, 1);
 const INK = rgb(26 / 255, 23 / 255, 20 / 255);
-const INVOICE_TO_BOX_PAD_PT = 12;
+
+const SECTION_GAP_PT = 22;
+const META_GAP_AFTER_TITLE_PT = 28;
 
 type PdfContrastPalette = {
   isDark: boolean;
@@ -97,10 +98,10 @@ function resolveContrastOnBackground(
 }
 
 const PREPRINTED_TOP_INSET_PT = 72;
-const GAP_BEFORE_PAYMENT_DETAILS_PT = 48;
-const TABLE_LINE_HEIGHT_PT = 12;
-const TABLE_ROW_PAD_PT = 10;
-const TABLE_HEAD_HEIGHT_PT = 24;
+const GAP_BEFORE_PAYMENT_DETAILS_PT = 36;
+const TABLE_LINE_HEIGHT_PT = 13;
+const TABLE_ROW_PAD_PT = 12;
+const TABLE_HEAD_HEIGHT_PT = 22;
 
 function hexToRgb(hex: string): RGB {
   const value = sanitizeHexColor(hex, DEFAULT_PRIMARY_COLOR).replace('#', '');
@@ -240,15 +241,17 @@ async function drawEmbeddedLetterhead(
     ty -= 11;
   }
 
-  const blockBottom = bandBottom + 4;
-  page.drawLine({
-    start: { x: margin, y: blockBottom },
-    end: { x: rightEdge, y: blockBottom },
-    thickness: 0.5,
-    color: ruleColor,
-  });
+  const blockBottom = bandBottom;
+  if (!contrast.isDark) {
+    page.drawLine({
+      start: { x: margin, y: blockBottom },
+      end: { x: rightEdge, y: blockBottom },
+      thickness: 0.5,
+      color: ruleColor,
+    });
+  }
 
-  return yTop - blockBottom + 14;
+  return yTop - blockBottom + SECTION_GAP_PT;
 }
 
 function drawDocumentFooter(
@@ -294,7 +297,6 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const docKind = data.kind ?? 'invoice';
   const isCredit = docKind === 'credit_note';
   const branding = resolveBranding(data.branding);
-  const PRIMARY = branding.primaryColor;
   const PANEL_BG = branding.panelBackgroundColor;
   const panelText = branding.panelContrast;
   const topInset = branding.topInset;
@@ -336,21 +338,20 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     });
   };
 
-  const metaW = Math.min(220, contentW * 0.38);
-  const billW = contentW - metaW - 24;
-  const metaX = margin + billW + 24;
+  const metaW = Math.min(200, contentW * 0.36);
+  const metaX = margin + contentW - metaW;
   const headerTop = cursor.y;
 
   const titleText = isCredit ? 'CREDIT NOTE' : 'INVOICE';
   cursor.page.drawText(titleText, {
     x: margin,
-    y: headerTop - 22,
-    size: 18,
+    y: headerTop - 20,
+    size: 20,
     font: helveticaBold,
-    color: PRIMARY,
+    color: INK,
   });
 
-  const metaRight = metaX + metaW;
+  const metaRight = margin + contentW;
   const metaRows: [string, string][] = isCredit
     ? [
         ['Credit note no.', String(data.documentNumber)],
@@ -369,65 +370,50 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     metaRows.push(['VAT PIN', branding.vatPin]);
   }
 
-  let my = headerTop - 24;
+  let my = headerTop - 20;
   for (const [label, value] of metaRows) {
     cursor.page.drawText(label, { x: metaX, y: my, size: 8, font: helvetica, color: GRAY_500 });
-    drawTextRight(cursor.page, value, metaRight, my, 9, helveticaBold, PRIMARY);
-    my -= 14;
+    drawTextRight(cursor.page, value, metaRight, my, 9, helveticaBold, INK);
+    my -= 13;
   }
 
-  const headerBottom = my - 12;
-  cursor.y = headerBottom;
+  cursor.y = my - META_GAP_AFTER_TITLE_PT;
 
   const invoiceToLabel = isCredit ? 'Credit to' : 'Invoice to';
-  const clientLines = wrapText(data.clientName, Math.max(20, Math.floor(contentW / 5.5)));
-  const invoiceToBoxH =
-    INVOICE_TO_BOX_PAD_PT * 2 + 10 + Math.max(clientLines.length, 1) * 13;
-
-  ensureSpace(cursor, invoiceToBoxH + 16);
-  const invoiceToTop = cursor.y;
-  const invoiceToBot = invoiceToTop - invoiceToBoxH;
-
-  cursor.page.drawRectangle({
-    x: margin,
-    y: invoiceToBot,
-    width: contentW,
-    height: invoiceToBoxH,
-    color: PANEL_BG,
-    borderColor: panelText.border,
-    borderWidth: 0.5,
-  });
+  const clientLines = wrapText(data.clientName, Math.max(28, Math.floor(contentW / 4.8)));
 
   cursor.page.drawText(invoiceToLabel, {
-    x: margin + INVOICE_TO_BOX_PAD_PT,
-    y: invoiceToTop - INVOICE_TO_BOX_PAD_PT - 8,
+    x: margin,
+    y: cursor.y,
     size: 8,
-    font: helveticaBold,
-    color: panelText.muted,
+    font: helvetica,
+    color: GRAY_500,
   });
+  cursor.y -= 14;
 
-  let clientY = invoiceToTop - INVOICE_TO_BOX_PAD_PT - 22;
   for (const line of clientLines) {
     cursor.page.drawText(line, {
-      x: margin + INVOICE_TO_BOX_PAD_PT,
-      y: clientY,
-      size: 11,
+      x: margin,
+      y: cursor.y,
+      size: 12,
       font: helveticaBold,
-      color: panelText.heading,
+      color: INK,
     });
-    clientY -= 13;
+    cursor.y -= 14;
   }
 
-  cursor.y = invoiceToBot - 16;
+  cursor.y -= 6;
+  drawLineH(cursor.y, margin, margin + contentW);
+  cursor.y -= SECTION_GAP_PT;
 
   if (data.notes?.trim()) {
-    const noteLines = wrapText(data.notes.trim(), Math.max(24, Math.floor(contentW / 5)));
-    ensureSpace(cursor, 12 + noteLines.length * 11);
+    const noteLines = wrapText(data.notes.trim(), Math.max(28, Math.floor(contentW / 5)));
+    ensureSpace(cursor, 8 + noteLines.length * 12);
     for (const nl of noteLines) {
       cursor.page.drawText(nl, { x: margin, y: cursor.y, size: 9, font: helvetica, color: GRAY_600 });
-      cursor.y -= 11;
+      cursor.y -= 12;
     }
-    cursor.y -= 8;
+    cursor.y -= SECTION_GAP_PT - 8;
   }
 
   const colNumW = 36;
@@ -475,50 +461,24 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
 
   cursor.page.drawRectangle({
     x: margin,
-    y: tBot,
-    width: contentW,
-    height: tableH,
-    borderColor: BORDER,
-    borderWidth: 1,
-  });
-
-  cursor.page.drawRectangle({
-    x: margin,
     y: tTop - theadH,
     width: contentW,
     height: theadH,
     color: PANEL_BG,
-    borderColor: BORDER,
-    borderWidth: 1,
   });
 
   const hY = tTop - theadH / 2 - 4;
-  cursor.page.drawText('#', { x: margin + 8, y: hY, size: 8, font: helveticaBold, color: panelText.muted });
+  cursor.page.drawText('#', { x: margin + 10, y: hY, size: 8, font: helveticaBold, color: panelText.muted });
   cursor.page.drawText('Description', { x: descX, y: hY, size: 8, font: helveticaBold, color: panelText.muted });
   drawTextRight(
     cursor.page,
     `Amount (${data.currency})`,
-    amtRight - 8,
+    amtRight - 10,
     hY,
     8,
     helveticaBold,
     panelText.muted,
   );
-
-  const xLineNumDesc = margin + colNumW;
-  const xLineDescAmt = amtRight - colAmtW;
-  cursor.page.drawLine({
-    start: { x: xLineNumDesc, y: tTop },
-    end: { x: xLineNumDesc, y: tBot },
-    thickness: 0.5,
-    color: BORDER,
-  });
-  cursor.page.drawLine({
-    start: { x: xLineDescAmt, y: tTop },
-    end: { x: xLineDescAmt, y: tBot },
-    thickness: 0.5,
-    color: BORDER,
-  });
 
   drawLineH(tTop - theadH, margin, margin + contentW);
 
@@ -526,7 +486,6 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   for (let ri = 0; ri < prepared.length; ri++) {
     const pr = prepared[ri]!;
     const blockTop = yRow;
-    if (ri > 0) drawLineH(blockTop + 12, margin + 2, margin + contentW - 2);
 
     const n = pr.bodyLines.length;
     const rowBottom = blockTop - pr.height;
@@ -535,11 +494,11 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     const yFirstDesc = rowCenterY - 2 + ((n - 1) * lineH) / 2;
 
     cursor.page.drawText(pr.lineNo, {
-      x: margin + 8,
+      x: margin + 10,
       y: ySingle,
       size: 9,
       font: helvetica,
-      color: GRAY_600,
+      color: GRAY_500,
     });
 
     let dy = yFirstDesc;
@@ -549,33 +508,29 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
         y: dy,
         size: 9,
         font: bold ? helveticaBold : helvetica,
-        color: bold ? GRAY_700 : GRAY_600,
+        color: bold ? INK : GRAY_600,
       });
       dy -= lineH;
     }
 
-    drawTextRight(cursor.page, pr.amt, amtRight - 8, ySingle, 9, helvetica, GRAY_700);
+    drawTextRight(cursor.page, pr.amt, amtRight - 10, ySingle, 9, helvetica, INK);
     yRow = blockTop - pr.height;
+    if (ri < prepared.length - 1) {
+      drawLineH(yRow, margin, margin + contentW);
+    }
   }
 
-  cursor.y = tBot - 28;
+  drawLineH(tBot, margin, margin + contentW);
 
-  const totalsW = 220;
+  cursor.y = tBot - SECTION_GAP_PT;
+
+  const totalsW = 240;
   const totalsLeft = margin + contentW - totalsW;
-  const amtColX = margin + contentW - 8;
+  const amtColX = margin + contentW - 10;
 
-  ensureSpace(cursor, 110);
+  ensureSpace(cursor, 100);
 
-  cursor.page.drawText('Summary', {
-    x: totalsLeft,
-    y: cursor.y,
-    size: 10,
-    font: helveticaBold,
-    color: PRIMARY,
-  });
-  cursor.y -= 22;
-
-  const sumLineGap = 8;
+  const sumLineGap = 7;
   const sumLine = (label: string, value: string, size: number, font: PDFFont, color: RGB) => {
     cursor.page.drawText(label, { x: totalsLeft, y: cursor.y, size, font, color });
     drawTextRight(cursor.page, value, amtColX, cursor.y, size, font, color);
@@ -584,15 +539,15 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
 
   sumLine(`Subtotal (ex-VAT)`, fmt(data.subtotalExVat, data.currency), 9, helvetica, GRAY_600);
   sumLine(`VAT (${vatPct.toFixed(0)}%)`, fmt(data.vatAmount, data.currency), 9, helvetica, GRAY_600);
-  cursor.y -= 4;
-  drawLineH(cursor.y + 6, totalsLeft, amtColX);
-  cursor.y -= 14;
+  cursor.y -= 2;
+  drawLineH(cursor.y + 4, totalsLeft, amtColX);
+  cursor.y -= 12;
   sumLine(
     isCredit ? 'Total credit (incl. VAT)' : 'Total (incl. VAT)',
     fmt(data.totalIncVat, data.currency),
     11,
     helveticaBold,
-    PRIMARY,
+    INK,
   );
 
   cursor.y -= GAP_BEFORE_PAYMENT_DETAILS_PT;
@@ -609,55 +564,51 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     }
     cursor.y -= 8;
   } else {
-    const bankLines: string[] = [
-      `Bank: ${bank.bank}`,
-      `Account number: ${bank.accountNumber}`,
-      `Bank code: ${bank.bankCode}`,
-      `Branch code: ${bank.branchCode}`,
-      `SWIFT: ${bank.swiftCode}`,
+    const bankLines: [string, string][] = [
+      ['Bank', bank.bank],
+      ['Account number', bank.accountNumber],
+      ['Bank code', bank.bankCode],
+      ['Branch code', bank.branchCode],
+      ['SWIFT', bank.swiftCode],
     ];
-    const bankPad = 14;
-    const bankLineStep = 14;
-    const bankInnerH = bankLines.length * bankLineStep;
-    const bankBoxH = bankPad + bankInnerH + bankPad;
+    const bankLineStep = 13;
+    const bankBlockH = bankLines.length * bankLineStep + 8;
 
-    ensureSpace(cursor, bankBoxH + 28);
+    ensureSpace(cursor, bankBlockH + 24);
+
+    cursor.y -= 4;
+    drawLineH(cursor.y, margin, margin + contentW);
+    cursor.y -= SECTION_GAP_PT;
 
     cursor.page.drawText('Payment details', {
       x: margin,
       y: cursor.y,
-      size: 10,
+      size: 9,
       font: helveticaBold,
-      color: PRIMARY,
+      color: INK,
     });
-    cursor.y -= 14;
+    cursor.y -= 16;
 
-    const bankTop = cursor.y;
-    const bankBot = bankTop - bankBoxH;
-
-    cursor.page.drawRectangle({
-      x: margin,
-      y: bankBot,
-      width: contentW,
-      height: bankBoxH,
-      color: PANEL_BG,
-      borderColor: panelText.border,
-      borderWidth: 1,
-    });
-
-    let by = bankTop - bankPad - 10;
-    for (const line of bankLines) {
-      cursor.page.drawText(line, {
-        x: margin + bankPad,
-        y: by,
+    const labelW = 108;
+    for (const [label, value] of bankLines) {
+      cursor.page.drawText(label, {
+        x: margin,
+        y: cursor.y,
         size: 9,
         font: helvetica,
-        color: panelText.body,
+        color: GRAY_500,
       });
-      by -= bankLineStep;
+      cursor.page.drawText(value, {
+        x: margin + labelW,
+        y: cursor.y,
+        size: 9,
+        font: helvetica,
+        color: INK,
+      });
+      cursor.y -= bankLineStep;
     }
 
-    cursor.y = bankBot - 8;
+    cursor.y -= 4;
   }
 
   if (branding.documentFooter) {

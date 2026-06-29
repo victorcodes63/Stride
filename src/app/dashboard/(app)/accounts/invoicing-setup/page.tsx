@@ -474,8 +474,9 @@ function InvoicingSetupPageInner() {
                   />
                 </div>
                 <p className="text-xs text-neutral-500 mt-1.5">
-                  Used for the invoice-to box, table header row, and payment-details panel on PDFs.
-                  Text colour adapts automatically for readability on dark or light shades.
+                  Used for the line-item table header row on PDFs. Invoice-to and payment
+                  sections stay typographic (no box) for a cleaner layout. Text colour adapts
+                  automatically on dark shades.
                 </p>
               </div>
             </div>

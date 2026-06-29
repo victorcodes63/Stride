@@ -463,8 +463,8 @@ export default function AccountsInvoiceDetailPage() {
  </div>
  </div>
 
- <div className="grid lg:grid-cols-[minmax(280px,300px)_1fr] gap-6 items-start">
- <aside className="space-y-4 print:hidden">
+ <div className="grid lg:grid-cols-6 gap-6 items-start">
+ <aside className="lg:col-span-4 space-y-4 print:hidden min-w-0">
  <div
  className="dashboard-surface px-4 py-3 shadow-sm"
  role="region"
@@ -876,7 +876,7 @@ export default function AccountsInvoiceDetailPage() {
  <InvoicePdfEmbed
  pdfUrl={`/api/accounts/invoices/${id}/pdf?disposition=inline`}
  title={`Invoice #${data.invoiceNumber} PDF`}
- className="min-h-[720px]"
+ className="lg:col-span-2 min-h-[min(80vh,720px)]"
  />
  </div>
  </DashboardPage>

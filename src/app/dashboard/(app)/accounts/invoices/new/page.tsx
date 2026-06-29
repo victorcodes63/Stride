@@ -336,8 +336,8 @@ function NewInvoiceForm() {
  </div>
  )}
 
- <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
- <div className="space-y-6 min-w-0">
+ <div className="grid grid-cols-1 lg:grid-cols-6 gap-6 items-start">
+ <div className="lg:col-span-4 space-y-6 min-w-0">
  <div className="dashboard-surface p-5 sm:p-6 shadow-sm space-y-4">
  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-neutral-500">
  Client &amp; dates
@@ -633,7 +633,7 @@ function NewInvoiceForm() {
  </div>
  </div>
 
- <InvoiceDraftPdfPreview draft={previewDraft} className="min-h-[min(72vh,880px)]" />
+ <InvoiceDraftPdfPreview draft={previewDraft} className="lg:col-span-2 min-h-[min(80vh,720px)]" />
  </div>
  </form>
  </DashboardPage>
