@@ -26,45 +26,18 @@ export type CompanySetupCapabilities = {
   canConfigureModuleNav: boolean;
 };
 
-export function getCompanySetupCapabilities(tier: DeploymentTier): CompanySetupCapabilities {
-  switch (tier) {
-    case 'starter':
-      return {
-        tier,
-        canConfigureAuthPolicy: false,
-        allowedAuthMethods: ['credentials'],
-        canConfigureWhiteLabel: false,
-        canConfigureMultiEntity: false,
-        canConfigureCareersPortal: false,
-        canConfigureDashboardBanner: false,
-        canConfigureModuleNav: false,
-        canEnforceSso: false,
-      };
-    case 'growth':
-      return {
-        tier,
-        canConfigureAuthPolicy: true,
-        allowedAuthMethods: ['microsoft', 'google', 'credentials'],
-        canConfigureWhiteLabel: false,
-        canConfigureMultiEntity: true,
-        canConfigureCareersPortal: true,
-        canConfigureDashboardBanner: false,
-        canConfigureModuleNav: true,
-        canEnforceSso: false,
-      };
-    case 'enterprise':
-      return {
-        tier,
-        canConfigureAuthPolicy: true,
-        allowedAuthMethods: ['microsoft', 'google', 'credentials'],
-        canConfigureWhiteLabel: true,
-        canConfigureMultiEntity: true,
-        canConfigureCareersPortal: true,
-        canConfigureDashboardBanner: true,
-        canConfigureModuleNav: true,
-        canEnforceSso: true,
-      };
-  }
+export function getCompanySetupCapabilities(_tier: DeploymentTier = 'enterprise'): CompanySetupCapabilities {
+  return {
+    tier: 'enterprise',
+    canConfigureAuthPolicy: true,
+    allowedAuthMethods: ['microsoft', 'google', 'credentials'],
+    canConfigureWhiteLabel: true,
+    canConfigureMultiEntity: true,
+    canConfigureCareersPortal: true,
+    canConfigureDashboardBanner: true,
+    canConfigureModuleNav: true,
+    canEnforceSso: true,
+  };
 }
 
 function clampAuthMethod(

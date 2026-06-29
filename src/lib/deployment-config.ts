@@ -7,6 +7,7 @@ import { brand } from '@/lib/brand';
 import {
   canAccessCompanySetup,
   getDeploymentTier,
+  resolveDeploymentTier,
   type DeploymentTier,
 } from '@/lib/deployment-tier';
 import {
@@ -121,6 +122,15 @@ export type DeploymentSummary = {
 };
 
 export function getDeploymentSummary(): DeploymentSummary {
+  return buildDeploymentSummary(getDeploymentTier());
+}
+
+export async function getDeploymentSummaryAsync(): Promise<DeploymentSummary> {
+  const tier = await resolveDeploymentTier();
+  return buildDeploymentSummary(tier);
+}
+
+function buildDeploymentSummary(deploymentTier: DeploymentTier): DeploymentSummary {
   return {
     demoMode: isDemoMode(),
     publicDemoMode: isPublicDemoMode(),
@@ -131,7 +141,7 @@ export function getDeploymentSummary(): DeploymentSummary {
       : GENERIC_ORG_PLACEHOLDER,
     appName: brand.appName,
     multiEntityEnvEnabled: isMultiEntityEnvEnabled(),
-    deploymentTier: getDeploymentTier(),
+    deploymentTier,
     canAccessCompanySetup: canAccessCompanySetup(),
   };
 }

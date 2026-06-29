@@ -405,7 +405,7 @@ function filterSections(
       items: section.items.filter((item) => {
         if (item.href === '/dashboard/analytics') return options.canViewSystemAnalytics;
         if (item.href === '/dashboard/admin/company-setup') {
-          return options.canAccessCompanySetup === true;
+          return options.currentUserRole === 'admin';
         }
         return isDashboardNavItemVisible(item.href, section.id, enabled);
       }),

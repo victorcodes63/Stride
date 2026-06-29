@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthProvidersSummary } from '@/lib/auth-providers';
 import { loadCompanySetupSettings, toPublicCompanySetup } from '@/lib/company-setup';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
-import { getDeploymentSummary } from '@/lib/deployment-config';
+import { getDeploymentSummary, getDeploymentSummaryAsync } from '@/lib/deployment-config';
 import {
   listLicensedModules,
   MODULE_DEFINITIONS,
@@ -34,7 +34,7 @@ export async function GET() {
   const entitySettings = await loadOperatingEntitiesSettings();
 
   const response = NextResponse.json({
-    ...getDeploymentSummary(),
+    ...(await getDeploymentSummaryAsync()),
     companySetup,
     brand,
     authProviders: getAuthProvidersSummary(),

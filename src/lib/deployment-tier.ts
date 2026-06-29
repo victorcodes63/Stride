@@ -1,13 +1,14 @@
 /**
- * Commercial deployment tier — controls which admin capabilities are available
- * on a dedicated client instance (separate from per-user roles).
+ * Commercial deployment tier — module quotas and (future) white-label fork gating.
+ * Plan is synced from the control plane (subscription.planId → DEPLOYMENT_TIER on provision).
+ * Company setup access is not tier-gated; enterprise-only forks will be a separate control-plane flag later.
  */
 
 import { isDemoMode } from '@/lib/deployment-config';
 
 export type DeploymentTier = 'starter' | 'growth' | 'enterprise';
 
-/** Tiers that include self-service company / branding setup. */
+/** @deprecated Company setup is available on all plans for now. */
 export const COMPANY_SETUP_TIERS: readonly DeploymentTier[] = ['growth', 'enterprise'] as const;
 
 function trimEnv(key: string): string | undefined {
@@ -23,14 +24,29 @@ function parseTier(raw: string | undefined): DeploymentTier | null {
   return null;
 }
 
-/** Resolved tier for this deployment. Demo instances always run as enterprise. */
+/** Resolved tier from env (provision pushes planId from control plane). Demo → enterprise. */
 export function getDeploymentTier(): DeploymentTier {
   if (isDemoMode()) return 'enterprise';
   return parseTier(trimEnv('DEPLOYMENT_TIER')) ?? 'growth';
 }
 
-export function canAccessCompanySetup(tier: DeploymentTier = getDeploymentTier()): boolean {
-  return COMPANY_SETUP_TIERS.includes(tier);
+/** Prefer cached control-plane entitlements, then env. */
+export async function resolveDeploymentTier(): Promise<DeploymentTier> {
+  if (isDemoMode()) return 'enterprise';
+  try {
+    const { loadDeploymentEntitlements } = await import('@/lib/entitlements-store');
+    const entitlements = await loadDeploymentEntitlements();
+    const fromPlan = parseTier(entitlements?.planId);
+    if (fromPlan) return fromPlan;
+  } catch {
+    // fall through to env
+  }
+  return getDeploymentTier();
+}
+
+/** Company setup is available to all tenants; tier forks come later via control plane. */
+export function canAccessCompanySetup(_tier?: DeploymentTier): boolean {
+  return true;
 }
 
 export function companySetupTierLabel(tier: DeploymentTier = getDeploymentTier()): string {
@@ -42,9 +58,4 @@ export function companySetupTierLabel(tier: DeploymentTier = getDeploymentTier()
     case 'enterprise':
       return 'Enterprise';
   }
-}
-
-export function companySetupUpgradeCopy(): string {
-  const tier = getDeploymentTier();
-  return `Company setup and branding controls are included on Growth and Enterprise plans. This instance is on ${companySetupTierLabel(tier)} — contact Raven Tech Group to upgrade.`;
 }

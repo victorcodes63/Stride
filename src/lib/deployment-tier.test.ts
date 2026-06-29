@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   canAccessCompanySetup,
-  COMPANY_SETUP_TIERS,
   getDeploymentTier,
+  resolveDeploymentTier,
 } from '@/lib/deployment-tier';
 
 describe('deployment-tier', () => {
@@ -23,17 +23,17 @@ describe('deployment-tier', () => {
     expect(canAccessCompanySetup()).toBe(true);
   });
 
-  it('starter tier cannot access company setup', () => {
+  it('company setup is always accessible regardless of tier', () => {
     vi.stubEnv('DEMO_MODE', 'false');
-    vi.stubEnv('DEPLOYMENT_TIER', 'starter');
-    expect(canAccessCompanySetup()).toBe(false);
-  });
-
-  it('growth and enterprise tiers can access company setup', () => {
-    vi.stubEnv('DEMO_MODE', 'false');
-    for (const tier of COMPANY_SETUP_TIERS) {
+    for (const tier of ['starter', 'growth', 'enterprise'] as const) {
       vi.stubEnv('DEPLOYMENT_TIER', tier);
       expect(canAccessCompanySetup()).toBe(true);
     }
+  });
+
+  it('resolveDeploymentTier falls back to env when entitlements are unavailable', async () => {
+    vi.stubEnv('DEMO_MODE', 'false');
+    vi.stubEnv('DEPLOYMENT_TIER', 'enterprise');
+    await expect(resolveDeploymentTier()).resolves.toBe('enterprise');
   });
 });

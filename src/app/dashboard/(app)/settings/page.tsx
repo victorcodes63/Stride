@@ -26,23 +26,17 @@ export default function SettingsPage() {
  const [saving, setSaving] = useState(false);
  const [error, setError] = useState<string | null>(null);
  const [success, setSuccess] = useState<string | null>(null);
- const [canAccessCompanySetup, setCanAccessCompanySetup] = useState(false);
 
  useEffect(() => {
  let cancelled = false;
- Promise.all([
- fetch('/api/admin/settings').then(async (r) => {
+ fetch('/api/admin/settings')
+ .then(async (r) => {
  const data = await r.json();
  if (!r.ok) throw new Error(data.error || 'Failed to load settings.');
  return data;
- }),
- fetch('/api/config/deployment').then(async (r) => (r.ok ? r.json() : null)),
- ])
- .then(([settingsData, deployment]) => {
- if (!cancelled) {
- setForm({ ...DEFAULTS, ...(settingsData as Partial<SystemSettingsPayload>) });
- setCanAccessCompanySetup(deployment?.canAccessCompanySetup === true);
- }
+ })
+ .then((settingsData) => {
+ if (!cancelled) setForm({ ...DEFAULTS, ...(settingsData as Partial<SystemSettingsPayload>) });
  })
  .catch((e: unknown) => {
  if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load settings.');
@@ -91,19 +85,17 @@ export default function SettingsPage() {
 
  <AppearanceSettings />
 
- {canAccessCompanySetup ? (
  <aside className="dashboard-surface border px-4 py-3 text-sm text-[var(--dash-text-muted)] sm:px-5">
  Login branding and SSO toggles are in{' '}
  <Link href="/dashboard/admin/company-setup" className="font-medium text-primary-700 hover:text-primary-800">
  Company setup
  </Link>
+ . Invoice PDF branding is under{' '}
+ <Link href="/dashboard/accounts/invoicing-setup" className="font-medium text-primary-700 hover:text-primary-800">
+ Finance → Invoicing setup
+ </Link>
  .
  </aside>
- ) : (
- <aside className="dashboard-surface border px-4 py-3 text-sm text-[var(--dash-text-muted)] sm:px-5">
- Branding and login customisation are available on Growth and Enterprise plans. Contact Raven Tech Group to upgrade.
- </aside>
- )}
 
  {error && <p className="mb-4 rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2 border border-red-100">{error}</p>}
  {success && <p className="mb-4 rounded-lg bg-emerald-50 text-emerald-700 text-sm px-3 py-2 border border-emerald-100">{success}</p>}

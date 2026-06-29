@@ -421,7 +421,7 @@ export function CompanySetupForm({
  </SectionCard>
 
  <div className="grid xl:grid-cols-2 gap-6">
- <SectionCard title="Careers portal" icon={Globe} description={capabilities.canConfigureCareersPortal ? undefined : 'Included on Growth and Enterprise'}>
+ <SectionCard title="Careers portal" icon={Globe}>
  {!capabilities.canConfigureCareersPortal ? (
   <TierLockedNotice message={companySetupUpgradeHint(capabilities.tier, 'canConfigureCareersPortal')} />
  ) : (
