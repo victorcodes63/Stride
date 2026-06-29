@@ -517,13 +517,6 @@ export function buildWorkspaceSetupChecklist(setup: CompanySetupSettings): Provi
       detail: essAuth.detail,
       category: 'auth',
     },
-    {
-      id: 'invoicing',
-      label: 'Invoicing setup',
-      ok: Boolean(setup.contactAddress.trim()) && isCustomLogo(logo),
-      detail: 'Configure logo, VAT PIN, and bank details under Finance → Invoicing setup',
-      category: 'branding',
-    },
   ];
 }
 

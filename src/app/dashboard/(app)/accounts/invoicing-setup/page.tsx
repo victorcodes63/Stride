@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
@@ -12,25 +12,29 @@ import {
   ExternalLink,
   FileSignature,
   Loader2,
+  Upload,
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DEFAULT_BRAND_LOGO_SRC } from '@/lib/brand-constants';
-import type { InvoiceLetterheadMode, InvoiceSetupSnapshot } from '@/lib/invoice-setup';
+import type { InvoiceLetterheadMode, InvoiceSetupSettings, InvoiceSetupSnapshot } from '@/lib/invoice-setup';
 
 const inputClass =
   'w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
 
+function settingsFromSnapshot(data: InvoiceSetupSnapshot): InvoiceSetupSettings {
+  return data.resolved;
+}
+
 function InvoicingSetupPageInner() {
   const [snapshot, setSnapshot] = useState<InvoiceSetupSnapshot | null>(null);
+  const [form, setForm] = useState<InvoiceSetupSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  const [letterheadMode, setLetterheadMode] = useState<InvoiceLetterheadMode>('preprinted');
-  const [vatPin, setVatPin] = useState('');
-  const [invoiceLegalName, setInvoiceLegalName] = useState('');
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -42,14 +46,13 @@ function InvoicingSetupPageInner() {
       })
       .then((data) => {
         setSnapshot(data);
-        setLetterheadMode(data.settings.letterheadMode);
-        setVatPin(data.settings.vatPin);
-        setInvoiceLegalName(data.settings.invoiceLegalName);
+        setForm(settingsFromSnapshot(data));
         setError(null);
       })
       .catch((e) => {
         setError(e instanceof Error ? e.message : 'Failed to load');
         setSnapshot(null);
+        setForm(null);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -66,6 +69,7 @@ function InvoicingSetupPageInner() {
   const allReady = totalCount > 0 && readyCount === totalCount;
 
   const saveSettings = async () => {
+    if (!form) return;
     setSaving(true);
     setError(null);
     setMessage(null);
@@ -73,12 +77,14 @@ function InvoicingSetupPageInner() {
       const res = await fetch('/api/accounts/invoice-setup', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ letterheadMode, vatPin, invoiceLegalName }),
+        body: JSON.stringify(form),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Save failed');
-      setSnapshot(data as InvoiceSetupSnapshot);
-      setMessage('Invoice settings saved.');
+      const next = data as InvoiceSetupSnapshot;
+      setSnapshot(next);
+      setForm(settingsFromSnapshot(next));
+      setMessage('Invoicing setup saved.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
@@ -86,14 +92,39 @@ function InvoicingSetupPageInner() {
     }
   };
 
-  const logoPreview = snapshot?.companyIdentity.logoSrc || DEFAULT_BRAND_LOGO_SRC;
+  const uploadLogo = async (file: File) => {
+    setUploading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch('/api/accounts/invoice-setup/upload', { method: 'POST', body });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      setForm((f) => (f ? { ...f, logoSrc: data.logoSrc ?? f.logoSrc } : f));
+      setMessage('Logo uploaded. Save to confirm other changes.');
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const scrollToAnchor = (anchor?: string) => {
+    if (!anchor) return;
+    document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const logoPreview = form?.logoSrc || snapshot?.branding.logoUrl || DEFAULT_BRAND_LOGO_SRC;
 
   return (
     <DashboardPage>
       <DashboardPageHeader
         icon={FileSignature}
         title="Invoicing setup"
-        description="Configure your company identity, invoice PDF layout, and payment details before sending invoices to clients."
+        description="Everything you need for client invoices and credit notes — company identity, PDF layout, and payment details. Independent of Admin → Company setup."
         actions={
           <a
             href="/api/accounts/invoice-setup/sample-pdf?disposition=inline"
@@ -125,7 +156,7 @@ function InvoicingSetupPageInner() {
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading invoicing setup…
         </div>
-      ) : snapshot ? (
+      ) : snapshot && form ? (
         <div className="space-y-6">
           <section className="dashboard-surface p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
@@ -133,7 +164,7 @@ function InvoicingSetupPageInner() {
                 <h2 className="text-sm font-semibold text-neutral-900">Readiness checklist</h2>
                 <p className="text-sm text-neutral-600 mt-1">
                   {allReady
-                    ? 'Your invoicing setup is complete — invoices will use your company branding.'
+                    ? 'Your invoicing setup is complete — invoices will use your branding.'
                     : `${readyCount} of ${totalCount} items complete.`}
                 </p>
               </div>
@@ -164,112 +195,180 @@ function InvoicingSetupPageInner() {
                       Configure
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
+                  ) : item.anchor ? (
+                    <button
+                      type="button"
+                      onClick={() => scrollToAnchor(item.anchor)}
+                      className="text-sm font-medium text-primary-800 hover:underline inline-flex items-center gap-1 shrink-0"
+                    >
+                      Configure
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
                   ) : null}
                 </li>
               ))}
             </ul>
           </section>
 
-          <section className="dashboard-surface p-5 shadow-sm">
+          <section id="identity" className="dashboard-surface p-5 shadow-sm scroll-mt-6">
             <div className="flex items-center gap-2 mb-4">
               <Building2 className="h-5 w-5 text-neutral-500" />
-              <h2 className="text-sm font-semibold text-neutral-900">Company identity</h2>
+              <h2 className="text-sm font-semibold text-neutral-900">Company identity on invoices</h2>
             </div>
             <p className="text-sm text-neutral-600 mb-4">
-              Logo, organisation name, address, and document footer are managed in Company setup and
-              shared across payslips, letters, and invoices.
+              Logo, legal name, address, and colours used on invoice and credit note PDFs only.
             </p>
-            <div className="flex flex-wrap gap-6 items-start">
+
+            <div className="flex flex-col lg:flex-row gap-6 mb-4">
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 min-w-[140px] flex items-center justify-center">
                 <img
                   src={logoPreview}
-                  alt="Company logo"
+                  alt="Invoice logo"
                   className="max-h-14 max-w-[160px] object-contain"
                 />
               </div>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm flex-1 min-w-[240px]">
-                <div>
-                  <dt className="text-neutral-500">Organisation</dt>
-                  <dd className="font-medium text-neutral-900">{snapshot.companyIdentity.orgName || '—'}</dd>
+              <div className="flex-1 space-y-3">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadLogo(f);
+                    e.target.value = '';
+                  }}
+                />
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={() => logoInputRef.current?.click()}
+                    className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60"
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    Upload logo
+                  </button>
+                  <input
+                    className={`${inputClass} flex-1 min-w-[200px] font-mono`}
+                    value={form.logoSrc}
+                    onChange={(e) => setForm((f) => (f ? { ...f, logoSrc: e.target.value } : f))}
+                    placeholder="Or paste an image URL"
+                  />
                 </div>
-                <div>
-                  <dt className="text-neutral-500">Billing address</dt>
-                  <dd className="text-neutral-900">{snapshot.companyIdentity.contactAddress || '—'}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-500">Contact email</dt>
-                  <dd className="text-neutral-900">{snapshot.companyIdentity.contactEmail || '—'}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-500">Document footer</dt>
-                  <dd className="text-neutral-900">{snapshot.companyIdentity.documentFooterText || '—'}</dd>
-                </div>
-              </dl>
+              </div>
             </div>
-            <Link
-              href="/dashboard/admin/company-setup"
-              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary-800 hover:underline"
-            >
-              Edit in Company setup
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Legal / trading name</label>
+                <input
+                  className={inputClass}
+                  value={form.invoiceLegalName}
+                  onChange={(e) => setForm((f) => (f ? { ...f, invoiceLegalName: e.target.value } : f))}
+                  placeholder={snapshot.branding.legalName || 'Your company name'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Contact email</label>
+                <input
+                  type="email"
+                  className={inputClass}
+                  value={form.contactEmail}
+                  onChange={(e) => setForm((f) => (f ? { ...f, contactEmail: e.target.value } : f))}
+                  placeholder="billing@example.com"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Billing address</label>
+                <textarea
+                  className={inputClass}
+                  rows={2}
+                  value={form.contactAddress}
+                  onChange={(e) => setForm((f) => (f ? { ...f, contactAddress: e.target.value } : f))}
+                  placeholder="Street, city, country"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Phone (optional)</label>
+                <input
+                  className={inputClass}
+                  value={form.contactPhone}
+                  onChange={(e) => setForm((f) => (f ? { ...f, contactPhone: e.target.value } : f))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">PDF accent colour</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={form.primaryColor}
+                    onChange={(e) =>
+                      setForm((f) => (f ? { ...f, primaryColor: e.target.value.toUpperCase() } : f))
+                    }
+                    className="h-10 w-12 rounded border border-neutral-300 cursor-pointer"
+                  />
+                  <input
+                    className={`${inputClass} font-mono uppercase`}
+                    value={form.primaryColor}
+                    onChange={(e) => setForm((f) => (f ? { ...f, primaryColor: e.target.value } : f))}
+                  />
+                </div>
+                <p className="text-xs text-neutral-500 mt-1.5">Used for headings and highlights on invoice PDFs.</p>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Document footer</label>
+                <textarea
+                  className={inputClass}
+                  rows={2}
+                  value={form.documentFooterText}
+                  onChange={(e) => setForm((f) => (f ? { ...f, documentFooterText: e.target.value } : f))}
+                  placeholder="Registered office, company registration number, etc."
+                />
+              </div>
+            </div>
           </section>
 
-          <section className="dashboard-surface p-5 shadow-sm">
+          <section id="pdf-options" className="dashboard-surface p-5 shadow-sm scroll-mt-6">
             <h2 className="text-sm font-semibold text-neutral-900 mb-1">Invoice PDF options</h2>
-            <p className="text-sm text-neutral-600 mb-4">
-              Finance-specific settings for how invoices and credit notes appear on PDF.
-            </p>
+            <p className="text-sm text-neutral-600 mb-4">Letterhead mode and tax details for PDF output.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
               <div>
                 <label className="block text-sm font-medium text-neutral-800 mb-1.5">Letterhead mode</label>
                 <select
                   className={inputClass}
-                  value={letterheadMode}
-                  onChange={(e) => setLetterheadMode(e.target.value as InvoiceLetterheadMode)}
+                  value={form.letterheadMode}
+                  onChange={(e) =>
+                    setForm((f) => (f ? { ...f, letterheadMode: e.target.value as InvoiceLetterheadMode } : f))
+                  }
                 >
                   <option value="preprinted">Pre-printed letterhead (blank top margin)</option>
                   <option value="embedded_logo">Embed company logo in PDF</option>
                 </select>
-                <p className="text-xs text-neutral-500 mt-1.5">
-                  Use pre-printed if you print on branded stationery. Choose embedded logo for fully
-                  digital PDFs.
-                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-800 mb-1.5">VAT PIN</label>
                 <input
                   className={inputClass}
-                  value={vatPin}
-                  onChange={(e) => setVatPin(e.target.value)}
+                  value={form.vatPin}
+                  onChange={(e) => setForm((f) => (f ? { ...f, vatPin: e.target.value } : f))}
                   placeholder="e.g. P051234567X"
                 />
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-neutral-800 mb-1.5">
-                  Invoice legal name override
-                </label>
-                <input
-                  className={inputClass}
-                  value={invoiceLegalName}
-                  onChange={(e) => setInvoiceLegalName(e.target.value)}
-                  placeholder={snapshot.branding.legalName || snapshot.companyIdentity.orgName || 'Same as organisation name'}
-                />
-                <p className="text-xs text-neutral-500 mt-1.5">
-                  Leave blank to use the payslip legal entity name from Company setup.
-                </p>
-              </div>
             </div>
+          </section>
+
+          <div className="flex justify-start">
             <button
               type="button"
               disabled={saving}
               onClick={() => void saveSettings()}
-              className="btn-primary mt-4 inline-flex items-center gap-2 disabled:opacity-60"
+              className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Save invoice settings
+              Save invoicing setup
             </button>
-          </section>
+          </div>
 
           <section className="dashboard-surface p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">

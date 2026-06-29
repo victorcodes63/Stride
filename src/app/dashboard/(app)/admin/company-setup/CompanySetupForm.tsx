@@ -316,14 +316,14 @@ export function CompanySetupForm({
  <CompanySetupModulesSection form={form} setForm={setForm} moduleCatalog={moduleCatalog} capabilities={capabilities} />
 
  <form onSubmit={save} className="space-y-6">
- <SectionCard title="Brand identity" description="Your company logo, name, and colours on payslips, invoices, the employee portal, and internal documents. The Stride platform name stays on login and marketing pages." icon={Building2}>
+ <SectionCard title="Brand identity" description="Your company logo, name, and colours on payslips, the employee portal, and internal documents. Invoice PDF branding is configured separately under Finance → Invoicing setup." icon={Building2}>
  <div className="flex flex-col lg:flex-row gap-6">
  <div className="dash-setup-preview-well">
  {/* eslint-disable-next-line @next/next/no-img-element */}
  <img src={logoPreview} alt="Logo preview" className="max-h-16 max-w-[180px] object-contain" />
  </div>
  <div className="flex-1 grid sm:grid-cols-2 gap-4">
- <Field label="Organisation name" hint="Shown in the sidebar, payslips, and invoice PDFs">
+ <Field label="Organisation name" hint="Shown in the sidebar and on payslips">
  <input value={form.orgName} onChange={(e) => setForm((f) => ({ ...f, orgName: e.target.value }))} className={inputClass} placeholder={resolvedBrand.orgName} />
  </Field>
  {!isCustomerView ? (
@@ -331,7 +331,7 @@ export function CompanySetupForm({
  <input value={form.tagline} onChange={(e) => setForm((f) => ({ ...f, tagline: e.target.value }))} className={inputClass} placeholder={resolvedBrand.tagline} />
  </Field>
  ) : null}
- <Field label="Primary colour" hint="Dashboard accents and invoice PDF highlights">
+ <Field label="Primary colour" hint="Dashboard accents and payslip highlights">
  <div className="flex gap-2">
  <input type="color" value={form.primaryColor} onChange={(e) => setForm((f) => ({ ...f, primaryColor: e.target.value.toUpperCase() }))} className="h-10 w-12 rounded border border-[var(--dash-border)] cursor-pointer bg-[var(--dash-surface-muted)]" />
  <input value={form.primaryColor} onChange={(e) => setForm((f) => ({ ...f, primaryColor: e.target.value }))} className={`${inputClass} font-mono uppercase`} />
@@ -355,11 +355,11 @@ export function CompanySetupForm({
  </div>
  {isCustomerView ? (
   <p className="text-xs dash-setup-muted">
-   For invoice bank details, VAT PIN, and PDF layout, use{' '}
+   Invoice PDFs, VAT PIN, and bank details are managed in{' '}
    <Link href="/dashboard/accounts/invoicing-setup" className="dash-setup-link font-medium">
     Finance → Invoicing setup
    </Link>
-   .
+   — separate from workspace branding here.
   </p>
  ) : null}
  </SectionCard>

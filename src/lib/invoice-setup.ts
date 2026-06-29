@@ -6,7 +6,7 @@ import {
   systemSettingCreate,
   systemSettingWhere,
 } from '@/lib/system-setting-store';
-import { DEFAULT_PRIMARY_COLOR } from '@/lib/brand-theme';
+import { DEFAULT_PRIMARY_COLOR, sanitizeHexColor } from '@/lib/brand-theme';
 import { ensureDefaultPaymentAccounts } from '@/lib/payment-accounts';
 
 export const INVOICE_SETUP_SETTINGS_KEY = 'accounts.invoice.setup';
@@ -16,14 +16,25 @@ export type InvoiceLetterheadMode = 'preprinted' | 'embedded_logo';
 export type InvoiceSetupSettings = {
   letterheadMode: InvoiceLetterheadMode;
   vatPin: string;
-  /** Optional override for the legal name shown on invoice PDFs. */
   invoiceLegalName: string;
+  logoSrc: string;
+  contactAddress: string;
+  contactEmail: string;
+  contactPhone: string;
+  documentFooterText: string;
+  primaryColor: string;
 };
 
 export const DEFAULT_INVOICE_SETUP: InvoiceSetupSettings = {
   letterheadMode: 'preprinted',
   vatPin: '',
   invoiceLegalName: '',
+  logoSrc: '',
+  contactAddress: '',
+  contactEmail: '',
+  contactPhone: '',
+  documentFooterText: '',
+  primaryColor: DEFAULT_PRIMARY_COLOR,
 };
 
 export type InvoicePdfBranding = {
@@ -44,23 +55,17 @@ export type InvoiceSetupCheckItem = {
   label: string;
   ok: boolean;
   detail: string;
+  anchor?: string;
   href?: string;
 };
 
 export type InvoiceSetupSnapshot = {
   settings: InvoiceSetupSettings;
+  /** Effective values used on invoice PDFs (includes legacy fallbacks until saved). */
+  resolved: InvoiceSetupSettings;
   branding: InvoicePdfBranding;
   checklist: InvoiceSetupCheckItem[];
   paymentAccountCount: number;
-  companyIdentity: {
-    orgName: string;
-    contactAddress: string;
-    contactEmail: string;
-    contactPhone: string;
-    logoSrc: string;
-    documentFooterText: string;
-    primaryColor: string;
-  };
 };
 
 function str(v: unknown): string {
@@ -79,10 +84,16 @@ export function sanitizeInvoiceSetup(raw: unknown): InvoiceSetupSettings {
     letterheadMode: parseLetterheadMode(o.letterheadMode),
     vatPin: str(o.vatPin),
     invoiceLegalName: str(o.invoiceLegalName),
+    logoSrc: str(o.logoSrc),
+    contactAddress: str(o.contactAddress),
+    contactEmail: str(o.contactEmail),
+    contactPhone: str(o.contactPhone),
+    documentFooterText: str(o.documentFooterText),
+    primaryColor: sanitizeHexColor(o.primaryColor, d.primaryColor),
   };
 }
 
-export async function loadInvoiceSetupSettings(
+export async function loadRawInvoiceSetupSettings(
   organizationId: string,
 ): Promise<InvoiceSetupSettings> {
   if (!process.env.DATABASE_URL) return { ...DEFAULT_INVOICE_SETUP };
@@ -98,22 +109,77 @@ export async function loadInvoiceSetupSettings(
   }
 }
 
+/** Fill empty invoice fields from company setup / org name (legacy migration only). */
+export async function resolveInvoiceIdentity(
+  organizationId: string,
+  settings: InvoiceSetupSettings,
+): Promise<InvoiceSetupSettings> {
+  const [company, org] = await Promise.all([
+    loadCompanySetupSettingsForOrg(organizationId),
+    withOrgContext(organizationId, (tx) =>
+      tx.organization.findUnique({
+        where: { id: organizationId },
+        select: { name: true },
+      }),
+    ),
+  ]);
+  const brand = resolvePublicBrand(company);
+  const orgName = org?.name?.trim() ?? '';
+
+  return {
+    ...settings,
+    invoiceLegalName: settings.invoiceLegalName || brand.payslipLegalName || brand.orgName || orgName,
+    logoSrc:
+      settings.logoSrc ||
+      (isCustomLogo(brand.tenantLogoSrc) ? brand.tenantLogoSrc : ''),
+    contactAddress: settings.contactAddress || brand.contactAddress,
+    contactEmail: settings.contactEmail || brand.contactEmail,
+    contactPhone: settings.contactPhone || brand.contactPhone,
+    documentFooterText: settings.documentFooterText || brand.documentFooterText,
+    primaryColor: settings.primaryColor || brand.primaryColor || DEFAULT_PRIMARY_COLOR,
+  };
+}
+
+export function invoiceSettingsToPdfBranding(settings: InvoiceSetupSettings): InvoicePdfBranding {
+  const logoUrl = settings.logoSrc.trim();
+  return {
+    legalName: settings.invoiceLegalName.trim(),
+    address: settings.contactAddress.trim(),
+    contactEmail: settings.contactEmail.trim(),
+    contactPhone: settings.contactPhone.trim(),
+    logoUrl,
+    hasCustomLogo: isCustomLogo(logoUrl),
+    documentFooter: settings.documentFooterText.trim(),
+    primaryColor: settings.primaryColor || DEFAULT_PRIMARY_COLOR,
+    vatPin: settings.vatPin.trim(),
+    letterheadMode: settings.letterheadMode,
+  };
+}
+
+export async function loadInvoiceSetupSettings(
+  organizationId: string,
+): Promise<InvoiceSetupSettings> {
+  const stored = await loadRawInvoiceSetupSettings(organizationId);
+  return resolveInvoiceIdentity(organizationId, stored);
+}
+
 export async function persistInvoiceSetupSettings(
   organizationId: string,
   settings: InvoiceSetupSettings,
   updatedByUserId: string | null,
 ): Promise<void> {
+  const sanitized = sanitizeInvoiceSetup(settings);
   await withOrgContext(organizationId, async (tx) => {
     await tx.systemSetting.upsert({
       where: systemSettingWhere(organizationId, INVOICE_SETUP_SETTINGS_KEY),
       update: {
-        value: settings as unknown as Prisma.InputJsonValue,
+        value: sanitized as unknown as Prisma.InputJsonValue,
         updatedByUserId,
       },
       create: systemSettingCreate(
         organizationId,
         INVOICE_SETUP_SETTINGS_KEY,
-        settings as unknown as Prisma.InputJsonValue,
+        sanitized as unknown as Prisma.InputJsonValue,
         updatedByUserId,
       ),
     });
@@ -123,28 +189,8 @@ export async function persistInvoiceSetupSettings(
 export async function resolveInvoicePdfBranding(
   organizationId: string,
 ): Promise<InvoicePdfBranding> {
-  const [setup, invoiceSetup] = await Promise.all([
-    loadCompanySetupSettingsForOrg(organizationId),
-    loadInvoiceSetupSettings(organizationId),
-  ]);
-  const brand = resolvePublicBrand(setup);
-  const legalName =
-    invoiceSetup.invoiceLegalName.trim() ||
-    brand.payslipLegalName.trim() ||
-    brand.orgName.trim();
-
-  return {
-    legalName,
-    address: brand.contactAddress,
-    contactEmail: brand.contactEmail,
-    contactPhone: brand.contactPhone,
-    logoUrl: brand.tenantLogoSrc,
-    hasCustomLogo: isCustomLogo(brand.tenantLogoSrc),
-    documentFooter: brand.documentFooterText,
-    primaryColor: brand.primaryColor || DEFAULT_PRIMARY_COLOR,
-    vatPin: invoiceSetup.vatPin,
-    letterheadMode: invoiceSetup.letterheadMode,
-  };
+  const settings = await loadInvoiceSetupSettings(organizationId);
+  return invoiceSettingsToPdfBranding(settings);
 }
 
 export function buildInvoiceSetupChecklist(input: {
@@ -167,28 +213,29 @@ export function buildInvoiceSetupChecklist(input: {
         ? 'Custom logo configured'
         : branding.letterheadMode === 'embedded_logo'
           ? 'Upload your logo — required for embedded logo mode'
-          : 'Optional for pre-printed letterhead — upload in Company setup',
-      href: '/dashboard/admin/company-setup',
+          : 'Optional for pre-printed letterhead',
+      anchor: 'identity',
     },
     {
       id: 'legal-name',
       label: 'Legal / trading name',
       ok: hasLegalName,
-      detail: hasLegalName ? branding.legalName : 'Set organisation or invoice legal name',
-      href: '/dashboard/admin/company-setup',
+      detail: hasLegalName ? branding.legalName : 'Set your invoice legal name',
+      anchor: 'identity',
     },
     {
       id: 'address',
       label: 'Billing address',
       ok: hasAddress,
-      detail: hasAddress ? branding.address : 'Add contact address in Company setup',
-      href: '/dashboard/admin/company-setup',
+      detail: hasAddress ? branding.address : 'Add your billing address',
+      anchor: 'identity',
     },
     {
       id: 'vat-pin',
       label: 'VAT PIN',
       ok: hasVatPin,
       detail: hasVatPin ? `PIN: ${branding.vatPin}` : 'Add your KRA VAT PIN for invoice PDFs',
+      anchor: 'pdf-options',
     },
     {
       id: 'payment-accounts',
@@ -207,6 +254,7 @@ export function buildInvoiceSetupChecklist(input: {
         branding.letterheadMode === 'embedded_logo'
           ? 'Embedded logo in PDF'
           : 'Pre-printed letterhead (blank top margin)',
+      anchor: 'pdf-options',
     },
     {
       id: 'footer',
@@ -215,7 +263,7 @@ export function buildInvoiceSetupChecklist(input: {
       detail: branding.documentFooter.trim()
         ? branding.documentFooter
         : 'Optional — registered office, company reg. no.',
-      href: '/dashboard/admin/company-setup',
+      anchor: 'identity',
     },
   ];
 }
@@ -223,12 +271,11 @@ export function buildInvoiceSetupChecklist(input: {
 export async function loadInvoiceSetupSnapshot(
   organizationId: string,
 ): Promise<InvoiceSetupSnapshot> {
-  const [setup, invoiceSettings, branding] = await Promise.all([
-    loadCompanySetupSettingsForOrg(organizationId),
+  const [stored, effective] = await Promise.all([
+    loadRawInvoiceSetupSettings(organizationId),
     loadInvoiceSetupSettings(organizationId),
-    resolveInvoicePdfBranding(organizationId),
   ]);
-  const brand = resolvePublicBrand(setup);
+  const branding = invoiceSettingsToPdfBranding(effective);
 
   let paymentAccountCount = 0;
   if (process.env.DATABASE_URL) {
@@ -241,18 +288,10 @@ export async function loadInvoiceSetupSnapshot(
   }
 
   return {
-    settings: invoiceSettings,
+    settings: stored,
+    resolved: effective,
     branding,
     checklist: buildInvoiceSetupChecklist({ branding, paymentAccountCount }),
     paymentAccountCount,
-    companyIdentity: {
-      orgName: brand.orgName,
-      contactAddress: brand.contactAddress,
-      contactEmail: brand.contactEmail,
-      contactPhone: brand.contactPhone,
-      logoSrc: brand.tenantLogoSrc,
-      documentFooterText: brand.documentFooterText,
-      primaryColor: brand.primaryColor,
-    },
   };
 }

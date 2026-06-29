@@ -5,6 +5,7 @@ import {
   loadInvoiceSetupSnapshot,
   persistInvoiceSetupSettings,
   sanitizeInvoiceSetup,
+  loadRawInvoiceSetupSettings,
   type InvoiceLetterheadMode,
 } from '@/lib/invoice-setup';
 import { reportApiError } from '@/lib/monitoring';
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   return withAccountsTenant(request, async (ctx) => {
-    const access = await getAccountsAccess(ctx.staff.id, ctx.staff.role);
+    const access = await getAccountsAccess(ctx.staff.id, ctx.staff.role, ctx.organizationId);
     if (!access.canManageInvoices) {
       return NextResponse.json({ error: 'No permission to manage invoicing setup.' }, { status: 403 });
     }
@@ -47,9 +48,9 @@ export async function PATCH(request: NextRequest) {
     }
 
     try {
-      const snapshot = await loadInvoiceSetupSnapshot(ctx.organizationId);
+      const stored = await loadRawInvoiceSetupSettings(ctx.organizationId);
       const next = sanitizeInvoiceSetup({
-        ...snapshot.settings,
+        ...stored,
         ...(body.letterheadMode != null
           ? { letterheadMode: body.letterheadMode as InvoiceLetterheadMode }
           : {}),
@@ -57,6 +58,14 @@ export async function PATCH(request: NextRequest) {
         ...(body.invoiceLegalName != null
           ? { invoiceLegalName: str(body.invoiceLegalName) ?? '' }
           : {}),
+        ...(body.logoSrc != null ? { logoSrc: str(body.logoSrc) ?? '' } : {}),
+        ...(body.contactAddress != null ? { contactAddress: str(body.contactAddress) ?? '' } : {}),
+        ...(body.contactEmail != null ? { contactEmail: str(body.contactEmail) ?? '' } : {}),
+        ...(body.contactPhone != null ? { contactPhone: str(body.contactPhone) ?? '' } : {}),
+        ...(body.documentFooterText != null
+          ? { documentFooterText: str(body.documentFooterText) ?? '' }
+          : {}),
+        ...(body.primaryColor != null ? { primaryColor: str(body.primaryColor) ?? '' } : {}),
       });
 
       await persistInvoiceSetupSettings(ctx.organizationId, next, ctx.staff.id);
