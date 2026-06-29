@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminActor } from '@/lib/admin-security';
+import { requireAdminOrganization } from '@/lib/admin-security';
 import { syncEssUsersForAllEmployees } from '@/lib/ess-provision';
 import { logAuditEvent } from '@/lib/audit-events';
 
 export async function POST(request: NextRequest) {
-  const { error, actor } = await requireAdminActor(request);
-  if (error) return error;
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
+  const { actor, organizationId } = auth;
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
   }
 
   try {
-    const result = await syncEssUsersForAllEmployees();
+    const result = await syncEssUsersForAllEmployees(organizationId);
     await logAuditEvent({
       actor,
       action: 'ess_user.sync_employees',

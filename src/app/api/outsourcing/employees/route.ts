@@ -312,6 +312,7 @@ export async function POST(request: NextRequest) {
       }
 
       await ensureEssUserForEmployee({
+        organizationId: ctx.organizationId,
         employeeId: employee.id,
         firstName: employee.firstName,
         lastName: employee.lastName,

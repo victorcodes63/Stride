@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
  FileText,
  Search,
@@ -52,17 +52,6 @@ const DOCUMENT_TYPES: { value: DocumentType; label: string }[] = [
  { value: 'other', label: 'Other document' },
 ];
 
-const DEMO_REQUESTS: DocumentRequest[] = [
- { id: '1', employeeName: 'Jane Muthoni', employeeNumber: 'EMP-001', department: 'Finance', documentType: 'employment_letter', documentLabel: 'Employment confirmation letter', reason: 'Bank loan application - KCB', status: 'pending', requestedAt: '2026-06-12T09:30:00Z', completedAt: null, handledBy: null, notes: null },
- { id: '2', employeeName: 'David Ochieng', employeeNumber: 'EMP-014', department: 'Operations', documentType: 'p9_form', documentLabel: 'P9 tax form', reason: 'Tax filing - FY 2025/2026', status: 'processing', requestedAt: '2026-06-11T14:00:00Z', completedAt: null, handledBy: 'Grace Wanjiku', notes: 'Extracting from payroll system' },
- { id: '3', employeeName: 'Mary Wambui', employeeNumber: 'EMP-023', department: 'Administration', documentType: 'payslip_copy', documentLabel: 'Payslip copy', reason: 'Visa application - UK embassy', status: 'completed', requestedAt: '2026-06-10T08:15:00Z', completedAt: '2026-06-10T16:30:00Z', handledBy: 'Grace Wanjiku', notes: 'Last 3 months payslips provided' },
- { id: '4', employeeName: 'Peter Kimani', employeeNumber: 'EMP-007', department: 'IT & Support', documentType: 'nssf_statement', documentLabel: 'NSSF statement', reason: 'Personal records update', status: 'completed', requestedAt: '2026-06-09T11:00:00Z', completedAt: '2026-06-11T10:00:00Z', handledBy: 'Admin HR', notes: null },
- { id: '5', employeeName: 'Alice Njeri', employeeNumber: 'EMP-031', department: 'Logistics', documentType: 'clearance_letter', documentLabel: 'Clearance letter', reason: 'Transitioning to new employer', status: 'rejected', requestedAt: '2026-06-08T09:00:00Z', completedAt: null, handledBy: 'Grace Wanjiku', notes: 'Employee has pending asset returns. Must clear with IT first.' },
- { id: '6', employeeName: 'Brian Otieno', employeeNumber: 'EMP-045', department: 'Security', documentType: 'employment_letter', documentLabel: 'Employment confirmation letter', reason: 'Rental apartment application', status: 'pending', requestedAt: '2026-06-12T11:45:00Z', completedAt: null, handledBy: null, notes: null },
- { id: '7', employeeName: 'Sarah Akinyi', employeeNumber: 'EMP-019', department: 'Operations', documentType: 'recommendation_letter', documentLabel: 'Recommendation letter', reason: 'Graduate school application', status: 'processing', requestedAt: '2026-06-11T16:00:00Z', completedAt: null, handledBy: 'Admin HR', notes: 'Checking with line manager for endorsement' },
- { id: '8', employeeName: 'John Mutua', employeeNumber: 'EMP-052', department: 'Warehouse', documentType: 'salary_advance_form', documentLabel: 'Salary advance request', reason: 'Medical emergency - family', status: 'pending', requestedAt: '2026-06-12T07:20:00Z', completedAt: null, handledBy: null, notes: null },
-];
-
 function StatusBadge({ status }: { status: RequestStatus }) {
  const config = {
  pending: { icon: Clock, label: 'Pending', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -92,12 +81,43 @@ function StatCard({ label, value, icon: Icon, accent }: { label: string; value: 
 }
 
 export default function DocumentRequestsPage() {
- const [requests, setRequests] = useState<DocumentRequest[]>(DEMO_REQUESTS);
+ const [requests, setRequests] = useState<DocumentRequest[]>([]);
+ const [loading, setLoading] = useState(true);
+ const [loadError, setLoadError] = useState<string | null>(null);
  const [q, setQ] = useState('');
  const [statusFilter, setStatusFilter] = useState<RequestStatus | 'all'>('all');
  const [typeFilter, setTypeFilter] = useState('');
  const [selectedId, setSelectedId] = useState<string | null>(null);
  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
+
+ useEffect(() => {
+ let cancelled = false;
+ setLoading(true);
+ setLoadError(null);
+ fetch('/api/outsourcing/document-requests')
+ .then(async (res) => {
+ const data = await res.json().catch(() => ({}));
+ if (!res.ok) {
+ throw new Error(typeof data.error === 'string' ? data.error : 'Failed to load document requests.');
+ }
+ return data;
+ })
+ .then((data) => {
+ if (!cancelled) setRequests(Array.isArray(data) ? data : []);
+ })
+ .catch((err: unknown) => {
+ if (!cancelled) {
+ setRequests([]);
+ setLoadError(err instanceof Error ? err.message : 'Failed to load document requests.');
+ }
+ })
+ .finally(() => {
+ if (!cancelled) setLoading(false);
+ });
+ return () => {
+ cancelled = true;
+ };
+ }, []);
 
  const filtered = useMemo(() => {
  let result = requests;
@@ -149,6 +169,10 @@ export default function DocumentRequestsPage() {
  icon={FileQuestion}
  description="Review and process employee document requests from ESS."
  />
+
+ {loadError ? (
+ <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{loadError}</div>
+ ) : null}
 
  <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
  <StatCard label="Pending" value={stats.pending} icon={Clock} accent="border-l-4 border-l-amber-500" />
@@ -210,7 +234,13 @@ export default function DocumentRequestsPage() {
  </tr>
  </thead>
  <tbody>
- {filtered.map((req) => (
+ {loading ? (
+ <tr>
+ <td colSpan={7} className="px-4 py-12 text-center text-sm text-neutral-500">
+ Loading document requests…
+ </td>
+ </tr>
+ ) : filtered.map((req) => (
  <tr key={req.id} className="border-b border-neutral-100 hover:bg-neutral-50/50">
  <td className="px-4 py-3">
  <div>
@@ -295,7 +325,7 @@ export default function DocumentRequestsPage() {
  </td>
  </tr>
  ))}
- {!filtered.length && (
+ {!loading && !filtered.length && (
  <tr>
  <td colSpan={7} className="px-4 py-12 text-center">
  <FileQuestion className="w-10 h-10 text-neutral-300 mx-auto mb-3" />

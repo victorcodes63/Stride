@@ -327,6 +327,7 @@ export async function PATCH(
 
     const { existing, employee } = outcome;
     await ensureEssUserForEmployee({
+      organizationId: ctx.organizationId,
       employeeId: employee.id,
       firstName: employee.firstName,
       lastName: employee.lastName,

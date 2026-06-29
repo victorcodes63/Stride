@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
-import { requireAdminActor } from '@/lib/admin-security';
+import { requireAdminOrganization } from '@/lib/admin-security';
 import { logAuditEvent } from '@/lib/audit-events';
+import { withOrgContext } from '@/lib/org-context';
 
 const ROUNDS = 10;
 const ESS_ROLES = ['employee', 'manager', 'hr'] as const;
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { error, actor } = await requireAdminActor(request);
-  if (error) return error;
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
+  const { actor, organizationId } = auth;
 
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'ESS user id is required.' }, { status: 400 });
@@ -57,15 +58,37 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   try {
-    if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
-    const user = await prisma.essPortalUser.update({
-      where: { id },
-      data,
-      include: {
-        employee: { select: { firstName: true, lastName: true } },
-        createdByUser: { select: { name: true } },
-      },
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+    }
+
+    const user = await withOrgContext(organizationId, async (tx) => {
+      const existing = await tx.essPortalUser.findFirst({
+        where: { id, organizationId },
+        select: { id: true },
+      });
+      if (!existing) return null;
+
+      return tx.essPortalUser.update({
+        where: { id },
+        data,
+        include: {
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
+              employeeNumber: true,
+              department: { select: { name: true } },
+            },
+          },
+          createdByUser: { select: { name: true } },
+        },
+      });
     });
+
+    if (!user) {
+      return NextResponse.json({ error: 'ESS user not found.' }, { status: 404 });
+    }
 
     await logAuditEvent({
       actor,
@@ -80,6 +103,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       id: user.id,
       employeeId: user.employeeId,
       employeeName: user.employee ? `${user.employee.firstName} ${user.employee.lastName}`.trim() : null,
+      employeeNumber: user.employee?.employeeNumber ?? null,
+      department: user.employee?.department?.name ?? null,
       email: user.email,
       name: user.name,
       role: user.role,
@@ -92,8 +117,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updatedAt: user.updatedAt.toISOString(),
     });
   } catch (e) {
-    const err = e as { code?: string };
-    if (err.code === 'P2025') return NextResponse.json({ error: 'ESS user not found.' }, { status: 404 });
     console.error('PATCH /api/admin/ess-portal-users/[id] error:', e);
     return NextResponse.json({ error: 'Failed to update ESS user.' }, { status: 500 });
   }

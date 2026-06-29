@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { withOrgContext } from '@/lib/org-context';
 
 const ROUNDS = 10;
 
@@ -20,6 +20,7 @@ async function getDefaultEssPasswordHash() {
 }
 
 export async function ensureEssUserForEmployee(input: {
+  organizationId: string;
   employeeId: string;
   firstName: string;
   lastName: string;
@@ -29,64 +30,74 @@ export async function ensureEssUserForEmployee(input: {
   if (!email) return { createdOrUpdated: false, reason: 'missing_email' as const };
 
   const name = buildDefaultEssName(input.firstName, input.lastName);
-  const existingByEmployee = await prisma.essPortalUser.findFirst({
-    where: { employeeId: input.employeeId },
-  });
 
-  if (existingByEmployee) {
-    const nextData: {
-      name?: string;
-      email?: string;
-      isActive?: boolean;
-    } = {};
-    if (existingByEmployee.name !== name) nextData.name = name;
-    if (existingByEmployee.email !== email) nextData.email = email;
-    if (!existingByEmployee.isActive) nextData.isActive = true;
-    if (Object.keys(nextData).length > 0) {
-      await prisma.essPortalUser.update({
-        where: { id: existingByEmployee.id },
-        data: nextData,
-      });
+  return withOrgContext(input.organizationId, async (tx) => {
+    const existingByEmployee = await tx.essPortalUser.findFirst({
+      where: { organizationId: input.organizationId, employeeId: input.employeeId },
+    });
+
+    if (existingByEmployee) {
+      const nextData: {
+        name?: string;
+        email?: string;
+        isActive?: boolean;
+      } = {};
+      if (existingByEmployee.name !== name) nextData.name = name;
+      if (existingByEmployee.email !== email) nextData.email = email;
+      if (!existingByEmployee.isActive) nextData.isActive = true;
+      if (Object.keys(nextData).length > 0) {
+        await tx.essPortalUser.update({
+          where: { id: existingByEmployee.id },
+          data: nextData,
+        });
+      }
+      return { createdOrUpdated: Object.keys(nextData).length > 0, reason: 'linked_existing' as const };
     }
-    return { createdOrUpdated: Object.keys(nextData).length > 0, reason: 'linked_existing' as const };
-  }
 
-  const existingByEmail = await prisma.essPortalUser.findUnique({ where: { email } });
-  if (existingByEmail) {
-    await prisma.essPortalUser.update({
-      where: { id: existingByEmail.id },
+    const existingByEmail = await tx.essPortalUser.findFirst({
+      where: { organizationId: input.organizationId, email },
+    });
+    if (existingByEmail) {
+      await tx.essPortalUser.update({
+        where: { id: existingByEmail.id },
+        data: {
+          employeeId: input.employeeId,
+          name,
+          isActive: true,
+        },
+      });
+      return { createdOrUpdated: true, reason: 'attached_by_email' as const };
+    }
+
+    await tx.essPortalUser.create({
       data: {
+        organizationId: input.organizationId,
         employeeId: input.employeeId,
+        email,
         name,
+        role: 'employee',
         isActive: true,
+        mustResetPassword: true,
+        passwordHash: await getDefaultEssPasswordHash(),
       },
     });
-    return { createdOrUpdated: true, reason: 'attached_by_email' as const };
-  }
-
-  await prisma.essPortalUser.create({
-    data: {
-      employeeId: input.employeeId,
-      email,
-      name,
-      role: 'employee',
-      isActive: true,
-      mustResetPassword: true,
-      passwordHash: await getDefaultEssPasswordHash(),
-    },
+    return { createdOrUpdated: true, reason: 'created' as const };
   });
-  return { createdOrUpdated: true, reason: 'created' as const };
 }
 
-export async function syncEssUsersForAllEmployees() {
-  const employees = await prisma.employee.findMany({
-    select: { id: true, firstName: true, lastName: true, email: true },
-  });
+export async function syncEssUsersForAllEmployees(organizationId: string) {
+  const employees = await withOrgContext(organizationId, (tx) =>
+    tx.employee.findMany({
+      where: { organizationId },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    }),
+  );
 
   let createdOrUpdated = 0;
   let skippedNoEmail = 0;
   for (const employee of employees) {
     const result = await ensureEssUserForEmployee({
+      organizationId,
       employeeId: employee.id,
       firstName: employee.firstName,
       lastName: employee.lastName,

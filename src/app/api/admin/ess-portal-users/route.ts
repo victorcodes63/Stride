@@ -1,42 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
-import { requireAdminActor } from '@/lib/admin-security';
+import { requireAdminOrganization } from '@/lib/admin-security';
 import { logAuditEvent } from '@/lib/audit-events';
+import { withOrgContext } from '@/lib/org-context';
 
 const ROUNDS = 10;
 const ESS_ROLES = ['employee', 'manager', 'hr'] as const;
 
+function mapEssPortalUser(
+  u: {
+    id: string;
+    employeeId: string | null;
+    email: string;
+    name: string;
+    role: string;
+    isActive: boolean;
+    lastLoginAt: Date | null;
+    mustResetPassword: boolean;
+    notes: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    employee: {
+      firstName: string;
+      lastName: string;
+      employeeNumber: string | null;
+      department: { name: string } | null;
+    } | null;
+    createdByUser: { name: string | null } | null;
+  },
+) {
+  return {
+    id: u.id,
+    employeeId: u.employeeId,
+    employeeName: u.employee ? `${u.employee.firstName} ${u.employee.lastName}`.trim() : null,
+    employeeNumber: u.employee?.employeeNumber ?? null,
+    department: u.employee?.department?.name ?? null,
+    email: u.email,
+    name: u.name,
+    role: u.role,
+    isActive: u.isActive,
+    lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
+    mustResetPassword: u.mustResetPassword,
+    notes: u.notes,
+    createdByName: u.createdByUser?.name ?? null,
+    createdAt: u.createdAt.toISOString(),
+    updatedAt: u.updatedAt.toISOString(),
+  };
+}
+
+const essUserInclude = {
+  employee: {
+    select: {
+      firstName: true,
+      lastName: true,
+      employeeNumber: true,
+      department: { select: { name: true } },
+    },
+  },
+  createdByUser: { select: { name: true } },
+} as const;
+
 export async function GET(request: NextRequest) {
-  const { error } = await requireAdminActor(request);
-  if (error) return error;
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
 
   try {
     if (!process.env.DATABASE_URL) return NextResponse.json([]);
-    const users = await prisma.essPortalUser.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        employee: { select: { firstName: true, lastName: true } },
-        createdByUser: { select: { name: true } },
-      },
-    });
-    return NextResponse.json(
-      users.map((u) => ({
-        id: u.id,
-        employeeId: u.employeeId,
-        employeeName: u.employee ? `${u.employee.firstName} ${u.employee.lastName}`.trim() : null,
-        email: u.email,
-        name: u.name,
-        role: u.role,
-        isActive: u.isActive,
-        lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
-        mustResetPassword: u.mustResetPassword,
-        notes: u.notes,
-        createdByName: u.createdByUser?.name ?? null,
-        createdAt: u.createdAt.toISOString(),
-        updatedAt: u.updatedAt.toISOString(),
-      })),
+    const users = await withOrgContext(auth.organizationId, (tx) =>
+      tx.essPortalUser.findMany({
+        where: { organizationId: auth.organizationId },
+        orderBy: { createdAt: 'desc' },
+        include: essUserInclude,
+      }),
     );
+    return NextResponse.json(users.map(mapEssPortalUser));
   } catch (e) {
     console.error('GET /api/admin/ess-portal-users error:', e);
     return NextResponse.json({ error: 'Failed to load ESS users.' }, { status: 500 });
@@ -44,8 +81,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { error, actor } = await requireAdminActor(request);
-  if (error) return error;
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
+  const { actor, organizationId } = auth;
 
   let body: unknown;
   try {
@@ -72,35 +110,42 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
-    const existing = await prisma.essPortalUser.findUnique({ where: { email } });
-    if (existing) return NextResponse.json({ error: 'ESS user with this email already exists.' }, { status: 409 });
-
-    if (employeeId) {
-      const employee = await prisma.employee.findUnique({
-        where: { id: employeeId },
-        select: { id: true },
-      });
-      if (!employee) {
-        return NextResponse.json({ error: 'Employee not found for ESS account.' }, { status: 404 });
-      }
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
 
-    const user = await prisma.essPortalUser.create({
-      data: {
-        email,
-        name,
-        role: role as 'employee' | 'manager' | 'hr',
-        employeeId,
-        notes,
-        mustResetPassword,
-        passwordHash: await bcrypt.hash(password, ROUNDS),
-        createdByUserId: actor?.userId ?? null,
-      },
-      include: {
-        employee: { select: { firstName: true, lastName: true } },
-        createdByUser: { select: { name: true } },
-      },
+    const user = await withOrgContext(organizationId, async (tx) => {
+      const existing = await tx.essPortalUser.findFirst({
+        where: { organizationId, email },
+      });
+      if (existing) {
+        throw Object.assign(new Error('ESS user with this email already exists.'), { status: 409 });
+      }
+
+      if (employeeId) {
+        const employee = await tx.employee.findFirst({
+          where: { id: employeeId, organizationId },
+          select: { id: true },
+        });
+        if (!employee) {
+          throw Object.assign(new Error('Employee not found for ESS account.'), { status: 404 });
+        }
+      }
+
+      return tx.essPortalUser.create({
+        data: {
+          organizationId,
+          email,
+          name,
+          role: role as 'employee' | 'manager' | 'hr',
+          employeeId,
+          notes,
+          mustResetPassword,
+          passwordHash: await bcrypt.hash(password, ROUNDS),
+          createdByUserId: actor?.userId ?? null,
+        },
+        include: essUserInclude,
+      });
     });
 
     await logAuditEvent({
@@ -124,22 +169,15 @@ export async function POST(request: NextRequest) {
       console.error('[ess-portal-users] Failed to send invite email:', err);
     }
 
-    return NextResponse.json({
-      id: user.id,
-      employeeId: user.employeeId,
-      employeeName: user.employee ? `${user.employee.firstName} ${user.employee.lastName}`.trim() : null,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      isActive: user.isActive,
-      lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
-      mustResetPassword: user.mustResetPassword,
-      notes: user.notes,
-      createdByName: user.createdByUser?.name ?? null,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
-    });
+    return NextResponse.json(mapEssPortalUser(user));
   } catch (e) {
+    const err = e as Error & { status?: number };
+    if (err.status === 409) {
+      return NextResponse.json({ error: err.message }, { status: 409 });
+    }
+    if (err.status === 404) {
+      return NextResponse.json({ error: err.message }, { status: 404 });
+    }
     console.error('POST /api/admin/ess-portal-users error:', e);
     return NextResponse.json({ error: 'Failed to create ESS user.' }, { status: 500 });
   }

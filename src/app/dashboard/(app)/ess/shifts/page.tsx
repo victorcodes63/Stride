@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEntity } from '@/components/EntitySwitcher';
 import {
  CalendarClock,
  Clock,
@@ -50,25 +51,7 @@ type EssFeatureToggle = {
  enabled: boolean;
 };
 
-const DEMO_SHIFTS: ShiftPattern[] = [
- { id: '1', name: 'Morning shift', startTime: '06:00', endTime: '14:00', breakMinutes: 60, type: 'day', isDefault: true, employeeCount: 45 },
- { id: '2', name: 'Day shift', startTime: '08:00', endTime: '17:00', breakMinutes: 60, type: 'day', isDefault: false, employeeCount: 128 },
- { id: '3', name: 'Evening shift', startTime: '14:00', endTime: '22:00', breakMinutes: 45, type: 'split', isDefault: false, employeeCount: 32 },
- { id: '4', name: 'Night shift', startTime: '22:00', endTime: '06:00', breakMinutes: 45, type: 'night', isDefault: false, employeeCount: 18 },
- { id: '5', name: 'Flexible hours', startTime: '07:00', endTime: '19:00', breakMinutes: 60, type: 'flexible', isDefault: false, employeeCount: 65 },
-];
-
-const DEMO_DEPARTMENTS: DepartmentEssConfig[] = [
- { id: '1', departmentName: 'Operations', employeeCount: 45, essEnabled: true, clockInRequired: true, locationTrackingEnabled: true, defaultShiftId: '1', defaultShiftName: 'Morning shift', leaveRequestEnabled: true, documentRequestEnabled: true },
- { id: '2', departmentName: 'Administration', employeeCount: 28, essEnabled: true, clockInRequired: true, locationTrackingEnabled: false, defaultShiftId: '2', defaultShiftName: 'Day shift', leaveRequestEnabled: true, documentRequestEnabled: true },
- { id: '3', departmentName: 'Finance', employeeCount: 12, essEnabled: true, clockInRequired: false, locationTrackingEnabled: false, defaultShiftId: '2', defaultShiftName: 'Day shift', leaveRequestEnabled: true, documentRequestEnabled: true },
- { id: '4', departmentName: 'Security', employeeCount: 32, essEnabled: true, clockInRequired: true, locationTrackingEnabled: true, defaultShiftId: null, defaultShiftName: null, leaveRequestEnabled: true, documentRequestEnabled: false },
- { id: '5', departmentName: 'Logistics', employeeCount: 38, essEnabled: true, clockInRequired: true, locationTrackingEnabled: true, defaultShiftId: '1', defaultShiftName: 'Morning shift', leaveRequestEnabled: true, documentRequestEnabled: true },
- { id: '6', departmentName: 'IT & Support', employeeCount: 15, essEnabled: true, clockInRequired: false, locationTrackingEnabled: false, defaultShiftId: '5', defaultShiftName: 'Flexible hours', leaveRequestEnabled: true, documentRequestEnabled: true },
- { id: '7', departmentName: 'Warehouse', employeeCount: 22, essEnabled: true, clockInRequired: true, locationTrackingEnabled: true, defaultShiftId: '3', defaultShiftName: 'Evening shift', leaveRequestEnabled: true, documentRequestEnabled: false },
-];
-
-const DEMO_FEATURES: EssFeatureToggle[] = [
+const ESS_FEATURES: EssFeatureToggle[] = [
  { key: 'clock_in_out', label: 'Clock in / Clock out', description: 'Employees can clock in and out via the ESS portal', enabled: true },
  { key: 'leave_requests', label: 'Leave requests', description: 'Employees can apply for leave directly from the portal', enabled: true },
  { key: 'payslip_view', label: 'Payslip access', description: 'Employees can view and download their payslips', enabled: true },
@@ -78,6 +61,42 @@ const DEMO_FEATURES: EssFeatureToggle[] = [
  { key: 'location_tracking', label: 'GPS location on clock-in', description: 'Capture GPS coordinates when employees clock in (field staff)', enabled: false },
  { key: 'overtime_requests', label: 'Overtime requests', description: 'Employees can request pre-approved overtime hours', enabled: false },
 ];
+
+function minutesToTime(minutes: number): string {
+ const h = Math.floor(minutes / 60) % 24;
+ const m = minutes % 60;
+ return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function timeToMinutes(time: string): number {
+ const [h, m] = time.split(':').map((part) => parseInt(part, 10));
+ if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
+ return h * 60 + m;
+}
+
+function mapTemplateToShift(template: {
+ id: string;
+ name: string;
+ startMinutes: number;
+ endMinutes: number;
+ breakMinutes: number;
+ isActive: boolean;
+}): ShiftPattern {
+ const crossesMidnight = template.endMinutes <= template.startMinutes;
+ let type: ShiftPattern['type'] = 'day';
+ if (crossesMidnight) type = 'night';
+ else if (template.endMinutes - template.startMinutes > 600) type = 'flexible';
+ return {
+ id: template.id,
+ name: template.name,
+ startTime: minutesToTime(template.startMinutes),
+ endTime: minutesToTime(template.endMinutes),
+ breakMinutes: template.breakMinutes,
+ type,
+ isDefault: false,
+ employeeCount: 0,
+ };
+}
 
 function ShiftTypeIcon({ type }: { type: ShiftPattern['type'] }) {
  switch (type) {
@@ -89,10 +108,14 @@ function ShiftTypeIcon({ type }: { type: ShiftPattern['type'] }) {
 }
 
 export default function EssShiftsPage() {
+ const { activeEntity } = useEntity();
  const [activeTab, setActiveTab] = useState<'shifts' | 'departments' | 'features'>('shifts');
- const [shifts, setShifts] = useState<ShiftPattern[]>(DEMO_SHIFTS);
- const [departments, setDepartments] = useState<DepartmentEssConfig[]>(DEMO_DEPARTMENTS);
- const [features, setFeatures] = useState<EssFeatureToggle[]>(DEMO_FEATURES);
+ const [shifts, setShifts] = useState<ShiftPattern[]>([]);
+ const [departments, setDepartments] = useState<DepartmentEssConfig[]>([]);
+ const [features, setFeatures] = useState<EssFeatureToggle[]>(ESS_FEATURES);
+ const [employeeCount, setEmployeeCount] = useState(0);
+ const [loading, setLoading] = useState(true);
+ const [loadError, setLoadError] = useState<string | null>(null);
  const [createShiftOpen, setCreateShiftOpen] = useState(false);
  const [saving, setSaving] = useState(false);
  const [success, setSuccess] = useState<string | null>(null);
@@ -105,6 +128,75 @@ export default function EssShiftsPage() {
  type: 'day' as ShiftPattern['type'],
  });
 
+ const loadWorkspaceData = useCallback(async () => {
+ setLoading(true);
+ setLoadError(null);
+ try {
+ const clientsRes = await fetch('/api/outsourcing/clients');
+ const clients = await clientsRes.json().catch(() => []);
+ const clientId = Array.isArray(clients) && clients[0]?.id ? String(clients[0].id) : '';
+
+ const [templatesRes, departmentsRes, employeesRes] = await Promise.all([
+ fetch('/api/rota/templates'),
+ clientId
+ ? fetch(`/api/outsourcing/clients/${clientId}/departments`)
+ : Promise.resolve(new Response(JSON.stringify([]), { status: 200 })),
+ fetch('/api/outsourcing/employees'),
+ ]);
+
+ const templatesData = await templatesRes.json().catch(() => []);
+ if (!templatesRes.ok) {
+ throw new Error(
+ typeof templatesData.error === 'string' ? templatesData.error : 'Failed to load shift patterns.',
+ );
+ }
+
+ const deptData = await departmentsRes.json().catch(() => []);
+ const employeesData = await employeesRes.json().catch(() => []);
+
+ const mappedShifts = (Array.isArray(templatesData) ? templatesData : [])
+ .filter((row: { isActive?: boolean }) => row.isActive !== false)
+ .map((row: {
+ id: string;
+ name: string;
+ startMinutes: number;
+ endMinutes: number;
+ breakMinutes: number;
+ isActive: boolean;
+ }) => mapTemplateToShift(row));
+
+ setShifts(mappedShifts);
+ setDepartments(
+ (Array.isArray(deptData) ? deptData : []).map(
+ (row: { id: string; name: string; employeeCount?: number }) => ({
+ id: row.id,
+ departmentName: row.name,
+ employeeCount: row.employeeCount ?? 0,
+ essEnabled: true,
+ clockInRequired: false,
+ locationTrackingEnabled: false,
+ defaultShiftId: null,
+ defaultShiftName: null,
+ leaveRequestEnabled: true,
+ documentRequestEnabled: true,
+ }),
+ ),
+ );
+ setEmployeeCount(Array.isArray(employeesData) ? employeesData.length : 0);
+ } catch (err) {
+ setShifts([]);
+ setDepartments([]);
+ setEmployeeCount(0);
+ setLoadError(err instanceof Error ? err.message : 'Failed to load ESS configuration.');
+ } finally {
+ setLoading(false);
+ }
+ }, []);
+
+ useEffect(() => {
+ void loadWorkspaceData();
+ }, [loadWorkspaceData, activeEntity.id]);
+
  const filteredDepartments = useMemo(() => {
  const q = deptSearch.trim().toLowerCase();
  if (!q) return departments;
@@ -112,23 +204,39 @@ export default function EssShiftsPage() {
  }, [departments, deptSearch]);
 
  const totalEssEmployees = useMemo(
- () => departments.filter((d) => d.essEnabled).reduce((sum, d) => sum + d.employeeCount, 0),
- [departments],
+ () => employeeCount || departments.reduce((sum, d) => sum + d.employeeCount, 0),
+ [departments, employeeCount],
  );
 
- function handleCreateShift(e: React.FormEvent) {
+ async function handleCreateShift(e: React.FormEvent) {
  e.preventDefault();
- const newShift: ShiftPattern = {
- id: String(Date.now()),
- ...shiftForm,
- isDefault: false,
- employeeCount: 0,
- };
- setShifts((prev) => [...prev, newShift]);
+ setSaving(true);
+ setLoadError(null);
+ try {
+ const res = await fetch('/api/rota/templates', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ name: shiftForm.name.trim(),
+ startMinutes: timeToMinutes(shiftForm.startTime),
+ endMinutes: timeToMinutes(shiftForm.endTime),
+ breakMinutes: shiftForm.breakMinutes,
+ }),
+ });
+ const data = await res.json().catch(() => ({}));
+ if (!res.ok) {
+ throw new Error(typeof data.error === 'string' ? data.error : 'Failed to create shift pattern.');
+ }
+ await loadWorkspaceData();
  setCreateShiftOpen(false);
  setShiftForm({ name: '', startTime: '08:00', endTime: '17:00', breakMinutes: 60, type: 'day' });
  setSuccess('Shift pattern created.');
  setTimeout(() => setSuccess(null), 3000);
+ } catch (err) {
+ setLoadError(err instanceof Error ? err.message : 'Failed to create shift pattern.');
+ } finally {
+ setSaving(false);
+ }
  }
 
  function toggleDeptEss(id: string) {
@@ -184,6 +292,12 @@ export default function EssShiftsPage() {
  className="mb-6"
  />
 
+ {loadError && (
+ <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+ {loadError}
+ </div>
+ )}
+
  {success && (
  <div className="mb-4 rounded-lg bg-emerald-50 text-emerald-700 text-sm px-4 py-3 border border-emerald-100">
  {success}
@@ -214,6 +328,12 @@ export default function EssShiftsPage() {
 
  {activeTab === 'shifts' && (
  <div className="space-y-4">
+ {loading ? (
+ <div className="flex justify-center py-16">
+ <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+ </div>
+ ) : (
+ <>
  <div className="flex justify-between items-center">
  <p className="text-sm text-neutral-600">
  Define shift patterns that can be assigned to departments or individual employees.
@@ -265,12 +385,28 @@ export default function EssShiftsPage() {
  </div>
  </div>
  ))}
+ {!shifts.length && (
+ <div className="col-span-full rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-6 py-12 text-center sm:col-span-2 lg:col-span-3">
+ <p className="text-sm font-medium text-neutral-700">No shift patterns yet</p>
+ <p className="mt-1 text-xs text-neutral-500">
+ Add your first shift pattern to assign rota and attendance schedules.
+ </p>
  </div>
+ )}
+ </div>
+ </>
+ )}
  </div>
  )}
 
  {activeTab === 'departments' && (
  <div className="space-y-4">
+ {loading ? (
+ <div className="flex justify-center py-16">
+ <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+ </div>
+ ) : (
+ <>
  <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
  <p className="text-sm text-neutral-600">
  Configure which departments have ESS enabled and their clock-in requirements.
@@ -334,9 +470,18 @@ export default function EssShiftsPage() {
  </td>
  </tr>
  ))}
+ {!filteredDepartments.length && (
+ <tr>
+ <td colSpan={6} className="px-4 py-12 text-center text-sm text-neutral-500">
+ No departments yet. Add departments under People before configuring ESS access.
+ </td>
+ </tr>
+ )}
  </tbody>
  </table>
  </div>
+ </>
+ )}
  </div>
  )}
 
@@ -439,8 +584,8 @@ export default function EssShiftsPage() {
  <button type="button" onClick={() => setCreateShiftOpen(false)} className="px-4 py-2 border border-neutral-300 rounded-lg text-sm">
  Cancel
  </button>
- <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700">
- Create shift
+ <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-60">
+ {saving ? 'Creating…' : 'Create shift'}
  </button>
  </div>
  </form>
