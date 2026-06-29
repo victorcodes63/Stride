@@ -15,6 +15,11 @@ import crypto from 'node:crypto';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEMO_PROJECT = 'stride-demo';
 const DEMO_DOMAIN = 'demo.getstride.co.ke';
+const VERCEL_SCOPE = process.env.VERCEL_SCOPE || 'rtgprojects';
+
+function vercelArgs(...args) {
+  return ['--scope', VERCEL_SCOPE, ...args];
+}
 
 function parseEnvFile(text) {
   const map = new Map();
@@ -55,8 +60,8 @@ function addEnv(name, value, { sensitive = false, target = 'production' } = {}) 
     console.warn(`skip ${name} (empty)`);
     return;
   }
-  spawnSync('vercel', ['env', 'rm', name, target, '--yes'], { cwd: root, stdio: 'ignore' });
-  const args = ['env', 'add', name, target, '--value', value, '--force', '--yes'];
+  spawnSync('vercel', vercelArgs('env', 'rm', name, target, '--yes'), { cwd: root, stdio: 'ignore' });
+  const args = vercelArgs('env', 'add', name, target, '--value', value, '--force', '--yes');
   if (sensitive) args.push('--sensitive');
   const r = spawnSync('vercel', args, { cwd: root, encoding: 'utf8' });
   if (r.status !== 0) throw new Error(`vercel env add ${name} failed`);
@@ -78,10 +83,10 @@ if (!pooled || !direct) {
 }
 
 // Ensure stride-demo project exists
-const list = run('vercel', ['project', 'ls']);
+const list = run('vercel', vercelArgs('project', 'ls'));
 if (!list.includes(DEMO_PROJECT)) {
   console.log(`Creating Vercel project ${DEMO_PROJECT}…`);
-  run('vercel', ['project', 'add', DEMO_PROJECT], { inherit: true });
+  run('vercel', vercelArgs('project', 'add', DEMO_PROJECT), { inherit: true });
 }
 
 // Link this repo to stride-demo for deploy
@@ -91,7 +96,7 @@ if (existsSync(platformLink) && !existsSync(path.join(vercelDir, 'project.stride
   run('cp', [path.join(vercelDir, 'project.json'), platformLink]);
 }
 
-run('vercel', ['link', '--project', DEMO_PROJECT, '--yes'], { inherit: true });
+run('vercel', vercelArgs('link', '--project', DEMO_PROJECT, '--yes'), { inherit: true });
 
 console.log(`\nApplying demo env to ${DEMO_PROJECT} (production)…\n`);
 
@@ -141,11 +146,11 @@ if (provisionKey) {
 }
 
 console.log(`\nDeploying to production…`);
-run('vercel', ['deploy', '--prod', '--yes'], { inherit: true });
+run('vercel', vercelArgs('deploy', '--prod', '--yes'), { inherit: true });
 
 console.log(`\nAdding domain ${DEMO_DOMAIN}…`);
 try {
-  run('vercel', ['domains', 'add', DEMO_DOMAIN, DEMO_PROJECT], { inherit: true });
+  run('vercel', vercelArgs('domains', 'add', DEMO_DOMAIN, DEMO_PROJECT), { inherit: true });
 } catch {
   console.warn(
     `Could not add ${DEMO_DOMAIN} automatically — add CNAME in DNS and attach domain in Vercel dashboard.`,
