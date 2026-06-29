@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
         const dueDate = dueDateFromIssue(issueDate, profile.paymentTerms);
 
         const invoice = await createDraftAccountsInvoice(tx, {
+          organizationId: ctx.organizationId,
           clientId,
           issueDate,
           dueDate,

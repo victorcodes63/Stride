@@ -118,6 +118,7 @@ export function dueDateFromIssue(issueDate: Date, paymentTerms: string | null | 
 export async function createDraftAccountsInvoice(
   tx: Prisma.TransactionClient,
   input: {
+    organizationId: string;
     clientId: string;
     issueDate: Date;
     dueDate: Date | null;
@@ -137,6 +138,7 @@ export async function createDraftAccountsInvoice(
 
   return tx.accountsInvoice.create({
     data: {
+      organizationId: input.organizationId,
       clientId: input.clientId,
       invoiceNumber,
       issueDate: input.issueDate,
@@ -149,6 +151,7 @@ export async function createDraftAccountsInvoice(
       notes: input.notes,
       lines: {
         create: input.lines.map((line, index) => ({
+          organizationId: input.organizationId,
           item: line.item,
           description: line.description ?? null,
           amountExVat: new Prisma.Decimal(line.amountExVat),

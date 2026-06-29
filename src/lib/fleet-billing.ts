@@ -123,6 +123,7 @@ export async function createFleetClientInvoice(
     const invoiceNumber = await nextInvoiceNumber(tx);
     const invoice = await tx.accountsInvoice.create({
       data: {
+        organizationId: input.organizationId,
         clientId: accountsClient.id,
         invoiceNumber,
         issueDate,
@@ -136,6 +137,7 @@ export async function createFleetClientInvoice(
         lines: {
           create: [
             {
+              organizationId: input.organizationId,
               item: `Transport: ${input.origin} → ${input.destination}`,
               description: `${input.customerName}${input.cargoType ? ` · ${input.cargoType}` : ''} (${input.tripNumber})`,
               amountExVat: new Prisma.Decimal(amountExVat),

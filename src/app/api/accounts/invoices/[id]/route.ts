@@ -355,6 +355,7 @@ export async function PATCH(
           await tx.accountsInvoiceLine.deleteMany({ where: { invoiceId: id } });
           await tx.accountsInvoiceLine.createMany({
             data: lineCreates.map((l) => ({
+              organizationId: ctx.organizationId,
               invoiceId: id,
               item: l.item,
               description: l.description,

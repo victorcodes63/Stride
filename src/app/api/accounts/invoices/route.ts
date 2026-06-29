@@ -292,8 +292,8 @@ export async function POST(request: NextRequest) {
 
     try {
       const result = await ctx.run(async (tx) => {
-      const client = await tx.accountsClient.findUnique({
-        where: { id: clientId },
+      const client = await tx.accountsClient.findFirst({
+        where: ctx.where({ id: clientId }),
         select: {
           id: true,
           currency: true,
@@ -336,6 +336,7 @@ export async function POST(request: NextRequest) {
 
       const inv = await tx.accountsInvoice.create({
         data: {
+          organizationId: ctx.organizationId,
           clientId,
           ...(contractIdOpt ? { contractId: contractIdOpt } : {}),
           invoiceNumber,
@@ -350,7 +351,10 @@ export async function POST(request: NextRequest) {
           paymentAccountId,
           paymentBank: resolvedPaymentBank,
           lines: {
-            create: lineCreates,
+            create: lineCreates.map((line) => ({
+              ...line,
+              organizationId: ctx.organizationId,
+            })),
           },
         },
         select: { id: true, invoiceNumber: true },
