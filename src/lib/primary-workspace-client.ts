@@ -1,11 +1,16 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import type { NextRequest } from 'next/server';
+import { withOrgContext } from '@/lib/org-context';
 import { requireStaffUser } from '@/lib/staff-api-auth';
 import { getWorkspaceDefaults } from '@/lib/deployment-config';
 import { resolveEntityIdOrDefault } from '@/lib/entity-request';
-import { getActiveEntities, loadOperatingEntitiesSettingsForOrg } from '@/lib/operating-entities';
+import { getActiveEntities, loadOperatingEntitiesSettings, loadOperatingEntitiesSettingsForOrg } from '@/lib/operating-entities';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
+
+function isRootPrismaClient(db: DbClient): db is PrismaClient {
+  return typeof (db as PrismaClient).$transaction === 'function';
+}
 
 /**
  * Single-tenant helper: resolve the primary outsourcing workspace client.
@@ -15,37 +20,73 @@ export async function getOrCreatePrimaryWorkspaceClient(
   db: DbClient,
   organizationId: string,
 ) {
-  const settings = await loadOperatingEntitiesSettingsForOrg(organizationId);
-  const defaultEntity = settings.defaultEntityId;
-  const existing = await db.outsourcingClient.findFirst({
-    where: { organizationId, entityCode: defaultEntity },
-    orderBy: { createdAt: 'asc' },
-  });
-  if (existing) return existing;
+  const impl = async (tx: DbClient) => {
+    const settings = await loadOperatingEntitiesSettingsForOrg(organizationId);
+    const defaultEntity = settings.defaultEntityId;
+    const existing = await tx.outsourcingClient.findFirst({
+      where: { organizationId, entityCode: defaultEntity },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (existing) return existing;
 
-  const anyClient = await db.outsourcingClient.findFirst({
-    where: { organizationId },
-    orderBy: { createdAt: 'asc' },
-  });
-  if (anyClient) return anyClient;
+    const anyClient = await tx.outsourcingClient.findFirst({
+      where: { organizationId },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (anyClient) return anyClient;
 
-  const org = await db.organization.findUnique({
-    where: { id: organizationId },
-    select: { name: true },
-  });
-  const defaults = getWorkspaceDefaults(org?.name);
-  return db.outsourcingClient.create({
-    data: {
-      organizationId,
-      name: defaults.name,
-      employeeNumberPrefix: defaults.employeeNumberPrefix,
-      currency: defaults.currency,
-      contactName: defaults.contactName,
-      contactEmail: defaults.contactEmail,
-      contactPhone: defaults.contactPhone,
-      entityCode: defaults.entityCode,
-    },
-  });
+    const org = await tx.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+    const defaults = getWorkspaceDefaults(org?.name);
+    return tx.outsourcingClient.create({
+      data: {
+        organizationId,
+        name: defaults.name,
+        employeeNumberPrefix: defaults.employeeNumberPrefix,
+        currency: defaults.currency,
+        contactName: defaults.contactName,
+        contactEmail: defaults.contactEmail,
+        contactPhone: defaults.contactPhone,
+        entityCode: defaults.entityCode,
+      },
+    });
+  };
+
+  if (isRootPrismaClient(db)) {
+    return withOrgContext(organizationId, impl);
+  }
+  return impl(db);
+}
+
+async function resolvePrimaryWorkspaceClientIdInTx(
+  db: DbClient,
+  requestedClientId: string | null | undefined,
+  entityId: string | null,
+  orgId: string,
+): Promise<string> {
+  const requested = requestedClientId?.trim();
+  if (entityId) {
+    if (requested) {
+      const scoped = await db.outsourcingClient.findFirst({
+        where: { id: requested, organizationId: orgId, entityCode: entityId },
+        select: { id: true },
+      });
+      if (!scoped) {
+        throw new Error(`Requested client is outside active entity scope (${entityId}).`);
+      }
+      return scoped.id;
+    }
+    const row = await db.outsourcingClient.findFirst({
+      where: { organizationId: orgId, entityCode: entityId },
+      select: { id: true },
+    });
+    if (row) return row.id;
+  }
+  if (requested) return requested;
+  const workspace = await getOrCreatePrimaryWorkspaceClient(db, orgId);
+  return workspace.id;
 }
 
 export async function resolvePrimaryWorkspaceClientId(
@@ -54,7 +95,6 @@ export async function resolvePrimaryWorkspaceClientId(
   request?: Pick<NextRequest, 'headers' | 'cookies' | 'nextUrl'> | NextRequest | null,
   organizationId?: string,
 ) {
-  const requested = requestedClientId?.trim();
   let orgId = organizationId;
   if (!orgId && request) {
     const staff = await requireStaffUser(request as NextRequest);
@@ -63,29 +103,15 @@ export async function resolvePrimaryWorkspaceClientId(
   if (!orgId) {
     throw new Error('organizationId is required to resolve the primary workspace client.');
   }
-  if (request) {
-    const entityId = await resolveEntityIdOrDefault(request);
-    if (entityId) {
-      if (requested) {
-        const scoped = await db.outsourcingClient.findFirst({
-          where: { id: requested, organizationId: orgId, entityCode: entityId },
-          select: { id: true },
-        });
-        if (!scoped) {
-          throw new Error(`Requested client is outside active entity scope (${entityId}).`);
-        }
-        return scoped.id;
-      }
-      const row = await db.outsourcingClient.findFirst({
-        where: { organizationId: orgId, entityCode: entityId },
-        select: { id: true },
-      });
-      if (row) return row.id;
-    }
+
+  const entityId = request ? await resolveEntityIdOrDefault(request, orgId) : null;
+
+  if (isRootPrismaClient(db)) {
+    return withOrgContext(orgId, (tx) =>
+      resolvePrimaryWorkspaceClientIdInTx(tx, requestedClientId, entityId, orgId!),
+    );
   }
-  if (requested) return requested;
-  const workspace = await getOrCreatePrimaryWorkspaceClient(db, orgId);
-  return workspace.id;
+  return resolvePrimaryWorkspaceClientIdInTx(db, requestedClientId, entityId, orgId);
 }
 
 /**

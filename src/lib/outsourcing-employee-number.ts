@@ -1,4 +1,6 @@
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
+
+type DbClient = PrismaClient | Prisma.TransactionClient;
 
 const SUFFIX_WORDS = /^(ltd|limited|inc|plc|llc|llp|group|holdings|co|company|kenya|ea)$/i;
 
@@ -36,7 +38,7 @@ function escapeRegex(s: string): string {
  * Next employee number for client: PREFIX-001, zero-padded to 3 (001–999, then 1000+).
  */
 export async function allocateNextEmployeeNumber(
-  prisma: PrismaClient,
+  prisma: DbClient,
   outsourcingClientId: string,
   prefixRaw: string
 ): Promise<string> {

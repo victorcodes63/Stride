@@ -5,6 +5,7 @@ import { parseDemoEntitySlug } from '@/lib/demo-entity-slug';
 import {
   getActiveEntities,
   loadOperatingEntitiesSettings,
+  loadOperatingEntitiesSettingsForOrg,
   resolveEntitySlugOrDefault,
   slugToCountryCode,
   validateEntitySlug,
@@ -52,8 +53,11 @@ export function entitySlugToStatutoryId(slug: string): EntityId {
  */
 export async function resolveEntityIdOrDefault(
   request: Pick<NextRequest, 'headers' | 'cookies' | 'nextUrl'>,
+  organizationId?: string,
 ): Promise<string> {
-  const settings = await loadOperatingEntitiesSettings();
+  const settings = organizationId
+    ? await loadOperatingEntitiesSettingsForOrg(organizationId)
+    : await loadOperatingEntitiesSettings();
   const raw = parseEntitySlugFromRequest(request);
   return resolveEntitySlugOrDefault(raw, settings);
 }

@@ -33,6 +33,14 @@ type WorkflowType = (typeof WORKFLOW_TYPES)[number];
 
 const ONBOARDING_FILTER_DEFAULTS = { status: '', search: '' };
 
+async function readWorkflowsResponse(response: Response) {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(typeof data.error === 'string' ? data.error : 'Could not load workflows.');
+  }
+  return data;
+}
+
 export default function OnboardingPage() {
   return (
     <Suspense fallback={<div className="py-16 text-center text-sm text-neutral-500">Loading onboarding…</div>}>
@@ -67,10 +75,7 @@ function OnboardingPageContent() {
     if (filters.search.trim()) params.set('search', filters.search.trim());
 
     fetch(`/api/onboarding/workflows?${params.toString()}`)
-      .then((r) => {
-        if (!r.ok) throw new Error('Could not load workflows.');
-        return r.json();
-      })
+      .then((r) => readWorkflowsResponse(r))
       .then((data) => {
         if (!cancelled) setRows(Array.isArray(data) ? data : []);
       })
@@ -162,10 +167,7 @@ function OnboardingPageContent() {
     if (filters.status) params.set('status', filters.status);
     if (filters.search.trim()) params.set('search', filters.search.trim());
     fetch(`/api/onboarding/workflows?${params.toString()}`)
-      .then((r) => {
-        if (!r.ok) throw new Error('Could not load workflows.');
-        return r.json();
-      })
+      .then((r) => readWorkflowsResponse(r))
       .then((data) => setRows(Array.isArray(data) ? data : []))
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Could not load workflows.');

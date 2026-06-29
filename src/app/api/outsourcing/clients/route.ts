@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       if (!process.env.DATABASE_URL) {
         return NextResponse.json([], { status: 200 });
       }
-      const entityId = await resolveEntityIdOrDefault(request);
+      const entityId = await resolveEntityIdOrDefault(request, ctx.organizationId);
       if (entityId) {
         const scoped = await ctx.run((tx) =>
           tx.outsourcingClient.findFirst({

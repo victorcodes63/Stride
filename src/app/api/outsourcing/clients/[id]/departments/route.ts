@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { forbiddenResponse } from '@/lib/demo-route-access';
-import { withTenant } from '@/lib/tenant-api';
+import { withTenant, type TenantContext } from '@/lib/tenant-api';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-async function assertClientInOrg(clientId: string, organizationId: string) {
-  return prisma.outsourcingClient.findFirst({
-    where: { id: clientId, organizationId },
-    select: { id: true },
-  });
+async function assertClientInOrg(
+  clientId: string,
+  organizationId: string,
+  run: TenantContext['run'],
+) {
+  return run((tx) =>
+    tx.outsourcingClient.findFirst({
+      where: { id: clientId, organizationId },
+      select: { id: true },
+    }),
+  );
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
@@ -79,7 +84,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
       }
 
-      const client = await assertClientInOrg(clientId, ctx.organizationId);
+      const client = await assertClientInOrg(clientId, ctx.organizationId, ctx.run);
       if (!client) {
         return forbiddenResponse('Client not found for this organization.');
       }

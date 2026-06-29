@@ -1,9 +1,11 @@
+import type { Prisma } from '@prisma/client';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 import type { DeploymentEntitlements } from '@/lib/entitlements-types';
 import { loadDeploymentEntitlements } from '@/lib/entitlements-store';
 import { parseEntitlementsCookie } from '@/lib/entitlements-cookie';
+import { withOrgContext } from '@/lib/org-context';
 import { prisma } from '@/lib/prisma';
 
 export type SeatLimitCheck = {
@@ -22,11 +24,24 @@ export function seatLimitExceededPayload(check: SeatLimitCheck) {
 }
 
 export async function countBillableEmployees(
-  outsourcingClientId?: string,
+  outsourcingClientId: string,
+  organizationId?: string,
 ): Promise<number> {
+  const countInTx = (tx: Prisma.TransactionClient) =>
+    tx.employee.count({
+      where: {
+        outsourcingClientId,
+        employmentStatus: { in: ['active', 'probation'] },
+      },
+    });
+
+  if (organizationId) {
+    return withOrgContext(organizationId, countInTx);
+  }
+
   return prisma.employee.count({
     where: {
-      ...(outsourcingClientId ? { outsourcingClientId } : {}),
+      outsourcingClientId,
       employmentStatus: { in: ['active', 'probation'] },
     },
   });
@@ -47,10 +62,11 @@ export async function getEntitlementsForSeatCheck(
 export async function checkSeatLimitForNewEmployee(
   outsourcingClientId: string,
   request?: NextRequest,
+  organizationId?: string,
 ): Promise<{ ok: true; check: SeatLimitCheck } | { ok: false; check: SeatLimitCheck }> {
   const entitlements = await getEntitlementsForSeatCheck(request);
   const limit = entitlements?.seatLimit ?? null;
-  const active = await countBillableEmployees(outsourcingClientId);
+  const active = await countBillableEmployees(outsourcingClientId, organizationId);
 
   const check: SeatLimitCheck = {
     limit,

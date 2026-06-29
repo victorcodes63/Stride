@@ -19,7 +19,12 @@ describe('resolvePrimaryWorkspaceClientId', () => {
       },
     } as unknown as Parameters<typeof resolvePrimaryWorkspaceClientId>[0];
 
-    const result = await resolvePrimaryWorkspaceClientId(prisma, null, buildRequest('ke'));
+    const result = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      null,
+      buildRequest('ke'),
+      'org-1',
+    );
     expect(result).toBe('client-ke');
   });
 
@@ -34,7 +39,7 @@ describe('resolvePrimaryWorkspaceClientId', () => {
     } as unknown as Parameters<typeof resolvePrimaryWorkspaceClientId>[0];
 
     await expect(
-      resolvePrimaryWorkspaceClientId(prisma, 'client-ug', buildRequest('ke')),
+      resolvePrimaryWorkspaceClientId(prisma, 'client-ug', buildRequest('ke'), 'org-1'),
     ).rejects.toThrow(/outside active entity scope/);
   });
 });

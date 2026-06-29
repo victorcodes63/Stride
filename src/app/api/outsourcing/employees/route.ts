@@ -13,7 +13,6 @@ import { ensureEssUserForEmployee } from '@/lib/ess-provision';
 import { getHrUserIds, sendNotification } from '@/lib/notifications';
 import { startWorkflowForEmployee } from '@/lib/onboarding-workflows';
 import {
-  assertEmployeeProfileCompleteness,
   normalizeEmployeeSearchPreset,
 } from '@/lib/hr-core-employee';
 import {
@@ -164,7 +163,11 @@ export async function POST(request: NextRequest) {
         ctx.organizationId,
       );
 
-      const seatCheck = await checkSeatLimitForNewEmployee(clientId, request);
+      const seatCheck = await checkSeatLimitForNewEmployee(
+        clientId,
+        request,
+        ctx.organizationId,
+      );
       if (!seatCheck.ok) {
         return NextResponse.json(seatLimitExceededPayload(seatCheck.check), { status: 403 });
       }
@@ -189,21 +192,23 @@ export async function POST(request: NextRequest) {
           );
         }
       }
-      const client = await prisma.outsourcingClient.findFirst({
-        where: ctx.where({ id: clientId }),
-        include: { departments: { select: { id: true } } },
+      const { client, employeeNumber: resolvedEmployeeNumber } = await ctx.run(async (tx) => {
+        const row = await tx.outsourcingClient.findFirst({
+          where: { id: clientId, organizationId: ctx.organizationId },
+          include: { departments: { select: { id: true } } },
+        });
+        if (!row) {
+          throw new Error('Client not found.');
+        }
+        let employeeNumber = strField(body, 'employeeNumber');
+        if (!employeeNumber?.trim()) {
+          const prefix =
+            row.employeeNumberPrefix?.trim() || deriveEmployeePrefixFromName(row.name);
+          employeeNumber = await allocateNextEmployeeNumber(tx, clientId, prefix);
+        }
+        return { client: row, employeeNumber };
       });
-      const clientRecord = client as typeof client & { employeeNumberPrefix?: string | null };
-      if (!client) {
-        return NextResponse.json({ error: 'Client not found.' }, { status: 404 });
-      }
-      let employeeNumber = strField(body, 'employeeNumber');
-      if (!employeeNumber?.trim()) {
-        const prefix =
-          clientRecord.employeeNumberPrefix?.trim() ||
-          deriveEmployeePrefixFromName(client.name);
-        employeeNumber = await allocateNextEmployeeNumber(prisma, clientId, prefix);
-      }
+      let employeeNumber = resolvedEmployeeNumber;
       let departmentId: string | null = strField(body, 'departmentId');
       if (departmentId) {
         const ok = client.departments.some((d) => d.id === departmentId);
@@ -241,18 +246,6 @@ export async function POST(request: NextRequest) {
           );
         }
       }
-      assertEmployeeProfileCompleteness({
-        firstName,
-        lastName,
-        idNumber: idNumberNorm,
-        kraPin: strField(body, 'kraPin'),
-        nssfNumber: strField(body, 'nssfNumber'),
-        nhifNumber: strField(body, 'nhifNumber'),
-        dateOfJoining: dateOfJoining ?? null,
-        jobTitle: strField(body, 'jobTitle'),
-        departmentId,
-        costCenterCode,
-      });
       const employee = await ctx.run((tx) =>
         tx.employee.create({
           data: {
@@ -350,7 +343,7 @@ export async function POST(request: NextRequest) {
         console.error('[onboarding] Failed to auto-start onboarding:', error),
       );
 
-      const activeCount = await countBillableEmployees(clientId);
+      const activeCount = await countBillableEmployees(clientId, ctx.organizationId);
       void reportSeatUsageToControlPlane(activeCount);
       return NextResponse.json({
         id: employee.id,
@@ -386,8 +379,8 @@ export async function POST(request: NextRequest) {
           { status: 409 },
         );
       }
-      if (msg.includes('Employee profile is incomplete.')) {
-        return NextResponse.json({ error: msg }, { status: 400 });
+      if (msg.includes('Client not found.')) {
+        return NextResponse.json({ error: msg }, { status: 404 });
       }
       console.error('[outsourcing/employees POST]', e);
       return NextResponse.json(

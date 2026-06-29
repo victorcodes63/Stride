@@ -155,6 +155,7 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
 
   // —— Core HR (employees, org, onboarding, credentials) ——
   { prefix: '/api/onboarding', module: 'core' },
+  { prefix: '/api/outsourcing/clients', module: 'core' },
   { prefix: '/api/outsourcing/employees', module: 'core' },
   { prefix: '/api/outsourcing/ess', module: 'ess' },
   { prefix: '/api/outsourcing/document-requests', module: 'ess' },
