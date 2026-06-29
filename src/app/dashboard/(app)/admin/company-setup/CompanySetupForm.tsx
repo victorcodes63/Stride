@@ -38,6 +38,7 @@ type Props = {
  capabilities: CompanySetupCapabilities;
  oauthConfigured: { microsoft: boolean; google: boolean };
  emailDomains: EmailDomainRow[];
+ setupAudience?: 'customer' | 'ops';
 };
 
 function ToggleRow({
@@ -76,12 +77,14 @@ function AuthMethodSelector({
  onChange,
  oauthConfigured,
  capabilities,
+ isCustomerView = false,
 }: {
  label: string;
  value: PortalAuthMethod;
  onChange: (method: PortalAuthMethod) => void;
  oauthConfigured: { microsoft: boolean; google: boolean };
  capabilities: CompanySetupCapabilities;
+ isCustomerView?: boolean;
 }) {
  const options: { id: PortalAuthMethod; title: string; description: string; configured: boolean }[] = [
   {
@@ -134,7 +137,9 @@ function AuthMethodSelector({
        <span className="block text-xs dash-setup-muted mt-0.5">{option.description}</span>
        {needsEnv && selected ? (
         <span className="mt-1 block dash-setup-warn-inline">
-         Selected — add {option.id === 'microsoft' ? 'MS_*' : 'GOOGLE_*'} env vars in Vercel to go live.
+         {isCustomerView
+          ? 'Selected — contact Raven Tech Group to enable this sign-in method on your workspace.'
+          : `Selected — add ${option.id === 'microsoft' ? 'MS_*' : 'GOOGLE_*'} env vars in Vercel to go live.`}
         </span>
        ) : null}
        {!allowed ? (
@@ -206,7 +211,9 @@ export function CompanySetupForm({
  capabilities,
  oauthConfigured,
  emailDomains,
+ setupAudience = 'customer',
 }: Props) {
+ const isCustomerView = setupAudience === 'customer';
  const router = useRouter();
  const logoInputRef = useRef<HTMLInputElement>(null);
  const careersInputRef = useRef<HTMLInputElement>(null);
@@ -278,8 +285,12 @@ export function CompanySetupForm({
  )}
 
  <SectionCard
- title="Deployment readiness"
- description={`${readyCount} of ${provisioning.length} checks passing. Complete these before go-live.`}
+ title={isCustomerView ? 'Workspace checklist' : 'Deployment readiness'}
+ description={
+  isCustomerView
+   ? `${readyCount} of ${provisioning.length} items complete. Finish these so payslips, invoices, and portals show your company correctly.`
+   : `${readyCount} of ${provisioning.length} checks passing. Complete these before go-live.`
+ }
  icon={CheckCircle2}
  >
  <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -302,29 +313,25 @@ export function CompanySetupForm({
  </div>
  </SectionCard>
 
- <CompanySetupModulesSection form={form} setForm={setForm} moduleCatalog={moduleCatalog} />
+ <CompanySetupModulesSection form={form} setForm={setForm} moduleCatalog={moduleCatalog} capabilities={capabilities} />
 
  <form onSubmit={save} className="space-y-6">
- <SectionCard title="Brand identity" description="Organisation name, logo, and colours for this workspace. Login and marketing always show Stride as the platform." icon={Building2}>
+ <SectionCard title="Brand identity" description="Your company logo, name, and colours on payslips, invoices, the employee portal, and internal documents. The Stride platform name stays on login and marketing pages." icon={Building2}>
  <div className="flex flex-col lg:flex-row gap-6">
  <div className="dash-setup-preview-well">
  {/* eslint-disable-next-line @next/next/no-img-element */}
  <img src={logoPreview} alt="Logo preview" className="max-h-16 max-w-[180px] object-contain" />
  </div>
  <div className="flex-1 grid sm:grid-cols-2 gap-4">
- <Field label="Platform name" hint="Fixed — public surfaces always show Stride">
- <input value="Stride" readOnly disabled className={`${inputClass} cursor-not-allowed`} />
- </Field>
- <Field label="Organisation name">
+ <Field label="Organisation name" hint="Shown in the sidebar, payslips, and invoice PDFs">
  <input value={form.orgName} onChange={(e) => setForm((f) => ({ ...f, orgName: e.target.value }))} className={inputClass} placeholder={resolvedBrand.orgName} />
  </Field>
+ {!isCustomerView ? (
  <Field label="Tagline" hint="Careers page and optional login subtitle">
  <input value={form.tagline} onChange={(e) => setForm((f) => ({ ...f, tagline: e.target.value }))} className={inputClass} placeholder={resolvedBrand.tagline} />
  </Field>
- <Field label="Wordmark" hint="Letterhead / PDF fallback text (org-specific)">
- <input value={form.wordmark} onChange={(e) => setForm((f) => ({ ...f, wordmark: e.target.value }))} className={inputClass} placeholder={resolvedBrand.wordmark} />
- </Field>
- <Field label="Primary colour">
+ ) : null}
+ <Field label="Primary colour" hint="Dashboard accents and invoice PDF highlights">
  <div className="flex gap-2">
  <input type="color" value={form.primaryColor} onChange={(e) => setForm((f) => ({ ...f, primaryColor: e.target.value.toUpperCase() }))} className="h-10 w-12 rounded border border-[var(--dash-border)] cursor-pointer bg-[var(--dash-surface-muted)]" />
  <input value={form.primaryColor} onChange={(e) => setForm((f) => ({ ...f, primaryColor: e.target.value }))} className={`${inputClass} font-mono uppercase`} />
@@ -344,8 +351,17 @@ export function CompanySetupForm({
  {uploading === 'logo' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
  Upload logo
  </button>
- <input value={form.logoSrc} onChange={(e) => setForm((f) => ({ ...f, logoSrc: e.target.value, logoPngPath: e.target.value }))} className={`${inputClass} flex-1 min-w-[200px] font-mono`} placeholder="/brand/your-logo.png" />
+ <input value={form.logoSrc} onChange={(e) => setForm((f) => ({ ...f, logoSrc: e.target.value, logoPngPath: e.target.value }))} className={`${inputClass} flex-1 min-w-[200px] font-mono`} placeholder="Upload a file or paste an image URL" />
  </div>
+ {isCustomerView ? (
+  <p className="text-xs dash-setup-muted">
+   For invoice bank details, VAT PIN, and PDF layout, use{' '}
+   <Link href="/dashboard/accounts/invoicing-setup" className="dash-setup-link font-medium">
+    Finance → Invoicing setup
+   </Link>
+   .
+  </p>
+ ) : null}
  </SectionCard>
 
  <SectionCard title="Login experience" description="Welcome title is always “Welcome to Stride”. Configure subtitles and sign-in methods below." icon={MessageSquare}>
@@ -369,6 +385,7 @@ export function CompanySetupForm({
  onChange={(method) => setForm((f) => applyAuthMethodToSetup(f, 'staff', method))}
  oauthConfigured={oauthConfigured}
  capabilities={capabilities}
+ isCustomerView={isCustomerView}
  />
  </SectionCard>
  <SectionCard title="Employee portal (ESS)" icon={Shield} description="Controls the ESS login page at /ess/login">
@@ -379,6 +396,7 @@ export function CompanySetupForm({
  onChange={(method) => setForm((f) => applyAuthMethodToSetup(f, 'ess', method))}
  oauthConfigured={oauthConfigured}
  capabilities={capabilities}
+ isCustomerView={isCustomerView}
  />
  </SectionCard>
  </div>
@@ -494,7 +512,16 @@ export function CompanySetupForm({
  </table>
  </div>
  <Field label="Payslip legal entity name"><input value={form.payslipLegalName} onChange={(e) => setForm((f) => ({ ...f, payslipLegalName: e.target.value }))} className={inputClass} placeholder={resolvedBrand.orgName} /></Field>
- <Field label="Document footer text" hint="Letters and PDFs"><textarea value={form.documentFooterText} onChange={(e) => setForm((f) => ({ ...f, documentFooterText: e.target.value }))} rows={2} className={inputClass} placeholder="Registered office · Company reg. no." /></Field>
+ <Field label="Document footer text" hint="Payslips, letters, and invoice PDFs"><textarea value={form.documentFooterText} onChange={(e) => setForm((f) => ({ ...f, documentFooterText: e.target.value }))} rows={2} className={inputClass} placeholder="Registered office · Company reg. no." /></Field>
+ {isCustomerView ? (
+  <p className="text-sm dash-setup-muted">
+   Invoice-specific options (VAT PIN, embedded logo vs letterhead) live in{' '}
+   <Link href="/dashboard/accounts/invoicing-setup" className="dash-setup-link font-medium">
+    Invoicing setup
+   </Link>
+   .
+  </p>
+ ) : null}
  <ToggleRow label="Hide vendor branding" checked={form.hidePoweredBy} onChange={(v) => setForm((f) => ({ ...f, hidePoweredBy: v }))} description="White-label mode where applicable" disabled={!capabilities.canConfigureWhiteLabel} />
  {!capabilities.canConfigureWhiteLabel ? (
   <TierLockedNotice message={companySetupUpgradeHint(capabilities.tier, 'canConfigureWhiteLabel')} />

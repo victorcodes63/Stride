@@ -7,6 +7,7 @@ import {
  type ModuleKey,
 } from '@/lib/modules';
 import type { CompanySetupSettings } from '@/lib/company-setup';
+import type { CompanySetupCapabilities } from '@/lib/company-setup-tier-features';
 import { LayoutGrid, Lock } from 'lucide-react';
 
 export type ModuleCatalogEntry = {
@@ -24,9 +25,13 @@ type Props = {
  form: CompanySetupSettings;
  setForm: React.Dispatch<React.SetStateAction<CompanySetupSettings>>;
  moduleCatalog: ModuleCatalogEntry[];
+ capabilities?: CompanySetupCapabilities;
 };
 
-export function CompanySetupModulesSection({ form, setForm, moduleCatalog }: Props) {
+export function CompanySetupModulesSection({ form, setForm, moduleCatalog, capabilities }: Props) {
+ if (capabilities && !capabilities.canConfigureModuleNav) {
+  return null;
+ }
  const licensedByKey = Object.fromEntries(moduleCatalog.map((m) => [m.key, m.licensed])) as Record<
  ModuleKey,
  boolean

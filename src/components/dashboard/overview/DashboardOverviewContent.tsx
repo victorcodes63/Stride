@@ -512,7 +512,7 @@ export default function DashboardOverviewContent() {
   }, [attentionItems, me, persona, pendingApprovals]);
   const secondaryAction = useMemo(() => getOverviewSecondaryAction(me, persona), [me, persona]);
 
-  const greeting = getOverviewGreeting(me?.name ?? 'there');
+  const greeting = getOverviewGreeting(me?.name ?? '', me?.email);
   const roleLabel = getOverviewRoleLabel(me);
   const subtitle = getOverviewSubtitle(persona);
 

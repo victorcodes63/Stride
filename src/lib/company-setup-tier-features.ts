@@ -22,6 +22,8 @@ export type CompanySetupCapabilities = {
   canConfigureDashboardBanner: boolean;
   /** Enterprise — disable password login when SSO is configured. */
   canEnforceSso: boolean;
+  /** Growth+ — toggle licensed modules in navigation. */
+  canConfigureModuleNav: boolean;
 };
 
 export function getCompanySetupCapabilities(tier: DeploymentTier): CompanySetupCapabilities {

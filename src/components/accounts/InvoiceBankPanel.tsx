@@ -69,8 +69,8 @@ export function InvoicePaymentAccountSelect({
       </div>
       <p className="text-[11px] text-neutral-500 print:hidden">
         Chooses which company bank account appears on the PDF and when printing.{' '}
-        <a href="/dashboard/accounts/payment-accounts" className="font-medium text-primary-800 hover:underline">
-          Manage payment accounts
+        <a href="/dashboard/accounts/invoicing-setup" className="font-medium text-primary-800 hover:underline">
+          Invoicing setup
         </a>
       </p>
     </div>

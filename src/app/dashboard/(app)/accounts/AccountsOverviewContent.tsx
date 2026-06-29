@@ -60,6 +60,13 @@ const MODULES: {
  highlight: true,
  },
  {
+ href: '/dashboard/accounts/invoicing-setup',
+ title: 'Invoicing setup',
+ desc: 'Logo, letterhead, VAT PIN & bank details',
+ icon: FileSignature,
+ highlight: true,
+ },
+ {
  href: '/dashboard/accounts/receipts',
  title: 'Receipts & allocations',
  desc: 'Client payments → invoices',

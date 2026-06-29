@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       );
 
       const rows = await ctx.run(async (tx) => {
-        await ensureDefaultPaymentAccounts(tx);
+        await ensureDefaultPaymentAccounts(tx, ctx.organizationId);
         return tx.accountsPaymentAccount.findMany({
           where: ctx.where(activeOnly ? { isActive: true } : {}),
           orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],

@@ -194,6 +194,7 @@ export async function POST(request: NextRequest) {
         }
 
         const paymentAccountId = await resolvePaymentAccountId(tx, {
+          organizationId: ctx.organizationId,
           paymentAccountId: paymentAccountIdInput ?? inv.paymentAccountId,
           paymentBank: paymentAccountIdInput ? undefined : paymentBank,
         });

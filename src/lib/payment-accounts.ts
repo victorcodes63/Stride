@@ -83,11 +83,14 @@ export function paymentAccountToDetails(account: PaymentAccountRow): PaymentAcco
   };
 }
 
-/** Seed the two legacy accounts from env defaults when none exist. */
+/** Seed the two legacy accounts from env defaults when none exist for this org. */
 export async function ensureDefaultPaymentAccounts(
   db: PrismaClient | Prisma.TransactionClient,
+  organizationId: string,
 ): Promise<void> {
-  const count = await db.accountsPaymentAccount.count();
+  const count = await db.accountsPaymentAccount.count({
+    where: { organizationId },
+  });
   if (count > 0) return;
 
   const consultancy = getInvoiceBankDetails('consultancy_fees');
@@ -96,6 +99,7 @@ export async function ensureDefaultPaymentAccounts(
   await db.accountsPaymentAccount.createMany({
     data: [
       {
+        organizationId,
         label: 'Consultancy & other fees',
         accountName: consultancy.accountName,
         bank: consultancy.bank,
@@ -111,6 +115,7 @@ export async function ensureDefaultPaymentAccounts(
         legacyKind: 'consultancy_fees',
       },
       {
+        organizationId,
         label: 'Payroll only',
         accountName: payroll.accountName,
         bank: payroll.bank,
@@ -131,10 +136,11 @@ export async function ensureDefaultPaymentAccounts(
 
 export async function listActivePaymentAccounts(
   db: PrismaClient | Prisma.TransactionClient,
+  organizationId: string,
 ): Promise<PaymentAccountRow[]> {
-  await ensureDefaultPaymentAccounts(db);
+  await ensureDefaultPaymentAccounts(db, organizationId);
   const rows = await db.accountsPaymentAccount.findMany({
-    where: { isActive: true },
+    where: { organizationId, isActive: true },
     select: paymentAccountSelect,
     orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
   });
@@ -143,16 +149,17 @@ export async function listActivePaymentAccounts(
 
 export async function getDefaultPaymentAccountId(
   db: PrismaClient | Prisma.TransactionClient,
+  organizationId: string,
 ): Promise<string | null> {
-  await ensureDefaultPaymentAccounts(db);
+  await ensureDefaultPaymentAccounts(db, organizationId);
   const row = await db.accountsPaymentAccount.findFirst({
-    where: { isActive: true, isDefault: true },
+    where: { organizationId, isActive: true, isDefault: true },
     select: { id: true },
     orderBy: [{ sortOrder: 'asc' }],
   });
   if (row) return row.id;
   const fallback = await db.accountsPaymentAccount.findFirst({
-    where: { isActive: true },
+    where: { organizationId, isActive: true },
     select: { id: true },
     orderBy: [{ sortOrder: 'asc' }],
   });
@@ -161,24 +168,29 @@ export async function getDefaultPaymentAccountId(
 
 export async function resolvePaymentAccountId(
   db: PrismaClient | Prisma.TransactionClient,
-  input: { paymentAccountId?: string | null; paymentBank?: string | null },
+  input: {
+    organizationId: string;
+    paymentAccountId?: string | null;
+    paymentBank?: string | null;
+  },
 ): Promise<string | null> {
-  await ensureDefaultPaymentAccounts(db);
+  const { organizationId } = input;
+  await ensureDefaultPaymentAccounts(db, organizationId);
   if (input.paymentAccountId) {
     const found = await db.accountsPaymentAccount.findFirst({
-      where: { id: input.paymentAccountId, isActive: true },
+      where: { id: input.paymentAccountId, organizationId, isActive: true },
       select: { id: true },
     });
     if (found) return found.id;
   }
   if (input.paymentBank === 'payroll_only' || input.paymentBank === 'consultancy_fees') {
     const byLegacy = await db.accountsPaymentAccount.findFirst({
-      where: { legacyKind: input.paymentBank, isActive: true },
+      where: { organizationId, legacyKind: input.paymentBank, isActive: true },
       select: { id: true },
     });
     if (byLegacy) return byLegacy.id;
   }
-  return getDefaultPaymentAccountId(db);
+  return getDefaultPaymentAccountId(db, organizationId);
 }
 
 export async function resolvePaymentDetails(

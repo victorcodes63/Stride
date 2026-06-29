@@ -3,10 +3,11 @@ import { requireAdminActor } from '@/lib/admin-security';
 import { companySetupAccessDeniedResponse } from '@/lib/company-setup-access';
 import { logAuditEvent } from '@/lib/audit-events';
 import {
-  buildProvisioningChecklist,
+  buildCompanySetupChecklist,
   companySetupContextLabel,
   companySetupStorageKeyFromRequest,
   DEFAULT_COMPANY_SETUP,
+  hydrateCompanySetupFromOrganization,
   loadCompanySetupForStorageKey,
   persistCompanySetupSettings,
   sanitizeCompanySetup,
@@ -15,6 +16,7 @@ import {
 } from '@/lib/company-setup';
 import { resolvePublicBrand } from '@/lib/resolve-public-brand';
 import { buildBrandThemeCssVars } from '@/lib/brand-theme';
+import { isCustomerProductionCell } from '@/lib/deployment-cell';
 import { moduleAdminFlagsSetCookieHeader } from '@/lib/module-cookie';
 import {
   findModuleAdminViolations,
@@ -55,7 +57,8 @@ export async function GET(request: NextRequest) {
     const storageKey = companySetupStorageKeyFromRequest(request);
     const entitySlug = request.cookies.get(HRIS_ENTITY_COOKIE)?.value ?? null;
     const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
-    const setup = await loadCompanySetupForStorageKey(storageKey, organizationId);
+    const rawSetup = await loadCompanySetupForStorageKey(storageKey, organizationId);
+    const setup = await hydrateCompanySetupFromOrganization(rawSetup, organizationId);
     const licensed = listLicensedModules();
     const subscription = entitlements
       ? {
@@ -87,7 +90,8 @@ export async function GET(request: NextRequest) {
       public: toPublicCompanySetup(setup),
       resolvedBrand: resolvePublicBrand(setup),
       themePreview: buildBrandThemeCssVars(setup.primaryColor, setup.secondaryColor),
-      provisioning: buildProvisioningChecklist(setup),
+      provisioning: buildCompanySetupChecklist(setup),
+      setupAudience: isCustomerProductionCell() ? 'customer' : 'ops',
       defaults: DEFAULT_COMPANY_SETUP,
       capabilities,
       oauthConfigured,

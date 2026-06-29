@@ -107,6 +107,12 @@ export function isSsoEnforced(
 
 /** Legacy env domains → seed default org verified domains on first read (migration aid). */
 export async function seedLegacyDomainsIfEmpty(organizationId: string): Promise<void> {
+  const orgExists = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { id: true },
+  });
+  if (!orgExists) return;
+
   const count = await withOrgContext(organizationId, (tx) =>
     tx.organizationEmailDomain.count({ where: { organizationId } }),
   );

@@ -325,6 +325,7 @@ export async function PATCH(
       await ctx.run(async (tx) => {
         if (hasPaymentAccountId) {
           const resolvedId = await resolvePaymentAccountId(tx, {
+            organizationId: ctx.organizationId,
             paymentAccountId: paymentAccountIdRaw as string,
           });
           if (!resolvedId) {
@@ -336,6 +337,7 @@ export async function PATCH(
           data.paymentBank = await paymentBankForAccountId(tx, resolvedId);
         } else if (hasPaymentBank) {
           const resolvedId = await resolvePaymentAccountId(tx, {
+            organizationId: ctx.organizationId,
             paymentBank: paymentBank as 'payroll_only' | 'consultancy_fees',
           });
           data.paymentBank = paymentBank as 'payroll_only' | 'consultancy_fees';

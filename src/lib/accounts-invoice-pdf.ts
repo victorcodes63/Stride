@@ -1,13 +1,14 @@
 /**
  * Accounts sales invoice PDF (A4).
- * Bill-to left / invoice meta right; full-width line items table; tbody rows vertically
- * center cell text (#, description block, amount) while keeping desc left- and amounts right-aligned.
- * No top rule — designed for pre-printed letterhead; content starts with LETTERHEAD_TOP_INSET_PT.
+ * Supports pre-printed letterhead (blank top margin) or embedded company logo + identity block.
  */
 
-import { PDFDocument, PDFPage, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, PDFPage, StandardFonts, rgb, type RGB } from 'pdf-lib';
 import type { PDFFont } from 'pdf-lib';
 import type { PaymentAccountDetails } from '@/lib/payment-accounts';
+import type { InvoiceLetterheadMode, InvoicePdfBranding } from '@/lib/invoice-setup';
+import { embedImageFromUrl } from '@/lib/pdf-embed-image';
+import { DEFAULT_PRIMARY_COLOR, sanitizeHexColor } from '@/lib/brand-theme';
 
 export type AccountsInvoicePdfLine = {
   lineNo: number;
@@ -19,11 +20,8 @@ export type AccountsInvoicePdfLine = {
 export type AccountsInvoicePdfKind = 'invoice' | 'credit_note';
 
 export type AccountsInvoicePdfInput = {
-  /** Sales invoice PDF or credit note PDF. */
   kind?: AccountsInvoicePdfKind;
-  /** Invoice no. or credit note no. (meta block). */
   documentNumber: number;
-  /** Credit note only: original sales invoice number. */
   originalInvoiceNumber?: number | null;
   clientName: string;
   issueDate: string;
@@ -37,9 +35,9 @@ export type AccountsInvoicePdfInput = {
   totalIncVat: number;
   lines: AccountsInvoicePdfLine[];
   paymentDetails: PaymentAccountDetails;
+  branding?: Partial<InvoicePdfBranding>;
 };
 
-const PRIMARY = rgb(4 / 255, 61 / 255, 74 / 255);
 const GRAY_700 = rgb(55 / 255, 55 / 255, 55 / 255);
 const GRAY_600 = rgb(82 / 255, 82 / 255, 82 / 255);
 const GRAY_500 = rgb(115 / 255, 115 / 255, 115 / 255);
@@ -47,15 +45,17 @@ const LIGHT_BG = rgb(249 / 255, 250 / 255, 251 / 255);
 const BORDER = rgb(229 / 255, 229 / 255, 229 / 255);
 const HEADER_BG = rgb(243 / 255, 244 / 255, 246 / 255);
 
-/** Extra offset from the top so content clears pre-printed letterhead (no PDF top rule). */
-const LETTERHEAD_TOP_INSET_PT = 72;
-/** Space between Summary totals and Payment details. */
+const PREPRINTED_TOP_INSET_PT = 72;
 const GAP_BEFORE_PAYMENT_DETAILS_PT = 48;
-
-/** Table body: line spacing and vertical padding per row. */
 const TABLE_LINE_HEIGHT_PT = 12;
 const TABLE_ROW_PAD_PT = 10;
 const TABLE_HEAD_HEIGHT_PT = 24;
+
+function hexToRgb(hex: string): RGB {
+  const value = sanitizeHexColor(hex, DEFAULT_PRIMARY_COLOR).replace('#', '');
+  const n = Number.parseInt(value, 16);
+  return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
+}
 
 function fmt(n: number, currency: string) {
   return `${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
@@ -84,22 +84,116 @@ function drawTextRight(
   y: number,
   size: number,
   font: PDFFont,
-  color: ReturnType<typeof rgb>,
+  color: RGB,
 ) {
   const w = font.widthOfTextAtSize(text, size);
   page.drawText(text, { x: xRight - w, y, size, font, color });
 }
 
-function ensureSpace(
+function resolveBranding(input?: Partial<InvoicePdfBranding>) {
+  const letterheadMode: InvoiceLetterheadMode = input?.letterheadMode ?? 'preprinted';
+  return {
+    legalName: input?.legalName?.trim() ?? '',
+    address: input?.address?.trim() ?? '',
+    logoUrl: input?.logoUrl?.trim() ?? '',
+    documentFooter: input?.documentFooter?.trim() ?? '',
+    primaryColor: hexToRgb(input?.primaryColor ?? DEFAULT_PRIMARY_COLOR),
+    vatPin: input?.vatPin?.trim() ?? '',
+    letterheadMode,
+    topInset: letterheadMode === 'embedded_logo' ? 16 : PREPRINTED_TOP_INSET_PT,
+  };
+}
+
+async function drawEmbeddedLetterhead(
   doc: PDFDocument,
-  pageRef: { page: PDFPage; y: number },
-  height: number,
+  page: PDFPage,
+  yTop: number,
   margin: number,
-  pageHeight: number,
+  contentW: number,
+  branding: ReturnType<typeof resolveBranding>,
+  helvetica: PDFFont,
+  helveticaBold: PDFFont,
+): Promise<number> {
+  const logoMaxW = 96;
+  const logoMaxH = 48;
+  const textX = margin + logoMaxW + 16;
+  const textW = contentW - logoMaxW - 16;
+  const textChars = Math.max(20, Math.floor(textW / 5.5));
+
+  let logoH = 0;
+  const logo = branding.logoUrl ? await embedImageFromUrl(doc, branding.logoUrl) : null;
+  if (logo) {
+    const scale = Math.min(logoMaxW / logo.width, logoMaxH / logo.height, 1);
+    const w = logo.width * scale;
+    const h = logo.height * scale;
+    page.drawImage(logo, { x: margin, y: yTop - h, width: w, height: h });
+    logoH = h;
+  }
+
+  let ty = yTop - 12;
+  if (branding.legalName) {
+    const nameLines = wrapText(branding.legalName, textChars);
+    for (const line of nameLines) {
+      page.drawText(line, { x: textX, y: ty, size: 11, font: helveticaBold, color: branding.primaryColor });
+      ty -= 13;
+    }
+  }
+
+  if (branding.address) {
+    for (const line of wrapText(branding.address, textChars)) {
+      page.drawText(line, { x: textX, y: ty, size: 8, font: helvetica, color: GRAY_600 });
+      ty -= 11;
+    }
+  }
+
+  if (branding.vatPin) {
+    page.drawText(`VAT PIN: ${branding.vatPin}`, {
+      x: textX,
+      y: ty,
+      size: 8,
+      font: helvetica,
+      color: GRAY_600,
+    });
+    ty -= 11;
+  }
+
+  const textBottom = ty;
+  const blockBottom = Math.min(textBottom, yTop - logoH) - 14;
+  page.drawLine({
+    start: { x: margin, y: blockBottom },
+    end: { x: margin + contentW, y: blockBottom },
+    thickness: 0.5,
+    color: BORDER,
+  });
+
+  return yTop - blockBottom + 14;
+}
+
+function drawDocumentFooter(
+  pages: PDFPage[],
+  footerText: string,
+  margin: number,
+  helvetica: PDFFont,
 ) {
-  if (pageRef.y - height >= margin) return;
-  pageRef.page = doc.addPage([595, 842]);
-  pageRef.y = pageHeight - margin - LETTERHEAD_TOP_INSET_PT;
+  if (!footerText.trim()) return;
+  const lines = wrapText(footerText, 90);
+  for (const page of pages) {
+    const { height } = page.getSize();
+    let fy = margin - 4;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i]!;
+      const w = helvetica.widthOfTextAtSize(line, 7);
+      page.drawText(line, {
+        x: page.getSize().width / 2 - w / 2,
+        y: fy,
+        size: 7,
+        font: helvetica,
+        color: GRAY_500,
+      });
+      fy += 9;
+    }
+    void height;
+  }
 }
 
 export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput): Promise<Uint8Array> {
@@ -117,8 +211,36 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const bank = data.paymentDetails;
   const docKind = data.kind ?? 'invoice';
   const isCredit = docKind === 'credit_note';
+  const branding = resolveBranding(data.branding);
+  const PRIMARY = branding.primaryColor;
+  const topInset = branding.topInset;
 
-  const cursor = { page: firstPage, y: pageHeight - margin - LETTERHEAD_TOP_INSET_PT };
+  const ensureSpace = (
+    pageRef: { page: PDFPage; y: number },
+    height: number,
+  ) => {
+    if (pageRef.y - height >= margin + 24) return;
+    pageRef.page = doc.addPage(pageSize);
+    pageRef.y = pageHeight - margin - topInset;
+  };
+
+  let startY = pageHeight - margin - topInset;
+  if (branding.letterheadMode === 'embedded_logo') {
+    const headerTop = pageHeight - margin;
+    const used = await drawEmbeddedLetterhead(
+      doc,
+      firstPage,
+      headerTop,
+      margin,
+      contentW,
+      branding,
+      helvetica,
+      helveticaBold,
+    );
+    startY = headerTop - used - 8;
+  }
+
+  const cursor = { page: firstPage, y: startY };
   const vatPct = data.vatRateBps / 100;
 
   const drawLineH = (y: number, x0: number, x1: number) => {
@@ -130,7 +252,6 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     });
   };
 
-  // --- Header: title left; bill-to left / meta right ---
   const metaW = Math.min(220, contentW * 0.38);
   const billW = contentW - metaW - 24;
   const metaX = margin + billW + 24;
@@ -160,6 +281,10 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
         ['Due date', data.dueDate ?? '—'],
       ];
 
+  if (branding.vatPin && branding.letterheadMode === 'preprinted') {
+    metaRows.push(['VAT PIN', branding.vatPin]);
+  }
+
   let my = headerTop - 24;
   for (const [label, value] of metaRows) {
     cursor.page.drawText(label, { x: metaX, y: my, size: 8, font: helvetica, color: GRAY_500 });
@@ -167,7 +292,6 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     my -= 14;
   }
 
-  // Bill-to starts below the title + meta band so columns do not overlap
   cursor.page.drawText(isCredit ? 'Credit to' : 'Invoice to', {
     x: margin,
     y: headerTop - 78,
@@ -186,10 +310,9 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const headerBottom = Math.min(hy, my) - 12;
   cursor.y = headerBottom;
 
-  // Optional notes
   if (data.notes?.trim()) {
     const noteLines = wrapText(data.notes.trim(), Math.max(24, Math.floor(contentW / 5)));
-    ensureSpace(doc, cursor, 20 + noteLines.length * 11, margin, pageHeight);
+    ensureSpace(cursor, 20 + noteLines.length * 11);
     cursor.page.drawText('Notes', {
       x: margin,
       y: cursor.y,
@@ -205,7 +328,6 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     cursor.y -= 8;
   }
 
-  // --- Line items: # | Description (item + details, left) | Amount (right) ---
   cursor.page.drawText('Line items', {
     x: margin,
     y: cursor.y,
@@ -254,7 +376,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const tbodyH = prepared.reduce((s, r) => s + r.height, 0);
   const tableH = theadH + tbodyH;
 
-  ensureSpace(doc, cursor, tableH + 36, margin, pageHeight);
+  ensureSpace(cursor, tableH + 36);
   const tTop = cursor.y;
   const tBot = tTop - tableH;
 
@@ -280,15 +402,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const hY = tTop - theadH / 2 - 4;
   cursor.page.drawText('#', { x: margin + 8, y: hY, size: 8, font: helveticaBold, color: GRAY_500 });
   cursor.page.drawText('Description', { x: descX, y: hY, size: 8, font: helveticaBold, color: GRAY_500 });
-  drawTextRight(
-    cursor.page,
-    `Amount (${data.currency})`,
-    amtRight - 8,
-    hY,
-    8,
-    helveticaBold,
-    GRAY_500,
-  );
+  drawTextRight(cursor.page, `Amount (${data.currency})`, amtRight - 8, hY, 8, helveticaBold, GRAY_500);
 
   const xLineNumDesc = margin + colNumW;
   const xLineDescAmt = amtRight - colAmtW;
@@ -307,20 +421,17 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
 
   drawLineH(tTop - theadH, margin, margin + contentW);
 
-  // blockTop = top edge of this body row (y just under the header / previous row). Do not inset by -8
-  // or vertical centering is computed against the wrong band and text sits low in the row.
   let yRow = tTop - theadH;
   for (let ri = 0; ri < prepared.length; ri++) {
-    const pr = prepared[ri];
+    const pr = prepared[ri]!;
     const blockTop = yRow;
     if (ri > 0) drawLineH(blockTop + 12, margin + 2, margin + contentW - 2);
 
     const n = pr.bodyLines.length;
     const rowBottom = blockTop - pr.height;
     const rowCenterY = (blockTop + rowBottom) / 2;
-    const opticalBaseline = 2;
-    const ySingle = rowCenterY - opticalBaseline;
-    const yFirstDesc = rowCenterY - opticalBaseline + ((n - 1) * lineH) / 2;
+    const ySingle = rowCenterY - 2;
+    const yFirstDesc = rowCenterY - 2 + ((n - 1) * lineH) / 2;
 
     cursor.page.drawText(pr.lineNo, {
       x: margin + 8,
@@ -343,18 +454,16 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     }
 
     drawTextRight(cursor.page, pr.amt, amtRight - 8, ySingle, 9, helvetica, GRAY_700);
-
     yRow = blockTop - pr.height;
   }
 
   cursor.y = tBot - 28;
 
-  // --- Totals: right-aligned to page content edge (matches amount column) ---
   const totalsW = 220;
   const totalsLeft = margin + contentW - totalsW;
   const amtColX = margin + contentW - 8;
 
-  ensureSpace(doc, cursor, 110, margin, pageHeight);
+  ensureSpace(cursor, 110);
 
   cursor.page.drawText('Summary', {
     x: totalsLeft,
@@ -366,7 +475,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   cursor.y -= 22;
 
   const sumLineGap = 8;
-  const sumLine = (label: string, value: string, size: number, font: PDFFont, color: ReturnType<typeof rgb>) => {
+  const sumLine = (label: string, value: string, size: number, font: PDFFont, color: RGB) => {
     cursor.page.drawText(label, { x: totalsLeft, y: cursor.y, size, font, color });
     drawTextRight(cursor.page, value, amtColX, cursor.y, size, font, color);
     cursor.y -= size + sumLineGap;
@@ -392,14 +501,13 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
       'This credit note reduces the amount due on the original invoice. It is issued for corrections to amounts previously billed.',
       Math.max(24, Math.floor(contentW / 5)),
     );
-    ensureSpace(doc, cursor, 20 + noteLines.length * 12, margin, pageHeight);
+    ensureSpace(cursor, 20 + noteLines.length * 12);
     for (const nl of noteLines) {
       cursor.page.drawText(nl, { x: margin, y: cursor.y, size: 9, font: helvetica, color: GRAY_600 });
       cursor.y -= 11;
     }
     cursor.y -= 8;
   } else {
-    // --- Bank details: full width (account chosen on invoice; no purpose headline) ---
     const bankLines: string[] = [
       `Bank: ${bank.bank}`,
       `Account number: ${bank.accountNumber}`,
@@ -412,7 +520,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     const bankInnerH = bankLines.length * bankLineStep;
     const bankBoxH = bankPad + bankInnerH + bankPad;
 
-    ensureSpace(doc, cursor, bankBoxH + 28, margin, pageHeight);
+    ensureSpace(cursor, bankBoxH + 28);
 
     cursor.page.drawText('Payment details', {
       x: margin,
@@ -451,5 +559,42 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     cursor.y = bankBot - 8;
   }
 
+  if (branding.documentFooter) {
+    drawDocumentFooter(doc.getPages(), branding.documentFooter, margin, helvetica);
+  }
+
   return doc.save();
+}
+
+/** Sample invoice PDF for the invoicing setup preview. */
+export async function generateSampleAccountsInvoicePdf(
+  branding: InvoicePdfBranding,
+): Promise<Uint8Array> {
+  return generateAccountsInvoicePdf({
+    kind: 'invoice',
+    documentNumber: 1001,
+    clientName: 'Sample Client Ltd',
+    issueDate: new Date().toISOString().slice(0, 10),
+    dueDate: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10),
+    currency: 'KES',
+    vatRateBps: 1600,
+    status: 'draft',
+    notes: 'This is a sample invoice for preview purposes.',
+    subtotalExVat: 100_000,
+    vatAmount: 16_000,
+    totalIncVat: 116_000,
+    lines: [
+      { lineNo: 1, item: 'Professional services', description: 'Consulting — March 2026', amountExVat: '100000' },
+    ],
+    paymentDetails: {
+      purposeTitle: 'Consultancy fees',
+      accountName: 'Your Company Ltd',
+      bank: 'Sample Bank',
+      accountNumber: '1234567890',
+      bankCode: '01',
+      branchCode: '001',
+      swiftCode: 'SAMPLEXXX',
+    },
+    branding,
+  });
 }

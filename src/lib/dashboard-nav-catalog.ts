@@ -337,6 +337,7 @@ const financeSection: DashboardNavSection = {
     { href: '/dashboard/accounts', label: 'Overview', icon: LayoutGrid },
     { href: '/dashboard/accounts/clients', label: 'Clients', icon: Building2 },
     { href: '/dashboard/accounts/invoices', label: 'Invoices', icon: FileText },
+    { href: '/dashboard/accounts/invoicing-setup', label: 'Invoicing setup', icon: FileSignature },
     { href: '/dashboard/accounts/receipts', label: 'Receipts & allocations', icon: Receipt },
     { href: '/dashboard/accounts/mpesa-reconciliation', label: 'M-Pesa reconciliation', icon: Smartphone },
     { href: '/dashboard/accounts/payment-accounts', label: 'Payment accounts', icon: Banknote },

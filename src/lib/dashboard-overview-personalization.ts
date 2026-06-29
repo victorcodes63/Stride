@@ -14,6 +14,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { UserSummary } from '@/types/dashboard';
+import { resolvePersonalDisplayName } from '@/lib/personal-display-name';
 import { STAFF_USER_TYPE_LABELS } from '@/lib/staff-permissions';
 import type { ModuleKey } from '@/lib/modules';
 import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
@@ -104,8 +105,8 @@ export function greetingFirstName(name: string): string {
   return 'there';
 }
 
-export function getOverviewGreeting(name: string): string {
-  const first = greetingFirstName(name);
+export function getOverviewGreeting(name: string, email?: string | null): string {
+  const first = greetingFirstName(resolvePersonalDisplayName({ name, email }));
   const hour = new Date().getHours();
   if (hour < 12) return `Good morning, ${first}`;
   if (hour < 17) return `Good afternoon, ${first}`;

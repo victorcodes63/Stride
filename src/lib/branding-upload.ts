@@ -15,6 +15,10 @@ export class BrandingUploadError extends Error {
   }
 }
 
+function isServerlessDeploy(): boolean {
+  return Boolean(process.env.VERCEL);
+}
+
 export async function uploadBrandingImage(
   file: File,
   folder: 'logo' | 'favicon' | 'careers-hero',
@@ -45,10 +49,24 @@ export async function uploadBrandingImage(
     return { url: blob.url, path: blob.url };
   }
 
-  const dir = path.join(process.cwd(), 'public', 'uploads', 'branding');
-  await mkdir(dir, { recursive: true });
-  const fileName = path.basename(safeName);
-  await writeFile(path.join(dir, fileName), buffer);
-  const publicPath = `/uploads/branding/${fileName}`;
-  return { url: publicPath, path: publicPath };
+  if (isServerlessDeploy()) {
+    throw new BrandingUploadError(
+      'Logo uploads are not enabled on this deployment yet. Ask Raven Tech Group to connect file storage (Vercel Blob) for your workspace.',
+      503,
+    );
+  }
+
+  try {
+    const dir = path.join(process.cwd(), 'public', 'uploads', 'branding');
+    await mkdir(dir, { recursive: true });
+    const fileName = path.basename(safeName);
+    await writeFile(path.join(dir, fileName), buffer);
+    const publicPath = `/uploads/branding/${fileName}`;
+    return { url: publicPath, path: publicPath };
+  } catch {
+    throw new BrandingUploadError(
+      'Could not save the image. On production, file storage must be configured.',
+      503,
+    );
+  }
 }

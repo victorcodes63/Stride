@@ -12,13 +12,13 @@ CREATE POLICY "Organization_insert_bootstrap" ON "Organization"
 DROP POLICY IF EXISTS "Organization_tenant_select" ON "Organization";
 CREATE POLICY "Organization_tenant_select" ON "Organization"
   FOR SELECT
-  USING (id = current_setting('app.current_org', true)::uuid);
+  USING (id = nullif(current_setting('app.current_org', true), '')::uuid);
 
 DROP POLICY IF EXISTS "Organization_tenant_update" ON "Organization";
 CREATE POLICY "Organization_tenant_update" ON "Organization"
   FOR UPDATE
-  USING (id = current_setting('app.current_org', true)::uuid)
-  WITH CHECK (id = current_setting('app.current_org', true)::uuid);
+  USING (id = nullif(current_setting('app.current_org', true), '')::uuid)
+  WITH CHECK (id = nullif(current_setting('app.current_org', true), '')::uuid);
 
 ALTER TABLE "Client" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Client" FORCE ROW LEVEL SECURITY;
@@ -1270,8 +1270,8 @@ ALTER TABLE "OrganizationMembership" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "OrganizationMembership_tenant_rw" ON "OrganizationMembership";
 CREATE POLICY "OrganizationMembership_tenant_rw" ON "OrganizationMembership"
   FOR ALL
-  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
-  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+  USING ("organizationId" = nullif(current_setting('app.current_org', true), '')::uuid)
+  WITH CHECK ("organizationId" = nullif(current_setting('app.current_org', true), '')::uuid);
 
 DROP POLICY IF EXISTS "OrganizationMembership_insert_bootstrap" ON "OrganizationMembership";
 CREATE POLICY "OrganizationMembership_insert_bootstrap" ON "OrganizationMembership"
@@ -2890,6 +2890,11 @@ CREATE POLICY "OrganizationEmailDomain_auth_public_lookup" ON "OrganizationEmail
 
 DROP POLICY IF EXISTS "OrganizationAuthConfig_auth_public_lookup" ON "OrganizationAuthConfig";
 CREATE POLICY "OrganizationAuthConfig_auth_public_lookup" ON "OrganizationAuthConfig"
+  FOR SELECT
+  USING (current_setting('app.auth_public_lookup', true) = 'true');
+
+DROP POLICY IF EXISTS "Organization_auth_public_lookup" ON "Organization";
+CREATE POLICY "Organization_auth_public_lookup" ON "Organization"
   FOR SELECT
   USING (current_setting('app.auth_public_lookup', true) = 'true');
 

@@ -17,6 +17,7 @@ import {
   type OAuthProviderKey,
 } from '@/lib/auth-providers';
 import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-config';
+import { isCustomerProductionCell } from '@/lib/deployment-cell';
 import { getPublicBrand } from '@/lib/brand';
 import type { NextRequest } from 'next/server';
 import { HRIS_ENTITY_COOKIE } from '@/lib/entity-constants';
@@ -403,6 +404,130 @@ export function toPublicCompanySetup(setup: CompanySetupSettings): PublicCompany
       supportUrl: setup.supportUrl,
     },
   };
+}
+
+/** Merge empty org fields from the tenant Organization row (customer cells). */
+export async function hydrateCompanySetupFromOrganization(
+  setup: CompanySetupSettings,
+  organizationId: string,
+): Promise<CompanySetupSettings> {
+  if (!process.env.DATABASE_URL || !organizationId.trim()) return setup;
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+    const orgName = org?.name?.trim();
+    if (!orgName) return setup;
+    return sanitizeCompanySetup({
+      ...setup,
+      orgName: setup.orgName.trim() || orgName,
+      payslipLegalName: setup.payslipLegalName.trim() || orgName,
+      careersEmployerName: setup.careersEmployerName.trim() || orgName,
+    });
+  } catch {
+    return setup;
+  }
+}
+
+/** Customer-facing checklist — no deployment infra or env-var jargon. */
+export function buildWorkspaceSetupChecklist(setup: CompanySetupSettings): ProvisioningCheckItem[] {
+  const logo = setup.logoSrc.trim() || setup.logoPngPath.trim();
+  const msOk = isMicrosoftOAuthConfigured();
+  const googleOk = isGoogleOAuthConfigured();
+  const staffAuthMethod = getPortalAuthMethod(setup, 'staff', { microsoft: msOk, google: googleOk });
+  const essAuthMethod = getPortalAuthMethod(setup, 'ess', { microsoft: msOk, google: googleOk });
+
+  const authDetail = (
+    method: ReturnType<typeof getPortalAuthMethod>,
+    configured: boolean,
+  ): { ok: boolean; detail: string } => {
+    if (method === 'credentials') {
+      return { ok: true, detail: 'Email and password' };
+    }
+    if (configured) {
+      return {
+        ok: true,
+        detail: method === 'microsoft' ? 'Microsoft work or school accounts' : 'Google Workspace accounts',
+      };
+    }
+    return {
+      ok: false,
+      detail:
+        method === 'microsoft'
+          ? 'Microsoft sign-in selected — contact Raven Tech Group to complete setup'
+          : 'Google sign-in selected — contact Raven Tech Group to complete setup',
+    };
+  };
+
+  const staffAuth = authDetail(staffAuthMethod, staffAuthMethod === 'microsoft' ? msOk : googleOk);
+  const essAuth = authDetail(essAuthMethod, essAuthMethod === 'microsoft' ? msOk : googleOk);
+
+  return [
+    {
+      id: 'logo',
+      label: 'Company logo',
+      ok: isCustomLogo(logo),
+      detail: isCustomLogo(logo) ? 'Custom logo configured' : 'Upload your logo below',
+      category: 'branding',
+    },
+    {
+      id: 'org-name',
+      label: 'Organisation name',
+      ok: Boolean(setup.orgName.trim()),
+      detail: setup.orgName.trim() || 'Set your company name',
+      category: 'branding',
+    },
+    {
+      id: 'address',
+      label: 'Contact address',
+      ok: Boolean(setup.contactAddress.trim()),
+      detail: setup.contactAddress.trim() || 'Used on payslips, invoices, and letters',
+      category: 'branding',
+    },
+    {
+      id: 'contact-email',
+      label: 'Support email',
+      ok: Boolean(setup.contactEmail.trim()),
+      detail: setup.contactEmail.trim() || 'Shown on careers and contact blocks',
+      category: 'branding',
+    },
+    {
+      id: 'document-footer',
+      label: 'Document footer',
+      ok: Boolean(setup.documentFooterText.trim()),
+      detail: setup.documentFooterText.trim() || 'Optional — registered office, company reg. no.',
+      category: 'branding',
+    },
+    {
+      id: 'staff-auth',
+      label: 'Staff sign-in',
+      ok: staffAuth.ok,
+      detail: staffAuth.detail,
+      category: 'auth',
+    },
+    {
+      id: 'ess-auth',
+      label: 'Employee portal sign-in',
+      ok: essAuth.ok,
+      detail: essAuth.detail,
+      category: 'auth',
+    },
+    {
+      id: 'invoicing',
+      label: 'Invoicing setup',
+      ok: Boolean(setup.contactAddress.trim()) && isCustomLogo(logo),
+      detail: 'Configure logo, VAT PIN, and bank details under Finance → Invoicing setup',
+      category: 'branding',
+    },
+  ];
+}
+
+export function buildCompanySetupChecklist(setup: CompanySetupSettings): ProvisioningCheckItem[] {
+  if (isCustomerProductionCell()) {
+    return buildWorkspaceSetupChecklist(setup);
+  }
+  return buildProvisioningChecklist(setup);
 }
 
 export function buildProvisioningChecklist(setup: CompanySetupSettings): ProvisioningCheckItem[] {

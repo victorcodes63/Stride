@@ -4,6 +4,7 @@ import { computeInvoiceVatFromLines } from '@/lib/accounts-invoice-totals';
 import { generateAccountsInvoicePdf } from '@/lib/accounts-invoice-pdf';
 import { reportApiError } from '@/lib/monitoring';
 import { resolvePaymentDetails } from '@/lib/payment-accounts';
+import { resolveInvoicePdfBranding } from '@/lib/invoice-setup';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,8 @@ export async function GET(
           paymentBank: inv.paymentBank,
         });
 
+        const branding = await resolveInvoicePdfBranding(ctx.organizationId);
+
         const pdfBytes = await generateAccountsInvoicePdf({
           kind: 'invoice',
           documentNumber: inv.invoiceNumber,
@@ -60,6 +63,7 @@ export async function GET(
           totalIncVat,
           lines,
           paymentDetails,
+          branding,
         });
 
         return { pdfBytes, invoiceNumber: inv.invoiceNumber };

@@ -2566,13 +2566,15 @@ model AccountsPaymentAccount {
   isActive      Boolean                     @default(true)
   sortOrder     Int                         @default(0)
   /// Maps to legacy enum for existing invoices created before configurable accounts.
-  legacyKind    AccountsInvoicePaymentBank? @unique
+  legacyKind    AccountsInvoicePaymentBank?
   createdAt     DateTime                    @default(now())
   updatedAt     DateTime                    @updatedAt
 
   invoices    AccountsInvoice[]
   creditNotes AccountsCreditNote[]
 
+  @@unique([organizationId, legacyKind])
+  @@index([organizationId])
   @@index([isActive, sortOrder])
 }
 

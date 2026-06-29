@@ -319,6 +319,7 @@ export async function POST(request: NextRequest) {
       const invoiceNumber = (maxInvoiceNumber._max.invoiceNumber ?? 0) + 1;
 
       const paymentAccountId = await resolvePaymentAccountId(tx, {
+        organizationId: ctx.organizationId,
         paymentAccountId: paymentAccountIdInput,
         paymentBank,
       });

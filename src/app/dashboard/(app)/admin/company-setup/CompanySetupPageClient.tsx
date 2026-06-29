@@ -22,6 +22,7 @@ type CompanySetupResponse = CompanySetupSettings & {
  emailDomains?: import('./AuthDomainsSection').EmailDomainRow[];
  storageKey?: string;
  activeContextLabel?: string | null;
+ setupAudience?: 'customer' | 'ops';
  public?: unknown;
  themePreview?: unknown;
 };
@@ -59,6 +60,7 @@ export function CompanySetupPageClient() {
  const readyCount = data?.provisioning.filter((p) => p.ok).length ?? 0;
  const totalChecks = data?.provisioning.length ?? 0;
  const allReady = totalChecks > 0 && readyCount === totalChecks;
+ const isCustomerView = data?.setupAudience !== 'ops';
 
  return (
  <>
@@ -78,17 +80,28 @@ export function CompanySetupPageClient() {
  Settings
  </Link>
  </span>
- <span className="hidden sm:inline dash-setup-subtle" aria-hidden>
- |
- </span>
- <span>OAuth, SMTP &amp; site URL → environment variables</span>
+ {isCustomerView ? (
+  <span>
+   Invoices &amp; bank details →{' '}
+   <Link href="/dashboard/accounts/invoicing-setup" className="dash-setup-link">
+    Invoicing setup
+   </Link>
+  </span>
+ ) : (
+  <>
+   <span className="hidden sm:inline dash-setup-subtle" aria-hidden>
+    |
+   </span>
+   <span>OAuth, SMTP &amp; site URL → environment variables</span>
+  </>
+ )}
  </div>
  {!loading && data ? (
  <div
  className={`dash-setup-status-pill ${allReady ? 'dash-setup-status-pill--ok' : 'dash-setup-status-pill--pending'}`}
  >
  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
- {readyCount}/{totalChecks} deployment checks
+ {readyCount}/{totalChecks} {isCustomerView ? 'complete' : 'deployment checks'}
  </div>
  ) : null}
  </div>
@@ -153,6 +166,7 @@ export function CompanySetupPageClient() {
  capabilities={data.capabilities}
  oauthConfigured={data.oauthConfigured}
  emailDomains={data.emailDomains ?? []}
+ setupAudience={data.setupAudience ?? 'customer'}
  />
  {data.capabilities.canConfigureMultiEntity ? (
   <OperatingEntitiesSection />

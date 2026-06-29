@@ -3,6 +3,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { withOrgContext } from '@/lib/org-context';
 import type { AuthProvider } from '@prisma/client';
 import {
   ensureOrgAuthConfig,
@@ -46,24 +47,15 @@ async function withAuthPublicLookup<T>(fn: (db: typeof prisma) => Promise<T>): P
 async function findOrgByVerifiedDomain(
   emailDomain: string,
 ): Promise<{ organizationId: string; name: string; slug: string } | null> {
-  return withAuthPublicLookup(async (db) => {
+  const domainRow = await withAuthPublicLookup(async (db) => {
     const match = await db.organizationEmailDomain.findFirst({
       where: {
         domain: emailDomain,
         verifiedAt: { not: null },
       },
-      include: {
-        organization: { select: { id: true, name: true, slug: true } },
-      },
       orderBy: { createdAt: 'asc' },
     });
-    if (match) {
-      return {
-        organizationId: match.organizationId,
-        name: match.organization.name,
-        slug: match.organization.slug,
-      };
-    }
+    if (match) return match;
 
     // Subdomain match: user@mail.acme.co.ke → verified acme.co.ke
     const parts = emailDomain.split('.');
@@ -71,19 +63,26 @@ async function findOrgByVerifiedDomain(
       const parent = parts.slice(i).join('.');
       const parentMatch = await db.organizationEmailDomain.findFirst({
         where: { domain: parent, verifiedAt: { not: null } },
-        include: {
-          organization: { select: { id: true, name: true, slug: true } },
-        },
       });
-      if (parentMatch) {
-        return {
-          organizationId: parentMatch.organizationId,
-          name: parentMatch.organization.name,
-          slug: parentMatch.organization.slug,
-        };
-      }
+      if (parentMatch) return parentMatch;
     }
     return null;
+  });
+
+  if (!domainRow) return null;
+
+  // Organization RLS requires app.current_org — domain lookup uses auth_public_lookup only.
+  return withOrgContext(domainRow.organizationId, async (tx) => {
+    const org = await tx.organization.findUnique({
+      where: { id: domainRow.organizationId },
+      select: { id: true, name: true, slug: true },
+    });
+    if (!org) return null;
+    return {
+      organizationId: org.id,
+      name: org.name,
+      slug: org.slug,
+    };
   });
 }
 

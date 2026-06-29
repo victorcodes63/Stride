@@ -3,6 +3,7 @@ import type { AuthProvider, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getLocalePack } from "@/lib/country-config";
 import { setOrgContext } from "@/lib/org-context";
+import { nameFromEmailLocalPart } from "@/lib/personal-display-name";
 
 export type StaffAuthSetup =
   | "credentials"
@@ -127,7 +128,7 @@ export async function provisionOrganization(
   }
 
   const staffAuthSetup = input.staffAuthSetup ?? "credentials";
-  const adminName = input.adminName?.trim() || input.organizationName;
+  const adminName = input.adminName?.trim() || nameFromEmailLocalPart(adminEmail) || "Admin";
 
   const existingOrg = await prisma.organization.findUnique({
     where: { slug: organizationSlug },

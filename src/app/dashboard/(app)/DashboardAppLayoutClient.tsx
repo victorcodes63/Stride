@@ -15,6 +15,7 @@ import {
 } from '@/lib/account-readonly';
 import { ChevronLeft, ChevronDown, LogOut, Palette, User } from 'lucide-react';
 import type { UserSummary } from '@/types/dashboard';
+import { resolvePersonalDisplayName } from '@/lib/personal-display-name';
 import { STAFF_USER_TYPE_LABELS } from '@/lib/staff-permissions';
 import { EntityProvider, type Entity } from '@/components/EntitySwitcher';
 import { BOOTSTRAP_PENDING_MODULES } from '@/lib/bootstrap-pending-modules';
@@ -180,7 +181,10 @@ export default function DashboardAppLayoutClient({
  setSidebar(!sidebarOpen);
  }, [setSidebar, sidebarOpen]);
 
- const displayName = currentUser?.name || 'Staff User';
+ const displayName = resolvePersonalDisplayName({
+   name: currentUser?.name,
+   email: currentUser?.email,
+ });
  const displayEmail = currentUser?.email || 'staff@example.com';
  const roleLabel = getUserRoleLabel(currentUser);
  const showRoleBadge = roleLabel.toLowerCase() !== displayName.trim().toLowerCase();
@@ -344,7 +348,7 @@ export default function DashboardAppLayoutClient({
  ) : null}
  </div>
  </div>
- <DashboardSidebarPoweredBy />
+ <DashboardSidebarPoweredBy tenantOrgName={currentUser?.currentOrgName} />
  </div>
  </aside>
 
