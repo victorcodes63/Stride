@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireAdminActor } from '@/lib/admin-security';
+import { requireAdminOrganization } from '@/lib/admin-security';
+import { withOrgContext } from '@/lib/org-context';
 
 export async function GET(request: NextRequest) {
-  const { error } = await requireAdminActor(request);
-  if (error) return error;
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
 
   const limitParam = Number(request.nextUrl.searchParams.get('limit') || '100');
   const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 500) : 100;
@@ -25,21 +25,23 @@ export async function GET(request: NextRequest) {
 
   try {
     if (!process.env.DATABASE_URL) return NextResponse.json([]);
-    const rows = await prisma.auditEvent.findMany({
-      where: {
-        ...(action ? { action } : {}),
-        ...(entityType ? { entityType } : {}),
-        ...(actorUserId ? { actorUserId } : {}),
-        ...(createdAt ? { createdAt } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      include: {
-        actor: {
-          select: { name: true, email: true },
+    const rows = await withOrgContext(auth.organizationId, (tx) =>
+      tx.auditEvent.findMany({
+        where: {
+          ...(action ? { action } : {}),
+          ...(entityType ? { entityType } : {}),
+          ...(actorUserId ? { actorUserId } : {}),
+          ...(createdAt ? { createdAt } : {}),
         },
-      },
-    });
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        include: {
+          actor: {
+            select: { name: true, email: true },
+          },
+        },
+      }),
+    );
 
     return NextResponse.json(
       rows.map((row) => ({

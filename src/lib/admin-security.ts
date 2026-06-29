@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parseStaffSession } from '@/lib/auth-session';
 import { prisma } from '@/lib/prisma';
 import { resolveStaffSessionOrgId } from '@/lib/staff-session-org';
+import { resolveMembershipWithLoginScope } from '@/lib/org-membership';
 
 export type AdminActor = {
   userId: string | null;
@@ -67,6 +68,35 @@ export async function requireAdminActor(
       organizationId,
     },
   };
+}
+
+export type AdminOrganizationContext =
+  | { ok: true; actor: AdminActor; organizationId: string }
+  | { ok: false; response: NextResponse };
+
+/** Admin session with a resolved tenant org (required for RLS-scoped admin APIs). */
+export async function requireAdminOrganization(
+  request: NextRequest,
+): Promise<AdminOrganizationContext> {
+  const { error, actor } = await requireAdminActor(request);
+  if (error) return { ok: false, response: error };
+
+  let organizationId = actor?.organizationId ?? null;
+  if (!organizationId && actor?.userId) {
+    const membership = await resolveMembershipWithLoginScope(actor.userId);
+    organizationId = membership?.organizationId ?? null;
+  }
+
+  if (!organizationId) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: 'No organization context for this session. Sign out and sign in again.' },
+        { status: 403 },
+      ),
+    };
+  }
+  return { ok: true, actor: actor!, organizationId };
 }
 
 export function markSensitiveAuthCookie(response: NextResponse, userId: string) {

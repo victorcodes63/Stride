@@ -343,17 +343,19 @@ export async function loadCompanySetupForStorageKey(
 ): Promise<CompanySetupSettings> {
   if (!process.env.DATABASE_URL) return { ...DEFAULT_COMPANY_SETUP };
   try {
-    const row = await prisma.systemSetting.findUnique({
-      where: systemSettingWhere(organizationId, key),
-    });
-    if (row) return sanitizeCompanySetup(row.value);
-    if (key !== COMPANY_SETUP_SETTINGS_KEY) {
-      const legacy = await prisma.systemSetting.findUnique({
-        where: systemSettingWhere(organizationId, COMPANY_SETUP_SETTINGS_KEY),
+    return await withOrgContext(organizationId, async (tx) => {
+      const row = await tx.systemSetting.findUnique({
+        where: systemSettingWhere(organizationId, key),
       });
-      if (legacy) return sanitizeCompanySetup(legacy.value);
-    }
-    return { ...DEFAULT_COMPANY_SETUP };
+      if (row) return sanitizeCompanySetup(row.value);
+      if (key !== COMPANY_SETUP_SETTINGS_KEY) {
+        const legacy = await tx.systemSetting.findUnique({
+          where: systemSettingWhere(organizationId, COMPANY_SETUP_SETTINGS_KEY),
+        });
+        if (legacy) return sanitizeCompanySetup(legacy.value);
+      }
+      return { ...DEFAULT_COMPANY_SETUP };
+    });
   } catch {
     return { ...DEFAULT_COMPANY_SETUP };
   }
@@ -365,16 +367,18 @@ export async function persistCompanySetupSettings(
   updatedByUserId: string | null,
   organizationId: string,
 ): Promise<void> {
-  await prisma.systemSetting.upsert({
-    where: systemSettingWhere(organizationId, key),
-    update: { value: merged as unknown as import('@prisma/client').Prisma.InputJsonValue, updatedByUserId },
-    create: systemSettingCreate(
-      organizationId,
-      key,
-      merged as unknown as import('@prisma/client').Prisma.InputJsonValue,
-      updatedByUserId,
-    ),
-  });
+  await withOrgContext(organizationId, (tx) =>
+    tx.systemSetting.upsert({
+      where: systemSettingWhere(organizationId, key),
+      update: { value: merged as unknown as import('@prisma/client').Prisma.InputJsonValue, updatedByUserId },
+      create: systemSettingCreate(
+        organizationId,
+        key,
+        merged as unknown as import('@prisma/client').Prisma.InputJsonValue,
+        updatedByUserId,
+      ),
+    }),
+  );
 }
 
 export function toPublicCompanySetup(setup: CompanySetupSettings): PublicCompanySetup {

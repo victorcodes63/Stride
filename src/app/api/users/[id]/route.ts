@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
-import { parseStaffSession } from '@/lib/auth-session';
 import { parseAccountsPermissionsBody } from '@/lib/parse-accounts-permissions-body';
 import {
   deleteGlobalAccountsAccessIfExists,
@@ -11,58 +9,18 @@ import { isStaffUserType } from '@/lib/staff-permissions';
 import type { StaffUserType, UserRole } from '@/types/dashboard';
 import { userRowToSummary } from '@/lib/user-summary-api';
 import { logAuditEvent } from '@/lib/audit-events';
-import { requireRecentSensitiveAuth } from '@/lib/admin-security';
+import { requireAdminOrganization, requireRecentSensitiveAuth } from '@/lib/admin-security';
+import { updateOrganizationUser } from '@/lib/cell-org-users';
+import { withOrgContext } from '@/lib/org-context';
 
-const ROUNDS = 10;
 const ROLES: UserRole[] = ['admin', 'staff', 'viewer'];
-
-function actorFromRequest(request: NextRequest) {
-  const parsed = parseStaffSession(request.cookies.get('staff_session')?.value ?? '');
-  return {
-    userId: parsed.userId ?? null,
-    email: parsed.email ?? null,
-    name: null,
-  };
-}
-
-async function requireAdmin(request: NextRequest): Promise<NextResponse | null> {
-  const rawSession = request.cookies.get('staff_session')?.value;
-  if (!rawSession) {
-    return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
-  }
-
-  const parsed = parseStaffSession(rawSession);
-  if (!process.env.DATABASE_URL) {
-    if (parsed.role === 'admin') return null;
-    return NextResponse.json({ error: 'Only admins can manage staff and roles.' }, { status: 403 });
-  }
-
-  let currentUser = null as Awaited<ReturnType<typeof prisma.user.findUnique>> | null;
-  if (parsed.userId) {
-    currentUser = await prisma.user.findUnique({ where: { id: parsed.userId } });
-  }
-  if (!currentUser && parsed.email) {
-    currentUser = await prisma.user.findUnique({ where: { email: parsed.email.toLowerCase() } });
-  }
-
-  if (!currentUser) {
-    return NextResponse.json({ error: 'No staff account found for this session.' }, { status: 401 });
-  }
-  if (!currentUser.isActive) {
-    return NextResponse.json({ error: 'Your account is inactive. Contact an administrator.' }, { status: 403 });
-  }
-  if (currentUser.role !== 'admin') {
-    return NextResponse.json({ error: 'Only admins can manage staff and roles.' }, { status: 403 });
-  }
-  return null;
-}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const adminError = await requireAdmin(request);
-  if (adminError) return adminError;
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
 
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'User id required' }, { status: 400 });
@@ -71,9 +29,25 @@ export async function GET(
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
-    const user = await prisma.user.findUnique({ where: { id } });
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    return NextResponse.json(await userRowToSummary(user));
+    const membership = await withOrgContext(auth.organizationId, (tx) =>
+      tx.organizationMembership.findUnique({
+        where: {
+          userId_organizationId: { userId: id, organizationId: auth.organizationId },
+        },
+        include: { user: true },
+      }),
+    );
+    if (!membership) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    return NextResponse.json(
+      await userRowToSummary(
+        { ...membership.user, role: membership.role },
+        {
+          currentOrgId: auth.organizationId,
+          currentOrgName: null,
+          organizations: [{ id: auth.organizationId, name: '', role: membership.role }],
+        },
+      ),
+    );
   } catch (e) {
     console.error('GET /api/users/[id] error:', e);
     return NextResponse.json({ error: 'Failed to load user.' }, { status: 500 });
@@ -84,9 +58,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const adminError = await requireAdmin(request);
-  if (adminError) return adminError;
-  const actor = actorFromRequest(request);
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
+  const { actor, organizationId } = auth;
 
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'User id required' }, { status: 400 });
@@ -144,40 +118,48 @@ export async function PATCH(
       const reauthError = requireRecentSensitiveAuth(request, actor.userId || '');
       if (reauthError) return reauthError;
     }
-    const data: {
-      name?: string;
-      role?: UserRole;
-      isActive?: boolean;
-      passwordHash?: string;
-      staffUserType?: StaffUserType;
-      mfaEnabled?: boolean;
-      mfaSecret?: string | null;
-    } = {};
-    if (name !== undefined) data.name = name;
-    if (role !== undefined) data.role = role;
-    if (isActive !== undefined) data.isActive = isActive;
-    if (password !== undefined) data.passwordHash = await bcrypt.hash(password, ROUNDS);
-    if (staffUserType !== undefined) data.staffUserType = staffUserType;
-    if (mfaEnabled !== undefined) {
-      data.mfaEnabled = mfaEnabled;
-      if (!mfaEnabled) data.mfaSecret = null;
-    }
 
-    const before = await prisma.user.findUnique({
-      where: { id },
-      select: { role: true, isActive: true, staffUserType: true },
-    });
+    const before = await withOrgContext(organizationId, (tx) =>
+      tx.organizationMembership.findUnique({
+        where: {
+          userId_organizationId: { userId: id, organizationId },
+        },
+        include: { user: { select: { role: true, isActive: true, staffUserType: true } } },
+      }),
+    );
     if (!before) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    const user = await prisma.user.update({
-      where: { id },
-      data,
+
+    const updated = await updateOrganizationUser({
+      organizationId,
+      userId: id,
+      ...(name !== undefined ? { name } : {}),
+      ...(role !== undefined ? { role } : {}),
+      ...(isActive !== undefined ? { isActive } : {}),
+      ...(password !== undefined ? { password } : {}),
+      ...(role === 'admin' ? { makeCompanyAdmin: true } : {}),
     });
 
-    if (user.role === 'admin') {
-      await deleteGlobalAccountsAccessIfExists(user.id);
-    } else if (accountsPatch !== undefined) {
-      await setUserGlobalAccountsAccess(user.id, accountsPatch);
+    if (staffUserType !== undefined || mfaEnabled !== undefined) {
+      await withOrgContext(organizationId, (tx) =>
+        tx.user.update({
+          where: { id },
+          data: {
+            ...(staffUserType !== undefined ? { staffUserType } : {}),
+            ...(mfaEnabled !== undefined
+              ? { mfaEnabled, ...(mfaEnabled ? {} : { mfaSecret: null }) }
+              : {}),
+          },
+        }),
+      );
     }
+
+    const user = await prisma.user.findUniqueOrThrow({ where: { id } });
+    if (user.role === 'admin') {
+      await deleteGlobalAccountsAccessIfExists(user.id, organizationId);
+    } else if (accountsPatch !== undefined) {
+      await setUserGlobalAccountsAccess(user.id, accountsPatch, organizationId);
+    }
+
     await logAuditEvent({
       actor,
       action: password !== undefined ? 'user.credentials.changed' : 'user.updated',
@@ -185,22 +167,26 @@ export async function PATCH(
       entityId: user.id,
       route: 'PATCH /api/users/[id]',
       metadata: {
-        changedFields: Object.keys(data),
-        sensitiveChanges: {
-          roleChanged: role !== undefined && before.role !== user.role,
-          passwordChanged: password !== undefined,
-          mfaEnabledChanged: mfaEnabled !== undefined,
-        },
         roleBefore: before.role,
-        roleAfter: user.role,
-        isActiveBefore: before.isActive,
+        roleAfter: updated.role,
+        isActiveBefore: before.user.isActive,
         isActiveAfter: user.isActive,
-        staffUserTypeBefore: before.staffUserType,
+        staffUserTypeBefore: before.user.staffUserType,
         staffUserTypeAfter: user.staffUserType,
       },
+      organizationId,
     });
 
-    return NextResponse.json(await userRowToSummary(user));
+    return NextResponse.json(
+      await userRowToSummary(
+        { ...user, role: updated.role },
+        {
+          currentOrgId: organizationId,
+          currentOrgName: null,
+          organizations: [{ id: organizationId, name: '', role: updated.role }],
+        },
+      ),
+    );
   } catch (e) {
     const err = e as { code?: string };
     if (err.code === 'P2025') return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -213,9 +199,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const adminError = await requireAdmin(request);
-  if (adminError) return adminError;
-  const actor = actorFromRequest(request);
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
+  const { actor, organizationId } = auth;
 
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'User id required' }, { status: 400 });
@@ -224,18 +210,35 @@ export async function DELETE(
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
-    const existing = await prisma.user.findUnique({
-      where: { id },
-      select: { id: true, email: true, role: true },
+    const existing = await withOrgContext(organizationId, (tx) =>
+      tx.organizationMembership.findUnique({
+        where: {
+          userId_organizationId: { userId: id, organizationId },
+        },
+        include: { user: { select: { email: true, role: true } } },
+      }),
+    );
+    if (!existing) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    await withOrgContext(organizationId, async (tx) => {
+      await tx.organizationMembership.update({
+        where: { id: existing.id },
+        data: { status: 'inactive', updatedAt: new Date() },
+      });
+      await tx.user.update({
+        where: { id },
+        data: { isActive: false, updatedAt: new Date() },
+      });
     });
-    await prisma.user.delete({ where: { id } });
+
     await logAuditEvent({
       actor,
       action: 'user.deleted',
       entityType: 'User',
       entityId: id,
       route: 'DELETE /api/users/[id]',
-      metadata: { email: existing?.email ?? null, role: existing?.role ?? null },
+      metadata: { email: existing.user.email, role: existing.role },
+      organizationId,
     });
     return NextResponse.json({ success: true });
   } catch (e) {

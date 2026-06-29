@@ -24,7 +24,8 @@ export async function userRowToSummary(
   const role = (orgContext?.organizations.find((o) => o.id === orgContext.currentOrgId)?.role ??
     user.role) as UserRole;
   const staffUserType = user.staffUserType as StaffUserType;
-  const acc = await getAccountsAccess(user.id, role);
+  const orgId = orgContext?.currentOrgId ?? null;
+  const acc = await getAccountsAccess(user.id, role, orgId);
   return {
     id: user.id,
     email: user.email,

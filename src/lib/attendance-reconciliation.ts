@@ -4,7 +4,7 @@ import {
   type EnginePunch,
   type EngineShiftAssignment,
 } from '@/lib/shift-engine/computeAttendance';
-import { doesShiftTouchPublicHoliday } from '@/lib/holidays';
+import { createHolidayResolver } from '@/lib/holidays';
 import {
   getEssPortalUserIdForEmployee,
   getManagerUserIdForEmployee,
@@ -97,7 +97,9 @@ export async function computeReconciledSummaryMetrics(
   events: ReconcileEventInput[],
   shiftRows: ReconcileShiftInput[],
   employeeId: string,
-  holidayResolver: (clockIn: Date | null, clockOut: Date | null) => Promise<{ isHoliday: boolean; holidayName?: string }> = doesShiftTouchPublicHoliday
+  holidayResolver: (clockIn: Date | null, clockOut: Date | null) => Promise<{ isHoliday: boolean; holidayName?: string }> = async () => ({
+    isHoliday: false,
+  }),
 ): Promise<{
   firstInAt: Date | null;
   lastOutAt: Date | null;
@@ -213,7 +215,12 @@ export async function reconcileAttendanceDay(db: PrismaClient, options: Reconcil
 
   const employee = await db.employee.findUnique({
     where: { id: options.employeeId },
-    select: { id: true, outsourcingClientId: true, attendancePolicyAssignments: { orderBy: { effectiveFrom: 'desc' }, take: 1 } },
+    select: {
+      id: true,
+      organizationId: true,
+      outsourcingClientId: true,
+      attendancePolicyAssignments: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+    },
   });
   if (!employee) throw new Error('Employee not found');
 
@@ -258,7 +265,13 @@ export async function reconcileAttendanceDay(db: PrismaClient, options: Reconcil
   let summaryStatus: 'draft' | 'reconciled';
 
   if (assignments.length > 0) {
-    const m = await computeReconciledSummaryMetrics(events, shiftInputs, options.employeeId);
+    const holidayResolver = createHolidayResolver(employee.organizationId);
+    const m = await computeReconciledSummaryMetrics(
+      events,
+      shiftInputs,
+      options.employeeId,
+      holidayResolver,
+    );
     firstInAt = m.firstInAt;
     lastOutAt = m.lastOutAt;
     minutesWorked = m.minutesWorked;

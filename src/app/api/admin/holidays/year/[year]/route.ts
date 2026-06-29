@@ -4,7 +4,7 @@ import { getHolidaysForYear } from '@/lib/holidays';
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ year: string }> }
+  context: { params: Promise<{ year: string }> },
 ) {
   const user = await requireStaffUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -14,6 +14,11 @@ export async function GET(
   if (Number.isNaN(year) || year < 2000 || year > 2100) {
     return NextResponse.json({ error: 'Invalid year parameter.' }, { status: 400 });
   }
-  const holidays = await getHolidaysForYear(year);
-  return NextResponse.json(holidays);
+  try {
+    const holidays = await getHolidaysForYear(year, user.currentOrgId);
+    return NextResponse.json(holidays);
+  } catch (error) {
+    console.error('[admin/holidays/year GET]', error);
+    return NextResponse.json({ error: 'Failed to load holidays.' }, { status: 500 });
+  }
 }

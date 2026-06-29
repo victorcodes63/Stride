@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { withOrgContext } from '@/lib/org-context';
 import type { UserRole } from '@/types/dashboard';
 
 export type AccountsPermissions = {
@@ -12,6 +13,7 @@ export type AccountsPermissions = {
 export async function getAccountsAccess(
   userId: string,
   role: UserRole,
+  organizationId?: string | null,
 ): Promise<{ hasAccountsAccess: boolean } & AccountsPermissions> {
   if (role === 'admin') {
     return {
@@ -25,9 +27,9 @@ export async function getAccountsAccess(
 
   let rows: Awaited<ReturnType<typeof prisma.accountsStaffAccess.findMany>> = [];
   try {
-    rows = await prisma.accountsStaffAccess.findMany({
-      where: { userId },
-    });
+    const query = (db: Pick<typeof prisma, 'accountsStaffAccess'>) =>
+      db.accountsStaffAccess.findMany({ where: { userId } });
+    rows = organizationId ? await withOrgContext(organizationId, query) : await query(prisma);
   } catch (error) {
     const maybeCode = (error as { code?: string })?.code;
     // Backward compatibility: if Accounts module tables are not migrated yet,

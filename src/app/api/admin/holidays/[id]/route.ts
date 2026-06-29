@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireStaffUser } from '@/lib/staff-api-auth';
 import { requireDashboardAdmin } from '@/lib/require-dashboard-admin';
 import { clearHolidayCache } from '@/lib/holidays';
+import { withOrgContext } from '@/lib/org-context';
 
 function parseDateInput(value: unknown): Date | null {
   if (typeof value !== 'string' || !value.trim()) return null;
@@ -13,22 +13,31 @@ function parseDateInput(value: unknown): Date | null {
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   const user = await requireStaffUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await context.params;
-  const row = await prisma.publicHoliday.findUnique({ where: { id } });
-  if (!row) return NextResponse.json({ error: 'Holiday not found.' }, { status: 404 });
-  return NextResponse.json(row);
+  try {
+    const row = await withOrgContext(user.currentOrgId, (tx) =>
+      tx.publicHoliday.findUnique({ where: { id } }),
+    );
+    if (!row) return NextResponse.json({ error: 'Holiday not found.' }, { status: 404 });
+    return NextResponse.json(row);
+  } catch (error) {
+    console.error('[admin/holidays GET id]', error);
+    return NextResponse.json({ error: 'Failed to load holiday.' }, { status: 500 });
+  }
 }
 
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   const adminError = await requireDashboardAdmin(request);
   if (adminError) return adminError;
+  const user = await requireStaffUser(request);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await context.params;
 
   let body: Record<string, unknown>;
@@ -61,19 +70,21 @@ export async function PUT(
   }
 
   try {
-    const updated = await prisma.publicHoliday.update({
-      where: { id },
-      data: {
-        name,
-        recurring,
-        date: recurring ? null : date,
-        recurDay: recurring ? recurDay : null,
-        recurMonth: recurring ? recurMonth : null,
-        notes: typeof body.notes === 'string' ? body.notes.trim() : null,
-        isActive: body.isActive == null ? true : Boolean(body.isActive),
-      },
-    });
-    clearHolidayCache();
+    const updated = await withOrgContext(user.currentOrgId, (tx) =>
+      tx.publicHoliday.update({
+        where: { id },
+        data: {
+          name,
+          recurring,
+          date: recurring ? null : date,
+          recurDay: recurring ? recurDay : null,
+          recurMonth: recurring ? recurMonth : null,
+          notes: typeof body.notes === 'string' ? body.notes.trim() : null,
+          isActive: body.isActive == null ? true : Boolean(body.isActive),
+        },
+      }),
+    );
+    clearHolidayCache(user.currentOrgId);
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[admin/holidays PUT]', error);
@@ -83,14 +94,18 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   const adminError = await requireDashboardAdmin(request);
   if (adminError) return adminError;
+  const user = await requireStaffUser(request);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await context.params;
   try {
-    await prisma.publicHoliday.update({ where: { id }, data: { isActive: false } });
-    clearHolidayCache();
+    await withOrgContext(user.currentOrgId, (tx) =>
+      tx.publicHoliday.update({ where: { id }, data: { isActive: false } }),
+    );
+    clearHolidayCache(user.currentOrgId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[admin/holidays DELETE]', error);

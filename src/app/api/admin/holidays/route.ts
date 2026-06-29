@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireStaffUser } from '@/lib/staff-api-auth';
 import { requireDashboardAdmin } from '@/lib/require-dashboard-admin';
 import { clearHolidayCache, getHolidaysForYear } from '@/lib/holidays';
+import { withOrgContext } from '@/lib/org-context';
 
 function parseDateInput(value: unknown): Date | null {
   if (typeof value !== 'string' || !value.trim()) return null;
@@ -21,17 +21,31 @@ export async function GET(request: NextRequest) {
     if (Number.isNaN(year) || year < 2000 || year > 2100) {
       return NextResponse.json({ error: 'Invalid year parameter.' }, { status: 400 });
     }
-    const resolved = await getHolidaysForYear(year);
-    return NextResponse.json(resolved);
+    try {
+      const resolved = await getHolidaysForYear(year, user.currentOrgId);
+      return NextResponse.json(resolved);
+    } catch (error) {
+      console.error('[admin/holidays GET year]', error);
+      return NextResponse.json({ error: 'Failed to load holidays.' }, { status: 500 });
+    }
   }
 
-  const list = await prisma.publicHoliday.findMany({ orderBy: [{ recurring: 'desc' }, { date: 'asc' }] });
-  return NextResponse.json(list);
+  try {
+    const list = await withOrgContext(user.currentOrgId, (tx) =>
+      tx.publicHoliday.findMany({ orderBy: [{ recurring: 'desc' }, { date: 'asc' }] }),
+    );
+    return NextResponse.json(list);
+  } catch (error) {
+    console.error('[admin/holidays GET]', error);
+    return NextResponse.json({ error: 'Failed to load holidays.' }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
   const adminError = await requireDashboardAdmin(request);
   if (adminError) return adminError;
+  const user = await requireStaffUser(request);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   let body: Record<string, unknown>;
   try {
@@ -63,18 +77,21 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const created = await prisma.publicHoliday.create({
-      data: {
-        name,
-        recurring,
-        date: recurring ? null : date,
-        recurDay: recurring ? recurDay : null,
-        recurMonth: recurring ? recurMonth : null,
-        notes: typeof body.notes === 'string' ? body.notes.trim() : null,
-        isActive: body.isActive == null ? true : Boolean(body.isActive),
-      },
-    });
-    clearHolidayCache();
+    const created = await withOrgContext(user.currentOrgId, (tx) =>
+      tx.publicHoliday.create({
+        data: {
+          organizationId: user.currentOrgId,
+          name,
+          recurring,
+          date: recurring ? null : date,
+          recurDay: recurring ? recurDay : null,
+          recurMonth: recurring ? recurMonth : null,
+          notes: typeof body.notes === 'string' ? body.notes.trim() : null,
+          isActive: body.isActive == null ? true : Boolean(body.isActive),
+        },
+      }),
+    );
+    clearHolidayCache(user.currentOrgId);
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error('[admin/holidays POST]', error);

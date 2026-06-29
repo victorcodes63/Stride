@@ -258,7 +258,7 @@ export default function DashboardTopbar({
           />
           <input
             type="search"
-            placeholder={sidebarOpen ? 'Search employees, payroll, departments…' : 'Search…'}
+            placeholder={sidebarOpen ? 'Search people, payroll, departments…' : 'Search…'}
             onFocus={() => setPaletteOpen(true)}
             readOnly
             className="h-9 w-full cursor-pointer rounded-lg border pl-9 pr-14 text-sm transition-colors dash-search-input focus:outline-none focus:ring-2 focus:ring-primary-500/20"

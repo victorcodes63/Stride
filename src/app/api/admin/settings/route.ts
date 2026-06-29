@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
-import { requireAdminActor } from '@/lib/admin-security';
+import { requireAdminOrganization } from '@/lib/admin-security';
 import { logAuditEvent } from '@/lib/audit-events';
 import type { SystemSettingsPayload } from '@/types/dashboard';
-import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-membership';
+import { withOrgContext } from '@/lib/org-context';
 import { systemSettingCreate, systemSettingWhere } from '@/lib/system-setting-store';
 
 const SETTINGS_KEY = 'admin.platform.settings';
@@ -39,21 +38,32 @@ function sanitizeSettings(value: unknown): SystemSettingsPayload {
   };
 }
 
-export async function GET(request: NextRequest) {
-  const { error, actor } = await requireAdminActor(request);
-  if (error) return error;
+async function loadSettingsForOrg(organizationId: string): Promise<SystemSettingsPayload> {
+  return withOrgContext(organizationId, async (tx) => {
+    const row = await tx.systemSetting.findUnique({
+      where: systemSettingWhere(organizationId, SETTINGS_KEY),
+    });
+    if (row) return sanitizeSettings(row.value);
 
-  const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
+    const org = await tx.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+    const orgName = org?.name?.trim();
+    if (!orgName) return { ...DEFAULT_SETTINGS };
+    return sanitizeSettings({ ...DEFAULT_SETTINGS, companyName: orgName });
+  });
+}
+
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
 
   try {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
-    const row = await prisma.systemSetting.findUnique({
-      where: systemSettingWhere(organizationId, SETTINGS_KEY),
-    });
-    if (!row) return NextResponse.json(DEFAULT_SETTINGS);
-    return NextResponse.json(sanitizeSettings(row.value));
+    return NextResponse.json(await loadSettingsForOrg(auth.organizationId));
   } catch (e) {
     console.error('GET /api/admin/settings error:', e);
     return NextResponse.json({ error: 'Failed to load settings.' }, { status: 500 });
@@ -61,8 +71,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const { error, actor } = await requireAdminActor(request);
-  if (error) return error;
+  const auth = await requireAdminOrganization(request);
+  if (!auth.ok) return auth.response;
+  const { actor, organizationId } = auth;
 
   let body: unknown;
   try {
@@ -73,25 +84,25 @@ export async function PATCH(request: NextRequest) {
 
   const settings = sanitizeSettings(body);
 
-  const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
-
   try {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
-    await prisma.systemSetting.upsert({
-      where: systemSettingWhere(organizationId, SETTINGS_KEY),
-      update: {
-        value: settings as unknown as Prisma.InputJsonValue,
-        updatedByUserId: actor?.userId ?? null,
-      },
-      create: systemSettingCreate(
-        organizationId,
-        SETTINGS_KEY,
-        settings as unknown as Prisma.InputJsonValue,
-        actor?.userId ?? null,
-      ),
-    });
+    await withOrgContext(organizationId, (tx) =>
+      tx.systemSetting.upsert({
+        where: systemSettingWhere(organizationId, SETTINGS_KEY),
+        update: {
+          value: settings as unknown as Prisma.InputJsonValue,
+          updatedByUserId: actor?.userId ?? null,
+        },
+        create: systemSettingCreate(
+          organizationId,
+          SETTINGS_KEY,
+          settings as unknown as Prisma.InputJsonValue,
+          actor?.userId ?? null,
+        ),
+      }),
+    );
 
     await logAuditEvent({
       actor,
@@ -100,6 +111,7 @@ export async function PATCH(request: NextRequest) {
       entityId: SETTINGS_KEY,
       route: '/api/admin/settings',
       metadata: settings,
+      organizationId,
     });
 
     return NextResponse.json(settings);

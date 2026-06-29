@@ -12,7 +12,7 @@ import { AppearanceSettings } from '@/components/dashboard/settings/AppearanceSe
 import { PlatformContentLoader } from '@/components/platform/PlatformContentLoader';
 
 const DEFAULTS: SystemSettingsPayload = {
- companyName: 'HRIS',
+ companyName: '',
  companyEmail: 'hr@example.com',
  defaultCurrency: 'KES',
  payrollCutoffDay: 25,
@@ -82,7 +82,7 @@ export default function SettingsPage() {
  <DashboardPageHeader
  icon={Settings}
  title="Settings"
- description="Global HRIS defaults, your workspace layout, and administrative policies."
+ description="Workspace defaults, layout preferences, and administrative policies."
  />
 
  <ModuleOrderSettings />
