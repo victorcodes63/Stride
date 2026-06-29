@@ -377,8 +377,8 @@ function buildCommunicationsInsightSection(canViewSystemAnalytics: boolean): Das
   };
 }
 
-/** Roadmap sections — always visible so partial/planned modules stay discoverable. */
-const ROADMAP_NAV_SECTION_IDS = new Set(['legal-documents']);
+/** Sections gated by subscription entitlements like any other module. */
+const ROADMAP_NAV_SECTION_IDS = new Set<string>();
 
 function filterSections(
   sections: DashboardNavSection[],
@@ -505,6 +505,8 @@ export const ALL_MODULES_ENABLED = {
   communications: true,
   training: true,
   documents: true,
+  procurement: true,
+  legal: true,
 } satisfies EnabledModulesMap;
 
 export const DASHBOARD_NAV_EXPANDABLE_SECTION_IDS = [

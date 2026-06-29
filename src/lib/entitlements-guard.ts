@@ -15,10 +15,13 @@ export function isModuleEntitled(
   entitlements: DeploymentEntitlements | null,
 ): boolean {
   if (!entitlements) return true;
-  if (entitlements.modules[key] === false) return false;
-  if (key === 'legal' && entitlements.modules.documents === true) return true;
-  if (key === 'documents' && entitlements.modules.legal === true) return true;
-  return entitlements.modules[key] !== false;
+  const { modules } = entitlements;
+  if (key === 'core') return modules.core !== false;
+  if (key === 'accounts') return modules.accounts !== false;
+  if (modules[key] === true) return true;
+  if (key === 'legal' && modules.documents === true) return true;
+  if (key === 'documents' && modules.legal === true) return true;
+  return false;
 }
 
 export function findModuleAdminViolations(

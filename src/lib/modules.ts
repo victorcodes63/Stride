@@ -402,10 +402,29 @@ function isSubscribed(
   subscribed: Partial<Record<ModuleKey, boolean>> | undefined,
 ): boolean {
   if (!subscribed) return true;
-  if (subscribed[key] === false) return false;
+  if (key === 'core') return subscribed.core !== false;
+  if (key === 'accounts') return subscribed.accounts !== false;
+  if (subscribed[key] === true) return true;
   if (key === 'legal' && subscribed.documents === true) return true;
   if (key === 'documents' && subscribed.legal === true) return true;
-  return subscribed[key] !== false;
+  return false;
+}
+
+/** Fail-closed module map when control plane sync is configured but org cache is missing. */
+export function foundationalModulesOnly(): Partial<Record<ModuleKey, boolean>> {
+  return MODULE_DEFINITIONS.reduce(
+    (acc, def) => {
+      if (!def.canDisable || def.key === 'accounts') {
+        acc[def.key] = true;
+      } else if (def.key === 'ess') {
+        acc[def.key] = true;
+      } else {
+        acc[def.key] = false;
+      }
+      return acc;
+    },
+    {} as Partial<Record<ModuleKey, boolean>>,
+  );
 }
 
 /** Merge deployment license with Company Setup admin toggles and subscription entitlements. */

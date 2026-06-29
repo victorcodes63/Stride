@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import {
   allModulesAdminEnabled,
+  foundationalModulesOnly,
   getModuleLabel,
   resolveEffectiveModules,
   type ModuleKey,
@@ -9,6 +10,7 @@ import {
 } from '@/lib/modules';
 import { parseModuleAdminFlagsCookie } from '@/lib/module-cookie';
 import { parseEntitlementsCookie } from '@/lib/entitlements-cookie';
+import { isControlPlaneSyncConfigured } from '@/lib/entitlements-resolver';
 import { isModuleGuardExempt, resolveModuleForPath } from '@/lib/module-routes';
 
 export type ModuleAccessDenied = {
@@ -38,12 +40,23 @@ export function getSubscriptionFromRequest(
   const cookie = parseEntitlementsCookie(
     request.cookies.get('hris_entitlements')?.value,
   );
-  if (!cookie) return undefined;
-  return {
-    subscribedModules: cookie.modules,
-    accountStatus: cookie.accountStatus,
-    verticalEnginesAllowed: cookie.verticalEnginesAllowed,
-  };
+  if (cookie) {
+    return {
+      subscribedModules: cookie.modules,
+      accountStatus: cookie.accountStatus,
+      verticalEnginesAllowed: cookie.verticalEnginesAllowed,
+    };
+  }
+
+  if (isControlPlaneSyncConfigured()) {
+    return {
+      subscribedModules: foundationalModulesOnly(),
+      accountStatus: 'active',
+      verticalEnginesAllowed: false,
+    };
+  }
+
+  return undefined;
 }
 
 export function getEffectiveModulesFromRequest(request: NextRequest): Record<ModuleKey, boolean> {
@@ -86,7 +99,6 @@ export function requireModule(
   return NextResponse.json(moduleAccessDeniedPayload(module), { status: 403 });
 }
 
-export function moduleUnavailableRedirectUrl(module: ModuleKey, fromPath: string): string {
-  const params = new URLSearchParams({ module, from: fromPath });
-  return `/dashboard/module-unavailable?${params.toString()}`;
+export function moduleUnavailableRedirectUrl(_module: ModuleKey, _fromPath: string): string {
+  return '/dashboard';
 }

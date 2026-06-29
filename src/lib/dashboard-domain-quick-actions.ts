@@ -41,7 +41,7 @@ export type DomainQuickActions = {
 };
 
 function on(modules: Partial<Record<ModuleKey, boolean>>, key: ModuleKey): boolean {
-  return modules[key] !== false;
+  return modules[key] === true;
 }
 
 export function getDomainQuickActions(

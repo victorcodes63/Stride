@@ -8,24 +8,9 @@ import {
 import { loadDeploymentEntitlements } from '@/lib/entitlements-store';
 import { loadOrganizationEntitlements, saveOrganizationEntitlements } from '@/lib/org-entitlements-store';
 import type { ModuleKey } from '@/lib/modules';
-import { MODULE_DEFINITIONS } from '@/lib/modules';
+import { foundationalModulesOnly } from '@/lib/modules';
 
-/** Fail-closed module map when control plane is configured but org cache is missing. */
-export function foundationalModulesOnly(): Partial<Record<ModuleKey, boolean>> {
-  return MODULE_DEFINITIONS.reduce(
-    (acc, def) => {
-      if (!def.canDisable || def.key === 'accounts') {
-        acc[def.key] = true;
-      } else if (def.key === 'ess') {
-        acc[def.key] = true;
-      } else {
-        acc[def.key] = false;
-      }
-      return acc;
-    },
-    {} as Partial<Record<ModuleKey, boolean>>,
-  );
-}
+export { foundationalModulesOnly };
 
 /**
  * Resolve entitlements for the signed-in org.

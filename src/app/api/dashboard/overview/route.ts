@@ -5,6 +5,10 @@ import { parsePinnedNavHrefs } from '@/lib/dashboard-nav-preferences';
 import { canAccessCredentials, canAccessPayroll } from '@/lib/demo-route-access';
 import { reportApiError } from '@/lib/monitoring';
 import { resolveEffectiveModules, isModuleLicensed, type ModuleKey } from '@/lib/modules';
+import {
+  resolveSessionEntitlements,
+  subscriptionFromEntitlements,
+} from '@/lib/resolve-session-entitlements';
 import { getRoleKeysForUser } from '@/lib/onboarding-workflows';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { whereExcludeSeedStaffNotifications } from '@/lib/staff-notification-seed-filter';
@@ -106,10 +110,16 @@ export async function GET(request: NextRequest) {
 
     try {
       const setup = metricsOnly ? null : await loadCompanySetupSettingsForOrg(ctx.organizationId);
-      const modules = metricsOnly ? null : resolveEffectiveModules(setup!.moduleAdminFlags);
+      const entitlements = metricsOnly
+        ? null
+        : await resolveSessionEntitlements(ctx.organizationId);
+      const subscription = subscriptionFromEntitlements(entitlements);
+      const modules = metricsOnly
+        ? null
+        : resolveEffectiveModules(setup!.moduleAdminFlags, subscription);
 
       const licensed = (key: ModuleKey) =>
-        metricsOnly ? isModuleLicensed(key) : isModuleLicensed(key) && modules![key] !== false;
+        metricsOnly ? isModuleLicensed(key) : isModuleLicensed(key) && modules![key] === true;
 
       const dbResult = await ctx.run(async (tx) => {
         const clientId = await resolvePrimaryWorkspaceClientId(

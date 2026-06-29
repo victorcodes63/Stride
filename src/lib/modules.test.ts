@@ -151,4 +151,15 @@ describe('modules', () => {
     expect(effective.fleet).toBe(false);
     expect(effective.accounts).toBe(true);
   });
+
+  it('fails closed when subscription omits optional module keys', () => {
+    const admin = allModulesAdminEnabled();
+    const effective = resolveEffectiveModules(admin, {
+      subscribedModules: { core: true, accounts: true },
+      verticalEnginesAllowed: false,
+    });
+    expect(effective.fleet).toBe(false);
+    expect(effective.procurement).toBe(false);
+    expect(effective.leave).toBe(false);
+  });
 });

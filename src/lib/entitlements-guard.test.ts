@@ -29,6 +29,15 @@ describe('entitlements-guard', () => {
     expect(isModuleEntitled('accounts', baseEntitlements)).toBe(true);
   });
 
+  it('fails closed when module key is absent from entitlements', () => {
+    const partial = {
+      ...baseEntitlements,
+      modules: { core: true, accounts: true },
+    };
+    expect(isModuleEntitled('fleet', partial)).toBe(false);
+    expect(isModuleEntitled('leave', partial)).toBe(false);
+  });
+
   it('counts procurement in horizontal bucket', () => {
     const violations = findModuleAdminViolations(
       { procurement: true, legal: true, accounts: true } as never,

@@ -272,8 +272,8 @@ export function resolveDomainAccess(
     return accessContext?.canAccessPlatformAdmin ? 'active' : 'locked';
   }
 
-  if (domainId === 'hr-payroll' || domainId === 'finance' || domainId === 'fleet-logistics') {
-    return 'active';
+  if (domainId === 'hr-payroll') {
+    return modules.core !== false ? 'active' : 'locked';
   }
 
   if (domainId === 'admin-operations' && !verticalAllowedOnTier(tier)) {

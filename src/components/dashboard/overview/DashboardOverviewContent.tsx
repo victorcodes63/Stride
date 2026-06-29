@@ -510,7 +510,10 @@ export default function DashboardOverviewContent() {
     if (urgent) return urgent;
     return getOverviewPrimaryAction(me, persona, pendingApprovals);
   }, [attentionItems, me, persona, pendingApprovals]);
-  const secondaryAction = useMemo(() => getOverviewSecondaryAction(me, persona), [me, persona]);
+  const secondaryAction = useMemo(
+    () => getOverviewSecondaryAction(me, persona, modules ?? {}),
+    [me, persona, modules],
+  );
 
   const greeting = getOverviewGreeting(me?.name ?? '', me?.email);
   const roleLabel = getOverviewRoleLabel(me);

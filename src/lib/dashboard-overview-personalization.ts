@@ -166,11 +166,12 @@ export function getOverviewPrimaryAction(
 export function getOverviewSecondaryAction(
   user: UserSummary | null,
   persona: OverviewPersona,
+  modules: Partial<Record<ModuleKey, boolean>> = {},
 ): OverviewPrimaryAction | null {
   if (persona === 'admin' && user?.canViewSystemAnalytics) {
     return { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3, variant: 'secondary' };
   }
-  if (persona === 'admin' || persona === 'director') {
+  if ((persona === 'admin' || persona === 'director') && modules.fleet === true) {
     return { href: '/dashboard/fleet', label: 'Fleet & ops', icon: Route, variant: 'secondary' };
   }
   if (persona === 'finance' && user?.hasAccountsAccess) {
@@ -187,7 +188,7 @@ export function buildDefaultShortcuts(
   persona: OverviewPersona,
   modules: Partial<Record<ModuleKey, boolean>>,
 ): OverviewShortcut[] {
-  const on = (key: ModuleKey) => modules[key] !== false;
+  const on = (key: ModuleKey) => modules[key] === true;
   const shortcuts: OverviewShortcut[] = [];
 
   if (user?.hasAccountsAccess && on('accounts')) {
@@ -206,18 +207,22 @@ export function buildDefaultShortcuts(
       icon: Route,
     });
   }
-  shortcuts.push({
-    href: '/dashboard/legal',
-    label: 'Legal',
-    desc: 'Contracts & credentials',
-    icon: Gavel,
-  });
-  shortcuts.push({
-    href: '/dashboard/procurement',
-    label: 'Procurement',
-    desc: 'Purchase requests',
-    icon: ShoppingCart,
-  });
+  if (on('legal') || on('documents')) {
+    shortcuts.push({
+      href: '/dashboard/legal',
+      label: 'Legal',
+      desc: 'Contracts & credentials',
+      icon: Gavel,
+    });
+  }
+  if (on('procurement')) {
+    shortcuts.push({
+      href: '/dashboard/procurement',
+      label: 'Procurement',
+      desc: 'Purchase requests',
+      icon: ShoppingCart,
+    });
+  }
   if (on('payroll') && persona !== 'viewer') {
     shortcuts.push({
       href: '/dashboard/payroll',
@@ -266,7 +271,7 @@ export function buildAttentionItems(input: {
   modules: Partial<Record<ModuleKey, boolean>>;
 }): OverviewAttentionItem[] {
   const items: OverviewAttentionItem[] = [];
-  const on = (key: ModuleKey) => input.modules[key] !== false;
+  const on = (key: ModuleKey) => input.modules[key] === true;
   const cross = input.crossModule;
 
   if (on('accounts') && cross && cross.invoicesOutstanding > 0) {
@@ -418,7 +423,7 @@ export function buildDomainSnapshots(input: {
   crossModule: OverviewCrossModuleMetrics;
   modules: Partial<Record<ModuleKey, boolean>>;
 }): OverviewDomainSnapshot[] {
-  const on = (key: ModuleKey) => input.modules[key] !== false;
+  const on = (key: ModuleKey) => input.modules[key] === true;
   const { crossModule: cross } = input;
 
   return DASHBOARD_MODULE_DOMAINS.map((domain) => {
@@ -485,7 +490,7 @@ export function buildCrossModuleKpis(input: {
   persona: OverviewPersona;
   modules: Partial<Record<ModuleKey, boolean>>;
 }): CrossModuleKpi[] {
-  const on = (key: ModuleKey) => input.modules[key] !== false;
+  const on = (key: ModuleKey) => input.modules[key] === true;
   const credentialAlerts = input.credentialsExpiring + input.credentialsExpired;
 
   return [
