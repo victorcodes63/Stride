@@ -1,13 +1,14 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FileText, FileSpreadsheet, Loader2, AlertCircle, Plus } from 'lucide-react';
+import { FileText, FileSpreadsheet, Loader2, AlertCircle, Plus, Search, Receipt } from 'lucide-react';
 import useEntityConfig, { useDisplayMoney } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { InvoicesBillingWorkspace } from '@/components/accounts/InvoicesBillingWorkspace';
 import {
   DashboardTable,
   DashboardTableCard,
@@ -41,6 +42,7 @@ function AccountsInvoicesPageInner() {
  const [invoices, setInvoices] = useState<InvoiceRow[] | null>(null);
  const [error, setError] = useState<string | null>(null);
  const [loading, setLoading] = useState(true);
+ const [search, setSearch] = useState('');
 
  const loadList = useCallback(() => {
  setLoading(true);
@@ -72,6 +74,31 @@ function AccountsInvoicesPageInner() {
  router.push(`/dashboard/accounts/invoices/${id}`);
  };
 
+ const filteredInvoices = useMemo(() => {
+ const list = invoices ?? [];
+ const q = search.trim().toLowerCase();
+ if (!q) return list;
+ return list.filter(
+ (inv) =>
+ inv.clientName.toLowerCase().includes(q) ||
+ String(inv.invoiceNumber).includes(q) ||
+ inv.status.toLowerCase().includes(q),
+ );
+ }, [invoices, search]);
+
+ const workspaceStats = useMemo(() => {
+ const list = invoices ?? [];
+ const currency = list[0]?.currency ?? entityConfig.currency.code;
+ return {
+ total: list.length,
+ open: list.filter((i) => i.status === 'unpaid').length,
+ paid: list.filter((i) => i.status === 'paid').length,
+ partial: list.filter((i) => i.status === 'partial').length,
+ totalIncVat: list.reduce((s, i) => s + i.totalIncVat, 0),
+ currency,
+ };
+ }, [invoices, entityConfig.currency.code]);
+
  return (
  <DashboardPage>
  <DashboardPageHeader
@@ -80,8 +107,8 @@ function AccountsInvoicesPageInner() {
  description={
  <>
  <EntityContextBanner />
- Open an invoice for the full view, PDF, and payment details. {entityConfig.tax.vatLabel}: round(sum of
- line ex-VAT × rate, 2 dp). {entityConfig.tax.whtLabel}: {entityConfig.tax.whtRates}.
+ Open an invoice for PDF, lines, and payments. {entityConfig.tax.vatLabel} is rounded per line
+ (ex-VAT × rate, 2 dp).
  </>
  }
  actions={
@@ -127,6 +154,10 @@ function AccountsInvoicesPageInner() {
  )}
 
  <BillingAutomationPanel clientId={filterClientId} />
+
+ {!loading && !error && invoices && invoices.length > 0 && (
+ <InvoicesBillingWorkspace invoices={workspaceStats} filteredCount={filteredInvoices.length} />
+ )}
 
  {loading && (
  <div className="flex items-center gap-2 text-neutral-600 py-12 justify-center">
@@ -181,6 +212,31 @@ function AccountsInvoicesPageInner() {
 
  {!loading && !error && invoices && invoices.length > 0 && (
  <DashboardTableCard>
+ <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-b border-neutral-100">
+ <div>
+ <h2 className="text-sm font-semibold text-neutral-900">All invoices</h2>
+ <p className="text-xs text-neutral-500 mt-0.5">Click a row to open detail, PDF, and allocations.</p>
+ </div>
+ <div className="flex flex-wrap items-center gap-2">
+ <div className="relative min-w-[200px] flex-1 sm:flex-none sm:w-56">
+ <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+ <input
+ type="search"
+ value={search}
+ onChange={(e) => setSearch(e.target.value)}
+ placeholder="Search client, number, status…"
+ className="w-full rounded-lg border border-neutral-300 pl-8 pr-3 py-2 text-sm"
+ />
+ </div>
+ <Link
+ href="/dashboard/accounts/client-payments"
+ className="btn-secondary inline-flex items-center gap-2 text-sm"
+ >
+ <Receipt className="h-4 w-4" />
+ Receipts
+ </Link>
+ </div>
+ </div>
  <DashboardTableViewport minWidth={720}>
  <DashboardTable>
  <thead>
@@ -196,7 +252,7 @@ function AccountsInvoicesPageInner() {
  </tr>
  </thead>
  <tbody>
- {invoices.map((inv, index) => (
+ {filteredInvoices.map((inv) => (
  <tr
  key={inv.id}
  role="link"
@@ -227,7 +283,7 @@ function AccountsInvoicesPageInner() {
  </td>
  <td className="px-4 py-3 col-center">
  <span
- className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+ className={`inline-flex px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wide ${
  inv.status === 'paid'
  ? 'bg-emerald-50 text-emerald-800'
  : inv.status === 'partial'
@@ -245,7 +301,7 @@ function AccountsInvoicesPageInner() {
  </DashboardTableViewport>
  <DashboardTableFooter>
  <span>
- {invoices.length} invoice{invoices.length !== 1 ? 's' : ''}
+ {filteredInvoices.length} of {invoices.length} invoice{invoices.length !== 1 ? 's' : ''}
  {filterClientId ? ' for this client' : ''}
  </span>
  </DashboardTableFooter>

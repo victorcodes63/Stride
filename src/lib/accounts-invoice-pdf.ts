@@ -7,8 +7,9 @@ import { PDFDocument, PDFPage, StandardFonts, rgb, type RGB } from 'pdf-lib';
 import type { PDFFont } from 'pdf-lib';
 import type { PaymentAccountDetails } from '@/lib/payment-accounts';
 import type { InvoiceLetterheadMode, InvoicePdfBranding } from '@/lib/invoice-setup';
+import { resolveInvoicePanelBackground } from '@/lib/invoice-setup';
 import { embedImageFromUrl } from '@/lib/pdf-embed-image';
-import { DEFAULT_PRIMARY_COLOR, sanitizeHexColor } from '@/lib/brand-theme';
+import { DEFAULT_PRIMARY_COLOR, isValidHexColor, sanitizeHexColor } from '@/lib/brand-theme';
 
 export type AccountsInvoicePdfLine = {
   lineNo: number;
@@ -41,9 +42,59 @@ export type AccountsInvoicePdfInput = {
 const GRAY_700 = rgb(55 / 255, 55 / 255, 55 / 255);
 const GRAY_600 = rgb(82 / 255, 82 / 255, 82 / 255);
 const GRAY_500 = rgb(115 / 255, 115 / 255, 115 / 255);
-const LIGHT_BG = rgb(249 / 255, 250 / 255, 251 / 255);
 const BORDER = rgb(229 / 255, 229 / 255, 229 / 255);
-const HEADER_BG = rgb(243 / 255, 244 / 255, 246 / 255);
+const WHITE = rgb(1, 1, 1);
+const INK = rgb(26 / 255, 23 / 255, 20 / 255);
+const INVOICE_TO_BOX_PAD_PT = 12;
+
+type PdfContrastPalette = {
+  isDark: boolean;
+  heading: RGB;
+  body: RGB;
+  muted: RGB;
+  border: RGB;
+};
+
+function hexLuminance(hex: string): number {
+  const value = sanitizeHexColor(hex, '#FFFFFF').replace('#', '');
+  const n = Number.parseInt(value, 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+function isDarkHex(hex: string): boolean {
+  return hexLuminance(hex) < 140;
+}
+
+/** Pick readable text on a coloured panel or header band (or white page when bg is null). */
+function resolveContrastOnBackground(
+  backgroundHex: string | null,
+  accentHex: string,
+): PdfContrastPalette {
+  const hasBand = Boolean(backgroundHex && isValidHexColor(backgroundHex));
+  if (hasBand && isDarkHex(backgroundHex!)) {
+    return {
+      isDark: true,
+      heading: WHITE,
+      body: rgb(0.92, 0.92, 0.92),
+      muted: rgb(0.78, 0.78, 0.78),
+      border: rgb(0.42, 0.42, 0.42),
+    };
+  }
+
+  const accent = hexToRgb(accentHex);
+  const heading = !hasBand && hexLuminance(accentHex) >= 200 ? INK : accent;
+
+  return {
+    isDark: false,
+    heading,
+    body: GRAY_600,
+    muted: GRAY_500,
+    border: BORDER,
+  };
+}
 
 const PREPRINTED_TOP_INSET_PT = 72;
 const GAP_BEFORE_PAYMENT_DETAILS_PT = 48;
@@ -92,12 +143,29 @@ function drawTextRight(
 
 function resolveBranding(input?: Partial<InvoicePdfBranding>) {
   const letterheadMode: InvoiceLetterheadMode = input?.letterheadMode ?? 'preprinted';
+  const headerBgHex = input?.headerBackgroundColor?.trim() ?? '';
+  const hasHeaderBand = Boolean(headerBgHex && isValidHexColor(headerBgHex));
+  const panelHex = resolveInvoicePanelBackground(input?.panelBackgroundColor?.trim() ?? '');
+  const accentHex = sanitizeHexColor(input?.primaryColor ?? DEFAULT_PRIMARY_COLOR, DEFAULT_PRIMARY_COLOR);
+  const headerContrast = resolveContrastOnBackground(
+    hasHeaderBand ? headerBgHex : null,
+    accentHex,
+  );
+  const panelContrast = resolveContrastOnBackground(panelHex, accentHex);
+
   return {
     legalName: input?.legalName?.trim() ?? '',
     address: input?.address?.trim() ?? '',
     logoUrl: input?.logoUrl?.trim() ?? '',
     documentFooter: input?.documentFooter?.trim() ?? '',
-    primaryColor: hexToRgb(input?.primaryColor ?? DEFAULT_PRIMARY_COLOR),
+    primaryColor: hexToRgb(accentHex),
+    accentHex,
+    headerBackgroundColor: hasHeaderBand ? hexToRgb(headerBgHex) : null,
+    headerBackgroundHex: hasHeaderBand ? headerBgHex : null,
+    headerContrast,
+    panelBackgroundColor: hexToRgb(panelHex),
+    panelBackgroundHex: panelHex,
+    panelContrast,
     vatPin: input?.vatPin?.trim() ?? '',
     letterheadMode,
     topInset: letterheadMode === 'embedded_logo' ? 16 : PREPRINTED_TOP_INSET_PT,
@@ -115,55 +183,69 @@ async function drawEmbeddedLetterhead(
   helveticaBold: PDFFont,
 ): Promise<number> {
   const logoMaxW = 96;
-  const logoMaxH = 48;
-  const textX = margin + logoMaxW + 16;
-  const textW = contentW - logoMaxW - 16;
-  const textChars = Math.max(20, Math.floor(textW / 5.5));
+  const logoMaxH = 56;
+  const rightEdge = margin + contentW;
+  const textChars = Math.max(24, Math.floor(contentW * 0.42 / 5.5));
+  const contrast = branding.headerContrast;
+  const titleColor = contrast.heading;
+  const bodyColor = contrast.body;
+  const ruleColor = contrast.border;
 
   let logoH = 0;
+  let logoW = 0;
   const logo = branding.logoUrl ? await embedImageFromUrl(doc, branding.logoUrl) : null;
   if (logo) {
     const scale = Math.min(logoMaxW / logo.width, logoMaxH / logo.height, 1);
-    const w = logo.width * scale;
-    const h = logo.height * scale;
-    page.drawImage(logo, { x: margin, y: yTop - h, width: w, height: h });
-    logoH = h;
+    logoW = logo.width * scale;
+    logoH = logo.height * scale;
   }
 
-  let ty = yTop - 12;
-  if (branding.legalName) {
-    const nameLines = wrapText(branding.legalName, textChars);
-    for (const line of nameLines) {
-      page.drawText(line, { x: textX, y: ty, size: 11, font: helveticaBold, color: branding.primaryColor });
-      ty -= 13;
-    }
-  }
+  const nameLines = branding.legalName ? wrapText(branding.legalName, textChars) : [];
+  const addressLines = branding.address ? wrapText(branding.address, textChars) : [];
+  const vatLineCount = branding.vatPin ? 1 : 0;
+  const textBlockH =
+    nameLines.length * 13 + addressLines.length * 11 + vatLineCount * 11 + (nameLines.length ? 0 : 0);
+  const blockH = Math.max(logoH, textBlockH, 48);
+  const bandPad = 14;
+  const bandTop = yTop + bandPad;
+  const bandBottom = bandTop - blockH - bandPad;
+  const bandHeight = bandTop - bandBottom;
 
-  if (branding.address) {
-    for (const line of wrapText(branding.address, textChars)) {
-      page.drawText(line, { x: textX, y: ty, size: 8, font: helvetica, color: GRAY_600 });
-      ty -= 11;
-    }
-  }
-
-  if (branding.vatPin) {
-    page.drawText(`VAT PIN: ${branding.vatPin}`, {
-      x: textX,
-      y: ty,
-      size: 8,
-      font: helvetica,
-      color: GRAY_600,
+  if (branding.headerBackgroundColor) {
+    page.drawRectangle({
+      x: margin,
+      y: bandBottom,
+      width: contentW,
+      height: bandHeight,
+      color: branding.headerBackgroundColor,
     });
+  }
+
+  const logoY = bandTop - 12 - logoH;
+  if (logo) {
+    page.drawImage(logo, { x: margin, y: logoY, width: logoW, height: logoH });
+  }
+
+  let ty = bandTop - 12;
+  for (const line of nameLines) {
+    drawTextRight(page, line, rightEdge, ty, 11, helveticaBold, titleColor);
+    ty -= 13;
+  }
+  for (const line of addressLines) {
+    drawTextRight(page, line, rightEdge, ty, 8, helvetica, bodyColor);
+    ty -= 11;
+  }
+  if (branding.vatPin) {
+    drawTextRight(page, `VAT PIN: ${branding.vatPin}`, rightEdge, ty, 8, helvetica, bodyColor);
     ty -= 11;
   }
 
-  const textBottom = ty;
-  const blockBottom = Math.min(textBottom, yTop - logoH) - 14;
+  const blockBottom = bandBottom + 4;
   page.drawLine({
     start: { x: margin, y: blockBottom },
-    end: { x: margin + contentW, y: blockBottom },
+    end: { x: rightEdge, y: blockBottom },
     thickness: 0.5,
-    color: BORDER,
+    color: ruleColor,
   });
 
   return yTop - blockBottom + 14;
@@ -213,6 +295,8 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const isCredit = docKind === 'credit_note';
   const branding = resolveBranding(data.branding);
   const PRIMARY = branding.primaryColor;
+  const PANEL_BG = branding.panelBackgroundColor;
+  const panelText = branding.panelContrast;
   const topInset = branding.topInset;
 
   const ensureSpace = (
@@ -292,50 +376,59 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     my -= 14;
   }
 
-  cursor.page.drawText(isCredit ? 'Credit to' : 'Invoice to', {
+  const headerBottom = my - 12;
+  cursor.y = headerBottom;
+
+  const invoiceToLabel = isCredit ? 'Credit to' : 'Invoice to';
+  const clientLines = wrapText(data.clientName, Math.max(20, Math.floor(contentW / 5.5)));
+  const invoiceToBoxH =
+    INVOICE_TO_BOX_PAD_PT * 2 + 10 + Math.max(clientLines.length, 1) * 13;
+
+  ensureSpace(cursor, invoiceToBoxH + 16);
+  const invoiceToTop = cursor.y;
+  const invoiceToBot = invoiceToTop - invoiceToBoxH;
+
+  cursor.page.drawRectangle({
     x: margin,
-    y: headerTop - 78,
-    size: 8,
-    font: helveticaBold,
-    color: GRAY_500,
+    y: invoiceToBot,
+    width: contentW,
+    height: invoiceToBoxH,
+    color: PANEL_BG,
+    borderColor: panelText.border,
+    borderWidth: 0.5,
   });
 
-  const clientLines = wrapText(data.clientName, Math.max(20, Math.floor(billW / 5.5)));
-  let hy = headerTop - 92;
+  cursor.page.drawText(invoiceToLabel, {
+    x: margin + INVOICE_TO_BOX_PAD_PT,
+    y: invoiceToTop - INVOICE_TO_BOX_PAD_PT - 8,
+    size: 8,
+    font: helveticaBold,
+    color: panelText.muted,
+  });
+
+  let clientY = invoiceToTop - INVOICE_TO_BOX_PAD_PT - 22;
   for (const line of clientLines) {
-    cursor.page.drawText(line, { x: margin, y: hy, size: 11, font: helveticaBold, color: PRIMARY });
-    hy -= 13;
+    cursor.page.drawText(line, {
+      x: margin + INVOICE_TO_BOX_PAD_PT,
+      y: clientY,
+      size: 11,
+      font: helveticaBold,
+      color: panelText.heading,
+    });
+    clientY -= 13;
   }
 
-  const headerBottom = Math.min(hy, my) - 12;
-  cursor.y = headerBottom;
+  cursor.y = invoiceToBot - 16;
 
   if (data.notes?.trim()) {
     const noteLines = wrapText(data.notes.trim(), Math.max(24, Math.floor(contentW / 5)));
-    ensureSpace(cursor, 20 + noteLines.length * 11);
-    cursor.page.drawText('Notes', {
-      x: margin,
-      y: cursor.y,
-      size: 8,
-      font: helveticaBold,
-      color: GRAY_500,
-    });
-    cursor.y -= 12;
+    ensureSpace(cursor, 12 + noteLines.length * 11);
     for (const nl of noteLines) {
       cursor.page.drawText(nl, { x: margin, y: cursor.y, size: 9, font: helvetica, color: GRAY_600 });
       cursor.y -= 11;
     }
     cursor.y -= 8;
   }
-
-  cursor.page.drawText('Line items', {
-    x: margin,
-    y: cursor.y,
-    size: 11,
-    font: helveticaBold,
-    color: PRIMARY,
-  });
-  cursor.y -= 24;
 
   const colNumW = 36;
   const colAmtW = 100;
@@ -394,15 +487,23 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     y: tTop - theadH,
     width: contentW,
     height: theadH,
-    color: HEADER_BG,
+    color: PANEL_BG,
     borderColor: BORDER,
     borderWidth: 1,
   });
 
   const hY = tTop - theadH / 2 - 4;
-  cursor.page.drawText('#', { x: margin + 8, y: hY, size: 8, font: helveticaBold, color: GRAY_500 });
-  cursor.page.drawText('Description', { x: descX, y: hY, size: 8, font: helveticaBold, color: GRAY_500 });
-  drawTextRight(cursor.page, `Amount (${data.currency})`, amtRight - 8, hY, 8, helveticaBold, GRAY_500);
+  cursor.page.drawText('#', { x: margin + 8, y: hY, size: 8, font: helveticaBold, color: panelText.muted });
+  cursor.page.drawText('Description', { x: descX, y: hY, size: 8, font: helveticaBold, color: panelText.muted });
+  drawTextRight(
+    cursor.page,
+    `Amount (${data.currency})`,
+    amtRight - 8,
+    hY,
+    8,
+    helveticaBold,
+    panelText.muted,
+  );
 
   const xLineNumDesc = margin + colNumW;
   const xLineDescAmt = amtRight - colAmtW;
@@ -539,8 +640,8 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
       y: bankBot,
       width: contentW,
       height: bankBoxH,
-      color: LIGHT_BG,
-      borderColor: BORDER,
+      color: PANEL_BG,
+      borderColor: panelText.border,
       borderWidth: 1,
     });
 
@@ -551,7 +652,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
         y: by,
         size: 9,
         font: helvetica,
-        color: GRAY_600,
+        color: panelText.body,
       });
       by -= bankLineStep;
     }

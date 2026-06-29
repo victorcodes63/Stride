@@ -306,7 +306,7 @@ export function buildAttentionItems(input: {
       detail: `${cross.openFleetIncidents} open incident${cross.openFleetIncidents === 1 ? '' : 's'}`,
       href: '/dashboard/fleet/compliance',
       tone: 'rose',
-      domainId: 'admin-operations',
+      domainId: 'fleet-logistics',
     });
   }
 
@@ -364,7 +364,7 @@ export function buildAttentionItems(input: {
       detail: `${input.unreadNotifications} unread update${input.unreadNotifications === 1 ? '' : 's'}`,
       href: '/dashboard/settings',
       tone: 'neutral',
-      domainId: 'admin-operations',
+      domainId: 'platform-admin',
     });
   }
   return items;
@@ -456,11 +456,19 @@ export function buildDomainSnapshots(input: {
       case 'projects':
         lines.push('Deliverables & budgets (roadmap)');
         break;
-      case 'admin-operations':
+      case 'fleet-logistics':
         if (on('fleet')) {
           lines.push(`${cross.activeFleetTrips} active trips`);
           if (cross.openFleetIncidents > 0) lines.push(`${cross.openFleetIncidents} incidents open`);
         }
+        if (!lines.length) lines.push('Fleet workspace');
+        break;
+      case 'admin-operations':
+        if (!lines.length) lines.push('Assets, HSE & comms');
+        break;
+      case 'platform-admin':
+        if (input.credentialsExpired > 0) lines.push(`${input.credentialsExpired} credentials expired`);
+        if (!lines.length) lines.push('Company & workspace settings');
         break;
     }
     return { domainId: domain.id, lines };
@@ -596,8 +604,8 @@ export function buildCrossModuleKpis(input: {
       chartPlaceholder: true,
     },
     {
-      domainId: 'admin-operations',
-      label: 'Admin & Ops',
+      domainId: 'fleet-logistics',
+      label: 'Fleet management',
       value: input.crossModule.activeFleetTrips,
       note:
         input.crossModule.openFleetIncidents > 0

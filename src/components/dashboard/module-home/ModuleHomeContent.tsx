@@ -226,19 +226,37 @@ function buildStats(
     case 'admin-operations':
       return [
         {
+          label: 'Pending approvals',
+          value: overview?.pendingApprovals ?? 0,
+          hint: 'Across workflows',
+          href: '/dashboard/reports',
+          tone: 'warning',
+          warn: (overview?.pendingApprovals ?? 0) > 0,
+        },
+        {
+          label: 'Staff on duty',
+          value: overview?.onDuty ?? 0,
+          hint: `${overview?.totalStaff ?? 0} total staff`,
+          href: '/dashboard/employees',
+          tone: 'primary',
+        },
+      ];
+    case 'platform-admin':
+      return [
+        {
+          label: 'System users',
+          value: overview?.totalStaff ?? 0,
+          hint: 'Staff accounts',
+          href: '/dashboard/users/staff',
+          tone: 'primary',
+        },
+        {
           label: 'Credential alerts',
           value: (overview?.credentialsExpiring ?? 0) + (overview?.credentialsExpired ?? 0),
           hint: 'Expiring or expired',
           href: '/dashboard/credentials?status=expiring_soon',
           tone: 'warning',
           warn: ((overview?.credentialsExpiring ?? 0) + (overview?.credentialsExpired ?? 0)) > 0,
-        },
-        {
-          label: 'Active fleet trips',
-          value: cross?.activeFleetTrips ?? 0,
-          hint: 'Cross-module link',
-          href: '/dashboard/fleet/trips',
-          tone: 'primary',
         },
       ];
   }
@@ -257,7 +275,7 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
     let cancelled = false;
     setLoading(true);
 
-    const needsFleet = domainId === 'fleet-logistics' || domainId === 'admin-operations';
+    const needsFleet = domainId === 'fleet-logistics';
     const needsProjects = domainId === 'projects';
 
     Promise.all([

@@ -70,7 +70,9 @@ export function getDefaultModuleOrderForUser(input: {
       'hr-payroll',
       'legal-documents',
       'procurement',
+      'platform-admin',
       'admin-operations',
+      'fleet-logistics',
       'projects',
     ];
   }
@@ -81,6 +83,7 @@ export function getDefaultModuleOrderForUser(input: {
       'procurement',
       'hr-payroll',
       'legal-documents',
+      'platform-admin',
       'admin-operations',
       'projects',
     ];
@@ -89,6 +92,7 @@ export function getDefaultModuleOrderForUser(input: {
   if (staffUserType === 'operations') {
     return [
       'admin-operations',
+      'fleet-logistics',
       'hr-payroll',
       'finance',
       'procurement',

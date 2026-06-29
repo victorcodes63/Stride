@@ -227,8 +227,8 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
       return {
         domainId,
         eyebrow: domain.marketingLabel,
-        title: 'Admin & operations',
-        description: 'Assets, HSE, communications, reporting, and system administration.',
+        title: 'Operations',
+        description: 'Assets, HSE, company communications, and operational reporting.',
         workspaces: [
           {
             title: 'Operations',
@@ -245,12 +245,43 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
               { href: '/dashboard/analytics', label: 'Analytics', note: 'Executive dashboards', icon: BarChart3 },
             ],
           },
+        ],
+      };
+
+    case 'platform-admin':
+      return {
+        domainId,
+        eyebrow: domain.marketingLabel,
+        title: 'Platform admin',
+        description:
+          'Company branding, system users, roles, holidays, facilities, and workspace settings.',
+        workspaces: [
           {
-            title: 'Administration',
+            title: 'Company',
             links: [
-              { href: '/dashboard/settings', label: 'Settings', note: 'Workspace defaults', icon: Landmark },
+              {
+                href: '/dashboard/admin/company-setup',
+                label: 'Company setup',
+                note: 'Brand, org name & colours',
+                icon: Building2,
+              },
+              { href: '/dashboard/admin/holidays', label: 'Public holidays', note: 'Leave calendar', icon: CalendarDays },
+              { href: '/dashboard/admin/facilities', label: 'Facilities', note: 'Sites & locations', icon: Building2 },
+              { href: '/dashboard/admin/governance', label: 'Board & governance', note: 'Directors & filings', icon: Landmark },
+            ],
+          },
+          {
+            title: 'Access & governance',
+            links: [
               { href: '/dashboard/users/staff', label: 'System users', note: 'Staff accounts', icon: Users },
+              {
+                href: '/dashboard/admin/roles-permissions',
+                label: 'Roles & permissions',
+                note: 'Access control',
+                icon: Shield,
+              },
               { href: '/dashboard/admin/audit-log', label: 'Audit log', note: 'Governance trail', icon: Shield },
+              { href: '/dashboard/settings', label: 'Settings', note: 'Workspace defaults', icon: Landmark },
             ],
           },
         ],

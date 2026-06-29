@@ -31,7 +31,7 @@ type Props = {
 
 export function DashboardModuleSwitcher({ embedded = false }: Props) {
   const { activeDomain, setActiveDomainId } = useDashboardDomain();
-  const { orderedDomains } = useDashboardModuleOrder();
+  const { visibleDomains } = useDashboardModuleOrder();
   const workspace = useWorkspaceControl();
   const [localOpen, setLocalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -113,26 +113,20 @@ export function DashboardModuleSwitcher({ embedded = false }: Props) {
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--dash-text-faint)]">
             Switch module
           </p>
-          {orderedDomains.map((domain) => {
+          {visibleDomains.map((domain) => {
             const Icon = domain.icon;
             const isActive = domain.id === activeDomain.id;
-            const locked = domain.access === 'locked';
             const content = (
               <>
-                <span className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${locked ? 'bg-[var(--dash-surface-muted)] opacity-60' : 'bg-[var(--dash-surface-raised)]'}`}>
+                <span className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--dash-surface-raised)]`}>
                   <Icon className="h-4 w-4 text-[var(--dash-text-muted)]" strokeWidth={1.75} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
-                    <span className={`truncate text-sm font-medium ${isActive ? 'text-primary-800' : locked ? 'text-neutral-400' : 'text-[var(--dash-text-strong)]'}`}>
+                    <span className={`truncate text-sm font-medium ${isActive ? 'text-primary-800' : 'text-[var(--dash-text-strong)]'}`}>
                       {domain.shortLabel}
                     </span>
                     <DomainReadinessDot readiness={domain.readiness} />
-                    {locked ? (
-                      <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
-                        Upgrade
-                      </span>
-                    ) : null}
                   </span>
                   <span className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-[var(--dash-text-muted)]">
                     {domain.description}
@@ -140,19 +134,6 @@ export function DashboardModuleSwitcher({ embedded = false }: Props) {
                 </span>
               </>
             );
-            if (locked) {
-              return (
-                <div
-                  key={domain.id}
-                  role="option"
-                  aria-selected={false}
-                  aria-disabled
-                  className="flex cursor-not-allowed items-start gap-3 px-3 py-2.5 opacity-80"
-                >
-                  {content}
-                </div>
-              );
-            }
             return (
               <Link
                 key={domain.id}

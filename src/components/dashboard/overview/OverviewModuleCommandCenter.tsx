@@ -71,7 +71,7 @@ export function OverviewModuleCommandCenter({
   attentionByDomain,
   domainSnapshots,
 }: OverviewModuleCommandCenterProps) {
-  const { orderedDomains } = useDashboardModuleOrder();
+  const { visibleDomains } = useDashboardModuleOrder();
   const snapshotByDomain = Object.fromEntries(domainSnapshots.map((s) => [s.domainId, s.lines]));
 
   return (
@@ -94,7 +94,7 @@ export function OverviewModuleCommandCenter({
         }
       />
       <div className="dash-overview-hairline-grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-        {orderedDomains.map((domain) => (
+        {visibleDomains.map((domain) => (
           <ModuleRow
             key={domain.id}
             domain={domain}

@@ -11,18 +11,24 @@ import {
 } from 'react';
 import {
   DASHBOARD_MODULE_DOMAINS,
+  filterActiveDomains,
   filterDomainsForSwitcher,
+  resolvePlatformAdminAccess,
   type DashboardModuleDomain,
   type DashboardModuleDomainId,
   type DomainWithAccess,
+  type SwitcherAccessContext,
 } from '@/lib/dashboard-module-domains';
 import { CANONICAL_MODULE_ORDER, orderModuleDomains } from '@/lib/dashboard-module-preferences';
 import type { ModuleKey } from '@/lib/modules';
 import type { DeploymentTier } from '@/lib/deployment-tier';
 import { getDeploymentTier } from '@/lib/deployment-tier';
+import type { UserRole } from '@/types/dashboard';
 
 type DashboardModuleOrderContextValue = {
   orderedDomains: DomainWithAccess[];
+  /** Licensed and role-assigned modules only — use in switcher and overview nav. */
+  visibleDomains: DomainWithAccess[];
   moduleOrder: DashboardModuleDomainId[];
   isCustom: boolean;
   loading: boolean;
@@ -37,10 +43,18 @@ export function DashboardModuleOrderProvider({
   children,
   enabledModules,
   deploymentTier = getDeploymentTier(),
+  currentUserRole = null,
+  hasAccountsAccess = false,
+  canViewSystemAnalytics = false,
+  canAccessCompanySetup = false,
 }: {
   children: ReactNode;
   enabledModules?: Record<ModuleKey, boolean>;
   deploymentTier?: DeploymentTier;
+  currentUserRole?: UserRole | null;
+  hasAccountsAccess?: boolean;
+  canViewSystemAnalytics?: boolean;
+  canAccessCompanySetup?: boolean;
 }) {
   const [moduleOrder, setModuleOrder] = useState<DashboardModuleDomainId[]>([...CANONICAL_MODULE_ORDER]);
   const [isCustom, setIsCustom] = useState(false);
@@ -63,13 +77,30 @@ export function DashboardModuleOrderProvider({
     };
   }, []);
 
+  const accessContext = useMemo<SwitcherAccessContext>(
+    () => ({
+      canAccessPlatformAdmin: resolvePlatformAdminAccess({
+        currentUserRole,
+        hasAccountsAccess,
+        canViewSystemAnalytics,
+        canAccessCompanySetup,
+      }),
+    }),
+    [currentUserRole, hasAccountsAccess, canViewSystemAnalytics, canAccessCompanySetup],
+  );
+
   const orderedDomains = useMemo(() => {
     const ordered = orderModuleDomains(DASHBOARD_MODULE_DOMAINS, moduleOrder);
     if (!enabledModules) {
       return ordered.map((domain) => ({ ...domain, access: 'active' as const }));
     }
-    return filterDomainsForSwitcher(ordered, enabledModules, deploymentTier);
-  }, [moduleOrder, enabledModules, deploymentTier]);
+    return filterDomainsForSwitcher(ordered, enabledModules, deploymentTier, accessContext);
+  }, [moduleOrder, enabledModules, deploymentTier, accessContext]);
+
+  const visibleDomains = useMemo(
+    () => filterActiveDomains(orderedDomains),
+    [orderedDomains],
+  );
 
   const persist = useCallback(async (order: DashboardModuleDomainId[], custom: boolean) => {
     const response = await fetch('/api/dashboard/module-preferences', {
@@ -121,6 +152,7 @@ export function DashboardModuleOrderProvider({
   const value = useMemo(
     () => ({
       orderedDomains,
+      visibleDomains,
       moduleOrder,
       isCustom,
       loading,
@@ -130,6 +162,7 @@ export function DashboardModuleOrderProvider({
     }),
     [
       orderedDomains,
+      visibleDomains,
       moduleOrder,
       isCustom,
       loading,

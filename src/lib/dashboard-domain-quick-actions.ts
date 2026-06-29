@@ -173,9 +173,22 @@ export function getDomainQuickActions(
           ...(on(modules, 'hse')
             ? [{ label: 'Log HSE incident', href: '/dashboard/hse', icon: AlertTriangle }]
             : []),
-          ...(on(modules, 'fleet')
-            ? [{ label: 'Fleet overview', href: '/dashboard/fleet', icon: Route }]
-            : []),
+        ],
+      };
+
+    case 'platform-admin':
+      return {
+        primary: {
+          label: 'Company setup',
+          href: '/dashboard/admin/company-setup',
+          icon: Building2,
+          description: 'Brand, org name & workspace defaults',
+        },
+        more: [
+          { label: 'System users', href: '/dashboard/users/staff', icon: UserCog },
+          { label: 'Roles & permissions', href: '/dashboard/admin/roles-permissions', icon: Shield },
+          { label: 'Public holidays', href: '/dashboard/admin/holidays', icon: CalendarCheck },
+          { label: 'Audit log', href: '/dashboard/admin/audit-log', icon: Shield },
         ],
       };
   }

@@ -23,6 +23,10 @@ export type InvoiceSetupSettings = {
   contactPhone: string;
   documentFooterText: string;
   primaryColor: string;
+  /** Optional full-width header band behind logo (empty = white). */
+  headerBackgroundColor: string;
+  /** Table header, invoice-to box, and payment-details panel (empty = light grey default). */
+  panelBackgroundColor: string;
 };
 
 export const DEFAULT_INVOICE_SETUP: InvoiceSetupSettings = {
@@ -35,6 +39,8 @@ export const DEFAULT_INVOICE_SETUP: InvoiceSetupSettings = {
   contactPhone: '',
   documentFooterText: '',
   primaryColor: '',
+  headerBackgroundColor: '',
+  panelBackgroundColor: '',
 };
 
 export type InvoicePdfBranding = {
@@ -46,6 +52,8 @@ export type InvoicePdfBranding = {
   hasCustomLogo: boolean;
   documentFooter: string;
   primaryColor: string;
+  headerBackgroundColor: string;
+  panelBackgroundColor: string;
   vatPin: string;
   letterheadMode: InvoiceLetterheadMode;
 };
@@ -104,6 +112,8 @@ export function sanitizeInvoiceSetup(raw: unknown): InvoiceSetupSettings {
     contactPhone: str(o.contactPhone),
     documentFooterText: str(o.documentFooterText),
     primaryColor: sanitizeInvoicePrimaryColor(o.primaryColor),
+    headerBackgroundColor: sanitizeInvoicePrimaryColor(o.headerBackgroundColor),
+    panelBackgroundColor: sanitizeInvoicePrimaryColor(o.panelBackgroundColor),
   };
 }
 
@@ -151,6 +161,8 @@ export async function resolveInvoiceIdentity(
     contactPhone: settings.contactPhone || brand.contactPhone,
     documentFooterText: settings.documentFooterText || brand.documentFooterText,
     primaryColor: resolveInvoicePrimaryColor(settings.primaryColor, brand.primaryColor),
+    headerBackgroundColor: settings.headerBackgroundColor,
+    panelBackgroundColor: settings.panelBackgroundColor,
   };
 }
 
@@ -165,9 +177,19 @@ export function invoiceSettingsToPdfBranding(settings: InvoiceSetupSettings): In
     hasCustomLogo: isCustomLogo(logoUrl),
     documentFooter: settings.documentFooterText.trim(),
     primaryColor: settings.primaryColor,
+    headerBackgroundColor: settings.headerBackgroundColor,
+    panelBackgroundColor: settings.panelBackgroundColor,
     vatPin: settings.vatPin.trim(),
     letterheadMode: settings.letterheadMode,
   };
+}
+
+/** Default shaded panels on invoice PDFs (table header, invoice-to box, payment details). */
+export const DEFAULT_INVOICE_PANEL_BACKGROUND = '#F3F4F6';
+
+export function resolveInvoicePanelBackground(stored: string): string {
+  if (isValidHexColor(stored)) return sanitizeHexColor(stored, DEFAULT_INVOICE_PANEL_BACKGROUND);
+  return DEFAULT_INVOICE_PANEL_BACKGROUND;
 }
 
 export async function loadInvoiceSetupSettings(

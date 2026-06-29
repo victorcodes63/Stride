@@ -69,6 +69,12 @@ export async function PATCH(request: NextRequest) {
         ...(body.primaryColor != null
           ? { primaryColor: sanitizeInvoicePrimaryColor(body.primaryColor) }
           : {}),
+        ...(body.headerBackgroundColor != null
+          ? { headerBackgroundColor: sanitizeInvoicePrimaryColor(body.headerBackgroundColor) }
+          : {}),
+        ...(body.panelBackgroundColor != null
+          ? { panelBackgroundColor: sanitizeInvoicePrimaryColor(body.panelBackgroundColor) }
+          : {}),
       });
 
       await persistInvoiceSetupSettings(ctx.organizationId, next, ctx.staff.id);

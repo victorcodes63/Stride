@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import BrandLogo from '@/components/BrandLogo';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -14,15 +13,13 @@ import {
  CircleDashed,
  CircleOff,
  FileMinus2,
+ Pencil,
 } from 'lucide-react';
 import {
- InvoiceBankDisplay,
  InvoicePaymentAccountSelect,
 } from '@/components/accounts/InvoiceBankPanel';
-import {
- paymentAccountToDetails,
- type PaymentAccountRow,
-} from '@/lib/payment-accounts';
+import { InvoicePdfEmbed } from '@/components/accounts/InvoicePdfEmbed';
+import type { PaymentAccountRow } from '@/lib/payment-accounts';
 import useEntityConfig, { useDisplayMoney } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
@@ -189,14 +186,6 @@ export default function AccountsInvoiceDetailPage() {
  if (data.paymentAccountId) return data.paymentAccountId;
  return paymentAccounts.find((a) => a.legacyKind === data.paymentBank)?.id ?? '';
  }, [data, paymentAccounts]);
-
- const paymentDetails = useMemo(() => {
- if (!data) return null;
- const account =
- paymentAccounts.find((a) => a.id === effectivePaymentAccountId) ??
- paymentAccounts.find((a) => a.legacyKind === data.paymentBank);
- return account ? paymentAccountToDetails(account) : null;
- }, [data, paymentAccounts, effectivePaymentAccountId]);
 
  useEffect(() => {
  if (!data) return;
@@ -409,16 +398,37 @@ export default function AccountsInvoiceDetailPage() {
  </>
  }
  />
- <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+ <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-neutral-600 border-b border-neutral-200 pb-4">
+ <span>
+ <span className="text-neutral-500">Issue </span>
+ <span className="font-medium text-neutral-900 tabular-nums">{data.issueDate}</span>
+ </span>
+ <span>
+ <span className="text-neutral-500">Due </span>
+ <span className="font-medium text-neutral-900 tabular-nums">{data.dueDate ?? '—'}</span>
+ </span>
+ <span>
+ <span className="text-neutral-500">Total </span>
+ <span className="font-semibold text-primary-900 tabular-nums">
+ {displayMoney(data.totalIncVat, data.currency)}
+ </span>
+ </span>
+ <span>
+ <span className="text-neutral-500">Status </span>
+ <span className="font-medium text-neutral-900 capitalize">{data.status}</span>
+ </span>
+ </div>
  <div className="flex flex-wrap gap-2">
+ {data.canEditInvoice && editForm && !isEditing ? (
  <button
  type="button"
- onClick={() => window.print()}
+ onClick={() => setIsEditing(true)}
  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-900 text-white text-sm font-medium hover:bg-primary-800 transition-colors"
  >
- <Printer className="w-4 h-4" />
- Print / Save as PDF
+ <Pencil className="w-4 h-4" />
+ Edit
  </button>
+ ) : null}
  <a
  href={`/api/accounts/invoices/${id}/pdf?disposition=inline`}
  target="_blank"
@@ -426,7 +436,7 @@ export default function AccountsInvoiceDetailPage() {
  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-300 bg-white text-sm font-medium text-neutral-800 hover:bg-neutral-50 transition-colors"
  >
  <Eye className="w-4 h-4" />
- Preview PDF
+ Open PDF
  </a>
  <a
  href={`/api/accounts/invoices/${id}/pdf`}
@@ -434,12 +444,29 @@ export default function AccountsInvoiceDetailPage() {
  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-300 bg-white text-sm font-medium text-neutral-800 hover:bg-neutral-50 transition-colors"
  >
  <Download className="w-4 h-4" />
- Download PDF
+ Download
+ </a>
+ <a
+ href={`/api/accounts/invoices/${id}/pdf?disposition=inline`}
+ target="_blank"
+ rel="noopener noreferrer"
+ onClick={(e) => {
+ e.preventDefault();
+ const w = window.open(`/api/accounts/invoices/${id}/pdf?disposition=inline`, '_blank');
+ w?.addEventListener('load', () => w.print());
+ }}
+ className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-300 bg-white text-sm font-medium text-neutral-800 hover:bg-neutral-50 transition-colors"
+ >
+ <Printer className="w-4 h-4" />
+ Print
  </a>
  </div>
+ </div>
 
+ <div className="grid lg:grid-cols-[minmax(280px,300px)_1fr] gap-6 items-start">
+ <aside className="space-y-4 print:hidden">
  <div
- className="lg:max-w-md w-full lg:w-auto lg:min-w-[280px] dashboard-surface px-4 py-3 shadow-sm"
+ className="dashboard-surface px-4 py-3 shadow-sm"
  role="region"
  aria-label="Invoice ledger status"
  >
@@ -490,7 +517,6 @@ export default function AccountsInvoiceDetailPage() {
  </div>
  )}
  </div>
- </div>
  <InvoicePaymentAccountSelect
  accounts={paymentAccounts}
  value={effectivePaymentAccountId}
@@ -502,14 +528,8 @@ export default function AccountsInvoiceDetailPage() {
  <div className="dashboard-surface px-4 py-4 text-sm space-y-3 print:hidden">
  <div className="flex items-center justify-between gap-3">
  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Edit invoice</p>
- {!isEditing ? (
- <button
- type="button"
- onClick={() => setIsEditing(true)}
- className="px-3 py-1.5 rounded-md border border-neutral-300 text-xs font-medium hover:bg-neutral-50"
- >
- Edit
- </button>
+ {isEditing ? (
+ <span className="text-xs text-neutral-500">Editing</span>
  ) : null}
  </div>
  {isEditing ? (
@@ -851,130 +871,13 @@ export default function AccountsInvoiceDetailPage() {
  <p className="text-xs text-neutral-500">No amount remains to credit on this invoice.</p>
  )}
  </div>
- </div>
+ </aside>
 
- {/* Print: full width between @page margins (0.5in L/R in globals.css); screen: full layout width */}
- <div className="w-full print:max-w-none print:w-full print:mx-0">
- <div className="dashboard-surface shadow-sm overflow-hidden print:shadow-none print:border print:border-neutral-300 print:rounded-none print:[print-color-adjust:exact]">
- <div className="px-6 sm:px-8 pt-6 sm:pt-8 print:px-7 print:pt-5">
- <div
- className="h-[3px] w-full bg-primary-900 mb-6 print:mb-5 rounded-sm print:h-[3px] print:min-h-[3px] print:bg-[#043d4a]"
- aria-hidden
+ <InvoicePdfEmbed
+ pdfUrl={`/api/accounts/invoices/${id}/pdf?disposition=inline`}
+ title={`Invoice #${data.invoiceNumber} PDF`}
+ className="min-h-[720px]"
  />
- <div className="flex items-center mb-8 print:mb-7">
- <BrandLogo
- variant="header"
- className="h-11 w-auto max-w-[10rem] sm:max-w-[11rem] object-contain object-left"
- priority
- />
- </div>
- </div>
-
- <div className="px-6 sm:px-8 pb-8 sm:pb-10 print:px-7 print:pb-6 space-y-8 sm:space-y-10 print:space-y-8">
- <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-8 lg:gap-12">
- <div className="min-w-0 lg:max-w-[55%]">
- <h1 className="text-xl sm:text-2xl font-bold text-primary-900 tracking-tight print:text-[18pt]">
- INVOICE
- </h1>
- <div className="mt-8 sm:mt-10 print:mt-8">
- <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-1">Invoice to</p>
- <p className="text-base sm:text-lg font-semibold text-primary-900 leading-snug">{data.clientName}</p>
- </div>
- </div>
- <div className="w-full lg:w-auto lg:min-w-[240px] shrink-0">
- <dl className="space-y-3 text-sm print:text-[10px]">
- <div className="flex justify-between gap-6 border-b border-transparent">
- <dt className="text-neutral-500">Invoice no.</dt>
- <dd className="font-semibold text-primary-900 tabular-nums text-right">{data.invoiceNumber}</dd>
- </div>
- <div className="flex justify-between gap-6">
- <dt className="text-neutral-500">Issue date</dt>
- <dd className="text-neutral-800 tabular-nums text-right">{data.issueDate}</dd>
- </div>
- <div className="flex justify-between gap-6">
- <dt className="text-neutral-500">Due date</dt>
- <dd className="text-neutral-800 tabular-nums text-right">{data.dueDate ?? '—'}</dd>
- </div>
- </dl>
- </div>
- </div>
-
- {data.notes?.trim() ? (
- <div className="space-y-2">
- <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Notes</p>
- <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">{data.notes.trim()}</p>
- </div>
- ) : null}
-
- <section>
- <h2 className="text-sm font-bold text-primary-900 mb-4 sm:mb-5 print:text-xs print:mb-4">Line items</h2>
- <div className="border border-neutral-200 rounded-lg overflow-hidden print:border-neutral-300 print:rounded-sm">
- <table className="w-full text-sm print:text-[9px] table-fixed">
- <thead>
- <tr className="bg-neutral-100 border-b border-neutral-200 text-neutral-600 print:bg-neutral-200 print:border-neutral-300">
- <th className="py-3 px-3 font-semibold w-11 text-left">#</th>
- <th className="py-3 px-3 font-semibold text-left">Description</th>
- <th className="py-3 px-3 font-semibold text-right whitespace-nowrap w-[30%]">
- Amount ({data.currency})
- </th>
- </tr>
- </thead>
- <tbody>
- {data.lines.map((l) => (
- <tr key={l.id} className="border-b border-neutral-100 last:border-b-0 print:border-neutral-200">
- <td className="py-4 px-3 align-middle text-neutral-600 tabular-nums text-left">{l.lineNo}</td>
- <td className="py-4 px-3 align-middle text-left">
- <span className="font-semibold text-neutral-900 block">{l.item}</span>
- {l.description?.trim() ? (
- <span className="block text-neutral-600 text-xs sm:text-sm mt-1.5 leading-snug">
- {l.description.trim()}
- </span>
- ) : null}
- </td>
- <td className="py-4 px-3 align-middle text-right tabular-nums text-neutral-800 font-medium">
- {displayMoney(Number(l.amountExVat), data.currency)}
- </td>
- </tr>
- ))}
- </tbody>
- </table>
- </div>
- </section>
-
- <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 xl:gap-16 items-start print:gap-8">
- <div className="order-2 lg:order-1 print:order-1">
- {paymentDetails ? <InvoiceBankDisplay details={paymentDetails} /> : null}
- </div>
- <div className="order-1 lg:order-2 print:order-2 lg:justify-self-end w-full lg:max-w-sm">
- <div className="border border-neutral-200 rounded-lg p-5 sm:p-6 print:border-neutral-300 print:p-4 bg-white">
- <h2 className="text-sm font-bold text-primary-900 mb-4 print:text-xs print:mb-3">Summary</h2>
- <table className="w-full text-sm print:text-[9px]">
- <tbody>
- <tr>
- <td className="py-2 pr-4 text-left text-neutral-700">Subtotal (ex-VAT)</td>
- <td className="py-2 text-right tabular-nums font-medium text-neutral-900">
- {displayMoney(data.subtotalExVat, data.currency)}
- </td>
- </tr>
- <tr>
- <td className="py-2 pr-4 text-left text-neutral-700">{entityConfig.tax.vatLabel}</td>
- <td className="py-2 text-right tabular-nums text-neutral-800">
- {displayMoney(data.vatAmount, data.currency)}
- </td>
- </tr>
- <tr className="border-t border-neutral-200 print:border-neutral-300">
- <td className="py-3 pr-4 text-left font-semibold text-primary-900">Total (incl. VAT)</td>
- <td className="py-3 text-right tabular-nums font-bold text-primary-900 text-base print:text-[10px]">
- {displayMoney(data.totalIncVat, data.currency)}
- </td>
- </tr>
- </tbody>
- </table>
- </div>
- </div>
- </div>
- </div>
- </div>
  </div>
  </DashboardPage>
  );

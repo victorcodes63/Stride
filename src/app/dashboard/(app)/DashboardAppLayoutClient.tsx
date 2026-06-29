@@ -225,7 +225,14 @@ export default function DashboardAppLayoutClient({
  return (
  <DashboardDomainProvider initialPathname={initialPathname}>
  <DashboardOverviewLayoutProvider>
- <DashboardModuleOrderProvider enabledModules={enabledModules} deploymentTier={deploymentTier}>
+ <DashboardModuleOrderProvider
+  enabledModules={enabledModules}
+  deploymentTier={deploymentTier}
+  currentUserRole={currentUser?.role ?? null}
+  hasAccountsAccess={currentUser?.hasAccountsAccess ?? false}
+  canViewSystemAnalytics={currentUser?.canViewSystemAnalytics ?? false}
+  canAccessCompanySetup={canAccessCompanySetup}
+ >
  <EntityProvider
  initialConfig={
  entityBootstrap

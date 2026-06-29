@@ -19,6 +19,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { DEFAULT_BRAND_LOGO_SRC } from '@/lib/brand-constants';
 import { isValidHexColor } from '@/lib/brand-theme';
 import type { InvoiceLetterheadMode, InvoiceSetupSettings, InvoiceSetupSnapshot } from '@/lib/invoice-setup';
+import { DEFAULT_INVOICE_PANEL_BACKGROUND } from '@/lib/invoice-setup';
 
 const inputClass =
   'w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
@@ -328,6 +329,60 @@ function InvoicingSetupPageInner() {
                     : null}
                 </p>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Header background</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {[
+                    { id: '', label: 'White (none)' },
+                    { id: '#000000', label: 'Black' },
+                    { id: '#1A1714', label: 'Ink' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.id || 'none'}
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => (f ? { ...f, headerBackgroundColor: preset.id } : f))
+                      }
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                        (form.headerBackgroundColor || '') === preset.id
+                          ? 'border-primary-800 bg-primary-50 text-primary-900'
+                          : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={
+                      isValidHexColor(form.headerBackgroundColor)
+                        ? form.headerBackgroundColor.toLowerCase()
+                        : '#000000'
+                    }
+                    onChange={(e) =>
+                      setForm((f) =>
+                        f ? { ...f, headerBackgroundColor: e.target.value.toUpperCase() } : f,
+                      )
+                    }
+                    className="h-10 w-12 rounded border border-neutral-300 cursor-pointer"
+                  />
+                  <input
+                    className={`${inputClass} font-mono uppercase`}
+                    value={form.headerBackgroundColor}
+                    onChange={(e) =>
+                      setForm((f) => (f ? { ...f, headerBackgroundColor: e.target.value } : f))
+                    }
+                    placeholder="Custom hex or leave empty"
+                  />
+                </div>
+                <p className="text-xs text-neutral-500 mt-1.5">
+                  Optional band behind your logo and company block — ideal for logos that need a dark
+                  background. Text colour switches automatically (white on dark, accent on light).
+                  Use embedded logo mode below.
+                </p>
+              </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-neutral-800 mb-1.5">Document footer</label>
                 <textarea
@@ -366,6 +421,62 @@ function InvoicingSetupPageInner() {
                   onChange={(e) => setForm((f) => (f ? { ...f, vatPin: e.target.value } : f))}
                   placeholder="e.g. P051234567X"
                 />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">
+                  Panel shading colour
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {[
+                    { id: '', label: `Default (${DEFAULT_INVOICE_PANEL_BACKGROUND})` },
+                    { id: '#FFFFFF', label: 'White' },
+                    { id: '#E8F4FC', label: 'Light blue' },
+                    { id: '#FEF3C7', label: 'Warm sand' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.id || 'default'}
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => (f ? { ...f, panelBackgroundColor: preset.id } : f))
+                      }
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                        (form.panelBackgroundColor || '') === preset.id
+                          ? 'border-primary-800 bg-primary-50 text-primary-900'
+                          : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={
+                      isValidHexColor(form.panelBackgroundColor)
+                        ? form.panelBackgroundColor.toLowerCase()
+                        : DEFAULT_INVOICE_PANEL_BACKGROUND.toLowerCase()
+                    }
+                    onChange={(e) =>
+                      setForm((f) =>
+                        f ? { ...f, panelBackgroundColor: e.target.value.toUpperCase() } : f,
+                      )
+                    }
+                    className="h-10 w-12 rounded border border-neutral-300 cursor-pointer"
+                  />
+                  <input
+                    className={`${inputClass} font-mono uppercase`}
+                    value={form.panelBackgroundColor}
+                    onChange={(e) =>
+                      setForm((f) => (f ? { ...f, panelBackgroundColor: e.target.value } : f))
+                    }
+                    placeholder={DEFAULT_INVOICE_PANEL_BACKGROUND}
+                  />
+                </div>
+                <p className="text-xs text-neutral-500 mt-1.5">
+                  Used for the invoice-to box, table header row, and payment-details panel on PDFs.
+                  Text colour adapts automatically for readability on dark or light shades.
+                </p>
               </div>
             </div>
           </section>

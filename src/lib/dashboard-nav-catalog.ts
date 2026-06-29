@@ -536,8 +536,9 @@ export const DASHBOARD_NAV_GROUPS = [
   { label: '03 — Procurement', startSectionId: 'procurement' },
   { label: '04 — Legal & Documents', startSectionId: 'legal-documents' },
   { label: '05 — Projects', startSectionId: 'projects' },
-  { label: '06 — Fleet & Logistics', startSectionId: 'fleet-operations' },
-  { label: '07 — Admin & Operations', startSectionId: 'operations' },
+  { label: '06 — Fleet management', startSectionId: 'fleet-operations' },
+  { label: '07 — Operations', startSectionId: 'operations' },
+  { label: '08 — Platform admin', startSectionId: 'admin' },
 ] as const;
 
 /** @deprecated Use DASHBOARD_NAV_GROUPS */

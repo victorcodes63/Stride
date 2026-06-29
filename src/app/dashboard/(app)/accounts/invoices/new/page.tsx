@@ -8,6 +8,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { computeInvoiceVatFromLines } from '@/lib/accounts-invoice-totals';
 import { InvoicePaymentAccountSelect } from '@/components/accounts/InvoiceBankPanel';
+import { InvoiceDraftPdfPreview } from '@/components/accounts/InvoiceDraftPdfPreview';
 import type { PaymentAccountRow } from '@/lib/payment-accounts';
 import useEntityConfig, { useDisplayMoney } from '@/hooks/useEntityConfig';
 import { getEntityConfig } from '@/lib/entityConfig';
@@ -16,8 +17,6 @@ import {
   emptyInvoiceLineDraft,
   invoiceLineDraftsToAmounts,
   invoiceLineDraftsToPayload,
-  lineTotalExVat,
-  parseInvoiceLineQuantity,
   type InvoiceLineDraft,
 } from '@/lib/accounts-invoice-line-draft';
 
@@ -190,6 +189,29 @@ function NewInvoiceForm() {
  return Math.round(n * 100) / 100;
  }, [manualTotalIncVat]);
 
+ const previewDraft = useMemo(() => {
+ if (!selectedClient) return null;
+ return {
+ clientName: selectedClient.name,
+ currency: selectedClient.currency,
+ issueDate,
+ dueDate,
+ vatRateBps,
+ paymentAccountId,
+ notes,
+ lines,
+ previewInvoiceNumber: selectedClient.nextInvoiceNumber,
+ };
+ }, [
+ selectedClient,
+ issueDate,
+ dueDate,
+ vatRateBps,
+ paymentAccountId,
+ notes,
+ lines,
+ ]);
+
  const addLine = () => {
  setLines((prev) => [...prev, emptyInvoiceLineDraft()]);
  };
@@ -306,7 +328,7 @@ function NewInvoiceForm() {
  </div>
  )}
 
- <form onSubmit={submit} className="space-y-8">
+ <form onSubmit={submit} className="space-y-6">
  {formError && (
  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 flex gap-2">
  <AlertCircle className="w-5 h-5 shrink-0" />
@@ -314,6 +336,8 @@ function NewInvoiceForm() {
  </div>
  )}
 
+ <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+ <div className="space-y-6 min-w-0">
  <div className="dashboard-surface p-5 sm:p-6 shadow-sm space-y-4">
  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-neutral-500">
  Client &amp; dates
@@ -420,9 +444,16 @@ function NewInvoiceForm() {
 
  <div className="dashboard-surface p-5 sm:p-6 shadow-sm space-y-4">
  <div className="flex items-center justify-between gap-2 flex-wrap">
+ <div>
  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-neutral-500">
- Line items (ex-VAT)
+ {selectedClient ? 'Invoice to' : 'Line items'}
  </p>
+ {selectedClient ? (
+ <p className="mt-1 text-sm font-semibold text-neutral-900">{selectedClient.name}</p>
+ ) : (
+ <p className="mt-1 text-xs text-neutral-500">Select a billing client above.</p>
+ )}
+ </div>
  <button
  type="button"
  onClick={addLine}
@@ -433,23 +464,58 @@ function NewInvoiceForm() {
  </button>
  </div>
 
- <div className="space-y-4">
+ <div>
+ <label htmlFor="introduction" className="block text-xs font-medium text-neutral-600 mb-1">
+ Introduction (optional, shown above the table on PDF)
+ </label>
+ <textarea
+ id="introduction"
+ rows={2}
+ className={inputClass}
+ value={notes}
+ onChange={(e) => setNotes(e.target.value)}
+ placeholder="e.g. Being recruitment fees for the following positions:"
+ />
+ </div>
+
+ <div className="overflow-x-auto rounded-xl border border-neutral-200">
+ <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_6rem_5rem_2.5rem] gap-2 px-3 py-2 bg-neutral-100 text-[10px] font-bold uppercase tracking-wide text-neutral-500 min-w-[32rem]">
+ <span>#</span>
+ <span>Description</span>
+ <span className="text-right">Amount ex-VAT</span>
+ <span>Qty</span>
+ <span aria-hidden />
+ </div>
+ <div className="divide-y divide-neutral-100 min-w-[32rem]">
  {lines.map((line, index) => (
  <div
  key={index}
- className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-xl border border-neutral-100 bg-neutral-50/50"
+ className="grid grid-cols-[2.5rem_minmax(0,1fr)_6rem_5rem_2.5rem] gap-2 px-3 py-3 items-start"
  >
- <div className="md:col-span-5">
- <label className="block text-xs font-medium text-neutral-600 mb-1">Description *</label>
+ <span className="pt-2 text-xs text-neutral-500 tabular-nums">{index + 1}</span>
+ <div className="space-y-2">
  <input
  className={inputClass}
  value={line.item}
  onChange={(e) => updateLine(index, { item: e.target.value })}
- placeholder="e.g. Monthly HR retainer"
+ placeholder="Position or service description"
+ />
+ <input
+ className={inputClass}
+ value={line.description}
+ onChange={(e) => updateLine(index, { description: e.target.value })}
+ placeholder="Extra detail (optional second line)"
  />
  </div>
- <div className="md:col-span-1">
- <label className="block text-xs font-medium text-neutral-600 mb-1">Qty (optional)</label>
+ <input
+ className={`${inputClass} text-right tabular-nums`}
+ type="number"
+ min={0.01}
+ step="0.01"
+ value={line.amountExVat}
+ onChange={(e) => updateLine(index, { amountExVat: e.target.value })}
+ placeholder="0.00"
+ />
  <input
  className={inputClass}
  type="number"
@@ -458,40 +524,8 @@ function NewInvoiceForm() {
  value={line.quantity}
  onChange={(e) => updateLine(index, { quantity: e.target.value })}
  placeholder="—"
+ title="Optional quantity"
  />
- </div>
- <div className="md:col-span-2">
- <label className="block text-xs font-medium text-neutral-600 mb-1">Amount ex-VAT *</label>
- <input
- className={inputClass}
- type="number"
- min={0.01}
- step="0.01"
- value={line.amountExVat}
- onChange={(e) => updateLine(index, { amountExVat: e.target.value })}
- placeholder="0.00"
- />
- {line.quantity.trim() !== '' &&
- lineTotalExVat(line.amountExVat, line.quantity) != null &&
- parseInvoiceLineQuantity(line.quantity) !== 1 ? (
- <p className="mt-1 text-[11px] text-neutral-500 tabular-nums">
- Line total: {lineTotalExVat(line.amountExVat, line.quantity)!.toLocaleString('en-KE', {
- minimumFractionDigits: 2,
- maximumFractionDigits: 2,
- })}
- </p>
- ) : null}
- </div>
- <div className="md:col-span-2">
- <label className="block text-xs font-medium text-neutral-600 mb-1">Notes (optional)</label>
- <input
- className={inputClass}
- value={line.description}
- onChange={(e) => updateLine(index, { description: e.target.value })}
- placeholder="Internal"
- />
- </div>
- <div className="md:col-span-1 flex items-end justify-end">
  <button
  type="button"
  onClick={() => removeLine(index)}
@@ -502,8 +536,8 @@ function NewInvoiceForm() {
  <Trash2 className="w-4 h-4" />
  </button>
  </div>
- </div>
  ))}
+ </div>
  </div>
 
  {totalsPreview && selectedClient && (
@@ -581,20 +615,6 @@ function NewInvoiceForm() {
  )}
  </div>
 
- <div className="dashboard-surface p-5 sm:p-6 shadow-sm">
- <label htmlFor="notes" className="block text-sm font-medium text-neutral-800 mb-1.5">
- Invoice notes (optional)
- </label>
- <textarea
- id="notes"
- rows={3}
- className={inputClass}
- value={notes}
- onChange={(e) => setNotes(e.target.value)}
- placeholder="Shown on PDF / detail view"
- />
- </div>
-
  <div className="flex flex-wrap gap-3">
  <button
  type="submit"
@@ -610,6 +630,10 @@ function NewInvoiceForm() {
  >
  Cancel
  </Link>
+ </div>
+ </div>
+
+ <InvoiceDraftPdfPreview draft={previewDraft} className="min-h-[min(72vh,880px)]" />
  </div>
  </form>
  </DashboardPage>

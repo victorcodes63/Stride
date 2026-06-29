@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { ModuleHomeContent } from '@/components/dashboard/module-home/ModuleHomeContent';
 
 export const metadata: Metadata = {
-  title: 'Admin & operations | Stride Dashboard',
-  description: 'Fleet, assets, HSE, communications, reports, and system administration.',
+  title: 'Operations | Stride Dashboard',
+  description: 'Assets, HSE, announcements, and operational reporting.',
 };
 
 export default function OperationsModuleHomePage() {

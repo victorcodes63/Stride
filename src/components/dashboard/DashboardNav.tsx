@@ -233,7 +233,7 @@ export default function DashboardNav({
   onNavigate,
 }: DashboardNavProps) {
   const { activeDomainId, activeDomain, pathname } = useDashboardDomain();
-  const { orderedDomains } = useDashboardModuleOrder();
+  const { visibleDomains } = useDashboardModuleOrder();
   const overviewItem = useMemo(() => getDomainOverviewNavItem(activeDomainId), [activeDomainId]);
 
   const navOptions = useMemo(
@@ -391,7 +391,7 @@ export default function DashboardNav({
           />
           <NavGroupLabel label="Modules" />
           <div className="space-y-0.5">
-            {orderedDomains.map((domain) => {
+            {visibleDomains.map((domain) => {
               const DomainIcon = domain.icon;
               const isActive = isPathActive(pathname, domain.hubHref);
               return (

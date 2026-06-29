@@ -8,7 +8,7 @@ import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
 import { domainReadinessDotClass } from '@/lib/dashboard-nav-readiness';
 
 export function ModuleOrderSettings() {
-  const { orderedDomains, isCustom, loading, moveModule, resetModuleOrder } = useDashboardModuleOrder();
+  const { visibleDomains, isCustom, loading, moveModule, resetModuleOrder } = useDashboardModuleOrder();
   const [savingId, setSavingId] = useState<DashboardModuleDomainId | null>(null);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +74,7 @@ export function ModuleOrderSettings() {
         </div>
       ) : (
         <ol className="space-y-2">
-          {orderedDomains.map((domain, index) => {
+          {visibleDomains.map((domain, index) => {
             const Icon = domain.icon;
             const busy = savingId === domain.id;
             return (
@@ -113,7 +113,7 @@ export function ModuleOrderSettings() {
                   <button
                     type="button"
                     onClick={() => void handleMove(domain.id, 'down')}
-                    disabled={index === orderedDomains.length - 1 || busy || resetting}
+                    disabled={index === visibleDomains.length - 1 || busy || resetting}
                     className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 disabled:opacity-40"
                     aria-label={`Move ${domain.shortLabel} down`}
                   >

@@ -301,7 +301,7 @@ function OverviewMetricsSkeleton() {
 
 export default function DashboardOverviewContent() {
   const { user: sessionUser, modules: sessionModules } = useDashboardSession();
-  const { orderedDomains } = useDashboardModuleOrder();
+  const { visibleDomains } = useDashboardModuleOrder();
   const { activeEntity, loading: entityLoading } = useEntity();
   const [coreLoading, setCoreLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(true);
@@ -657,7 +657,7 @@ export default function DashboardOverviewContent() {
             }
           />
           <div className="space-y-4 px-2 py-2 sm:px-3">
-            {orderedDomains.filter((d) => (attentionByDomain[d.id]?.length ?? 0) > 0).map(
+            {visibleDomains.filter((d) => (attentionByDomain[d.id]?.length ?? 0) > 0).map(
               (domain) => {
                 const items = attentionByDomain[domain.id] ?? [];
                 const DomainIcon = domain.icon;
