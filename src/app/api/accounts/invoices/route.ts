@@ -6,7 +6,7 @@ import { computeInvoiceVatFromSubtotal } from '@/lib/accounts-invoice-totals';
 import { sumCreditTotalsByInvoiceIds } from '@/lib/accounts-credit-note-totals';
 import { reportApiError } from '@/lib/monitoring';
 import { getOrCreatePrimaryAccountsClient } from '@/lib/primary-accounts-client';
-import { requireRecentSensitiveAuth } from '@/lib/admin-security';
+import { guardSensitiveAction } from '@/lib/sensitive-reauth-policy';
 import {
   paymentBankForAccountId,
   resolvePaymentAccountId,
@@ -167,7 +167,11 @@ export async function POST(request: NextRequest) {
         { status: 403 },
       );
     }
-    const reauthError = requireRecentSensitiveAuth(request, ctx.staff.id);
+    const reauthError = await guardSensitiveAction(request, {
+      userId: ctx.staff.id,
+      userRole: ctx.staff.role,
+      organizationId: ctx.organizationId,
+    });
     if (reauthError) return reauthError;
 
     let body: unknown;

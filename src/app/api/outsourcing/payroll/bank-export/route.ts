@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
 import { buildBankExportCsv, formatBankExportPaymentReference } from '@/lib/payroll-bank-export';
-import { requireRecentSensitiveAuth } from '@/lib/admin-security';
+import { guardSensitiveAction } from '@/lib/sensitive-reauth-policy';
 import { withTenant } from '@/lib/tenant-api';
 
 export async function GET(request: NextRequest) {
@@ -11,7 +11,11 @@ export async function GET(request: NextRequest) {
     if (!canAccessPayroll(ctx.staff)) {
       return forbiddenResponse('Payroll access is restricted to finance and admins.');
     }
-    const reauthError = requireRecentSensitiveAuth(request, ctx.staff.id);
+    const reauthError = await guardSensitiveAction(request, {
+      userId: ctx.staff.id,
+      userRole: ctx.staff.role,
+      organizationId: ctx.organizationId,
+    });
     if (reauthError) return reauthError;
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 503 });

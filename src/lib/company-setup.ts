@@ -37,6 +37,7 @@ import {
   sanitizeModuleAdminFlags,
   type ModuleKey,
 } from '@/lib/modules';
+import { sanitizeSensitiveReauthUserIds } from '@/lib/sensitive-reauth-policy';
 
 export const COMPANY_SETUP_SETTINGS_KEY = 'admin.company.setup';
 
@@ -91,6 +92,10 @@ export type CompanySetupSettings = {
   dashboardTableZebraStriping: boolean;
   /** Admin toggles for licensed modules — hide nav/routes without redeploying. */
   moduleAdminFlags: Record<ModuleKey, boolean>;
+  /** When enabled, selected staff must re-enter password before sensitive actions (admins exempt). */
+  sensitiveActionReauthEnabled: boolean;
+  /** Staff user IDs subject to re-auth; empty = all non-admin staff when enabled. */
+  sensitiveActionReauthUserIds: string[];
   // Documents
   payslipLegalName: string;
   documentFooterText: string;
@@ -140,6 +145,8 @@ export const DEFAULT_COMPANY_SETUP: CompanySetupSettings = {
   dashboardTableZebraStriping: true,
   moduleAdminFlags:
     isDemoMode() || isPublicDemoMode() ? allModulesAdminEnabled() : defaultModuleAdminFlags(),
+  sensitiveActionReauthEnabled: false,
+  sensitiveActionReauthUserIds: [],
   payslipLegalName: '',
   documentFooterText: '',
   publicFooterText: '',
@@ -250,6 +257,8 @@ export function sanitizeCompanySetup(value: unknown): CompanySetupSettings {
       raw.moduleAdminFlags === undefined
         ? allModulesAdminEnabled()
         : sanitizeModuleAdminFlags(raw.moduleAdminFlags),
+    sensitiveActionReauthEnabled: bool(raw, 'sensitiveActionReauthEnabled', d.sensitiveActionReauthEnabled),
+    sensitiveActionReauthUserIds: sanitizeSensitiveReauthUserIds(raw.sensitiveActionReauthUserIds),
     payslipLegalName: str(raw, 'payslipLegalName'),
     documentFooterText: str(raw, 'documentFooterText'),
     publicFooterText: str(raw, 'publicFooterText'),

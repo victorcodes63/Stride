@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { requireRecentSensitiveAuth } from '@/lib/admin-security';
+import { guardSensitiveAction } from '@/lib/sensitive-reauth-policy';
 import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
 import { getPayrollDisbursementProvider } from '@/lib/payroll-disbursement/provider';
 import {
@@ -71,7 +71,11 @@ export async function POST(request: NextRequest) {
       if (!canAccessPayroll(ctx.staff)) {
         return forbiddenResponse('Payroll access is restricted to finance and admins.');
       }
-      const reauthError = requireRecentSensitiveAuth(request, ctx.staff.id);
+      const reauthError = await guardSensitiveAction(request, {
+        userId: ctx.staff.id,
+        userRole: ctx.staff.role,
+        organizationId: ctx.organizationId,
+      });
       if (reauthError) return reauthError;
 
       const body = (await request.json().catch(() => ({}))) as {

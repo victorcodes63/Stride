@@ -13,6 +13,8 @@ describe('company-setup', () => {
     expect(result.staffEnableGoogleLogin).toBe(false);
     expect(result.primaryColor).toBe('#FF0000');
     expect(result.dashboardTableZebraStriping).toBe(true);
+    expect(result.sensitiveActionReauthEnabled).toBe(false);
+    expect(result.sensitiveActionReauthUserIds).toEqual([]);
   });
 
   it('filters oauth providers by auth method', () => {

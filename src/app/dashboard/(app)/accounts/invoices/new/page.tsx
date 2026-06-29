@@ -12,6 +12,14 @@ import type { PaymentAccountRow } from '@/lib/payment-accounts';
 import useEntityConfig, { useDisplayMoney } from '@/hooks/useEntityConfig';
 import { getEntityConfig } from '@/lib/entityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import {
+  emptyInvoiceLineDraft,
+  invoiceLineDraftsToAmounts,
+  invoiceLineDraftsToPayload,
+  lineTotalExVat,
+  parseInvoiceLineQuantity,
+  type InvoiceLineDraft,
+} from '@/lib/accounts-invoice-line-draft';
 
 type ClientRow = {
  id: string;
@@ -41,8 +49,6 @@ function addDaysIsoLocal(iso: string, days: number): string {
 
 const inputClass =
  'w-full min-w-0 rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
-
-type LineDraft = { item: string; amountExVat: string; description: string };
 
 function computeInvoiceTotalFromSubtotal(
  subtotalExVat: number,
@@ -98,9 +104,7 @@ function NewInvoiceForm() {
  const [roundTotalToWholeKes, setRoundTotalToWholeKes] = useState(false);
  const [manualTotalIncVat, setManualTotalIncVat] = useState('');
 
- const [lines, setLines] = useState<LineDraft[]>([
- { item: '', amountExVat: '', description: '' },
- ]);
+ const [lines, setLines] = useState<InvoiceLineDraft[]>([emptyInvoiceLineDraft()]);
 
  const [submitting, setSubmitting] = useState(false);
  const [formError, setFormError] = useState<string | null>(null);
@@ -159,15 +163,7 @@ function NewInvoiceForm() {
  return list;
  }, [clients]);
 
- const previewLines = useMemo(() => {
- return lines
- .map((l) => {
- const n = parseFloat(l.amountExVat);
- if (!Number.isFinite(n) || n <= 0) return null;
- return { amountExVat: n };
- })
- .filter(Boolean) as { amountExVat: number }[];
- }, [lines]);
+ const previewLines = useMemo(() => invoiceLineDraftsToAmounts(lines), [lines]);
 
  const totalsPreview = useMemo(() => {
  if (previewLines.length === 0) return null;
@@ -195,14 +191,14 @@ function NewInvoiceForm() {
  }, [manualTotalIncVat]);
 
  const addLine = () => {
- setLines((prev) => [...prev, { item: '', amountExVat: '', description: '' }]);
+ setLines((prev) => [...prev, emptyInvoiceLineDraft()]);
  };
 
  const removeLine = (index: number) => {
  setLines((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
  };
 
- const updateLine = (index: number, patch: Partial<LineDraft>) => {
+ const updateLine = (index: number, patch: Partial<InvoiceLineDraft>) => {
  setLines((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
  };
 
@@ -217,19 +213,9 @@ function NewInvoiceForm() {
  setFormError('Select a billing client.');
  return;
  }
- const payloadLines = lines
- .map((l) => ({
- item: l.item.trim(),
- amountExVat: parseFloat(l.amountExVat),
- description: l.description.trim() || undefined,
- }))
- .filter((l) => l.item.length > 0 || Number.isFinite(l.amountExVat));
-
- const validLines = payloadLines.filter(
- (l) => l.item.length > 0 && Number.isFinite(l.amountExVat) && l.amountExVat > 0,
- );
+ const validLines = invoiceLineDraftsToPayload(lines);
  if (validLines.length < 1) {
- setFormError('Add at least one line with a description and a positive amount (ex-VAT).');
+ setFormError('Add at least one line with a description and positive amount (ex-VAT).');
  return;
  }
 
@@ -243,11 +229,7 @@ function NewInvoiceForm() {
  vatRateBps,
  paymentAccountId,
  notes: notes.trim() || null,
- lines: validLines.map((l) => ({
- item: l.item,
- amountExVat: l.amountExVat,
- ...(l.description ? { description: l.description } : {}),
- })),
+ lines: validLines,
  };
  if (roundTotalToWholeKes && roundingPreview) {
  (body.lines as Array<Record<string, unknown>>).push({
@@ -457,7 +439,7 @@ function NewInvoiceForm() {
  key={index}
  className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-xl border border-neutral-100 bg-neutral-50/50"
  >
- <div className="md:col-span-6">
+ <div className="md:col-span-5">
  <label className="block text-xs font-medium text-neutral-600 mb-1">Description *</label>
  <input
  className={inputClass}
@@ -466,7 +448,19 @@ function NewInvoiceForm() {
  placeholder="e.g. Monthly HR retainer"
  />
  </div>
- <div className="md:col-span-3">
+ <div className="md:col-span-1">
+ <label className="block text-xs font-medium text-neutral-600 mb-1">Qty (optional)</label>
+ <input
+ className={inputClass}
+ type="number"
+ min={1}
+ step="1"
+ value={line.quantity}
+ onChange={(e) => updateLine(index, { quantity: e.target.value })}
+ placeholder="—"
+ />
+ </div>
+ <div className="md:col-span-2">
  <label className="block text-xs font-medium text-neutral-600 mb-1">Amount ex-VAT *</label>
  <input
  className={inputClass}
@@ -477,6 +471,16 @@ function NewInvoiceForm() {
  onChange={(e) => updateLine(index, { amountExVat: e.target.value })}
  placeholder="0.00"
  />
+ {line.quantity.trim() !== '' &&
+ lineTotalExVat(line.amountExVat, line.quantity) != null &&
+ parseInvoiceLineQuantity(line.quantity) !== 1 ? (
+ <p className="mt-1 text-[11px] text-neutral-500 tabular-nums">
+ Line total: {lineTotalExVat(line.amountExVat, line.quantity)!.toLocaleString('en-KE', {
+ minimumFractionDigits: 2,
+ maximumFractionDigits: 2,
+ })}
+ </p>
+ ) : null}
  </div>
  <div className="md:col-span-2">
  <label className="block text-xs font-medium text-neutral-600 mb-1">Notes (optional)</label>

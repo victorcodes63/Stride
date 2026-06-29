@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { StatutoryItemStatus } from '@prisma/client';
 import { deriveReturnStatus } from '@/lib/statutory-returns';
 import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
-import { enforceSodCheck, requireRecentSensitiveAuth, SodViolationError } from '@/lib/admin-security';
+import { enforceSodCheck, SodViolationError } from '@/lib/admin-security';
+import { guardSensitiveAction } from '@/lib/sensitive-reauth-policy';
 import { withTenant } from '@/lib/tenant-api';
 
 const ALLOWED_STATUS = new Set(['pending', 'prepared', 'submitted', 'paid', 'overdue'] as const);
@@ -27,7 +28,11 @@ export async function PATCH(
       const now = new Date();
       const sensitiveSubmit = statusInput === 'submitted' || statusInput === 'paid';
       if (sensitiveSubmit) {
-        const reauthError = requireRecentSensitiveAuth(request, ctx.staff.id);
+        const reauthError = await guardSensitiveAction(request, {
+          userId: ctx.staff.id,
+          userRole: ctx.staff.role,
+          organizationId: ctx.organizationId,
+        });
         if (reauthError) return reauthError;
         await enforceSodCheck({
           actorUserId: ctx.staff.id,

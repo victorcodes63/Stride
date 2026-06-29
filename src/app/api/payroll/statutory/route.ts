@@ -10,7 +10,8 @@ import {
   to2,
 } from '@/lib/statutory-returns';
 import { canAccessPayroll, forbiddenResponse } from '@/lib/demo-route-access';
-import { enforceSodCheck, requireRecentSensitiveAuth, SodViolationError } from '@/lib/admin-security';
+import { enforceSodCheck, SodViolationError } from '@/lib/admin-security';
+import { guardSensitiveAction } from '@/lib/sensitive-reauth-policy';
 import { withTenant } from '@/lib/tenant-api';
 
 function toDecimal(v: number) {
@@ -167,7 +168,11 @@ export async function POST(request: NextRequest) {
   return withTenant(request, async (ctx) => {
     try {
       if (!canAccessPayroll(ctx.staff)) return forbiddenResponse('Payroll/statutory access is restricted.');
-      const reauthError = requireRecentSensitiveAuth(request, ctx.staff.id);
+      const reauthError = await guardSensitiveAction(request, {
+        userId: ctx.staff.id,
+        userRole: ctx.staff.role,
+        organizationId: ctx.organizationId,
+      });
       if (reauthError) return reauthError;
       const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
       const month = parseInt(String(body.month ?? ''), 10);

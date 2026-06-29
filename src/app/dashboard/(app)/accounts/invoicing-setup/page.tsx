@@ -17,13 +17,14 @@ import {
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DEFAULT_BRAND_LOGO_SRC } from '@/lib/brand-constants';
+import { isValidHexColor } from '@/lib/brand-theme';
 import type { InvoiceLetterheadMode, InvoiceSetupSettings, InvoiceSetupSnapshot } from '@/lib/invoice-setup';
 
 const inputClass =
   'w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
 
 function settingsFromSnapshot(data: InvoiceSetupSnapshot): InvoiceSetupSettings {
-  return data.resolved;
+  return data.settings;
 }
 
 function InvoicingSetupPageInner() {
@@ -118,6 +119,11 @@ function InvoicingSetupPageInner() {
   };
 
   const logoPreview = form?.logoSrc || snapshot?.branding.logoUrl || DEFAULT_BRAND_LOGO_SRC;
+  const accentFallback = snapshot?.branding.primaryColor ?? '#000000';
+  const accentPickerValue = (isValidHexColor(form?.primaryColor ?? '')
+    ? form!.primaryColor
+    : accentFallback
+  ).toLowerCase();
 
   return (
     <DashboardPage>
@@ -302,7 +308,7 @@ function InvoicingSetupPageInner() {
                 <div className="flex gap-2">
                   <input
                     type="color"
-                    value={form.primaryColor}
+                    value={accentPickerValue}
                     onChange={(e) =>
                       setForm((f) => (f ? { ...f, primaryColor: e.target.value.toUpperCase() } : f))
                     }
@@ -312,9 +318,15 @@ function InvoicingSetupPageInner() {
                     className={`${inputClass} font-mono uppercase`}
                     value={form.primaryColor}
                     onChange={(e) => setForm((f) => (f ? { ...f, primaryColor: e.target.value } : f))}
+                    placeholder={accentFallback}
                   />
                 </div>
-                <p className="text-xs text-neutral-500 mt-1.5">Used for headings and highlights on invoice PDFs.</p>
+                <p className="text-xs text-neutral-500 mt-1.5">
+                  Used for headings and highlights on invoice PDFs.
+                  {!isValidHexColor(form.primaryColor)
+                    ? ` Leave blank to use company colour (${accentFallback}).`
+                    : null}
+                </p>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-neutral-800 mb-1.5">Document footer</label>

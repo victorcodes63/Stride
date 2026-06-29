@@ -28,6 +28,7 @@ import {
 } from '@/lib/company-setup-tier-features';
 import { applyAuthMethodToSetup } from '@/lib/company-setup-auth';
 import { AuthDomainsSection, type EmailDomainRow } from './AuthDomainsSection';
+import { SensitiveReauthSection } from './SensitiveReauthSection';
 
 type Props = {
  initialForm: CompanySetupSettings;
@@ -403,6 +404,14 @@ export function CompanySetupForm({
 
  <SectionCard title="Verified email domains" icon={Shield} description="Required for SSO and domain-based sign-in">
   <AuthDomainsSection capabilities={capabilities} initialDomains={emailDomains} />
+ </SectionCard>
+
+ <SectionCard
+  title="Sensitive actions"
+  icon={Shield}
+  description="Optional password confirmation before invoices, payroll, and other high-impact operations"
+ >
+  <SensitiveReauthSection form={form} setForm={setForm} />
  </SectionCard>
 
  <SectionCard title="Contact & legal" icon={Globe}>

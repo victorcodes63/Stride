@@ -6,7 +6,7 @@ import {
   systemSettingCreate,
   systemSettingWhere,
 } from '@/lib/system-setting-store';
-import { DEFAULT_PRIMARY_COLOR, sanitizeHexColor } from '@/lib/brand-theme';
+import { DEFAULT_PRIMARY_COLOR, isValidHexColor, sanitizeHexColor } from '@/lib/brand-theme';
 import { ensureDefaultPaymentAccounts } from '@/lib/payment-accounts';
 
 export const INVOICE_SETUP_SETTINGS_KEY = 'accounts.invoice.setup';
@@ -34,7 +34,7 @@ export const DEFAULT_INVOICE_SETUP: InvoiceSetupSettings = {
   contactEmail: '',
   contactPhone: '',
   documentFooterText: '',
-  primaryColor: DEFAULT_PRIMARY_COLOR,
+  primaryColor: '',
 };
 
 export type InvoicePdfBranding = {
@@ -72,6 +72,20 @@ function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
 }
 
+/** Persist only explicitly valid hex; empty string = inherit from company setup on PDFs. */
+export function sanitizeInvoicePrimaryColor(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const t = value.trim();
+  if (!t) return '';
+  const withHash = t.startsWith('#') ? t : `#${t}`;
+  return isValidHexColor(withHash) ? withHash.toUpperCase() : '';
+}
+
+export function resolveInvoicePrimaryColor(stored: string, brandPrimary: string): string {
+  if (isValidHexColor(stored)) return sanitizeHexColor(stored, DEFAULT_PRIMARY_COLOR);
+  return sanitizeHexColor(brandPrimary, DEFAULT_PRIMARY_COLOR);
+}
+
 function parseLetterheadMode(v: unknown): InvoiceLetterheadMode {
   return v === 'embedded_logo' ? 'embedded_logo' : 'preprinted';
 }
@@ -89,7 +103,7 @@ export function sanitizeInvoiceSetup(raw: unknown): InvoiceSetupSettings {
     contactEmail: str(o.contactEmail),
     contactPhone: str(o.contactPhone),
     documentFooterText: str(o.documentFooterText),
-    primaryColor: sanitizeHexColor(o.primaryColor, d.primaryColor),
+    primaryColor: sanitizeInvoicePrimaryColor(o.primaryColor),
   };
 }
 
@@ -136,7 +150,7 @@ export async function resolveInvoiceIdentity(
     contactEmail: settings.contactEmail || brand.contactEmail,
     contactPhone: settings.contactPhone || brand.contactPhone,
     documentFooterText: settings.documentFooterText || brand.documentFooterText,
-    primaryColor: settings.primaryColor || brand.primaryColor || DEFAULT_PRIMARY_COLOR,
+    primaryColor: resolveInvoicePrimaryColor(settings.primaryColor, brand.primaryColor),
   };
 }
 
@@ -150,7 +164,7 @@ export function invoiceSettingsToPdfBranding(settings: InvoiceSetupSettings): In
     logoUrl,
     hasCustomLogo: isCustomLogo(logoUrl),
     documentFooter: settings.documentFooterText.trim(),
-    primaryColor: settings.primaryColor || DEFAULT_PRIMARY_COLOR,
+    primaryColor: settings.primaryColor,
     vatPin: settings.vatPin.trim(),
     letterheadMode: settings.letterheadMode,
   };

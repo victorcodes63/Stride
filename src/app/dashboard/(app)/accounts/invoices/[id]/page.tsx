@@ -27,6 +27,14 @@ import useEntityConfig, { useDisplayMoney } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import {
+  emptyInvoiceLineDraft,
+  invoiceLineDraftsToAmounts,
+  invoiceLineDraftsToPayload,
+  lineTotalExVat,
+  parseInvoiceLineQuantity,
+  type InvoiceLineDraft,
+} from '@/lib/accounts-invoice-line-draft';
 
 type Line = {
  id: string;
@@ -124,7 +132,7 @@ export default function AccountsInvoiceDetailPage() {
  vatRateBps: number;
  notes: string;
  totalOverrideIncVat: string;
- lines: Array<{ item: string; description: string; amountExVat: string }>;
+ lines: InvoiceLineDraft[];
  } | null>(null);
 
  const load = useCallback(() => {
@@ -204,16 +212,15 @@ export default function AccountsInvoiceDetailPage() {
  item: l.item,
  description: l.description ?? '',
  amountExVat: String(Number(l.amountExVat)),
+ quantity: '',
  })),
  });
  }, [data]);
 
  const editRoundingPreview = useMemo(() => {
  if (!editForm) return null;
- const subtotal = editForm.lines.reduce((sum, l) => {
- const n = parseFloat(l.amountExVat);
- return Number.isFinite(n) && n > 0 ? sum + n : sum;
- }, 0);
+ const previewLines = invoiceLineDraftsToAmounts(editForm.lines);
+ const subtotal = previewLines.reduce((sum, l) => sum + l.amountExVat, 0);
  if (subtotal <= 0) return null;
  const total = computeInvoiceTotalFromSubtotal(subtotal, editForm.vatRateBps);
  const hasFraction = Math.abs(total - Math.round(total)) > 0.00001;
@@ -284,19 +291,32 @@ export default function AccountsInvoiceDetailPage() {
 
  const saveInvoiceEdits = async () => {
  if (!id || !editForm) return;
+ const validLines = invoiceLineDraftsToPayload(editForm.lines);
+ if (validLines.length < 1) {
+ setError('Add at least one line with a description and positive amount (ex-VAT).');
+ return;
+ }
  setSavingEdit(true);
  try {
- const payload = {
+ const payload: {
+ issueDate: string;
+ dueDate: string | null;
+ taxDate: string | null;
+ vatRateBps: number;
+ notes: string;
+ totalOverrideIncVat: number | null;
+ lines: { item: string; description: string | null; amountExVat: number }[];
+ } = {
  issueDate: editForm.issueDate,
  dueDate: editForm.dueDate || null,
  taxDate: editForm.taxDate || null,
  vatRateBps: editForm.vatRateBps,
  notes: editForm.notes,
  totalOverrideIncVat: editManualTotalOverride,
- lines: editForm.lines.map((l) => ({
+ lines: validLines.map((l) => ({
  item: l.item,
- description: l.description || null,
- amountExVat: Number(l.amountExVat),
+ description: l.description ?? null,
+ amountExVat: l.amountExVat,
  })),
  };
  if (editRoundToWholeKes && editRoundingPreview) {
@@ -566,9 +586,9 @@ export default function AccountsInvoiceDetailPage() {
  </div>
  <div className="space-y-2">
  {editForm.lines.map((line, idx) => (
- <div key={idx} className="grid grid-cols-12 gap-2">
+ <div key={idx} className="grid grid-cols-12 gap-2 items-start">
  <input
- className="col-span-4 rounded-md border border-neutral-300 px-2 py-1.5"
+ className="col-span-3 rounded-md border border-neutral-300 px-2 py-1.5"
  placeholder="Item"
  value={line.item}
  onChange={(e) =>
@@ -583,7 +603,7 @@ export default function AccountsInvoiceDetailPage() {
  }
  />
  <input
- className="col-span-5 rounded-md border border-neutral-300 px-2 py-1.5"
+ className="col-span-3 rounded-md border border-neutral-300 px-2 py-1.5"
  placeholder="Description"
  value={line.description}
  onChange={(e) =>
@@ -600,9 +620,29 @@ export default function AccountsInvoiceDetailPage() {
  <input
  type="number"
  min={0.01}
+ step="1"
+ className="col-span-1 rounded-md border border-neutral-300 px-2 py-1.5"
+ placeholder="Qty (opt.)"
+ title="Quantity (optional)"
+ value={line.quantity}
+ onChange={(e) =>
+ setEditForm((f) =>
+ f
+ ? {
+ ...f,
+ lines: f.lines.map((l, i) => (i === idx ? { ...l, quantity: e.target.value } : l)),
+ }
+ : f
+ )
+ }
+ />
+ <div className="col-span-3">
+ <input
+ type="number"
+ min={0.01}
  step={0.01}
- className="col-span-2 rounded-md border border-neutral-300 px-2 py-1.5"
- placeholder="Amount"
+ className="w-full rounded-md border border-neutral-300 px-2 py-1.5"
+ placeholder="Amount ex-VAT"
  value={line.amountExVat}
  onChange={(e) =>
  setEditForm((f) =>
@@ -615,6 +655,17 @@ export default function AccountsInvoiceDetailPage() {
  )
  }
  />
+ {line.quantity.trim() !== '' &&
+ lineTotalExVat(line.amountExVat, line.quantity) != null &&
+ parseInvoiceLineQuantity(line.quantity) !== 1 ? (
+ <p className="mt-0.5 text-[10px] text-neutral-500 tabular-nums">
+ Line: {lineTotalExVat(line.amountExVat, line.quantity)!.toLocaleString('en-KE', {
+ minimumFractionDigits: 2,
+ maximumFractionDigits: 2,
+ })}
+ </p>
+ ) : null}
+ </div>
  <button
  type="button"
  className="col-span-1 text-xs text-red-700"
@@ -638,7 +689,7 @@ export default function AccountsInvoiceDetailPage() {
  f
  ? {
  ...f,
- lines: [...f.lines, { item: '', description: '', amountExVat: '' }],
+ lines: [...f.lines, emptyInvoiceLineDraft()],
  }
  : f
  )
@@ -719,6 +770,7 @@ export default function AccountsInvoiceDetailPage() {
  item: l.item,
  description: l.description ?? '',
  amountExVat: String(Number(l.amountExVat)),
+ quantity: '',
  })),
  });
  setEditRoundToWholeKes(false);

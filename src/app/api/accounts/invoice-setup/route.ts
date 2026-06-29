@@ -5,6 +5,7 @@ import {
   loadInvoiceSetupSnapshot,
   persistInvoiceSetupSettings,
   sanitizeInvoiceSetup,
+  sanitizeInvoicePrimaryColor,
   loadRawInvoiceSetupSettings,
   type InvoiceLetterheadMode,
 } from '@/lib/invoice-setup';
@@ -65,7 +66,9 @@ export async function PATCH(request: NextRequest) {
         ...(body.documentFooterText != null
           ? { documentFooterText: str(body.documentFooterText) ?? '' }
           : {}),
-        ...(body.primaryColor != null ? { primaryColor: str(body.primaryColor) ?? '' } : {}),
+        ...(body.primaryColor != null
+          ? { primaryColor: sanitizeInvoicePrimaryColor(body.primaryColor) }
+          : {}),
       });
 
       await persistInvoiceSetupSettings(ctx.organizationId, next, ctx.staff.id);

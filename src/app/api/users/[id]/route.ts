@@ -9,7 +9,8 @@ import { isStaffUserType } from '@/lib/staff-permissions';
 import type { StaffUserType, UserRole } from '@/types/dashboard';
 import { userRowToSummary } from '@/lib/user-summary-api';
 import { logAuditEvent } from '@/lib/audit-events';
-import { requireAdminOrganization, requireRecentSensitiveAuth } from '@/lib/admin-security';
+import { requireAdminOrganization } from '@/lib/admin-security';
+import { guardSensitiveAction } from '@/lib/sensitive-reauth-policy';
 import { updateOrganizationUser } from '@/lib/cell-org-users';
 import { withOrgContext } from '@/lib/org-context';
 
@@ -115,7 +116,11 @@ export async function PATCH(
     }
 
     if (role !== undefined || password !== undefined || mfaEnabled !== undefined) {
-      const reauthError = requireRecentSensitiveAuth(request, actor.userId || '');
+      const reauthError = await guardSensitiveAction(request, {
+        userId: actor.userId || '',
+        userRole: 'admin',
+        organizationId,
+      });
       if (reauthError) return reauthError;
     }
 
