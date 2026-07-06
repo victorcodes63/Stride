@@ -185,6 +185,34 @@ export function JdEditorContent({ jobDescriptionId }: Props) {
                 Published — create a new version to edit (coming in cycle engine)
               </span>
             )}
+            {status === 'published' && jobDescriptionId ? (
+              <button
+                type="button"
+                disabled={busy}
+                className="btn-secondary inline-flex h-10 items-center gap-2 px-3"
+                onClick={async () => {
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    const res = await fetch('/api/performance/scorecards', {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ jobDescriptionId }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error ?? 'Scorecard generation failed');
+                    router.push(`/dashboard/performance/scorecards/${data.template.id}`);
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : 'Scorecard generation failed');
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Generate BSC scorecard
+              </button>
+            ) : null}
           </div>
         }
       />

@@ -4389,6 +4389,7 @@ model JobDescription {
   competencies     JobCompetency[]
   kpis             JobKPI[]
   documents        JdDocument[]    @relation("JdDocuments")
+  scorecardTemplates ScorecardTemplate[]
 
   @@unique([organizationId, title, grade, version])
   @@index([organizationId, status])
@@ -4432,6 +4433,7 @@ model JobKPI {
 
   jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
   jobKra         JobKRA?        @relation(fields: [jobKraId], references: [id], onDelete: SetNull)
+  scorecardMeasures ScorecardMeasure[]
 
   @@index([jobDescriptionId, sortOrder])
   @@index([jobKraId])
@@ -4450,6 +4452,7 @@ model JobCompetency {
   updatedAt        DateTime @updatedAt
 
   jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+  scorecardRequirements CompetencyRequirement[]
 
   @@index([jobDescriptionId, sortOrder])
 }
@@ -4487,6 +4490,91 @@ model JdParserConfig {
   updatedAt         DateTime     @updatedAt
 
   consentBy User? @relation("JdParserConfigConsent", fields: [consentByUserId], references: [id], onDelete: SetNull)
+}
+
+// --- Performance BSC: Scorecard templates (PERF-03 / RAV-254) ---
+
+enum ScorecardMeasureSource {
+  manual
+  auto
+}
+
+model ScorecardTemplate {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  jobDescriptionId        String
+  jobDescriptionVersion   Int
+  title                   String
+  grade                   String?
+  resultsWeightPercent    Int      @default(70)
+  competenciesWeightPercent Int    @default(30)
+  status                  JdStatus @default(published)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  jobDescription JobDescription         @relation(fields: [jobDescriptionId], references: [id], onDelete: Restrict)
+  perspectives   ScorecardPerspective[]
+  measures       ScorecardMeasure[]
+  competencyReqs CompetencyRequirement[]
+
+  @@unique([organizationId, jobDescriptionId, jobDescriptionVersion])
+  @@index([organizationId, title])
+}
+
+model ScorecardPerspective {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  templateId     String
+  perspective    BscPerspective
+  weightPercent  Int
+  sortOrder      Int @default(0)
+
+  template ScorecardTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  measures ScorecardMeasure[]
+
+  @@unique([templateId, perspective])
+}
+
+model ScorecardMeasure {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  templateId       String
+  perspectiveId    String?
+  jobKpiId         String?
+  title            String
+  description      String? @db.Text
+  targetValue      String?
+  unit             String?
+  weightPercent    Int     @default(25)
+  sourceType       ScorecardMeasureSource @default(manual)
+  kpiSourceKey     String?
+  sortOrder        Int     @default(0)
+
+  template    ScorecardTemplate     @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  perspective ScorecardPerspective? @relation(fields: [perspectiveId], references: [id], onDelete: SetNull)
+  jobKpi      JobKPI?               @relation(fields: [jobKpiId], references: [id], onDelete: SetNull)
+
+  @@index([templateId, sortOrder])
+}
+
+model CompetencyRequirement {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  templateId       String
+  jobCompetencyId  String?
+  name             String
+  description      String? @db.Text
+  requiredLevel    Int
+  sortOrder        Int     @default(0)
+
+  template      ScorecardTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  jobCompetency JobCompetency?  @relation(fields: [jobCompetencyId], references: [id], onDelete: SetNull)
+
+  @@index([templateId, sortOrder])
 }
 
 // --- Performance management (RAV-69) ---
