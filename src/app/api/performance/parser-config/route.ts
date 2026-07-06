@@ -16,8 +16,18 @@ export async function GET(request: NextRequest) {
             hasApiKeyRef: Boolean(config.apiKeyRef),
             consentAt: config.consentAt?.toISOString() ?? null,
             promptTemplate: config.promptTemplate,
+            aiEvaluationEnabled: config.aiEvaluationEnabled,
+            aiEvaluationConsentAt: config.aiEvaluationConsentAt?.toISOString() ?? null,
           }
-        : { mode: 'manual', provider: null, hasApiKeyRef: false, consentAt: null, promptTemplate: null },
+        : {
+            mode: 'manual',
+            provider: null,
+            hasApiKeyRef: false,
+            consentAt: null,
+            promptTemplate: null,
+            aiEvaluationEnabled: false,
+            aiEvaluationConsentAt: null,
+          },
     });
   });
 }
@@ -32,6 +42,8 @@ export async function PATCH(request: NextRequest) {
         apiKeyRef?: string | null;
         promptTemplate?: string | null;
         consent?: boolean;
+        aiEvaluationEnabled?: boolean;
+        aiEvaluationConsent?: boolean;
       };
 
       const mode = body.mode === 'stride' || body.mode === 'byo' || body.mode === 'manual' ? body.mode : 'manual';
@@ -40,6 +52,14 @@ export async function PATCH(request: NextRequest) {
       if (aiMode && !body.consent) {
         return NextResponse.json(
           { error: 'Explicit consent is required before enabling Stride or BYO JD parsing.' },
+          { status: 400 },
+        );
+      }
+
+      const aiEvalRequested = body.aiEvaluationEnabled === true;
+      if (aiEvalRequested && !body.aiEvaluationConsent) {
+        return NextResponse.json(
+          { error: 'Explicit consent is required before enabling AI evaluation assist.' },
           { status: 400 },
         );
       }
@@ -55,6 +75,9 @@ export async function PATCH(request: NextRequest) {
             promptTemplate: body.promptTemplate ?? null,
             consentAt: aiMode ? new Date() : null,
             consentByUserId: aiMode ? ctx.staff.id : null,
+            aiEvaluationEnabled: aiEvalRequested,
+            aiEvaluationConsentAt: aiEvalRequested ? new Date() : null,
+            aiEvaluationConsentByUserId: aiEvalRequested ? ctx.staff.id : null,
           },
           update: {
             mode,
@@ -63,6 +86,13 @@ export async function PATCH(request: NextRequest) {
             ...(body.promptTemplate !== undefined ? { promptTemplate: body.promptTemplate } : {}),
             consentAt: aiMode ? new Date() : null,
             consentByUserId: aiMode ? ctx.staff.id : null,
+            ...(body.aiEvaluationEnabled !== undefined
+              ? {
+                  aiEvaluationEnabled: aiEvalRequested,
+                  aiEvaluationConsentAt: aiEvalRequested ? new Date() : null,
+                  aiEvaluationConsentByUserId: aiEvalRequested ? ctx.staff.id : null,
+                }
+              : {}),
           },
         }),
       );

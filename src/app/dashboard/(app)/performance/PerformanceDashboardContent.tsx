@@ -16,7 +16,7 @@ import {
   DashboardTableToolbar,
   DashboardTableViewport,
 } from '@/components/dashboard/DashboardDataTable';
-import { ratingLabel } from '@/lib/performance/service';
+import { ratingLabel } from '@/lib/performance/rating-label';
 
 type Cycle = {
   id: string;
@@ -49,6 +49,10 @@ export function PerformanceDashboardContent() {
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [analytics, setAnalytics] = useState<{
+    distribution: Array<{ label: string; count: number }>;
+    nineBox: Array<{ resultsBand: string; competencyBand: string; count: number }>;
+  } | null>(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -97,6 +101,7 @@ export function PerformanceDashboardContent() {
     if (!res.ok) throw new Error(data.error ?? 'Failed to load reviews');
     setReviews(data.reviews ?? []);
     setStatusCounts(data.statusCounts ?? {});
+    setAnalytics(data.analytics ?? null);
   }, []);
 
   useEffect(() => {
@@ -387,6 +392,39 @@ export function PerformanceDashboardContent() {
           </div>
         ))}
       </div>
+
+      {analytics ? (
+        <div className="mb-6 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-zinc-800">Rating distribution</h3>
+            <ul className="mt-3 space-y-2 text-sm">
+              {analytics.distribution.map((row) => (
+                <li key={row.label} className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-600">{row.label}</span>
+                  <span className="font-medium tabular-nums">{row.count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-zinc-800">9-box (results × competencies)</h3>
+            <div className="mt-3 grid grid-cols-3 gap-1 text-center text-xs">
+              {analytics.nineBox.map((cell) => (
+                <div
+                  key={`${cell.resultsBand}-${cell.competencyBand}`}
+                  className="rounded border border-zinc-100 bg-zinc-50 p-2"
+                  title={`${cell.resultsBand} results / ${cell.competencyBand} competencies`}
+                >
+                  <div className="font-semibold tabular-nums">{cell.count}</div>
+                  <div className="text-[10px] uppercase text-zinc-500">
+                    {cell.resultsBand[0]}/{cell.competencyBand[0]}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <DashboardTableCard>
         <DashboardTableToolbar>

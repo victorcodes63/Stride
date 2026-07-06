@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
       reviews: reviews.map(serializeReview),
       statusCounts,
       total: reviews.length,
+      analytics: (await import('@/lib/performance/reporting/analytics')).enrichReviewAnalytics(
+        reviews.map(serializeReview),
+      ),
     });
   });
 }

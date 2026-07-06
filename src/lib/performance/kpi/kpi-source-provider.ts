@@ -3,12 +3,16 @@
  * Performance module owns this interface; consumers register via registerKpiSourceProvider().
  */
 
+import type { Prisma } from '@prisma/client';
+
 export type KpiMeasurementContext = {
   organizationId: string;
   employeeId: string;
   periodStart: Date;
   periodEnd: Date;
   outsourcingClientId?: string | null;
+  /** Tenant-scoped transaction when invoked from performance review refresh. */
+  tx?: Prisma.TransactionClient;
 };
 
 export type KpiMeasurement = {
@@ -29,9 +33,6 @@ export type KpiSourceProvider = {
 const registry = new Map<string, KpiSourceProvider>();
 
 export function registerKpiSourceProvider(provider: KpiSourceProvider) {
-  if (registry.has(provider.key)) {
-    throw new Error(`KPI source provider already registered: ${provider.key}`);
-  }
   registry.set(provider.key, provider);
 }
 

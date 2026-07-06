@@ -20,6 +20,11 @@ export {
   listKpiSourceProviders,
   measureAutoKpi,
 } from '@/lib/performance/kpi/kpi-source-provider';
+export { refreshAutoKpisForReview } from '@/lib/performance/kpi/auto-kpi';
+export { registerBuiltinKpiProviders } from '@/lib/performance/kpi/register-builtin-providers';
+export { BUILTIN_KPI_PROVIDERS } from '@/lib/performance/kpi/builtin-providers';
+export { buildAiEvaluationSuggestions, canUseAiEvaluation } from '@/lib/performance/ai/evaluation-assist';
+export { enrichReviewAnalytics } from '@/lib/performance/reporting/analytics';
 export {
   activatePerformanceCycle,
   closePerformanceCycle,

@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { ratingLabel } from '@/lib/performance/service';
+import { ratingLabel } from '@/lib/performance/rating-label';
 import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
 function reviewStatusTone(status: string): 'success' | 'warning' | 'info' | 'danger' | 'neutral' {
@@ -64,6 +64,12 @@ export default function PerformanceReviewDetailPage() {
   const [overallRating, setOverallRating] = useState(3);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [goalScores, setGoalScores] = useState<Record<string, number>>({});
+  const [aiSuggestions, setAiSuggestions] = useState<{
+    summary: string;
+    goals: Array<{ goalId: string; title: string; suggestedScore: number | null; rationale: string }>;
+    competencies: Array<{ dimension: string; suggestedScore: number | null; rationale: string }>;
+  } | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -331,6 +337,32 @@ export default function PerformanceReviewDetailPage() {
             </button>
             <button
               type="button"
+              disabled={aiBusy}
+              className="btn-secondary inline-flex items-center gap-2 disabled:opacity-50"
+              onClick={async () => {
+                setAiBusy(true);
+                setError(null);
+                try {
+                  const res = await fetch(`/api/performance/reviews/${params.id}/ai-suggestions`, {
+                    method: 'POST',
+                    credentials: 'include',
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error ?? 'AI assist unavailable');
+                  setAiSuggestions(data.suggestions);
+                  setMessage('AI suggestions loaded — accept or override each score.');
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'AI assist failed');
+                } finally {
+                  setAiBusy(false);
+                }
+              }}
+            >
+              {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Get AI suggestions
+            </button>
+            <button
+              type="button"
               disabled={saving}
               className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
               onClick={() => void save(true)}
@@ -338,6 +370,19 @@ export default function PerformanceReviewDetailPage() {
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Complete review
             </button>
+          </div>
+        ) : null}
+
+        {aiSuggestions ? (
+          <div className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-950">
+            <p className="font-medium">{aiSuggestions.summary}</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {aiSuggestions.goals.slice(0, 3).map((g) => (
+                <li key={g.goalId}>
+                  {g.title}: suggest {g.suggestedScore ?? '—'}/5 — {g.rationale}
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
 
