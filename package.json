@@ -31,7 +31,7 @@
     "db:rls": "set -a; [ -f .env.local ] && . ./.env.local; set +a; node scripts/apply-rls.mjs",
     "db:tenancy:patch": "node scripts/patch-tenant-schema.mjs",
     "db:tenancy:migration": "node scripts/build-tenancy-migration.mjs",
-    "test:rls": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-rls.ts",
+    "test:rls": "node -e \"const fs=require('fs');const m=fs.readFileSync('.env.local','utf8').match(/^DATABASE_URL=(.+)$/m);if(!m){console.error('DATABASE_URL missing in .env.local');process.exit(1)}process.env.DATABASE_URL=m[1].replace(/^\\\"|\\\"$/g,'');const d=fs.readFileSync('.env.local','utf8').match(/^DIRECT_DATABASE_URL=(.+)$/m);if(d)process.env.DIRECT_DATABASE_URL=d[1].replace(/^\\\"|\\\"$/g,'');\" && npx tsx scripts/test-rls.ts",
     "test:cross-tenant": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-cross-tenant-api.ts",
     "test:tenant-audit": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-tenant-audit.ts",
     "audit:module-tenant": "npx tsx scripts/audit-module-tenant-gate.ts",
@@ -107,6 +107,8 @@
     "provision:check:demo": "node scripts/provision-check.mjs --profile demo",
     "smoke:test": "node scripts/smoke-test.mjs",
     "smoke:platform": "node scripts/smoke-platform.mjs",
+    "spd:benchmark": "node scripts/spd-00-benchmark.mjs",
+    "spd:explain": "node scripts/spd-explain-indexes.mjs",
     "smoke:marketing": "node scripts/smoke-marketing.mjs",
     "audit:marketing-imagery": "node scripts/audit-marketing-imagery.mjs",
     "demo:happy-path": "node scripts/demo-happy-path.mjs",
@@ -146,6 +148,7 @@
     "react-dom": "19.1.0",
     "react-hook-form": "^7.65.0",
     "resend": "^6.16.0",
+    "server-only": "^0.0.1",
     "shaders": "^2.5.131"
   },
   "devDependencies": {
