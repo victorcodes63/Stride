@@ -35,6 +35,8 @@
     "test:cross-tenant": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-cross-tenant-api.ts",
     "test:tenant-audit": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx scripts/test-tenant-audit.ts",
     "audit:module-tenant": "npx tsx scripts/audit-module-tenant-gate.ts",
+    "audit:module-registry": "npx tsx scripts/audit-module-registry.ts",
+    "sync:module-registry": "npx tsx scripts/export-module-registry-artifact.ts",
     "audit:api-prisma": "npx tsx scripts/audit-api-prisma-scope.ts",
     "iso:ci": "node scripts/iso-ci.mjs",
     "audit:dashboard-mock": "node scripts/audit-dashboard-mock-routes.mjs",
