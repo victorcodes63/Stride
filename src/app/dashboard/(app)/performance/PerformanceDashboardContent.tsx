@@ -373,11 +373,12 @@ export function PerformanceDashboardContent() {
         </div>
       ) : null}
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {[
           ['Total reviews', selectedCycle?.reviewCount ?? reviews.length],
           ['Self submitted', statusCounts.self_submitted ?? 0],
           ['Manager done', statusCounts.completed ?? 0],
+          ['Calibration', statusCounts.calibration_pending ?? 0],
           ['Not started', statusCounts.not_started ?? 0],
         ].map(([label, value]) => (
           <div key={String(label)} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
