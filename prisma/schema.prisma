@@ -75,6 +75,8 @@ model OutsourcingClient {
   organizationId String @db.Uuid
 
   name         String
+  /// active | suspended | churned
+  status       String   @default("active")
   contactName  String?
   contactEmail String?
   contactPhone String?
@@ -107,6 +109,14 @@ model OutsourcingClient {
   // Contract
   contractStartDate DateTime?
   contractEndDate   DateTime?
+  contractNotes     String?   @db.Text
+
+  // Client-facing reports (OUT-08 / white-label)
+  clientLogoUrl          String?
+  reportAccentColor      String?
+  whiteLabelReports      Boolean @default(false)
+  reportRecipientEmails  Json?
+  reportSections         Json?
 
   // Employee IDs: auto {prefix}-001 per client; override prefix e.g. BW for "Blue Wave"
   employeeNumberPrefix String?
@@ -173,9 +183,54 @@ model OutsourcingClient {
   constructionSites          ConstructionSite[]
   constructionPlantAssets    ConstructionPlantAsset[]
   constructionSubcontractors ConstructionSubcontractor[]
+  rateCards                  OutsourcingRateCard[]
 
   @@unique([organizationId, entityCode])
   @@index([name])
+  @@index([organizationId, status])
+}
+
+/// Per-end-client commercial rate card (OUT-02 / OUT-07 billing).
+model OutsourcingRateCard {
+  id                  String   @id @default(cuid())
+  organizationId      String   @db.Uuid
+  outsourcingClientId String
+
+  name          String?
+  effectiveFrom DateTime @db.Date
+  effectiveTo   DateTime? @db.Date
+  currency      String   @default("KES")
+  notes         String?  @db.Text
+  isActive      Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client OutsourcingClient           @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  lines  OutsourcingRateCardLine[]
+
+  @@index([outsourcingClientId, isActive])
+  @@index([outsourcingClientId, effectiveFrom])
+}
+
+model OutsourcingRateCardLine {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+  rateCardId     String
+
+  serviceKey    String
+  label         String
+  pricingModel  String
+  unitAmount    Decimal  @db.Decimal(12, 2)
+  percentageBps Int?
+  sortOrder     Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rateCard OutsourcingRateCard @relation(fields: [rateCardId], references: [id], onDelete: Cascade)
+
+  @@index([rateCardId, sortOrder])
 }
 
 // --- Rota / shift scheduling (outsourcing employees) ---
@@ -2009,6 +2064,9 @@ model User {
   performanceCyclesCreated         PerformanceCycle[]         @relation("PerformanceCycleCreator")
   performanceReviewsManaged        PerformanceReview[]        @relation("PerformanceReviewManager")
   performanceFeedbackAuthored      PerformanceFeedback[]      @relation("PerformanceFeedbackStaffAuthor")
+  jobDescriptionsCreated           JobDescription[]           @relation("JobDescriptionCreator")
+  jdDocumentsUploaded              JdDocument[]               @relation("JdDocumentUploader")
+  jdParserConfigsConsented         JdParserConfig[]           @relation("JdParserConfigConsent")
   projectsOwned                    Project[]                  @relation("ProjectOwner")
   projectsCreated                  Project[]                  @relation("ProjectCreator")
   projectTasksAssigned             ProjectTask[]              @relation("ProjectTaskAssignee")
@@ -4257,6 +4315,178 @@ model GoodsReceiptLine {
 
   @@index([goodsReceiptId])
   @@index([purchaseOrderLineId])
+}
+
+// --- Performance BSC: Job Descriptions (PERF-01 / RAV-252) ---
+
+enum JdStatus {
+  draft
+  published
+  archived
+}
+
+enum JdParserMode {
+  manual
+  stride
+  byo
+}
+
+enum BscPerspective {
+  financial
+  customer
+  internal_process
+  learning_growth
+}
+
+model JdDivision {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name            String
+  sortOrder       Int      @default(0)
+  isReferencePack Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  jobDescriptions JobDescription[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, sortOrder])
+}
+
+model JobDescription {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  divisionId           String?
+  title                String
+  grade                String?
+  version              Int      @default(1)
+  status               JdStatus @default(draft)
+  jobPurpose           String?  @db.Text
+  keyActivities        String?  @db.Text
+  authorityScope       String?  @db.Text
+  workingConditions    String?  @db.Text
+  qualifications       String?  @db.Text
+  relationships        String?  @db.Text
+  rootJobDescriptionId String?
+  previousVersionId    String?  @unique
+  publishedAt          DateTime?
+  createdByUserId      String?
+  sourceDocumentId     String?  @unique
+  isReferencePack      Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  division         JdDivision?     @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  rootJobDescription JobDescription? @relation("JdVersionRoot", fields: [rootJobDescriptionId], references: [id], onDelete: SetNull)
+  versionChildren  JobDescription[] @relation("JdVersionRoot")
+  previousVersion  JobDescription? @relation("JdVersionChain", fields: [previousVersionId], references: [id], onDelete: SetNull)
+  nextVersion      JobDescription? @relation("JdVersionChain")
+  createdBy        User?           @relation("JobDescriptionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  sourceDocument   JdDocument?     @relation("JdSourceDocument", fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+  kras             JobKRA[]
+  competencies     JobCompetency[]
+  kpis             JobKPI[]
+  documents        JdDocument[]    @relation("JdDocuments")
+
+  @@unique([organizationId, title, grade, version])
+  @@index([organizationId, status])
+  @@index([divisionId])
+  @@index([rootJobDescriptionId])
+}
+
+model JobKRA {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  jobDescriptionId String
+  title            String
+  description      String?         @db.Text
+  bscPerspective   BscPerspective?
+  weightPercent    Int             @default(25)
+  sortOrder        Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+  kpis           JobKPI[]
+
+  @@index([jobDescriptionId, sortOrder])
+}
+
+model JobKPI {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  jobDescriptionId String
+  jobKraId         String?
+  name             String
+  description      String?  @db.Text
+  targetValue      String?
+  unit             String?
+  weightPercent    Int      @default(25)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+  jobKra         JobKRA?        @relation(fields: [jobKraId], references: [id], onDelete: SetNull)
+
+  @@index([jobDescriptionId, sortOrder])
+  @@index([jobKraId])
+}
+
+model JobCompetency {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  jobDescriptionId String
+  name             String
+  description      String? @db.Text
+  requiredLevel    Int
+  sortOrder        Int     @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([jobDescriptionId, sortOrder])
+}
+
+model JdDocument {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  jobDescriptionId String?
+  blobUrl          String
+  fileName         String
+  mimeType         String?
+  byteSize         Int?
+  uploadedByUserId String?
+  createdAt        DateTime @default(now())
+
+  jobDescription JobDescription? @relation("JdDocuments", fields: [jobDescriptionId], references: [id], onDelete: SetNull)
+  sourceFor      JobDescription? @relation("JdSourceDocument")
+  uploadedBy     User?           @relation("JdDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([jobDescriptionId])
+}
+
+model JdParserConfig {
+  id             String @id @default(cuid())
+  organizationId String @unique @db.Uuid
+
+  mode              JdParserMode @default(manual)
+  provider          String?
+  apiKeyRef         String?
+  promptTemplate    String?      @db.Text
+  consentAt         DateTime?
+  consentByUserId   String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  consentBy User? @relation("JdParserConfigConsent", fields: [consentByUserId], references: [id], onDelete: SetNull)
 }
 
 // --- Performance management (RAV-69) ---

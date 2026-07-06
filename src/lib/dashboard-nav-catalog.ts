@@ -54,6 +54,7 @@ import {
   Leaf,
   Bell,
   UserCheck,
+  Handshake,
 } from 'lucide-react';
 import type { UserRole } from '@/types/dashboard';
 import { isDashboardNavItemVisible, isNavSectionVisible, type EnabledModulesMap } from '@/lib/nav-modules';
@@ -97,6 +98,7 @@ const primarySections: DashboardNavSection[] = [
       { href: '/dashboard/people/tasks', label: 'Tasks', icon: ListTodo },
       { href: '/dashboard/onboarding', label: 'Onboarding', icon: ClipboardList },
       { href: '/dashboard/performance', label: 'Performance', icon: BarChart2 },
+      { href: '/dashboard/performance/jds', label: 'Job descriptions', icon: BarChart2 },
       { href: '/dashboard/disciplinary', label: 'Disciplinary', icon: Shield },
     ],
   },
@@ -225,6 +227,38 @@ const fleetCommercialSection: DashboardNavSection = {
     { href: '/dashboard/fleet/drivers/performance', label: 'Driver performance', icon: UserCheck },
     { href: '/dashboard/fleet/environmental', label: 'Environmental', icon: Leaf },
     { href: '/dashboard/fleet/reports', label: 'Performance reports', icon: BarChart2 },
+  ],
+};
+
+const outsourcingClientsSection: DashboardNavSection = {
+  id: 'outsourcing-clients',
+  label: 'End clients',
+  icon: Handshake,
+  items: [
+    { href: '/dashboard/outsourcing', label: 'Overview', icon: LayoutGrid },
+    { href: '/dashboard/outsourcing/clients', label: 'Client register', icon: Building2 },
+  ],
+};
+
+const outsourcingWorkforceSection: DashboardNavSection = {
+  id: 'outsourcing-workforce',
+  label: 'Workforce',
+  icon: Users,
+  items: [
+    { href: '/dashboard/outsourcing/employees', label: 'Employees', icon: Users },
+    { href: '/dashboard/outsourcing/departments', label: 'Departments', icon: Building2 },
+  ],
+};
+
+const outsourcingServicesSection: DashboardNavSection = {
+  id: 'outsourcing-services',
+  label: 'Client services',
+  icon: Briefcase,
+  items: [
+    { href: '/dashboard/outsourcing/payroll', label: 'Payroll', icon: Banknote },
+    { href: '/dashboard/outsourcing/attendance', label: 'Time & attendance', icon: Clock4 },
+    { href: '/dashboard/outsourcing/leave', label: 'Leave', icon: CalendarOff },
+    { href: '/dashboard/outsourcing/disciplinary', label: 'Disciplinary', icon: Shield },
   ],
 };
 
@@ -446,6 +480,13 @@ export function buildDashboardNavSections(options: DashboardNavBuildOptions): Da
       fleetCommercialSection,
     );
   }
+  if (isNavSectionVisible('outsourcing-clients', enabledModules)) {
+    chunks.push(
+      outsourcingClientsSection,
+      outsourcingWorkforceSection,
+      outsourcingServicesSection,
+    );
+  }
   chunks.push(
     operationsSection,
     buildCommunicationsInsightSection(options.canViewSystemAnalytics),
@@ -507,6 +548,8 @@ export const ALL_MODULES_ENABLED = {
   documents: true,
   procurement: true,
   legal: true,
+  projects: true,
+  outsourcing: true,
 } satisfies EnabledModulesMap;
 
 export const DASHBOARD_NAV_EXPANDABLE_SECTION_IDS = [
@@ -526,6 +569,9 @@ export const DASHBOARD_NAV_EXPANDABLE_SECTION_IDS = [
   fleetMonitoringSection.id,
   fleetAssetsSection.id,
   fleetCommercialSection.id,
+  outsourcingClientsSection.id,
+  outsourcingWorkforceSection.id,
+  outsourcingServicesSection.id,
   operationsSection.id,
   'communications-insight',
   adminSection.id,
@@ -539,6 +585,7 @@ export const DASHBOARD_NAV_GROUPS = [
   { label: '04 — Legal & Documents', startSectionId: 'legal-documents' },
   { label: '05 — Projects', startSectionId: 'projects' },
   { label: '06 — Fleet management', startSectionId: 'fleet-operations' },
+  { label: '09 — HR Outsourcing', startSectionId: 'outsourcing-clients' },
   { label: '07 — Operations', startSectionId: 'operations' },
   { label: '08 — Platform admin', startSectionId: 'admin' },
 ] as const;

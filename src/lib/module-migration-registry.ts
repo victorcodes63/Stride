@@ -115,6 +115,13 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'RecruitmentClientPortalUser',
   ],
   performance: [
+    'JdDivision',
+    'JobDescription',
+    'JobKRA',
+    'JobKPI',
+    'JobCompetency',
+    'JdDocument',
+    'JdParserConfig',
     'PerformanceCycle',
     'PerformanceGoal',
     'PerformanceReview',
@@ -157,6 +164,8 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
   documents: ['CompanyDocument'],
   procurement: ['PurchaseRequest', 'PurchaseRequestLine'],
   legal: ['EmployeeCredential', 'CompanyDocument', 'AccountsContract'],
+  projects: ['Project', 'ProjectMilestone', 'ProjectTask'],
+  outsourcing: ['OutsourcingClient', 'OutsourcingRateCard', 'OutsourcingRateCardLine', 'Employee', 'Department'],
 };
 
 /** Human-maintained migration status — update when a module clears the gate. */
@@ -176,6 +185,15 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
         phase: 'tenant-safe',
         notes:
           'FLT-00 verified: full schema (Vehicle/Driver/Partner/Order/Trip/Compliance/POD/Settlement/Incident), lifecycle in fleet-status.ts, all /api/fleet/* use withFleetTenant.',
+      };
+    }
+
+    if (def.key === 'outsourcing') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes:
+          'OUT-01: 12 dashboard pages and 27 API routes under /outsourcing; clients, workforce, payroll, attendance, and leave use withTenant().',
       };
     }
 
@@ -208,7 +226,8 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
       return {
         ...base,
         phase: 'tenant-safe',
-        notes: 'All performance cycles/reviews APIs use withTenant() + org-scoped queries.',
+        notes:
+          'PERF-01: JD library (manual entry + Stabex reference pack), parser config, cycles/reviews APIs use withTenant() + RLS.',
       };
     }
 

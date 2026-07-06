@@ -212,10 +212,13 @@ export function PerformanceDashboardContent() {
   return (
     <DashboardPage>
       <DashboardPageHeader
-        title="Performance management"
-        description="Review cycles, employee goals, and manager ratings — replaces the legacy mock KPI dashboard."
+        title="Performance management (BSC)"
+        description="Balanced Scorecard reviews driven by job descriptions — KRAs, KPIs, competencies, and review cycles."
         footer={
           <div className="flex flex-wrap items-end gap-3">
+            <Link href="/dashboard/performance/jds" className="btn-secondary inline-flex h-10 items-center px-3">
+              Job description library
+            </Link>
             <label className="text-sm">
               <span className="text-neutral-500 dark:text-neutral-400">Cycle</span>
               <select
