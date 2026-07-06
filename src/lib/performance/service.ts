@@ -1,5 +1,11 @@
 import type { Prisma } from '@prisma/client';
 
+import {
+  buildFrozenSnapshot,
+  computeReviewScores,
+  resolveScorecardForEmployee,
+} from '@/lib/performance/scoring/compute-bsc-score';
+
 export const DEFAULT_RATING_DIMENSIONS = [
   'Quality of work',
   'Team collaboration',
@@ -136,6 +142,7 @@ export async function activatePerformanceCycle(
     select: {
       id: true,
       managerEmployeeId: true,
+      jobTitle: true,
     },
     orderBy: { lastName: 'asc' },
     take: input.maxEmployees ?? 500,
@@ -157,34 +164,75 @@ export async function activatePerformanceCycle(
       adminUser?.id ?? null,
     );
 
-    await tx.performanceReview.create({
+    const useBsc = cycle.method === 'bsc';
+    const scorecardMatch = useBsc
+      ? await resolveScorecardForEmployee(tx, {
+          organizationId: input.organizationId,
+          jobTitle: employee.jobTitle,
+        })
+      : null;
+
+    const snapshot = scorecardMatch ? buildFrozenSnapshot(scorecardMatch.template) : null;
+
+    const review = await tx.performanceReview.create({
       data: {
         organizationId: input.organizationId,
         cycleId: cycle.id,
         employeeId: employee.id,
         managerUserId,
+        scorecardTemplateId: scorecardMatch?.template.id ?? null,
+        jobDescriptionId: scorecardMatch?.jd.id ?? null,
+        jobDescriptionVersion: scorecardMatch?.jd.version ?? null,
+        frozenScorecardSnapshot: snapshot ?? undefined,
         status: 'not_started',
-        ratings: {
-          create: ratingDimensions.map((dimension, sortOrder) => ({
-            organizationId: input.organizationId,
-            dimension,
-            sortOrder,
-          })),
-        },
+        ratings: scorecardMatch
+          ? {
+              create: scorecardMatch.template.competencyReqs.map((competency, sortOrder) => ({
+                organizationId: input.organizationId,
+                dimension: competency.name,
+                requiredLevel: competency.requiredLevel,
+                competencyRequirementId: competency.id,
+                sortOrder,
+              })),
+            }
+          : {
+              create: ratingDimensions.map((dimension, sortOrder) => ({
+                organizationId: input.organizationId,
+                dimension,
+                sortOrder,
+              })),
+            },
       },
     });
 
-    await tx.performanceGoal.createMany({
-      data: goalTemplates.map((goal, sortOrder) => ({
-        organizationId: input.organizationId,
-        cycleId: cycle.id,
-        employeeId: employee.id,
-        title: goal.title,
-        description: goal.description ?? null,
-        weightPercent: goal.weightPercent,
-        sortOrder,
-      })),
-    });
+    if (scorecardMatch && snapshot) {
+      await tx.performanceGoal.createMany({
+        data: scorecardMatch.template.measures.map((measure, sortOrder) => ({
+          organizationId: input.organizationId,
+          cycleId: cycle.id,
+          employeeId: employee.id,
+          title: measure.title,
+          description: measure.description,
+          weightPercent: measure.weightPercent,
+          scorecardMeasureId: measure.id,
+          sortOrder,
+        })),
+      });
+    } else {
+      await tx.performanceGoal.createMany({
+        data: goalTemplates.map((goal, sortOrder) => ({
+          organizationId: input.organizationId,
+          cycleId: cycle.id,
+          employeeId: employee.id,
+          title: goal.title,
+          description: goal.description ?? null,
+          weightPercent: goal.weightPercent,
+          sortOrder,
+        })),
+      });
+    }
+
+    void review;
   }
 
   await tx.performanceCycle.update({
@@ -213,4 +261,37 @@ export async function closePerformanceCycle(
   });
 
   return { ok: true as const };
+}
+
+export async function completeReviewCalibration(
+  tx: Prisma.TransactionClient,
+  input: { organizationId: string; reviewId: string },
+) {
+  const review = await tx.performanceReview.findFirst({
+    where: { id: input.reviewId, organizationId: input.organizationId },
+  });
+  if (!review) return { ok: false as const, error: 'Review not found' };
+  if (review.status !== 'calibration_pending' && review.status !== 'manager_submitted') {
+    return { ok: false as const, error: 'Review is not ready for calibration' };
+  }
+
+  const scores = await computeReviewScores(tx, review.id, input.organizationId);
+  if (!scores?.finalBlendedScore) {
+    return { ok: false as const, error: 'Cannot finalize — incomplete manager ratings' };
+  }
+
+  await tx.performanceReview.update({
+    where: { id: review.id },
+    data: {
+      status: 'completed',
+      completedAt: new Date(),
+      calibratedAt: new Date(),
+      finalResultsScore: scores.resultsScore,
+      finalCompetenciesScore: scores.competenciesScore,
+      finalBlendedScore: scores.finalBlendedScore,
+      overallManagerRating: Math.round(scores.finalBlendedScore),
+    },
+  });
+
+  return { ok: true as const, scores };
 }

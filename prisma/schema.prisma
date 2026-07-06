@@ -4390,6 +4390,7 @@ model JobDescription {
   kpis             JobKPI[]
   documents        JdDocument[]    @relation("JdDocuments")
   scorecardTemplates ScorecardTemplate[]
+  performanceReviews PerformanceReview[]
 
   @@unique([organizationId, title, grade, version])
   @@index([organizationId, status])
@@ -4517,6 +4518,7 @@ model ScorecardTemplate {
   perspectives   ScorecardPerspective[]
   measures       ScorecardMeasure[]
   competencyReqs CompetencyRequirement[]
+  reviews        PerformanceReview[]
 
   @@unique([organizationId, jobDescriptionId, jobDescriptionVersion])
   @@index([organizationId, title])
@@ -4590,7 +4592,15 @@ enum PerformanceReviewStatus {
   self_in_progress
   self_submitted
   manager_in_progress
+  manager_submitted
+  calibration_pending
   completed
+}
+
+enum PerformanceMethod {
+  bsc
+  okr
+  kpi_only
 }
 
 model PerformanceCycle {
@@ -4602,6 +4612,9 @@ model PerformanceCycle {
   periodStart         DateTime              @db.Date
   periodEnd           DateTime              @db.Date
   status              PerformanceCycleStatus @default(draft)
+  method              PerformanceMethod      @default(bsc)
+  resultsWeightPercent Int                   @default(70)
+  competenciesWeightPercent Int              @default(30)
   outsourcingClientId String?
   goalTemplates       Json?
   ratingDimensions    Json?
@@ -4629,6 +4642,7 @@ model PerformanceGoal {
   title         String
   description   String?  @db.Text
   weightPercent Int      @default(25)
+  scorecardMeasureId String?
   selfScore     Int?
   managerScore  Int?
   sortOrder     Int      @default(0)
@@ -4648,11 +4662,19 @@ model PerformanceReview {
   cycleId              String
   employeeId           String
   managerUserId        String?
+  scorecardTemplateId  String?
+  jobDescriptionId     String?
+  jobDescriptionVersion Int?
+  frozenScorecardSnapshot Json?
   status               PerformanceReviewStatus @default(not_started)
   selfSummary          String?                 @db.Text
   managerSummary       String?                 @db.Text
   overallSelfRating    Int?
   overallManagerRating Int?
+  finalResultsScore    Decimal? @db.Decimal(5, 2)
+  finalCompetenciesScore Decimal? @db.Decimal(5, 2)
+  finalBlendedScore    Decimal? @db.Decimal(5, 2)
+  calibratedAt         DateTime?
   selfSubmittedAt      DateTime?
   managerSubmittedAt   DateTime?
   completedAt          DateTime?
@@ -4662,6 +4684,8 @@ model PerformanceReview {
   cycle    PerformanceCycle          @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   employee Employee                  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   manager  User?                     @relation("PerformanceReviewManager", fields: [managerUserId], references: [id], onDelete: SetNull)
+  scorecardTemplate ScorecardTemplate? @relation(fields: [scorecardTemplateId], references: [id], onDelete: SetNull)
+  jobDescription JobDescription?      @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
   ratings  PerformanceReviewRating[]
   feedback PerformanceFeedback[]
 
@@ -4676,6 +4700,8 @@ model PerformanceReviewRating {
 
   reviewId     String
   dimension    String
+  requiredLevel Int?
+  competencyRequirementId String?
   selfScore    Int?
   managerScore Int?
   sortOrder    Int    @default(0)
