@@ -11,7 +11,7 @@ import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
 function reviewStatusTone(status: string): 'success' | 'warning' | 'info' | 'danger' | 'neutral' {
   if (status === 'completed') return 'success';
-  if (status === 'self_submitted' || status === 'manager_in_progress') return 'warning';
+  if (status === 'calibration_pending' || status === 'manager_submitted') return 'warning';
   if (status === 'self_in_progress') return 'info';
   return 'neutral';
 }
@@ -23,6 +23,9 @@ type ReviewDetail = {
   managerSummary: string | null;
   overallSelfRating: number | null;
   overallManagerRating: number | null;
+  finalBlendedScore?: number | null;
+  finalResultsScore?: number | null;
+  finalCompetenciesScore?: number | null;
   selfSubmittedAt: string | null;
   managerSubmittedAt: string | null;
   employee: {
@@ -117,7 +120,7 @@ export default function PerformanceReviewDetailPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Save failed');
       await load();
-      setMessage(complete ? 'Manager review completed.' : 'Draft saved.');
+      setMessage(complete ? 'Manager review submitted for calibration.' : 'Draft saved.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
@@ -128,7 +131,8 @@ export default function PerformanceReviewDetailPage() {
   const canEditManager =
     review &&
     review.cycle.status === 'active' &&
-    ['self_submitted', 'manager_in_progress'].includes(review.status);
+    ['self_submitted', 'manager_in_progress', 'manager_submitted'].includes(review.status);
+  const canCalibrate = review?.status === 'calibration_pending';
 
   if (loading) {
     return (
@@ -333,6 +337,52 @@ export default function PerformanceReviewDetailPage() {
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Complete review
+            </button>
+          </div>
+        ) : null}
+
+        {review.finalBlendedScore != null ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            Final BSC score: <strong>{Number(review.finalBlendedScore).toFixed(2)}</strong>/5
+            {review.finalResultsScore != null && review.finalCompetenciesScore != null ? (
+              <span className="ml-2 text-emerald-800">
+                (Results {Number(review.finalResultsScore).toFixed(2)} · Competencies{' '}
+                {Number(review.finalCompetenciesScore).toFixed(2)})
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
+        {canCalibrate ? (
+          <div className="flex flex-wrap gap-2 border-t border-neutral-200 pt-4">
+            <p className="w-full text-sm text-neutral-600">
+              HR calibration — finalize the blended BSC score after manager submission.
+            </p>
+            <button
+              type="button"
+              disabled={saving}
+              className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+              onClick={async () => {
+                setSaving(true);
+                setError(null);
+                try {
+                  const res = await fetch(`/api/performance/reviews/${params.id}/calibrate`, {
+                    method: 'POST',
+                    credentials: 'include',
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error ?? 'Calibration failed');
+                  setMessage('Review calibrated and finalized.');
+                  await load();
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'Calibration failed');
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Finalize calibration
             </button>
           </div>
         ) : null}

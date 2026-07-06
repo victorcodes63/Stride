@@ -45,8 +45,18 @@ export async function GET(request: NextRequest) {
         periodStart: cycle.periodStart.toISOString().slice(0, 10),
         periodEnd: cycle.periodEnd.toISOString().slice(0, 10),
         status: cycle.status,
+        method: cycle.method,
       },
-      review,
+      review: review
+        ? {
+            ...review,
+            finalBlendedScore: review.finalBlendedScore ? Number(review.finalBlendedScore) : null,
+            finalResultsScore: review.finalResultsScore ? Number(review.finalResultsScore) : null,
+            finalCompetenciesScore: review.finalCompetenciesScore
+              ? Number(review.finalCompetenciesScore)
+              : null,
+          }
+        : null,
       goals,
     });
   });
