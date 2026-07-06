@@ -4,6 +4,7 @@ import {
   MODULE_KEYS,
   MODULE_REGISTRY,
   MODULE_UI_GROUPS,
+  NAV_SECTION_MODULES,
   getModuleRegistryEntry,
 } from '@/lib/module-registry';
 import { MODULE_DEFINITIONS } from '@/lib/module-catalog';
@@ -72,5 +73,14 @@ describe('module-registry', () => {
     const hrGroup = MODULE_UI_GROUPS.find((g) => g.id === 'hr-payroll');
     expect(hrGroup?.keys).toContain('ats');
     expect(hrGroup?.keys).toContain('performance');
+  });
+
+  it('derives nav section modules from registry navSectionId', () => {
+    const { NAV_SECTION_MODULES } = require('@/lib/module-registry') as typeof import('@/lib/module-registry');
+    expect(NAV_SECTION_MODULES['people-hr']).toContain('core');
+    expect(NAV_SECTION_MODULES['people-hr']).toContain('performance');
+    expect(NAV_SECTION_MODULES.recruitment).toContain('ats');
+    expect(NAV_SECTION_MODULES.recruitment).toContain('assessments');
+    expect(NAV_SECTION_MODULES['fleet-monitoring']).toContain('fleet');
   });
 });

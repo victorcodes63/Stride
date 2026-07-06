@@ -499,3 +499,33 @@ export function buildModuleUiGroups(): ModuleUiGroup[] {
 }
 
 export const MODULE_UI_GROUPS: ModuleUiGroup[] = buildModuleUiGroups();
+
+/** Sections whose module keys extend beyond a single registry navSectionId (fleet/outsourcing/admin). */
+const NAV_SECTION_MODULE_EXTENSIONS: Record<string, readonly ModuleKey[]> = {
+  admin: ['core'],
+  'fleet-monitoring': ['fleet'],
+  'fleet-assets': ['fleet'],
+  'fleet-commercial': ['fleet'],
+  'outsourcing-workforce': ['outsourcing'],
+  'outsourcing-services': ['outsourcing'],
+};
+
+/** Dashboard nav section → required module(s). Derived from registry navSectionId. */
+export function buildNavSectionModules(): Record<string, ModuleKey[]> {
+  const map = new Map<string, ModuleKey[]>();
+
+  for (const row of MODULE_REGISTRY) {
+    const list = map.get(row.navSectionId) ?? [];
+    if (!list.includes(row.key)) list.push(row.key);
+    map.set(row.navSectionId, list);
+  }
+
+  for (const [sectionId, keys] of Object.entries(NAV_SECTION_MODULE_EXTENSIONS)) {
+    const existing = map.get(sectionId) ?? [];
+    map.set(sectionId, [...new Set([...existing, ...keys])]);
+  }
+
+  return Object.fromEntries(map);
+}
+
+export const NAV_SECTION_MODULES: Record<string, ModuleKey[]> = buildNavSectionModules();

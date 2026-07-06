@@ -1,4 +1,6 @@
 import type { ModuleKey } from '@/lib/modules';
+import { buildNavItemModules } from '@/lib/module-nav-bindings';
+import { NAV_SECTION_MODULES } from '@/lib/module-registry';
 
 export type RouteModuleBinding = {
   prefix: string;
@@ -238,91 +240,10 @@ export function resolveModuleForPath(pathname: string): ModuleKey | null {
   return null;
 }
 
-/** Dashboard nav section → required module(s). Section shown if any listed module is enabled. */
-export const NAV_SECTION_MODULES: Record<string, ModuleKey[]> = {
-  'people-hr': ['core'],
-  recruitment: ['ats'],
-  'time-attendance': ['time', 'leave'],
-  operations: ['operations', 'assets', 'hse'],
-  'fleet-operations': ['fleet'],
-  'fleet-monitoring': ['fleet'],
-  'fleet-assets': ['fleet'],
-  'fleet-commercial': ['fleet'],
-  'outsourcing-clients': ['outsourcing'],
-  'outsourcing-workforce': ['outsourcing'],
-  'outsourcing-services': ['outsourcing'],
-  sacco: ['sacco'],
-  healthcare: ['healthcare'],
-  energy: ['energy'],
-  construction: ['construction'],
-  'communications-insight': ['communications', 'reports'],
-  payroll: ['payroll'],
-  'employee-self-service': ['ess'],
-  finance: ['accounts'],
-  procurement: ['procurement'],
-  'legal-documents': ['legal', 'documents'],
-  projects: ['projects'],
-  development: ['training'],
-  admin: ['core'],
-};
+export { NAV_SECTION_MODULES };
 
-/** Nav item href → module. Items without an entry inherit section module. */
-export const NAV_ITEM_MODULES: Record<string, ModuleKey> = {
-  '/dashboard/performance': 'performance',
-  '/dashboard/assessments': 'assessments',
-  '/dashboard/disciplinary': 'disciplinary',
-  '/dashboard/leave': 'leave',
-  '/dashboard/rota': 'time',
-  '/dashboard/attendance': 'time',
-  '/dashboard/biometric-devices': 'time',
-  '/dashboard/announcements': 'communications',
-  '/dashboard/company-documents': 'documents',
-  '/dashboard/legal': 'legal',
-  '/dashboard/legal/obligations': 'legal',
-  '/dashboard/procurement': 'procurement',
-  '/dashboard/procurement/purchase-requests': 'procurement',
-  '/dashboard/procurement/lpos': 'procurement',
-  '/dashboard/procurement/spend': 'procurement',
-  '/dashboard/projects': 'projects',
-  '/dashboard/projects/all': 'projects',
-  '/dashboard/projects/board': 'projects',
-  '/dashboard/projects/tasks': 'projects',
-  '/dashboard/projects/budget': 'projects',
-  '/dashboard/payroll/disbursements': 'payroll',
-  '/dashboard/admin/facilities': 'core',
-  '/dashboard/admin/governance': 'core',
-  '/dashboard/people/contracts': 'core',
-  '/dashboard/credentials': 'core',
-  '/dashboard/training': 'training',
-  '/dashboard/org-chart': 'training',
-  '/dashboard/sacco': 'sacco',
-  '/dashboard/sacco/members': 'sacco',
-  '/dashboard/sacco/accounts': 'sacco',
-  '/dashboard/sacco/dividends': 'sacco',
-  '/dashboard/sacco/reports': 'sacco',
-  '/dashboard/healthcare': 'healthcare',
-  '/dashboard/healthcare/wards': 'healthcare',
-  '/dashboard/healthcare/rota': 'healthcare',
-  '/dashboard/healthcare/nhif': 'healthcare',
-  '/dashboard/energy': 'energy',
-  '/dashboard/energy/sites': 'energy',
-  '/dashboard/energy/permits': 'energy',
-  '/dashboard/energy/hse': 'energy',
-  '/dashboard/construction': 'construction',
-  '/dashboard/construction/sites': 'construction',
-  '/dashboard/construction/plant': 'construction',
-  '/dashboard/construction/subcontractors': 'construction',
-  '/dashboard/outsourcing/clients': 'outsourcing',
-  '/dashboard/outsourcing/employees': 'outsourcing',
-  '/dashboard/outsourcing/departments': 'outsourcing',
-  '/dashboard/outsourcing/attendance': 'outsourcing',
-  '/dashboard/outsourcing/payroll': 'outsourcing',
-  '/dashboard/outsourcing/payroll/payslips': 'outsourcing',
-  '/dashboard/outsourcing/payroll/statutory': 'outsourcing',
-  '/dashboard/outsourcing/payroll/disbursements': 'outsourcing',
-  '/dashboard/outsourcing/leave': 'outsourcing',
-  '/dashboard/outsourcing/disciplinary': 'outsourcing',
-};
+/** Nav item href → module. Derived from nav catalog + route bindings. */
+export const NAV_ITEM_MODULES: Record<string, ModuleKey> = buildNavItemModules(resolveModuleForPath);
 
 /** ESS bottom-nav href → module */
 export const ESS_NAV_MODULES: Record<string, ModuleKey> = {

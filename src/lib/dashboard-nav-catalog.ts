@@ -57,6 +57,8 @@ import {
   Handshake,
 } from 'lucide-react';
 import type { UserRole } from '@/types/dashboard';
+import { BOOTSTRAP_PENDING_MODULES } from '@/lib/bootstrap-pending-modules';
+import { MODULE_KEYS } from '@/lib/module-registry';
 import { isDashboardNavItemVisible, isNavSectionVisible, type EnabledModulesMap } from '@/lib/nav-modules';
 
 export type DashboardNavItem = {
@@ -411,6 +413,34 @@ function buildCommunicationsInsightSection(canViewSystemAnalytics: boolean): Das
   };
 }
 
+/** Full nav catalog before entitlement filtering — used to derive module bindings (MOD-02). */
+export function getDashboardNavCatalogSections(): DashboardNavSection[] {
+  return [
+    ...primarySections,
+    payrollSection,
+    developmentSection,
+    essSelfServiceSection,
+    financeSection,
+    procurementSection,
+    legalDocumentsSection,
+    projectsSection,
+    saccoSection,
+    healthcareSection,
+    energySection,
+    constructionSection,
+    fleetOperationsSection,
+    fleetMonitoringSection,
+    fleetAssetsSection,
+    fleetCommercialSection,
+    outsourcingClientsSection,
+    outsourcingWorkforceSection,
+    outsourcingServicesSection,
+    operationsSection,
+    buildCommunicationsInsightSection(true),
+    adminSection,
+  ];
+}
+
 /** Sections gated by subscription entitlements like any other module. */
 const ROADMAP_NAV_SECTION_IDS = new Set<string>();
 
@@ -448,7 +478,7 @@ function filterSections(
 }
 
 export function buildDashboardNavSections(options: DashboardNavBuildOptions): DashboardNavSection[] {
-  const enabledModules = options.enabledModules ?? ALL_MODULES_ENABLED;
+  const enabledModules = options.enabledModules ?? BOOTSTRAP_PENDING_MODULES;
   const resolvedOptions = { ...options, enabledModules };
   const chunks: DashboardNavSection[] = [
     ...primarySections,
@@ -525,32 +555,9 @@ export function resolveDashboardNavItems(
   return hrefs.map((href) => catalog.get(href)).filter((item): item is DashboardNavItem => Boolean(item));
 }
 
-export const ALL_MODULES_ENABLED = {
-  core: true,
-  leave: true,
-  time: true,
-  payroll: true,
-  ats: true,
-  performance: true,
-  hse: true,
-  accounts: true,
-  disciplinary: true,
-  reports: true,
-  assets: true,
-  fleet: true,
-  sacco: true,
-  healthcare: true,
-  energy: true,
-  construction: true,
-  ess: true,
-  communications: true,
-  training: true,
-  documents: true,
-  procurement: true,
-  legal: true,
-  projects: true,
-  outsourcing: true,
-} satisfies EnabledModulesMap;
+export const ALL_MODULES_ENABLED = Object.fromEntries(
+  MODULE_KEYS.map((key) => [key, true]),
+) as EnabledModulesMap;
 
 export const DASHBOARD_NAV_EXPANDABLE_SECTION_IDS = [
   ...primarySections.map((s) => s.id),
