@@ -120,7 +120,7 @@ export function CompanySetupModulesSection({ form, setForm, moduleCatalog, capab
  const isLicensed = licensedByKey[key] ?? true;
  const isEntitled = entitledByKey[key] ?? true;
  const isOn = form.moduleAdminFlags[key];
- const locked = group.locked || !def.canDisable;
+ const locked = !def.canDisable;
  const disabled = locked || !isLicensed || !isEntitled;
 
  return (

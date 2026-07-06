@@ -13,55 +13,14 @@ import {
   MODULE_ADMIN_COOKIE,
   sanitizeModuleAdminFlags,
 } from '@/lib/module-admin-flags';
-export type { ModuleKey, ModulePhase, ModuleDefinition } from '@/lib/module-catalog';
-export { MODULE_DEFINITIONS } from '@/lib/module-catalog';
+export { MODULE_ADMIN_COOKIE, sanitizeModuleAdminFlags, allModulesAdminEnabled };
+
 import type { ModuleKey, ModuleDefinition } from '@/lib/module-catalog';
 import { MODULE_DEFINITIONS } from '@/lib/module-catalog';
 
-export { MODULE_ADMIN_COOKIE, sanitizeModuleAdminFlags, allModulesAdminEnabled };
-
-export type ModuleUiGroup = {
-  id: string;
-  label: string;
-  description: string;
-  keys: ModuleKey[];
-  /** Core HR — toggles disabled in UI */
-  locked?: boolean;
-};
-
-export const MODULE_UI_GROUPS: ModuleUiGroup[] = [
-  {
-    id: 'core',
-    label: 'Platform base',
-    description: 'HR people data and Finance — included on every plan.',
-    keys: ['core', 'accounts'],
-    locked: true,
-  },
-  {
-    id: 'people-ops',
-    label: 'Phase 1 — People & operations',
-    description: 'Leave, time, payroll, and day-to-day workforce workflows.',
-    keys: ['leave', 'time', 'payroll', 'performance', 'disciplinary', 'ess', 'reports'],
-  },
-  {
-    id: 'workplace',
-    label: 'Phase 2 — Workplace',
-    description: 'Communications, training, documents, procurement, and legal.',
-    keys: ['communications', 'training', 'documents', 'procurement', 'legal'],
-  },
-  {
-    id: 'projects',
-    label: 'Project management',
-    description: 'Project register, board, tasks, and budget vs actual.',
-    keys: ['projects'],
-  },
-  {
-    id: 'extended',
-    label: 'Phase 2–3 — Expansion modules',
-    description: 'Talent, safety, assets, and vertical engines.',
-    keys: ['ats', 'hse', 'assets', 'fleet', 'sacco', 'healthcare', 'energy', 'construction', 'outsourcing'],
-  },
-];
+export type { ModuleKey, ModulePhase, ModuleDefinition } from '@/lib/module-catalog';
+export { MODULE_DEFINITIONS };
+export { MODULE_UI_GROUPS, type ModuleUiGroup } from '@/lib/module-registry';
 
 const MODULE_BY_KEY = Object.fromEntries(MODULE_DEFINITIONS.map((m) => [m.key, m])) as Record<
   ModuleKey,

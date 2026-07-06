@@ -411,3 +411,91 @@ export function moduleEnvVar(key: ModuleKey): string {
 export const MODULE_BUCKET: Record<ModuleKey, ModuleBucket> = Object.fromEntries(
   MODULE_REGISTRY.map((row) => [row.key, row.bucket]),
 ) as Record<ModuleKey, ModuleBucket>;
+
+export type ModuleUiGroup = {
+  id: string;
+  label: string;
+  description: string;
+  keys: ModuleKey[];
+};
+
+/** Product-domain order for Company Setup — matches the module switcher. */
+const COMPANY_SETUP_DOMAIN_ORDER: DashboardModuleDomainId[] = [
+  'hr-payroll',
+  'finance',
+  'procurement',
+  'legal-documents',
+  'projects',
+  'fleet-logistics',
+  'hr-outsourcing',
+  'admin-operations',
+];
+
+const COMPANY_SETUP_DOMAIN_META: Record<
+  DashboardModuleDomainId,
+  { label: string; description: string }
+> = {
+  'hr-payroll': {
+    label: 'HR & Payroll',
+    description:
+      'People, leave, time, payroll, recruitment, performance, training, ESS, and industry packs.',
+  },
+  finance: {
+    label: 'Finance',
+    description: 'Invoicing, AP, expenses, budgets, and financial reports.',
+  },
+  procurement: {
+    label: 'Procurement',
+    description: 'Purchase requests, LPOs, vendor spend, and approvals.',
+  },
+  'legal-documents': {
+    label: 'Legal & Documents',
+    description: 'Contracts, credentials, policies, and compliance obligations.',
+  },
+  projects: {
+    label: 'Projects',
+    description: 'Deliverables, tasks, and budget vs execution.',
+  },
+  'fleet-logistics': {
+    label: 'Fleet management',
+    description: 'Transport orders, dispatch, telematics, compliance, and client billing.',
+  },
+  'hr-outsourcing': {
+    label: 'HR Outsourcing',
+    description: 'End-client register and outsourced workforce services.',
+  },
+  'admin-operations': {
+    label: 'Operations',
+    description: 'Assets, HSE, announcements, and operational reporting.',
+  },
+  'platform-admin': {
+    label: 'Platform admin',
+    description: 'Company setup and workspace administration.',
+  },
+};
+
+/** Company Setup toggle groups — one product domain per group, derived from the registry. */
+export function buildModuleUiGroups(): ModuleUiGroup[] {
+  const keysByDomain = new Map<DashboardModuleDomainId, ModuleKey[]>();
+  for (const row of MODULE_REGISTRY) {
+    const list = keysByDomain.get(row.domainId) ?? [];
+    list.push(row.key);
+    keysByDomain.set(row.domainId, list);
+  }
+
+  return COMPANY_SETUP_DOMAIN_ORDER.flatMap((domainId) => {
+    const keys = keysByDomain.get(domainId);
+    if (!keys?.length) return [];
+    const meta = COMPANY_SETUP_DOMAIN_META[domainId];
+    return [
+      {
+        id: domainId,
+        label: meta.label,
+        description: meta.description,
+        keys,
+      },
+    ];
+  });
+}
+
+export const MODULE_UI_GROUPS: ModuleUiGroup[] = buildModuleUiGroups();
