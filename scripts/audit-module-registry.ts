@@ -21,7 +21,8 @@ import { validateMarketingModuleCoverage } from '../src/lib/marketing-module-map
 
 const ROOT = path.join(import.meta.dirname, '..');
 const ENV_EXAMPLE = path.join(ROOT, '.env.example');
-const ARTIFACT_PATH = path.join(ROOT, '../shared/module-registry-artifact.json');
+const ARTIFACT_PATH = path.join(ROOT, 'shared/module-registry-artifact.json');
+const CP_ARTIFACT_PATH = path.join(ROOT, '../control-plane/shared/module-registry-artifact.json');
 const CP_MODULES = path.join(ROOT, '../control-plane/src/lib/modules.ts');
 const PACKAGING_DOC = path.join(ROOT, 'docs/STRIDE-PACKAGING.md');
 
@@ -174,6 +175,14 @@ function checkArtifactSync(artifact: NonNullable<ReturnType<typeof readArtifact>
     if (art.bucket !== row.bucket) {
       fail(`Artifact bucket for ${row.key} diverges`);
     }
+  }
+  if (fs.existsSync(CP_ARTIFACT_PATH)) {
+    const cpArtifact = JSON.parse(fs.readFileSync(CP_ARTIFACT_PATH, 'utf8'));
+    if (cpArtifact.keys.join(',') !== artifact.keys.join(',')) {
+      fail('control-plane artifact diverges from app artifact');
+    }
+  } else {
+    fail(`Missing control-plane artifact: ${CP_ARTIFACT_PATH}`);
   }
 }
 

@@ -12,7 +12,8 @@ import {
   buildModuleUiGroups,
 } from '../src/lib/module-registry';
 
-const OUT = path.join(import.meta.dirname, '../../shared/module-registry-artifact.json');
+const OUT_APP = path.join(import.meta.dirname, '../shared/module-registry-artifact.json');
+const OUT_CP = path.join(import.meta.dirname, '../../control-plane/shared/module-registry-artifact.json');
 
 const artifact = {
   version: 1,
@@ -31,6 +32,8 @@ const artifact = {
   uiGroups: buildModuleUiGroups(),
 };
 
-fs.mkdirSync(path.dirname(OUT), { recursive: true });
-fs.writeFileSync(OUT, `${JSON.stringify(artifact, null, 2)}\n`);
-console.log(`Wrote ${OUT} (${MODULE_KEYS.length} modules)`);
+for (const out of [OUT_APP, OUT_CP]) {
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, `${JSON.stringify(artifact, null, 2)}\n`);
+  console.log(`Wrote ${out} (${MODULE_KEYS.length} modules)`);
+}

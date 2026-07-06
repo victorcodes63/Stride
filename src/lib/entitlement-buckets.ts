@@ -1,6 +1,7 @@
 import type { ModuleKey } from '@/lib/modules';
 import type { DeploymentTier } from '@/lib/deployment-tier';
 import { MODULE_BUCKET, type ModuleBucket as RegistryModuleBucket } from '@/lib/module-registry';
+import { countHrOptionalHorizontalModules } from '@/lib/module-presets';
 
 export type EntitlementBucket = RegistryModuleBucket;
 
@@ -26,9 +27,7 @@ export function verticalAllowedOnTier(tier: DeploymentTier): boolean {
 export function countActiveHorizontalModules(
   modules: Record<ModuleKey, boolean>,
 ): number {
-  return Object.entries(MODULE_BUCKET).filter(
-    ([key, bucket]) => bucket === 'horizontal' && modules[key as ModuleKey],
-  ).length;
+  return countHrOptionalHorizontalModules(modules);
 }
 
 export function bucketPayload(modules: Record<ModuleKey, boolean>) {
