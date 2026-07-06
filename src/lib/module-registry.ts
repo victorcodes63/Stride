@@ -1,0 +1,413 @@
+/**
+ * MOD-01 (RAV-285): Single source of truth for Stride capabilities.
+ * One row per ModuleKey — domain, nav section, bucket, licensing, and dependencies.
+ * Keys are stable; labels are customer-facing display aliases only.
+ */
+
+import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
+
+export type ModuleBucket = 'foundational' | 'horizontal' | 'vertical';
+export type ModulePhase = 1 | 2 | 3;
+
+export const MODULE_KEYS = [
+  'core',
+  'ess',
+  'leave',
+  'time',
+  'payroll',
+  'disciplinary',
+  'accounts',
+  'reports',
+  'documents',
+  'communications',
+  'ats',
+  'performance',
+  'training',
+  'procurement',
+  'legal',
+  'projects',
+  'operations',
+  'outsourcing',
+  'sales',
+  'assessments',
+  'fleet',
+  'assets',
+  'hse',
+  'sacco',
+  'healthcare',
+  'energy',
+  'construction',
+] as const;
+
+export type ModuleKey = (typeof MODULE_KEYS)[number];
+
+export type ModuleRegistryEntry = {
+  key: ModuleKey;
+  /** Customer-facing label (display alias; never rename `key`). */
+  label: string;
+  domainId: DashboardModuleDomainId;
+  navSectionId: string;
+  bucket: ModuleBucket;
+  phase: ModulePhase;
+  billable: boolean;
+  requires?: readonly ModuleKey[];
+  envVar: string;
+  description: string;
+  /** When false, the module cannot be disabled (always on). */
+  canDisable: boolean;
+};
+
+export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
+  // —— Foundational ——
+  {
+    key: 'core',
+    label: 'People',
+    domainId: 'hr-payroll',
+    navSectionId: 'people-hr',
+    bucket: 'foundational',
+    phase: 1,
+    billable: false,
+    canDisable: false,
+    envVar: 'MODULE_CORE',
+    description: 'Employee directory, org chart, profiles, documents, and ESS — the platform base.',
+  },
+  {
+    key: 'ess',
+    label: 'Employee Self-Service',
+    domainId: 'hr-payroll',
+    navSectionId: 'employee-self-service',
+    bucket: 'foundational',
+    phase: 1,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_ESS',
+    description: 'Employee portal for leave, payslips, attendance, and cases.',
+  },
+  {
+    key: 'leave',
+    label: 'Leave',
+    domainId: 'hr-payroll',
+    navSectionId: 'time-attendance',
+    bucket: 'foundational',
+    phase: 1,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_LEAVE',
+    description: 'Leave policies, balances, approvals, and statutory leave pay.',
+  },
+  {
+    key: 'time',
+    label: 'Time & Attendance',
+    domainId: 'hr-payroll',
+    navSectionId: 'time-attendance',
+    bucket: 'foundational',
+    phase: 1,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_TIME',
+    description: 'Rota, attendance, biometrics, and shift scheduling.',
+  },
+  {
+    key: 'payroll',
+    label: 'Payroll',
+    domainId: 'hr-payroll',
+    navSectionId: 'payroll',
+    bucket: 'foundational',
+    phase: 1,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_PAYROLL',
+    description: 'KE/UG statutory payroll, M-Pesa disbursement, payslips, and bank export.',
+  },
+  {
+    key: 'disciplinary',
+    label: 'Disciplinary & Grievance',
+    domainId: 'hr-payroll',
+    navSectionId: 'people-hr',
+    bucket: 'foundational',
+    phase: 1,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_DISCIPLINARY',
+    description: 'Disciplinary cases and grievance workflows.',
+  },
+  {
+    key: 'accounts',
+    label: 'Finance',
+    domainId: 'finance',
+    navSectionId: 'finance',
+    bucket: 'foundational',
+    phase: 1,
+    billable: false,
+    canDisable: false,
+    envVar: 'MODULE_ACCOUNTS',
+    description: 'Expenses, approvals, reimbursements, invoicing, and core GL hooks.',
+  },
+  {
+    key: 'reports',
+    label: 'Reports & Analytics',
+    domainId: 'admin-operations',
+    navSectionId: 'communications-insight',
+    bucket: 'foundational',
+    phase: 1,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_REPORTS',
+    description: 'Workforce reports and executive analytics.',
+  },
+  {
+    key: 'documents',
+    label: 'Document Management',
+    domainId: 'legal-documents',
+    navSectionId: 'legal-documents',
+    bucket: 'foundational',
+    phase: 2,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_DOCUMENTS',
+    description: 'Company policies, SOPs, handbooks, and shared documents.',
+  },
+  {
+    key: 'communications',
+    label: 'Communications',
+    domainId: 'admin-operations',
+    navSectionId: 'communications-insight',
+    bucket: 'foundational',
+    phase: 2,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_COMMUNICATIONS',
+    description: 'Company announcements, notices, and internal communications.',
+  },
+
+  // —— Horizontal ——
+  {
+    key: 'ats',
+    label: 'Recruitment & talent',
+    domainId: 'hr-payroll',
+    navSectionId: 'recruitment',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    requires: ['core'],
+    canDisable: true,
+    envVar: 'MODULE_ATS',
+    description: 'Careers site, ATS, onboarding, and talent pipeline.',
+  },
+  {
+    key: 'performance',
+    label: 'Performance',
+    domainId: 'hr-payroll',
+    navSectionId: 'people-hr',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    requires: ['core'],
+    canDisable: true,
+    envVar: 'MODULE_PERFORMANCE',
+    description: 'Goals, review cycles, scorecards, and performance management.',
+  },
+  {
+    key: 'training',
+    label: 'Training & Development',
+    domainId: 'hr-payroll',
+    navSectionId: 'development',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_TRAINING',
+    description: 'Training programs, enrollments, org chart, and skill development.',
+  },
+  {
+    key: 'procurement',
+    label: 'Procurement',
+    domainId: 'procurement',
+    navSectionId: 'procurement',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_PROCUREMENT',
+    description: 'Purchase requests, LPOs, vendor spend, and procurement workflows.',
+  },
+  {
+    key: 'legal',
+    label: 'Legal & Compliance',
+    domainId: 'legal-documents',
+    navSectionId: 'legal-documents',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_LEGAL',
+    description: 'Contracts, credentials, obligations, and compliance tracking.',
+  },
+  {
+    key: 'projects',
+    label: 'Project Management',
+    domainId: 'projects',
+    navSectionId: 'projects',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_PROJECTS',
+    description: 'Project register, kanban board, tasks, deliverables, and budget vs actual.',
+  },
+  {
+    key: 'operations',
+    label: 'Operations',
+    domainId: 'admin-operations',
+    navSectionId: 'operations',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_OPERATIONS',
+    description: 'Assets, HSE, announcements, and operational reporting hub.',
+  },
+  {
+    key: 'outsourcing',
+    label: 'HR Outsourcing (BPO)',
+    domainId: 'hr-outsourcing',
+    navSectionId: 'outsourcing-clients',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_OUTSOURCING',
+    description:
+      'End-client register, outsourced workforce, and per-client payroll, attendance, and leave.',
+  },
+  {
+    key: 'sales',
+    label: 'Sales',
+    domainId: 'hr-payroll',
+    navSectionId: 'people-hr',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    requires: ['performance'],
+    canDisable: true,
+    envVar: 'MODULE_SALES',
+    description: 'Sales pipeline KPIs and scorecard auto-measures for revenue roles.',
+  },
+  {
+    key: 'assessments',
+    label: 'Candidate assessments',
+    domainId: 'hr-payroll',
+    navSectionId: 'recruitment',
+    bucket: 'horizontal',
+    phase: 2,
+    billable: true,
+    requires: ['ats'],
+    canDisable: true,
+    envVar: 'MODULE_ASSESSMENTS',
+    description: 'AssessIQ templates, assignments, and candidate assessment attempts.',
+  },
+
+  // —— Vertical ——
+  {
+    key: 'fleet',
+    label: 'Fleet & Logistics',
+    domainId: 'fleet-logistics',
+    navSectionId: 'fleet-operations',
+    bucket: 'vertical',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_FLEET',
+    description: 'Transport orders, trip workflow, fleet register, and logistics operations.',
+  },
+  {
+    key: 'assets',
+    label: 'Asset Manager',
+    domainId: 'admin-operations',
+    navSectionId: 'operations',
+    bucket: 'vertical',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_ASSETS',
+    description: 'Company asset registry, assignments, and lifecycle tracking.',
+  },
+  {
+    key: 'hse',
+    label: 'HSE',
+    domainId: 'admin-operations',
+    navSectionId: 'operations',
+    bucket: 'vertical',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_HSE',
+    description: 'Health, safety, and environment incident tracking.',
+  },
+  {
+    key: 'sacco',
+    label: 'SACCO',
+    domainId: 'hr-payroll',
+    navSectionId: 'sacco',
+    bucket: 'vertical',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_SACCO',
+    description: 'Member ledger, BOSA/FOSA accounts, dividend runs, and SASRA reporting templates.',
+  },
+  {
+    key: 'healthcare',
+    label: 'Healthcare',
+    domainId: 'hr-payroll',
+    navSectionId: 'healthcare',
+    bucket: 'vertical',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_HEALTHCARE',
+    description: 'Clinical rota rules, licence gates on shifts, and NHIF/SHIF compliance hooks.',
+  },
+  {
+    key: 'energy',
+    label: 'Energy',
+    domainId: 'hr-payroll',
+    navSectionId: 'energy',
+    bucket: 'vertical',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_ENERGY',
+    description: 'Permit tracking, site register, and multi-entity HSE rollup for energy operators.',
+  },
+  {
+    key: 'construction',
+    label: 'Construction',
+    domainId: 'hr-payroll',
+    navSectionId: 'construction',
+    bucket: 'vertical',
+    phase: 3,
+    billable: true,
+    canDisable: true,
+    envVar: 'MODULE_CONSTRUCTION',
+    description: 'Site hierarchy, plant asset tracking, and subcontractor accounts payable.',
+  },
+] as const;
+
+const REGISTRY_BY_KEY = Object.fromEntries(MODULE_REGISTRY.map((row) => [row.key, row])) as Record<
+  ModuleKey,
+  ModuleRegistryEntry
+>;
+
+export function getModuleRegistryEntry(key: ModuleKey): ModuleRegistryEntry {
+  return REGISTRY_BY_KEY[key];
+}
+
+export function moduleEnvVar(key: ModuleKey): string {
+  return REGISTRY_BY_KEY[key].envVar;
+}
+
+/** Bucket map derived from the registry — used by entitlement quotas. */
+export const MODULE_BUCKET: Record<ModuleKey, ModuleBucket> = Object.fromEntries(
+  MODULE_REGISTRY.map((row) => [row.key, row.bucket]),
+) as Record<ModuleKey, ModuleBucket>;
