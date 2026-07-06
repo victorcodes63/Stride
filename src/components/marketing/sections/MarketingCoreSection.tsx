@@ -1,5 +1,6 @@
 import { CORE_MODULES } from '@/lib/marketing-config';
 import { MarketingModuleBadge } from '@/components/marketing/MarketingModuleBadge';
+import { MarketingModuleChips } from '@/components/marketing/MarketingModuleChips';
 import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
 import { MarketingReveal } from '@/components/marketing/MarketingReveal';
 
@@ -19,10 +20,10 @@ export function MarketingCoreSection() {
         </MarketingReveal>
         <MarketingReveal delay={0.16}>
           <p className="mt-[18px] max-w-[540px] text-[17px] leading-relaxed text-pub-ink-muted">
-            Six universal modules, one data layer, one login. Each module is badged{' '}
+            Nine product areas, one data layer, one login. Each area lists its modules with honest{' '}
             <strong className="font-semibold text-pub-ink">Live</strong>,{' '}
             <strong className="font-semibold text-pub-ink">Partial</strong>, or{' '}
-            <strong className="font-semibold text-pub-ink">Roadmap</strong> so you know what ships today.
+            <strong className="font-semibold text-pub-ink">Roadmap</strong> badges.
           </p>
         </MarketingReveal>
 
@@ -40,6 +41,9 @@ export function MarketingCoreSection() {
                   <MarketingModuleBadge readiness={mod.readiness} />
                 </div>
                 <p className="text-sm leading-relaxed text-pub-ink-muted">{mod.description}</p>
+                {'modules' in mod && mod.modules ? (
+                  <MarketingModuleChips modules={mod.modules} className="mt-4" />
+                ) : null}
               </article>
             </MarketingReveal>
           ))}

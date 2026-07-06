@@ -11,6 +11,7 @@ import { PlatformArchitectureSection } from '@/components/marketing/platform/Pla
 import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
 import { MarketingFinalCta } from '@/components/marketing/sections/MarketingFinalCta';
 import { MarketingModuleBadge } from '@/components/marketing/MarketingModuleBadge';
+import { MarketingModuleChips } from '@/components/marketing/MarketingModuleChips';
 import {
   MarketingOutlineLink,
   MarketingPrimaryLink,
@@ -102,13 +103,14 @@ function PlatformModulesSection() {
   return (
     <section className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
       <StudioCraftContainer>
-        <SectionBadge number="2" label="Core modules" />
+        <SectionBadge number="2" label="Product areas" />
         <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
-          Six modules. <span className="text-[var(--sc-coral)]">One platform.</span>
+          Nine areas. <span className="text-[var(--sc-coral)]">One platform.</span>
         </h2>
         <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
-          Sign up with HR & Payroll and Finance — your two included modules — then switch on legal,
-          admin, procurement or projects when your operations need them.
+          Sign up with HR & Payroll and Finance — your two included areas — then switch on fleet,
+          outsourcing, sales, procurement and more when your operations need them. Every module is
+          badged Live, Partial or Roadmap.
         </p>
 
         <div className="mt-12 space-y-5">
@@ -124,6 +126,7 @@ function PlatformModulesSection() {
                   </p>
                   <MarketingModuleBadge readiness={mod.readiness} />
                 </div>
+                <MarketingModuleChips modules={mod.modules} className="mt-3" />
                 <h3 className="mt-2 text-xl font-medium tracking-tight text-[var(--sc-ink)] sm:text-2xl">
                   {mod.headline}
                 </h3>
@@ -207,7 +210,7 @@ function PlatformComplianceSection() {
 
 function PlatformVerticalsSection() {
   const available = INDUSTRY_VERTICALS.filter((v) => v.status === 'available');
-  const comingSoon = INDUSTRY_VERTICALS.filter((v) => v.status === 'coming_soon').slice(0, 3);
+  const comingSoon = INDUSTRY_VERTICALS.filter((v) => v.status === 'coming_soon');
 
   return (
     <section className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-24">
@@ -218,8 +221,8 @@ function PlatformVerticalsSection() {
         </h2>
         <p className="mt-4 max-w-[620px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
           Vertical packs add specialised workflows on top of the horizontal platform — not a separate
-          product to integrate. Six sector packs are live today, from logistics and SACCOs to
-          healthcare, energy, and construction.
+          product to integrate. Logistics & Cargo is live today; SACCOs, Healthcare, Energy and
+          Construction are on the roadmap.
         </p>
 
         <div
