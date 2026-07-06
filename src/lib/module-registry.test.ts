@@ -76,7 +76,6 @@ describe('module-registry', () => {
   });
 
   it('derives nav section modules from registry navSectionId', () => {
-    const { NAV_SECTION_MODULES } = require('@/lib/module-registry') as typeof import('@/lib/module-registry');
     expect(NAV_SECTION_MODULES['people-hr']).toContain('core');
     expect(NAV_SECTION_MODULES['people-hr']).toContain('performance');
     expect(NAV_SECTION_MODULES.recruitment).toContain('ats');
