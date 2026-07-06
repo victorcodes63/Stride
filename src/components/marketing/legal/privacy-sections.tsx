@@ -82,7 +82,7 @@ export function getPrivacySections(): LegalSection[] {
           <ul>
             <li>Identity and contact details, national ID or passport references, tax PIN, bank and M-Pesa payout details</li>
             <li>Employment records: job title, department, compensation, leave, attendance, performance, and disciplinary records</li>
-            <li>Applicant and recruitment data where the ATS module is enabled</li>
+            <li>Applicant and recruitment data where recruitment is enabled</li>
             <li>Documents uploaded to the platform (contracts, IDs, payslips, letters)</li>
           </ul>
           <h3>Finance and operations data (processor data)</h3>

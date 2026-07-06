@@ -196,7 +196,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
   },
   {
     key: 'performance',
-    label: 'Performance',
+    label: 'Performance management',
     domainId: 'hr-payroll',
     navSectionId: 'people-hr',
     bucket: 'horizontal',
@@ -437,8 +437,7 @@ const COMPANY_SETUP_DOMAIN_META: Record<
 > = {
   'hr-payroll': {
     label: 'HR & Payroll',
-    description:
-      'People, leave, time, payroll, recruitment, performance, training, ESS, and industry packs.',
+    description: 'People, leave, time, payroll, ESS, and disciplinary.',
   },
   finance: {
     label: 'Finance',
@@ -474,8 +473,26 @@ const COMPANY_SETUP_DOMAIN_META: Record<
   },
 };
 
+function describeHrPayrollDomain(flags?: Partial<Record<ModuleKey, boolean>>): string {
+  const parts = ['People', 'leave', 'time', 'payroll', 'ESS', 'disciplinary'];
+  if (flags?.ats === true) parts.push('recruitment');
+  if (flags?.performance === true) parts.push('performance management');
+  if (flags?.training === true) parts.push('training');
+  return `${parts.join(', ')}.`;
+}
+
+function describeDomain(
+  domainId: DashboardModuleDomainId,
+  flags?: Partial<Record<ModuleKey, boolean>>,
+): string {
+  if (domainId === 'hr-payroll') return describeHrPayrollDomain(flags);
+  return COMPANY_SETUP_DOMAIN_META[domainId].description;
+}
+
 /** Company Setup toggle groups — one product domain per group, derived from the registry. */
-export function buildModuleUiGroups(): ModuleUiGroup[] {
+export function buildModuleUiGroups(
+  enabledFlags?: Partial<Record<ModuleKey, boolean>>,
+): ModuleUiGroup[] {
   const keysByDomain = new Map<DashboardModuleDomainId, ModuleKey[]>();
   for (const row of MODULE_REGISTRY) {
     const list = keysByDomain.get(row.domainId) ?? [];
@@ -491,7 +508,7 @@ export function buildModuleUiGroups(): ModuleUiGroup[] {
       {
         id: domainId,
         label: meta.label,
-        description: meta.description,
+        description: describeDomain(domainId, enabledFlags),
         keys,
       },
     ];

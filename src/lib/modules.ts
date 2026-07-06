@@ -17,10 +17,11 @@ export { MODULE_ADMIN_COOKIE, sanitizeModuleAdminFlags, allModulesAdminEnabled }
 
 import type { ModuleKey, ModuleDefinition } from '@/lib/module-catalog';
 import { MODULE_DEFINITIONS } from '@/lib/module-catalog';
+import { enforceDependencyClosure } from '@/lib/module-dependencies';
 
 export type { ModuleKey, ModulePhase, ModuleDefinition } from '@/lib/module-catalog';
 export { MODULE_DEFINITIONS };
-export { MODULE_UI_GROUPS, type ModuleUiGroup } from '@/lib/module-registry';
+export { MODULE_UI_GROUPS, buildModuleUiGroups, type ModuleUiGroup } from '@/lib/module-registry';
 
 const MODULE_BY_KEY = Object.fromEntries(MODULE_DEFINITIONS.map((m) => [m.key, m])) as Record<
   ModuleKey,
@@ -60,25 +61,7 @@ export function defaultModuleAdminFlags(): Record<ModuleKey, boolean> {
 }
 
 /** Preset: hide non-HR extended modules (Recruitment, vertical engines). */
-export function hrEssentialsModuleAdminFlags(
-  current: Record<ModuleKey, boolean>,
-): Record<ModuleKey, boolean> {
-  return {
-    ...current,
-    accounts: true,
-    assets: false,
-    ats: false,
-    assessments: false,
-    outsourcing: false,
-    operations: false,
-    sales: false,
-    fleet: false,
-    sacco: false,
-    healthcare: false,
-    energy: false,
-    construction: false,
-  };
-}
+export { applyHrDomainPreset, hrEssentialsModuleAdminFlags } from '@/lib/module-presets';
 
 /** Env / deployment license — cannot be overridden from Company Setup. */
 export function isModuleLicensed(key: ModuleKey): boolean {
@@ -152,38 +135,40 @@ export function resolveEffectiveModules(
       ? { ...subscription, verticalEnginesAllowed: true }
       : subscription;
 
-  return MODULE_DEFINITIONS.reduce(
-    (acc, def) => {
-      if (blocked) {
-        acc[def.key] = false;
+  return enforceDependencyClosure(
+    MODULE_DEFINITIONS.reduce(
+      (acc, def) => {
+        if (blocked) {
+          acc[def.key] = false;
+          return acc;
+        }
+
+        const envOk = licensed[def.key];
+        const entitled =
+          isDemoMode() || isPublicDemoMode() || isLocalDevAllModules()
+            ? true
+            : isSubscribed(def.key, effectiveSubscription?.subscribedModules);
+        const verticalOk =
+          def.key !== 'fleet' &&
+          def.key !== 'assets' &&
+          def.key !== 'hse' &&
+          def.key !== 'sacco' &&
+          def.key !== 'healthcare' &&
+          def.key !== 'energy' &&
+          def.key !== 'construction'
+            ? true
+            : effectiveSubscription?.verticalEnginesAllowed !== false;
+
+        const adminOk =
+          !def.canDisable || def.key === 'core' || def.key === 'accounts'
+            ? true
+            : effectiveAdminFlags[def.key] !== false;
+
+        acc[def.key] = envOk && entitled && verticalOk && adminOk;
         return acc;
-      }
-
-      const envOk = licensed[def.key];
-      const entitled =
-        isDemoMode() || isPublicDemoMode() || isLocalDevAllModules()
-          ? true
-          : isSubscribed(def.key, effectiveSubscription?.subscribedModules);
-      const verticalOk =
-        def.key !== 'fleet' &&
-        def.key !== 'assets' &&
-        def.key !== 'hse' &&
-        def.key !== 'sacco' &&
-        def.key !== 'healthcare' &&
-        def.key !== 'energy' &&
-        def.key !== 'construction'
-          ? true
-          : effectiveSubscription?.verticalEnginesAllowed !== false;
-
-      const adminOk =
-        !def.canDisable || def.key === 'core' || def.key === 'accounts'
-          ? true
-          : effectiveAdminFlags[def.key] !== false;
-
-      acc[def.key] = envOk && entitled && verticalOk && adminOk;
-      return acc;
-    },
-    {} as Record<ModuleKey, boolean>,
+      },
+      {} as Record<ModuleKey, boolean>,
+    ),
   );
 }
 

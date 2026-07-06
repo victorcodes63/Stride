@@ -162,4 +162,10 @@ describe('modules', () => {
     expect(effective.procurement).toBe(false);
     expect(effective.leave).toBe(false);
   });
+
+  it('resolveEffectiveModules disables sales when performance is off', () => {
+    const admin = { ...allModulesAdminEnabled(), performance: false, sales: true };
+    const effective = resolveEffectiveModules(admin);
+    expect(effective.sales).toBe(false);
+  });
 });
