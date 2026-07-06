@@ -393,12 +393,15 @@ model Employee {
   fleetDriverProfile          FleetDriver?
   performanceGoals            PerformanceGoal[]
   performanceReviews          PerformanceReview[]
+  salesRepPeriodMetrics       SalesRepPeriodMetric[]
   hseIncidentsReported        HseIncident[]
   saccoMemberProfile          SaccoMember?
   healthcareClinicalAssignments HealthcareClinicalAssignment[]
 
   /// One national ID maps to at most one employee record system-wide (multiple NULL allowed).
   @@unique([idNumber])
+  @@index([organizationId, employmentStatus])
+  @@index([organizationId, outsourcingClientId])
   @@index([outsourcingClientId])
   @@index([departmentId])
   @@index([managerEmployeeId])
@@ -508,6 +511,7 @@ model DisciplinaryCase {
   updatedAt              DateTime               @updatedAt
 
   @@index([employeeId])
+  @@index([organizationId, status])
   @@index([status])
   @@index([type])
 }
@@ -574,6 +578,7 @@ model Grievance {
   documents          GrievanceDocument[]
 
   @@index([employeeId])
+  @@index([organizationId, status])
   @@index([status])
 }
 
@@ -792,6 +797,7 @@ model OnboardingTask {
   documentId    String?
 
   @@index([workflowId, order])
+  @@index([organizationId, status])
   @@index([assignedRole, status])
   @@index([assignedToId, status])
 }
@@ -1207,6 +1213,7 @@ model EmployeeCredential {
   reminders CredentialReminderSent[]
 
   @@index([employeeId, category])
+  @@index([organizationId, status, expiryDate])
   @@index([expiryDate])
   @@index([status])
 }
@@ -1501,6 +1508,7 @@ model LeaveApplication {
   leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
 
   @@index([employeeId])
+  @@index([organizationId, status])
   @@index([status])
 }
 
@@ -2891,6 +2899,7 @@ model StaffNotification {
   essPortalUser EssPortalUser?         @relation("EssUserNotifications", fields: [essPortalUserId], references: [id], onDelete: Cascade)
   deliveries    NotificationDelivery[]
 
+  @@index([organizationId, userId, readAt])
   @@index([userId, createdAt])
   @@index([essPortalUserId, createdAt])
   @@index([readAt])
@@ -3555,6 +3564,7 @@ model FleetVehicle {
   drivingTimeLogs  FleetDrivingTimeLog[]
 
   @@unique([outsourcingClientId, registration])
+  @@index([organizationId, status])
   @@index([outsourcingClientId, status])
 }
 
@@ -4579,6 +4589,27 @@ model CompetencyRequirement {
   @@index([templateId, sortOrder])
 }
 
+// --- Sales performance metrics (SALES-01 / PERF-06 integration) ---
+
+model SalesRepPeriodMetric {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  employeeId     String
+  periodStart    DateTime @db.Date
+  periodEnd      DateTime @db.Date
+  pipelineTarget Decimal  @db.Decimal(14, 2)
+  pipelineClosed Decimal  @db.Decimal(14, 2) @default(0)
+  currency       String   @default("KES")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, employeeId, periodStart, periodEnd])
+  @@index([organizationId, periodEnd])
+}
+
 // --- Performance management (RAV-69) ---
 
 enum PerformanceCycleStatus {
@@ -4789,6 +4820,7 @@ model Project {
   constructionSites ConstructionSite[]
 
   @@unique([outsourcingClientId, projectCode])
+  @@index([organizationId, status])
   @@index([outsourcingClientId])
   @@index([status])
   @@index([dueDate])
@@ -4839,6 +4871,7 @@ model ProjectTask {
   createdBy User              @relation("ProjectTaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   @@index([projectId])
+  @@index([organizationId, status])
   @@index([milestoneId])
   @@index([status])
   @@index([assigneeUserId])
