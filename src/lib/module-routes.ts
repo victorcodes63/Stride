@@ -1,6 +1,4 @@
 import type { ModuleKey } from '@/lib/modules';
-import { buildNavItemModules } from '@/lib/module-nav-bindings';
-import { NAV_SECTION_MODULES } from '@/lib/module-registry';
 
 export type RouteModuleBinding = {
   prefix: string;
@@ -20,25 +18,24 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/api/candidates', module: 'ats' },
   { prefix: '/api/interviews', module: 'ats' },
   { prefix: '/api/careers', module: 'ats' },
-  { prefix: '/api/assessments', module: 'assessments' },
+  { prefix: '/api/assessments', module: 'ats' },
   { prefix: '/dashboard/jobs', module: 'ats' },
   { prefix: '/dashboard/applications', module: 'ats' },
-  { prefix: '/dashboard/assessments', module: 'assessments' },
+  { prefix: '/dashboard/assessments', module: 'ats' },
   { prefix: '/dashboard/candidates', module: 'ats' },
   { prefix: '/dashboard/interviews', module: 'ats' },
   { prefix: '/dashboard/schedule', module: 'ats' },
 
   // —— Payroll ——
-  { prefix: '/api/outsourcing/payroll', module: 'outsourcing' },
-  { prefix: '/dashboard/outsourcing/payroll', module: 'outsourcing' },
+  { prefix: '/api/outsourcing/payroll', module: 'payroll' },
   { prefix: '/api/payroll', module: 'payroll' },
   { prefix: '/dashboard/payroll', module: 'payroll' },
   { prefix: '/dashboard/people', module: 'core' },
-  { prefix: '/dashboard/operations', module: 'operations' },
+  { prefix: '/dashboard/operations', module: 'reports' },
   { prefix: '/dashboard/procurement', module: 'procurement' },
   { prefix: '/api/procurement', module: 'procurement' },
-  { prefix: '/dashboard/projects', module: 'projects' },
-  { prefix: '/api/projects', module: 'projects' },
+  { prefix: '/dashboard/projects', module: 'core' },
+  { prefix: '/api/projects', module: 'core' },
   { prefix: '/api/facilities', module: 'core' },
   { prefix: '/api/governance', module: 'core' },
   { prefix: '/dashboard/admin/facilities', module: 'core' },
@@ -51,7 +48,7 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/api/rota', module: 'time' },
   { prefix: '/api/biometric', module: 'time' },
   { prefix: '/api/cron/biometric-poll', module: 'time' },
-  { prefix: '/api/outsourcing/attendance', module: 'outsourcing' },
+  { prefix: '/api/outsourcing/attendance', module: 'time' },
   { prefix: '/dashboard/rota', module: 'time' },
   { prefix: '/dashboard/attendance', module: 'time' },
   { prefix: '/dashboard/biometric-devices', module: 'time' },
@@ -59,11 +56,10 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   // —— Leave ——
   { prefix: '/api/ess/leave', module: 'leave' },
   { prefix: '/api/staff/leave', module: 'leave' },
-  { prefix: '/api/outsourcing/leave', module: 'outsourcing' },
+  { prefix: '/api/outsourcing/leave', module: 'leave' },
   { prefix: '/api/leave', module: 'leave' },
   { prefix: '/dashboard/leave', module: 'leave' },
-  { prefix: '/dashboard/outsourcing/leave', module: 'outsourcing' },
-  { prefix: '/dashboard/outsourcing/disciplinary', module: 'outsourcing' },
+  { prefix: '/dashboard/outsourcing/leave', module: 'leave' },
   { prefix: '/api/ess/home-summary', module: 'ess' },
   { prefix: '/api/ess/team', module: 'leave' },
   { prefix: '/api/ess/documents', module: 'core' },
@@ -99,6 +95,10 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/api/performance', module: 'performance' },
   { prefix: '/dashboard/performance', module: 'performance' },
   { prefix: '/dashboard/people/performance', module: 'performance' },
+
+  // —— Sales Performance ——
+  { prefix: '/api/sales', module: 'sales' },
+  { prefix: '/dashboard/sales', module: 'sales' },
 
   // —— HSE ——
   { prefix: '/dashboard/hse', module: 'hse' },
@@ -159,16 +159,14 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
 
   // —— Core HR (employees, org, onboarding, credentials) ——
   { prefix: '/api/onboarding', module: 'core' },
-  { prefix: '/api/outsourcing/clients', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/employees', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/ess', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/document-requests', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/overview-stats', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/overview', module: 'outsourcing' },
+  { prefix: '/api/outsourcing/clients', module: 'core' },
+  { prefix: '/api/outsourcing/employees', module: 'core' },
+  { prefix: '/api/outsourcing/ess', module: 'ess' },
+  { prefix: '/api/outsourcing/document-requests', module: 'ess' },
   { prefix: '/dashboard/ess/portal-accounts', module: 'ess' },
   { prefix: '/dashboard/ess/shifts', module: 'ess' },
   { prefix: '/dashboard/ess/document-requests', module: 'ess' },
-  { prefix: '/dashboard/outsourcing', module: 'outsourcing' },
+  { prefix: '/dashboard/outsourcing', module: 'core' },
   { prefix: '/api/employees', module: 'core' },
   { prefix: '/api/departments', module: 'core' },
   { prefix: '/api/credentials', module: 'core' },
@@ -240,10 +238,40 @@ export function resolveModuleForPath(pathname: string): ModuleKey | null {
   return null;
 }
 
-export { NAV_SECTION_MODULES };
+/** Dashboard nav section → required module(s). Section shown if any listed module is enabled. */
+export const NAV_SECTION_MODULES: Record<string, ModuleKey[]> = {
+  'people-hr': ['core'],
+  recruitment: ['ats'],
+  'time-attendance': ['time', 'leave'],
+  operations: ['assets', 'hse'],
+  'fleet-operations': ['fleet'],
+  'fleet-monitoring': ['fleet'],
+  'fleet-assets': ['fleet'],
+  'fleet-commercial': ['fleet'],
+  sacco: ['sacco'],
+  healthcare: ['healthcare'],
+  energy: ['energy'],
+  construction: ['construction'],
+  'communications-insight': ['communications', 'reports'],
+  payroll: ['payroll'],
+  'employee-self-service': ['ess'],
+  finance: ['accounts'],
+  procurement: ['procurement'],
+  'legal-documents': ['legal', 'documents'],
+  projects: ['core'],
+  development: ['training'],
+  admin: ['core'],
+};
 
-/** Nav item href → module. Derived from nav catalog + route bindings. */
-export const NAV_ITEM_MODULES: Record<string, ModuleKey> = buildNavItemModules(resolveModuleForPath);
+/** Nav item href → module. Derived from nav catalog + route bindings (lazy — avoids circular import). */
+let navItemModulesCache: Record<string, ModuleKey> | undefined;
+
+export function getNavItemModules(): Record<string, ModuleKey> {
+  if (!navItemModulesCache) {
+    navItemModulesCache = buildNavItemModules(resolveModuleForPath);
+  }
+  return navItemModulesCache;
+}
 
 /** ESS bottom-nav href → module */
 export const ESS_NAV_MODULES: Record<string, ModuleKey> = {

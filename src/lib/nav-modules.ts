@@ -1,6 +1,6 @@
 import type { ModuleKey } from '@/lib/modules';
 import { NAV_SECTION_MODULES } from '@/lib/module-registry';
-import { ESS_NAV_MODULES, NAV_ITEM_MODULES, resolveModuleForPath } from '@/lib/module-routes';
+import { ESS_NAV_MODULES, getNavItemModules, resolveModuleForPath } from '@/lib/module-routes';
 
 export type EnabledModulesMap = Record<ModuleKey, boolean>;
 
@@ -10,7 +10,7 @@ function normalizeNavHref(href: string): string {
 
 function resolveNavItemModule(href: string): ModuleKey | null {
   const path = normalizeNavHref(href);
-  return NAV_ITEM_MODULES[path] ?? resolveModuleForPath(path);
+  return getNavItemModules()[path] ?? resolveModuleForPath(path);
 }
 
 export function isNavSectionVisible(sectionId: string, enabled: EnabledModulesMap | undefined): boolean {
@@ -26,41 +26,42 @@ export function isDashboardNavItemVisible(
   enabled: EnabledModulesMap | undefined,
 ): boolean {
   if (!enabled) return true;
-
-  const boundModule = resolveNavItemModule(href);
-  if (boundModule) return enabled[boundModule] === true;
+  const itemModule = resolveNavItemModule(href);
+  if (itemModule) return enabled[itemModule];
 
   const sectionModules = NAV_SECTION_MODULES[sectionId];
   if (!sectionModules?.length) return true;
 
   if (sectionId === 'people-hr') {
-    return enabled.core === true;
+    if (href.startsWith('/dashboard/sales')) return enabled.sales;
+    if (href.startsWith('/dashboard/performance')) return enabled.performance;
+    return enabled.core;
   }
 
   if (sectionId === 'time-attendance') {
-    if (href.includes('/leave')) return enabled.leave === true;
-    return enabled.time === true;
+    if (href.includes('/leave')) return enabled.leave;
+    return enabled.time;
   }
 
   if (sectionId === 'legal-documents') {
-    if (href.startsWith('/dashboard/company-documents')) return enabled.documents === true;
-    return enabled.core === true;
+    if (href.startsWith('/dashboard/company-documents')) return enabled.documents;
+    return enabled.core;
   }
 
   if (sectionId === 'healthcare') {
-    return enabled.healthcare === true;
+    return enabled.healthcare;
   }
 
   if (sectionId === 'sacco') {
-    return enabled.sacco === true;
+    return enabled.sacco;
   }
 
   if (sectionId === 'energy') {
-    return enabled.energy === true;
+    return enabled.energy;
   }
 
   if (sectionId === 'construction') {
-    return enabled.construction === true;
+    return enabled.construction;
   }
 
   if (
@@ -69,33 +70,25 @@ export function isDashboardNavItemVisible(
     sectionId === 'fleet-assets' ||
     sectionId === 'fleet-commercial'
   ) {
-    return enabled.fleet === true;
-  }
-
-  if (
-    sectionId === 'outsourcing-clients' ||
-    sectionId === 'outsourcing-workforce' ||
-    sectionId === 'outsourcing-services'
-  ) {
-    return enabled.outsourcing === true;
+    return enabled.fleet;
   }
 
   if (sectionId === 'operations') {
-    if (href.startsWith('/dashboard/assets')) return enabled.assets === true;
-    if (href.startsWith('/dashboard/hse')) return enabled.hse === true;
+    if (href.startsWith('/dashboard/assets')) return enabled.assets;
+    if (href.startsWith('/dashboard/hse')) return enabled.hse;
     return false;
   }
 
   if (sectionId === 'communications-insight') {
-    if (href.startsWith('/dashboard/announcements')) return enabled.communications === true;
-    return enabled.reports === true;
+    if (href.startsWith('/dashboard/announcements')) return enabled.communications;
+    return enabled.reports;
   }
 
   if (sectionId === 'projects') {
-    return enabled.projects === true;
+    return true;
   }
 
-  return sectionModules.some((module) => enabled[module] === true);
+  return sectionModules.some((module) => enabled[module]);
 }
 
 export function isEssNavItemVisible(href: string, enabled: EnabledModulesMap): boolean {

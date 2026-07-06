@@ -1,11 +1,33 @@
 import type { ModuleKey } from '@/lib/modules';
 import type { DeploymentTier } from '@/lib/deployment-tier';
-import { MODULE_BUCKET, type ModuleBucket as RegistryModuleBucket } from '@/lib/module-registry';
-import { countHrOptionalHorizontalModules } from '@/lib/module-presets';
 
-export type EntitlementBucket = RegistryModuleBucket;
+export type EntitlementBucket = 'foundational' | 'horizontal' | 'vertical';
 
-export { MODULE_BUCKET };
+export const MODULE_BUCKET: Record<ModuleKey, EntitlementBucket> = {
+  core: 'foundational',
+  leave: 'foundational',
+  time: 'foundational',
+  payroll: 'foundational',
+  ess: 'foundational',
+  disciplinary: 'foundational',
+  accounts: 'foundational',
+  reports: 'foundational',
+  documents: 'foundational',
+  procurement: 'horizontal',
+  legal: 'horizontal',
+  sales: 'horizontal',
+  ats: 'horizontal',
+  performance: 'horizontal',
+  training: 'horizontal',
+  communications: 'horizontal',
+  hse: 'vertical',
+  assets: 'vertical',
+  fleet: 'vertical',
+  sacco: 'vertical',
+  healthcare: 'vertical',
+  energy: 'vertical',
+  construction: 'vertical',
+};
 
 export function horizontalQuotaForTier(tier: DeploymentTier): number {
   switch (tier) {
@@ -27,7 +49,9 @@ export function verticalAllowedOnTier(tier: DeploymentTier): boolean {
 export function countActiveHorizontalModules(
   modules: Record<ModuleKey, boolean>,
 ): number {
-  return countHrOptionalHorizontalModules(modules);
+  return Object.entries(MODULE_BUCKET).filter(
+    ([key, bucket]) => bucket === 'horizontal' && modules[key as ModuleKey],
+  ).length;
 }
 
 export function bucketPayload(modules: Record<ModuleKey, boolean>) {
