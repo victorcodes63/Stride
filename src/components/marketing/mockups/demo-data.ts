@@ -31,8 +31,8 @@ export const DEMO_CORE_STATS = {
   payrollHint: 'This cycle',
   compliance: '100%',
   complianceHint: 'KRA · NSSF · SHIF',
-  modulesLive: 2,
-  modulesHint: '6 modules live',
+  modulesLive: 9,
+  modulesHint: '9 product areas',
 } as const;
 
 export const DEMO_CORE_EMPLOYEES = [
@@ -152,22 +152,28 @@ export const DEMO_PLATFORM_OVERVIEW = {
   greeting: 'Good afternoon, Amina',
   modules: [
     {
+      id: 'hr-payroll',
+      label: 'HR & Payroll',
+      lines: ['248 staff', '6 leave pending'],
+      attention: 6,
+    },
+    {
       id: 'finance',
       label: 'Finance',
       lines: ['12 unpaid invoices', '4 vendor bills due'],
       attention: 0,
     },
     {
-      id: 'hr-payroll',
-      label: 'HR & Payroll',
-      lines: ['248 staff', '214 on duty today'],
-      attention: 6,
+      id: 'fleet-logistics',
+      label: 'Fleet & Logistics',
+      lines: ['6 active trips', '2 compliance gates'],
+      attention: 2,
     },
     {
-      id: 'legal',
-      label: 'Legal',
-      lines: ['Credentials up to date', '2 contracts renewing'],
-      attention: 0,
+      id: 'hr-outsourcing',
+      label: 'HR Outsourcing',
+      lines: ['4 end clients', 'May payroll due'],
+      attention: 1,
     },
     {
       id: 'procurement',
@@ -176,10 +182,22 @@ export const DEMO_PLATFORM_OVERVIEW = {
       attention: 3,
     },
     {
-      id: 'admin',
-      label: 'Admin',
-      lines: ['6 active fleet trips', '248 assets tracked'],
+      id: 'sales',
+      label: 'Sales',
+      lines: ['Pipeline KPIs in reviews', 'Q2 scorecards open'],
       attention: 0,
+    },
+    {
+      id: 'legal-documents',
+      label: 'Legal & Documents',
+      lines: ['Credentials up to date', '2 contracts renewing'],
+      attention: 0,
+    },
+    {
+      id: 'admin-operations',
+      label: 'Admin & Operations',
+      lines: ['248 assets tracked', '1 HSE incident open'],
+      attention: 1,
     },
     {
       id: 'projects',
@@ -191,14 +209,14 @@ export const DEMO_PLATFORM_OVERVIEW = {
   snapshot: [
     { label: 'HR & Payroll', value: '6', note: 'Leave awaiting approval', tone: 'amber' as const },
     { label: 'Finance', value: '12', note: 'Unpaid invoices', tone: 'amber' as const },
+    { label: 'Fleet', value: '6', note: 'Active trips', tone: 'primary' as const },
+    { label: 'Outsourcing', value: '4', note: 'End clients', tone: 'violet' as const },
     { label: 'Procurement', value: '3', note: 'PRs awaiting approval', tone: 'violet' as const },
-    { label: 'Legal', value: '2', note: 'Contracts renewing', tone: 'emerald' as const },
-    { label: 'Projects', value: '8', note: 'Active workstreams', tone: 'violet' as const },
-    { label: 'Admin & Ops', value: '6', note: 'Active fleet trips', tone: 'primary' as const },
+    { label: 'Recruitment', value: '14', note: 'Open applications', tone: 'emerald' as const },
   ],
   shortcuts: [
-    { label: 'Finance', detail: 'Invoices & AP' },
+    { label: 'Recruitment', detail: 'ATS pipeline' },
     { label: 'Fleet trips', detail: 'Trip board' },
-    { label: 'Payroll', detail: 'May 2026 run' },
+    { label: 'Outsourcing', detail: 'Client payroll' },
   ],
 } as const;
