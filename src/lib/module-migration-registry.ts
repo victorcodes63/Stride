@@ -132,6 +132,15 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'PerformanceReviewRating',
     'PerformanceFeedback',
   ],
+  sales: ['SalesRepPeriodMetric'],
+  assessments: [
+    'AssessmentTemplate',
+    'AssessmentQuestion',
+    'JobAssessmentAssignment',
+    'ApplicationAssessmentAttempt',
+    'ApplicationAssessmentAnswer',
+  ],
+  operations: ['CompanyAsset', 'HseIncident', 'HseAction', 'Announcement'],
   hse: ['HseIncident', 'HseAction'],
   accounts: [
     'AccountsClient',

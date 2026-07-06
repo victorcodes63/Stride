@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   Truck,
   Users,
+  Handshake,
 } from 'lucide-react';
 import type { UserRole } from '@/types/dashboard';
 import type { DashboardNavItem, DashboardNavSection } from '@/lib/dashboard-nav-catalog';
@@ -28,6 +29,7 @@ export type DashboardModuleDomainId =
   | 'legal-documents'
   | 'projects'
   | 'fleet-logistics'
+  | 'hr-outsourcing'
   | 'admin-operations'
   | 'platform-admin';
 
@@ -109,6 +111,17 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     readiness: 'partial',
   },
   {
+    id: 'hr-outsourcing',
+    marketingLabel: '09 — HR Outsourcing',
+    shortLabel: 'HR Outsourcing',
+    icon: Handshake,
+    description:
+      'End-client register, outsourced workforce, and per-client payroll, attendance, and leave.',
+    hubHref: '/dashboard/outsourcing',
+    sectionIds: ['outsourcing-clients', 'outsourcing-workforce', 'outsourcing-services'],
+    readiness: 'partial',
+  },
+  {
     id: 'admin-operations',
     marketingLabel: '07 — Operations',
     shortLabel: 'Operations',
@@ -171,6 +184,7 @@ export function resolveDomainForPath(pathname: string): DashboardModuleDomainId 
   if (path.startsWith('/dashboard/legal')) return 'legal-documents';
   if (path.startsWith('/dashboard/projects')) return 'projects';
   if (path.startsWith('/dashboard/fleet')) return 'fleet-logistics';
+  if (path.startsWith('/dashboard/outsourcing')) return 'hr-outsourcing';
   if (path.startsWith('/dashboard/operations')) return 'admin-operations';
   if (path === '/dashboard/platform' || path.startsWith('/dashboard/platform/')) {
     return 'platform-admin';
@@ -235,10 +249,12 @@ export const DOMAIN_REQUIRED_MODULES: Record<DashboardModuleDomainId, ModuleKey[
   finance: ['accounts'],
   procurement: ['procurement'],
   'legal-documents': ['legal', 'documents'],
-  projects: ['core'],
+  projects: ['projects'],
   'fleet-logistics': ['fleet'],
-  'admin-operations': ['assets', 'hse', 'reports', 'communications'],
-  'platform-admin': ['core'],
+  'hr-outsourcing': ['outsourcing'],
+  'admin-operations': ['operations', 'assets', 'hse', 'reports', 'communications'],
+  /** Role-gated in resolveDomainAccess — not tied to HR core. */
+  'platform-admin': [],
 };
 
 export type DomainAccessState = 'active' | 'locked';
@@ -274,6 +290,14 @@ export function resolveDomainAccess(
 
   if (domainId === 'hr-payroll') {
     return modules.core !== false ? 'active' : 'locked';
+  }
+
+  if (domainId === 'projects') {
+    return modules.projects === true ? 'active' : 'locked';
+  }
+
+  if (domainId === 'hr-outsourcing') {
+    return modules.outsourcing === true ? 'active' : 'locked';
   }
 
   if (domainId === 'admin-operations' && !verticalAllowedOnTier(tier)) {
