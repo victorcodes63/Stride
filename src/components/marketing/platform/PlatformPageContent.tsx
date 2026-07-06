@@ -10,8 +10,6 @@ import { PlatformModulesShowcase } from '@/components/marketing/platform/Platfor
 import { PlatformArchitectureSection } from '@/components/marketing/platform/PlatformArchitectureSection';
 import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
 import { MarketingFinalCta } from '@/components/marketing/sections/MarketingFinalCta';
-import { MarketingModuleBadge } from '@/components/marketing/MarketingModuleBadge';
-import { MarketingModuleChips } from '@/components/marketing/MarketingModuleChips';
 import {
   MarketingOutlineLink,
   MarketingPrimaryLink,
@@ -103,14 +101,13 @@ function PlatformModulesSection() {
   return (
     <section className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
       <StudioCraftContainer>
-        <SectionBadge number="2" label="Product areas" />
+        <SectionBadge number="2" label="Core modules" />
         <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
-          Nine areas. <span className="text-[var(--sc-coral)]">One platform.</span>
+          Six modules. <span className="text-[var(--sc-coral)]">One platform.</span>
         </h2>
         <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
-          Sign up with HR & Payroll and Finance — your two included areas — then switch on fleet,
-          outsourcing, sales, procurement and more when your operations need them. Every module is
-          badged Live, Partial or Roadmap.
+          Sign up with HR & Payroll and Finance — your two included modules — then switch on legal,
+          admin, procurement or projects when your operations need them.
         </p>
 
         <div className="mt-12 space-y-5">
@@ -120,13 +117,9 @@ function PlatformModulesSection() {
               className="grid gap-5 rounded-2xl border border-[var(--sc-line)] bg-[var(--sc-paper-2)] p-5 sm:gap-6 sm:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10"
             >
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--sc-coral)]">
-                    {mod.num} — {mod.name}
-                  </p>
-                  <MarketingModuleBadge readiness={mod.readiness} />
-                </div>
-                <MarketingModuleChips modules={mod.modules} className="mt-3" />
+                <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--sc-coral)]">
+                  {mod.num} — {mod.name}
+                </p>
                 <h3 className="mt-2 text-xl font-medium tracking-tight text-[var(--sc-ink)] sm:text-2xl">
                   {mod.headline}
                 </h3>
@@ -210,7 +203,6 @@ function PlatformComplianceSection() {
 
 function PlatformVerticalsSection() {
   const available = INDUSTRY_VERTICALS.filter((v) => v.status === 'available');
-  const comingSoon = INDUSTRY_VERTICALS.filter((v) => v.status === 'coming_soon');
 
   return (
     <section className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-24">
@@ -221,23 +213,18 @@ function PlatformVerticalsSection() {
         </h2>
         <p className="mt-4 max-w-[620px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
           Vertical packs add specialised workflows on top of the horizontal platform — not a separate
-          product to integrate. Logistics & Cargo is live today; SACCOs, Healthcare, Energy and
-          Construction are on the roadmap.
+          product to integrate. Six sector packs cover logistics and SACCOs through healthcare,
+          energy, and construction.
         </p>
 
-        <div
-          className={`mt-10 grid gap-4 ${comingSoon.length > 0 ? 'lg:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'}`}
-        >
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {available.map((vertical) => (
             <Link
               key={vertical.id}
               href={vertical.href}
               className="group rounded-2xl border border-[var(--sc-coral)]/25 bg-[var(--sc-coral)]/[0.06] p-6 transition hover:border-[var(--sc-coral)]/40"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-coral)]">
-                Live
-              </p>
-              <h3 className="mt-2 text-xl font-medium text-[var(--sc-ink)]">{vertical.name}</h3>
+              <h3 className="text-xl font-medium text-[var(--sc-ink)]">{vertical.name}</h3>
               <p className="mt-2 text-sm leading-relaxed text-[var(--sc-ink-muted)]">{vertical.description}</p>
               <ul className="mt-4 flex flex-wrap gap-2">
                 {vertical.features.slice(0, 4).map((feature) => (
@@ -254,36 +241,6 @@ function PlatformVerticalsSection() {
               </span>
             </Link>
           ))}
-
-          {comingSoon.length > 0 ? (
-          <div className="rounded-2xl border border-[var(--sc-line)] bg-[var(--sc-paper-2)] p-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-ink-muted)]">
-              On the roadmap
-            </p>
-            <ul className="mt-4 space-y-3">
-              {comingSoon.map((vertical) => (
-                <li key={vertical.id}>
-                  <Link
-                    href={vertical.href}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-[var(--sc-line)] bg-[var(--sc-paper)] px-4 py-3 transition hover:border-[var(--sc-coral)]/30"
-                  >
-                    <div>
-                      <p className="font-medium text-[var(--sc-ink)]">{vertical.name}</p>
-                      <p className="mt-0.5 text-xs text-[var(--sc-ink-muted)]">{vertical.features[0]}</p>
-                    </div>
-                    <span className="shrink-0 text-xs font-medium text-[var(--sc-coral)]">Waitlist</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href={MARKETING_ROUTES.industries}
-              className="mt-5 inline-flex text-sm font-semibold text-[var(--sc-ink)] hover:text-[var(--sc-coral)]"
-            >
-              All industries →
-            </Link>
-          </div>
-          ) : null}
         </div>
       </StudioCraftContainer>
     </section>

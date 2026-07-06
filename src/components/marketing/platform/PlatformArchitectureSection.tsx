@@ -58,12 +58,6 @@ const LAYERS: Layer[] = [
   })),
 ];
 
-function statusMeta(status: Layer['status']) {
-  if (status === 'always') return { label: 'Always on', live: false };
-  if (status === 'available') return { label: 'Live', live: true };
-  return { label: 'Roadmap', live: false };
-}
-
 /** One observer, one active index. Each step is a tall scroll section. */
 function useActiveLayer(count: number) {
   const [active, setActive] = useState(0);
@@ -197,7 +191,6 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
           {/* Scrolling steps */}
           <div>
             {LAYERS.map((layer, i) => {
-              const meta = statusMeta(layer.status);
               const isActive = i === active;
               return (
                 <article
@@ -212,9 +205,6 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
                   >
                     <p className="font-mono text-[11px] text-[var(--sc-ink-subtle,#8A8076)]">
                       {String(i).padStart(2, '0')} / {String(LAYERS.length - 1).padStart(2, '0')}
-                      <span style={{ color: meta.live ? 'var(--sc-coral)' : undefined }}>
-                        {' '}· {meta.label}
-                      </span>
                     </p>
                     <h3 className="mt-2 text-2xl font-medium tracking-tight text-[var(--sc-ink)] sm:text-3xl">
                       {layer.label}
@@ -248,22 +238,12 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
         {/* MOBILE: simple, honest stacked cards — no sticky games */}
         <div className="mt-10 space-y-4 lg:hidden">
           {LAYERS.map((layer, i) => {
-            const meta = statusMeta(layer.status);
             return (
               <Reveal key={layer.id} y={16}>
                 <article className="overflow-hidden rounded-2xl border border-white/10 bg-[var(--sc-ink)]">
                   <div className="h-1 w-full" style={{ backgroundColor: layer.accent }} aria-hidden />
                   <div className="p-5">
-                    <p className="font-mono text-[11px] text-white/45">
-                      {String(i).padStart(2, '0')}
-                      <span
-                        style={{
-                          color: meta.live ? 'var(--sc-coral)' : 'rgba(255,255,255,0.35)',
-                        }}
-                      >
-                        {' '}· {meta.label}
-                      </span>
-                    </p>
+                    <p className="font-mono text-[11px] text-white/45">{String(i).padStart(2, '0')}</p>
                     <h3 className="mt-1 text-xl font-medium tracking-tight text-[var(--sc-on-ink-fg)]">
                       {layer.label}
                     </h3>
