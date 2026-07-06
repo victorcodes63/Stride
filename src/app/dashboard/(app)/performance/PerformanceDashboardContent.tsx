@@ -219,6 +219,9 @@ export function PerformanceDashboardContent() {
             <Link href="/dashboard/performance/jds" className="btn-secondary inline-flex h-10 items-center px-3">
               Job description library
             </Link>
+            <Link href="/dashboard/performance/scorecards" className="btn-secondary inline-flex h-10 items-center px-3">
+              BSC scorecards
+            </Link>
             <label className="text-sm">
               <span className="text-neutral-500 dark:text-neutral-400">Cycle</span>
               <select

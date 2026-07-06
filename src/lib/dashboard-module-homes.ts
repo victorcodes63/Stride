@@ -82,6 +82,8 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
               { href: '/dashboard/payroll', label: 'Payroll runs', note: 'Gross, net & statutory', icon: Wallet },
               { href: '/dashboard/jobs', label: 'Jobs & ATS', note: 'Open roles & applicants', icon: Briefcase },
               { href: '/dashboard/performance', label: 'Performance', note: 'Reviews & goals', icon: BarChart3 },
+              { href: '/dashboard/performance/jds', label: 'Job descriptions', note: 'JD library', icon: BarChart3 },
+              { href: '/dashboard/performance/scorecards', label: 'BSC scorecards', note: 'From JDs', icon: BarChart3 },
             ],
           },
         ],

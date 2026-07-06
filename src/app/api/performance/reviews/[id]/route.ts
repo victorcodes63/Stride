@@ -15,7 +15,7 @@ const reviewInclude = {
   },
   ratings: { orderBy: { sortOrder: 'asc' as const } },
   feedback: { orderBy: { createdAt: 'desc' as const } },
-  cycle: { select: { id: true, name: true, status: true } },
+  cycle: { select: { id: true, name: true, status: true, method: true } },
 } as const;
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -64,8 +64,20 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
 
+    const cycle = await ctx.run((tx) =>
+      tx.performanceCycle.findFirst({
+        where: { id: review.cycleId, organizationId: ctx.organizationId },
+        select: { method: true },
+      }),
+    );
+
     const now = new Date();
     const complete = body.complete === true;
+    const nextStatus = complete
+      ? cycle?.method === 'bsc' && review.frozenScorecardSnapshot
+        ? 'calibration_pending'
+        : 'completed'
+      : 'manager_in_progress';
 
     await ctx.run(async (tx) => {
       if (body.ratings?.length) {
@@ -100,9 +112,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         data: {
           managerSummary: body.managerSummary?.trim() || undefined,
           overallManagerRating: body.overallManagerRating,
-          status: complete ? 'completed' : 'manager_in_progress',
+          status: nextStatus,
           managerSubmittedAt: complete ? now : undefined,
-          completedAt: complete ? now : undefined,
+          completedAt: complete && nextStatus === 'completed' ? now : undefined,
         },
       });
 
@@ -127,7 +139,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
 
     await ctx.audit({
-      action: complete ? 'performance.review.completed' : 'performance.review.manager_updated',
+      action: complete
+        ? nextStatus === 'calibration_pending'
+          ? 'performance.review.manager_submitted'
+          : 'performance.review.completed'
+        : 'performance.review.manager_updated',
       entityType: 'PerformanceReview',
       entityId: id,
       route: 'PATCH /api/performance/reviews/[id]',
