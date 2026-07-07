@@ -105,8 +105,7 @@ export function MarketingPricingSection() {
 
         <Reveal delay={0.12} className="mt-10 text-center">
           <p className="mx-auto max-w-[720px] text-[13px] text-[var(--sc-ink-muted)]">
-            All plans include free data migration and no setup fee. Prices exclusive of VAT.
-            Illustrative — confirm before launch.{' '}
+            All plans include free data migration and no setup fee. Prices exclusive of VAT.{' '}
             <Link
               href="/pricing"
               className="font-semibold text-[var(--sc-coral)] transition-colors hover:text-[var(--sc-coral-deep)]"

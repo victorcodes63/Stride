@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { MarketingEyebrow } from '@/components/marketing/MarketingEyebrow';
 import { MarketingReveal } from '@/components/marketing/MarketingReveal';
 import { MarketingProductShot } from '@/components/marketing/sections/MarketingProductShot';
-import { marketingAppHostLabel } from '@/lib/marketing-config';
+import { MARKETING_PLATFORM_MODULES_SCREENSHOT, marketingAppHostLabel } from '@/lib/marketing-config';
 
 export function MarketingFeatureSplit() {
   return (
@@ -36,9 +36,11 @@ export function MarketingFeatureSplit() {
         <MarketingReveal delay={0.12}>
           <MarketingProductShot
             aspectClassName="aspect-[4/3]"
-            browserUrl={marketingAppHostLabel('/payroll')}
-            placeholderTitle="Feature screenshot"
-            placeholderSub="A focused module view (e.g. payroll run or approvals). 4:3 PNG."
+            browserUrl={marketingAppHostLabel('/dashboard')}
+            imageSrc={MARKETING_PLATFORM_MODULES_SCREENSHOT.src}
+            imageAlt={MARKETING_PLATFORM_MODULES_SCREENSHOT.alt}
+            placeholderTitle="Stride platform"
+            placeholderSub="Finance, HR, payroll, and operations on one login."
             className="overflow-hidden rounded-[14px] border border-pub-border shadow-[0_30px_70px_-25px_rgba(26,23,20,0.3)]"
           />
         </MarketingReveal>
