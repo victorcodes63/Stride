@@ -1,10 +1,12 @@
 const { spawnSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * When to run `prisma migrate deploy` during `npm run build`:
- * - Always on Vercel Production builds (VERCEL_ENV=production), unless opted out
- * - Or when RUN_MIGRATIONS_ON_BUILD is true / 1
- * - Skip when RUN_MIGRATIONS_ON_BUILD=false
+ * - When RUN_MIGRATIONS_ON_BUILD is true / 1 (recommended on Vercel Production)
+ * - Or on Vercel Production when RUN_MIGRATIONS_ON_BUILD is unset
+ * - Skip only when RUN_MIGRATIONS_ON_BUILD=false
  *
  * Uses DIRECT_DATABASE_URL (Neon non-pooler) via schema.prisma directUrl for advisory locks.
  */
@@ -57,6 +59,36 @@ function runPrisma(args, migrateEnv) {
 
 function runMigrateAttempt(migrateEnv) {
   return runPrisma(['migrate', 'deploy'], migrateEnv);
+}
+
+/** Idempotent login/auth RLS hotfixes for db-push baselined Neon DBs (P3005). */
+const LOGIN_RLS_HOTFIX_FILES = [
+  '20260627160000_rls_auth_tables_uuid_cast/migration.sql',
+  '20260707103000_rls_auth_public_lookup_safe_cast/migration.sql',
+  '20260707104500_rls_org_membership_login_safe_cast/migration.sql',
+  '20260707110000_rls_login_system_setting_safe_cast/migration.sql',
+];
+
+function applyLoginRlsHotfixes(migrateEnv) {
+  const migrationsRoot = path.join(__dirname, '..', 'prisma', 'migrations');
+  console.log('[prisma-migrate-deploy] Applying login/auth RLS hotfix SQL (idempotent)…');
+
+  for (const relativePath of LOGIN_RLS_HOTFIX_FILES) {
+    const filePath = path.join(migrationsRoot, relativePath);
+    if (!fs.existsSync(filePath)) {
+      console.warn(`[prisma-migrate-deploy] Skipping missing RLS hotfix: ${relativePath}`);
+      continue;
+    }
+
+    const result = runPrisma(['db', 'execute', '--file', filePath, '--schema', 'prisma/schema.prisma'], migrateEnv);
+    const output = `${result.stdout || ''}\n${result.stderr || ''}`.trim();
+    if (result.status !== 0) {
+      console.error(`[prisma-migrate-deploy] RLS hotfix failed: ${relativePath}`);
+      if (output) process.stderr.write(`${output}\n`);
+      process.exit(result.status ?? 1);
+    }
+    console.log(`[prisma-migrate-deploy] RLS hotfix applied: ${relativePath}`);
+  }
 }
 
 /** Avoid advisory-lock contention when schema is already current (common on Vercel rebuilds). */
@@ -116,6 +148,7 @@ function run() {
 
   if (isDatabaseUpToDate(migrateEnv)) {
     console.log('[prisma-migrate-deploy] Database schema is up to date — skipping migrate deploy.');
+    applyLoginRlsHotfixes(migrateEnv);
     return;
   }
 
@@ -137,6 +170,7 @@ function run() {
 
     if (result.status === 0) {
       process.stdout.write(stdout);
+      applyLoginRlsHotfixes(migrateEnv);
       return;
     }
 
@@ -145,8 +179,9 @@ function run() {
       process.stderr.write(stderr);
       console.warn(
         '\n[prisma-migrate-deploy] Detected P3009 (failed migration present). ' +
-          'Continuing so Vercel can complete `next build`.',
+          'Applying login RLS hotfixes and continuing build.',
       );
+      applyLoginRlsHotfixes(migrateEnv);
       return;
     }
 
@@ -155,8 +190,9 @@ function run() {
       process.stderr.write(stderr);
       console.warn(
         '\n[prisma-migrate-deploy] Detected P3005 (schema exists without _prisma_migrations). ' +
-          'This Neon DB is db-push baselined — skipping migrate deploy and continuing build.',
+          'Applying login RLS hotfixes via db execute and continuing build.',
       );
+      applyLoginRlsHotfixes(migrateEnv);
       return;
     }
 
