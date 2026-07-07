@@ -289,13 +289,15 @@ export async function loadCompanySetupSettings(contextId?: string | null): Promi
     ? [companySetupKeyForContext(contextId), COMPANY_SETUP_SETTINGS_KEY]
     : [COMPANY_SETUP_SETTINGS_KEY];
   try {
-    for (const key of keys) {
-      const row = await prisma.systemSetting.findUnique({
-        where: systemSettingWhere(DEFAULT_ORGANIZATION_ID, key),
-      });
-      if (row) return sanitizeCompanySetup(row.value);
-    }
-    return { ...DEFAULT_COMPANY_SETUP };
+    return await withOrgContext(DEFAULT_ORGANIZATION_ID, async (tx) => {
+      for (const key of keys) {
+        const row = await tx.systemSetting.findUnique({
+          where: systemSettingWhere(DEFAULT_ORGANIZATION_ID, key),
+        });
+        if (row) return sanitizeCompanySetup(row.value);
+      }
+      return { ...DEFAULT_COMPANY_SETUP };
+    });
   } catch {
     return { ...DEFAULT_COMPANY_SETUP };
   }

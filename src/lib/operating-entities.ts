@@ -50,9 +50,11 @@ export async function loadOperatingEntitiesSettings(): Promise<OperatingEntities
     return buildDefaultOperatingEntitiesSettings(setup.orgName || undefined);
   }
   try {
-    const row = await prisma.systemSetting.findUnique({
-      where: systemSettingWhere(DEFAULT_ORGANIZATION_ID, OPERATING_ENTITIES_SETTINGS_KEY),
-    });
+    const row = await withOrgContext(DEFAULT_ORGANIZATION_ID, (tx) =>
+      tx.systemSetting.findUnique({
+        where: systemSettingWhere(DEFAULT_ORGANIZATION_ID, OPERATING_ENTITIES_SETTINGS_KEY),
+      }),
+    );
     if (!row) {
       const setup = await loadCompanySetupSettings();
       return buildDefaultOperatingEntitiesSettings(setup.orgName || undefined);

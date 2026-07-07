@@ -1,3 +1,4 @@
+import { AUTH_PUBLIC_LOOKUP_ORG_SENTINEL } from '@/lib/auth/auth-public-lookup';
 import { prisma } from '@/lib/prisma';
 import type { UserRole } from '@prisma/client';
 import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
@@ -33,6 +34,9 @@ async function withLoginUserScope<T>(
   fn: (db: typeof prisma) => Promise<T>,
 ): Promise<T> {
   return prisma.$transaction(async (tx) => {
+    // Legacy tenant_rw policies cast app.current_org to uuid; empty string throws 22P02
+    // even when OrganizationMembership_login_read would allow the row.
+    await tx.$executeRaw`SELECT set_config('app.current_org', ${AUTH_PUBLIC_LOOKUP_ORG_SENTINEL}, true)`;
     await tx.$executeRaw`SELECT set_config('app.login_user_id', ${userId}, true)`;
     return fn(tx as typeof prisma);
   });
