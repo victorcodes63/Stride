@@ -49,11 +49,14 @@ jobs:
         run: npm ci
 
       - name: Live DB isolation tests
-        if: ${{ secrets.DATABASE_URL != '' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
         run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret not configured — skipping live RLS / cross-tenant tests."
+            exit 0
+          fi
           npm run test:rls
           npm run test:cross-tenant
 
@@ -81,7 +84,6 @@ jobs:
   qa-e2e:
     name: Playwright E2E (credentialed)
     runs-on: ubuntu-latest
-    if: ${{ secrets.E2E_DEMO_EMAIL != '' }}
     defaults:
       run:
         working-directory: app
@@ -113,4 +115,9 @@ jobs:
           E2E_ESS_PASSWORD: ${{ secrets.E2E_ESS_PASSWORD }}
           E2E_CP_EMAIL: ${{ secrets.E2E_CP_EMAIL }}
           E2E_CP_PASSWORD: ${{ secrets.E2E_CP_PASSWORD }}
-        run: npm run test:e2e
+        run: |
+          if [ -z "$E2E_DEMO_EMAIL" ] || [ -z "$E2E_DEMO_PASSWORD" ]; then
+            echo "E2E credentials not configured — skipping Playwright job."
+            exit 0
+          fi
+          npm run test:e2e
