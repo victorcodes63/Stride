@@ -105,13 +105,6 @@ export function middleware(request: NextRequest) {
     if (rateLimited) return applySecurityHeaders(rateLimited);
   }
 
-  if (pathname === '/dashboard/outsourcing/payroll') {
-    return redirectPermanent('/dashboard/accounts/payroll', request);
-  }
-  if (pathname === '/dashboard/outsourcing/payroll/payslips') {
-    return redirectPermanent('/dashboard/accounts/payroll/payslips', request);
-  }
-
   const moduleBlock = enforceModuleLicense(request);
   if (moduleBlock) return moduleBlock;
 

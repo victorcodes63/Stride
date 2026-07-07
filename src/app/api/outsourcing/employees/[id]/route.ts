@@ -6,7 +6,6 @@ import { ensureEssUserForEmployee } from '@/lib/ess-provision';
 import { diffSensitiveFields } from '@/lib/audit-helpers';
 import { getHrUserIds, sendNotification } from '@/lib/notifications';
 import { startWorkflowForEmployee } from '@/lib/onboarding-workflows';
-import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
 import { assertEmployeeProfileCompleteness } from '@/lib/hr-core-employee';
 
@@ -101,16 +100,15 @@ export async function GET(
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
     }
-    const employee = await ctx.run(async (tx) => {
-      const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, _request, ctx.organizationId);
-      return tx.employee.findFirst({
-        where: ctx.where({ id, outsourcingClientId: workspaceId }),
+    const employee = await ctx.run((tx) =>
+      tx.employee.findFirst({
+        where: ctx.where({ id }),
         include: {
           client: { select: { id: true, name: true } },
           department: { select: { id: true, name: true } },
         },
-      });
-    });
+      }),
+    );
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     await ctx.audit({
       action: canViewSalaryFields(ctx.staff) ? 'employee.salary.view' : 'employee.profile.view',
@@ -173,6 +171,7 @@ export async function PATCH(
   const employmentEndedAt = b.employmentEndedAt !== undefined ? date(b, 'employmentEndedAt') : undefined;
   const attendancePolicyId = b.attendancePolicyId !== undefined ? str(b, 'attendancePolicyId') : undefined;
   const leavePolicyId = b.leavePolicyId !== undefined ? str(b, 'leavePolicyId') : undefined;
+  const requestedClientId = str(b, 'clientId') ?? str(b, 'outsourcingClientId');
 
   if (firstName !== undefined && !firstName) {
     return NextResponse.json({ error: 'First name is required.' }, { status: 400 });
@@ -218,7 +217,7 @@ export async function PATCH(
     }
   }
 
-  if (Object.keys(data).length === 0) {
+  if (Object.keys(data).length === 0 && !requestedClientId) {
     return NextResponse.json({ error: 'Provide at least one field to update.' }, { status: 400 });
   }
 
@@ -228,9 +227,8 @@ export async function PATCH(
     }
 
     const outcome = await ctx.run(async (tx) => {
-    const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId);
     const existing = await tx.employee.findFirst({
-      where: ctx.where({ id, outsourcingClientId: workspaceId }),
+      where: ctx.where({ id }),
       select: {
         id: true,
         firstName: true,
@@ -250,6 +248,27 @@ export async function PATCH(
       },
     });
     if (!existing) return { error: 'not_found' as const };
+
+    if (requestedClientId && requestedClientId !== existing.outsourcingClientId) {
+      const nextClient = await tx.outsourcingClient.findFirst({
+        where: { id: requestedClientId, organizationId: ctx.organizationId },
+        select: { id: true },
+      });
+      if (!nextClient) return { error: 'client_invalid' as const };
+      data.outsourcingClientId = requestedClientId;
+      if (departmentId === undefined) {
+        data.departmentId = null;
+      }
+    }
+
+    if (departmentId && typeof data.departmentId !== 'undefined' && data.departmentId) {
+      const targetClientId = (data.outsourcingClientId as string | undefined) ?? existing.outsourcingClientId;
+      const dept = await tx.department.findFirst({
+        where: ctx.where({ id: departmentId, outsourcingClientId: targetClientId }),
+        select: { id: true },
+      });
+      if (!dept) return { error: 'dept_invalid' as const };
+    }
 
     if (email !== undefined && email) {
       const duplicate = await tx.employee.findFirst({
@@ -319,6 +338,12 @@ export async function PATCH(
 
     if ('error' in outcome) {
       if (outcome.error === 'not_found') return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+      if (outcome.error === 'client_invalid') {
+        return NextResponse.json({ error: 'End-client not found for this organization.' }, { status: 400 });
+      }
+      if (outcome.error === 'dept_invalid') {
+        return NextResponse.json({ error: 'Department does not belong to the selected end-client.' }, { status: 400 });
+      }
       if (outcome.error === 'email_dup') {
         return NextResponse.json({ error: 'Another employee in this client already has this email.' }, { status: 409 });
       }
@@ -411,9 +436,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
     }
     const existing = await ctx.run(async (tx) => {
-      const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, _request, ctx.organizationId);
       const row = await tx.employee.findFirst({
-        where: ctx.where({ id, outsourcingClientId: workspaceId }),
+        where: ctx.where({ id }),
         select: { id: true, firstName: true, lastName: true, outsourcingClientId: true },
       });
       if (!row) return null;

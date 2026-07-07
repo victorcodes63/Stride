@@ -1,4 +1,5 @@
 import type { ModuleKey } from '@/lib/modules';
+import { buildNavItemModules } from '@/lib/module-nav-bindings';
 
 export type RouteModuleBinding = {
   prefix: string;
@@ -18,25 +19,24 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/api/candidates', module: 'ats' },
   { prefix: '/api/interviews', module: 'ats' },
   { prefix: '/api/careers', module: 'ats' },
-  { prefix: '/api/assessments', module: 'assessments' },
+  { prefix: '/api/assessments', module: 'ats' },
   { prefix: '/dashboard/jobs', module: 'ats' },
   { prefix: '/dashboard/applications', module: 'ats' },
-  { prefix: '/dashboard/assessments', module: 'assessments' },
+  { prefix: '/dashboard/assessments', module: 'ats' },
   { prefix: '/dashboard/candidates', module: 'ats' },
   { prefix: '/dashboard/interviews', module: 'ats' },
   { prefix: '/dashboard/schedule', module: 'ats' },
 
   // —— Payroll ——
-  { prefix: '/api/outsourcing/payroll', module: 'outsourcing' },
-  { prefix: '/dashboard/outsourcing/payroll', module: 'outsourcing' },
+  { prefix: '/api/outsourcing/payroll', module: 'payroll' },
   { prefix: '/api/payroll', module: 'payroll' },
   { prefix: '/dashboard/payroll', module: 'payroll' },
   { prefix: '/dashboard/people', module: 'core' },
-  { prefix: '/dashboard/operations', module: 'operations' },
+  { prefix: '/dashboard/operations', module: 'reports' },
   { prefix: '/dashboard/procurement', module: 'procurement' },
   { prefix: '/api/procurement', module: 'procurement' },
-  { prefix: '/dashboard/projects', module: 'projects' },
-  { prefix: '/api/projects', module: 'projects' },
+  { prefix: '/dashboard/projects', module: 'core' },
+  { prefix: '/api/projects', module: 'core' },
   { prefix: '/api/facilities', module: 'core' },
   { prefix: '/api/governance', module: 'core' },
   { prefix: '/dashboard/admin/facilities', module: 'core' },
@@ -49,7 +49,7 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/api/rota', module: 'time' },
   { prefix: '/api/biometric', module: 'time' },
   { prefix: '/api/cron/biometric-poll', module: 'time' },
-  { prefix: '/api/outsourcing/attendance', module: 'outsourcing' },
+  { prefix: '/api/outsourcing/attendance', module: 'time' },
   { prefix: '/dashboard/rota', module: 'time' },
   { prefix: '/dashboard/attendance', module: 'time' },
   { prefix: '/dashboard/biometric-devices', module: 'time' },
@@ -57,11 +57,10 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   // —— Leave ——
   { prefix: '/api/ess/leave', module: 'leave' },
   { prefix: '/api/staff/leave', module: 'leave' },
-  { prefix: '/api/outsourcing/leave', module: 'outsourcing' },
+  { prefix: '/api/outsourcing/leave', module: 'leave' },
   { prefix: '/api/leave', module: 'leave' },
   { prefix: '/dashboard/leave', module: 'leave' },
-  { prefix: '/dashboard/outsourcing/leave', module: 'outsourcing' },
-  { prefix: '/dashboard/outsourcing/disciplinary', module: 'outsourcing' },
+  { prefix: '/dashboard/outsourcing/leave', module: 'leave' },
   { prefix: '/api/ess/home-summary', module: 'ess' },
   { prefix: '/api/ess/team', module: 'leave' },
   { prefix: '/api/ess/documents', module: 'core' },
@@ -97,6 +96,10 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/api/performance', module: 'performance' },
   { prefix: '/dashboard/performance', module: 'performance' },
   { prefix: '/dashboard/people/performance', module: 'performance' },
+
+  // —— Sales Performance ——
+  { prefix: '/api/sales', module: 'sales' },
+  { prefix: '/dashboard/sales', module: 'sales' },
 
   // —— HSE ——
   { prefix: '/dashboard/hse', module: 'hse' },
@@ -157,12 +160,9 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
 
   // —— Core HR (employees, org, onboarding, credentials) ——
   { prefix: '/api/onboarding', module: 'core' },
-  { prefix: '/api/outsourcing/clients', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/employees', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/ess', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/document-requests', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/overview-stats', module: 'outsourcing' },
-  { prefix: '/api/outsourcing/overview', module: 'outsourcing' },
+  { prefix: '/api/outsourcing/ess', module: 'ess' },
+  { prefix: '/api/outsourcing/document-requests', module: 'ess' },
+  { prefix: '/api/outsourcing', module: 'outsourcing' },
   { prefix: '/dashboard/ess/portal-accounts', module: 'ess' },
   { prefix: '/dashboard/ess/shifts', module: 'ess' },
   { prefix: '/dashboard/ess/document-requests', module: 'ess' },
@@ -243,14 +243,11 @@ export const NAV_SECTION_MODULES: Record<string, ModuleKey[]> = {
   'people-hr': ['core'],
   recruitment: ['ats'],
   'time-attendance': ['time', 'leave'],
-  operations: ['operations', 'assets', 'hse'],
+  operations: ['assets', 'hse'],
   'fleet-operations': ['fleet'],
   'fleet-monitoring': ['fleet'],
   'fleet-assets': ['fleet'],
   'fleet-commercial': ['fleet'],
-  'outsourcing-clients': ['outsourcing'],
-  'outsourcing-workforce': ['outsourcing'],
-  'outsourcing-services': ['outsourcing'],
   sacco: ['sacco'],
   healthcare: ['healthcare'],
   energy: ['energy'],
@@ -261,68 +258,20 @@ export const NAV_SECTION_MODULES: Record<string, ModuleKey[]> = {
   finance: ['accounts'],
   procurement: ['procurement'],
   'legal-documents': ['legal', 'documents'],
-  projects: ['projects'],
+  projects: ['core'],
   development: ['training'],
   admin: ['core'],
 };
 
-/** Nav item href → module. Items without an entry inherit section module. */
-export const NAV_ITEM_MODULES: Record<string, ModuleKey> = {
-  '/dashboard/performance': 'performance',
-  '/dashboard/assessments': 'assessments',
-  '/dashboard/disciplinary': 'disciplinary',
-  '/dashboard/leave': 'leave',
-  '/dashboard/rota': 'time',
-  '/dashboard/attendance': 'time',
-  '/dashboard/biometric-devices': 'time',
-  '/dashboard/announcements': 'communications',
-  '/dashboard/company-documents': 'documents',
-  '/dashboard/legal': 'legal',
-  '/dashboard/legal/obligations': 'legal',
-  '/dashboard/procurement': 'procurement',
-  '/dashboard/procurement/purchase-requests': 'procurement',
-  '/dashboard/procurement/lpos': 'procurement',
-  '/dashboard/procurement/spend': 'procurement',
-  '/dashboard/projects': 'projects',
-  '/dashboard/projects/all': 'projects',
-  '/dashboard/projects/board': 'projects',
-  '/dashboard/projects/tasks': 'projects',
-  '/dashboard/projects/budget': 'projects',
-  '/dashboard/payroll/disbursements': 'payroll',
-  '/dashboard/admin/facilities': 'core',
-  '/dashboard/admin/governance': 'core',
-  '/dashboard/people/contracts': 'core',
-  '/dashboard/credentials': 'core',
-  '/dashboard/training': 'training',
-  '/dashboard/org-chart': 'training',
-  '/dashboard/sacco': 'sacco',
-  '/dashboard/sacco/members': 'sacco',
-  '/dashboard/sacco/accounts': 'sacco',
-  '/dashboard/sacco/dividends': 'sacco',
-  '/dashboard/sacco/reports': 'sacco',
-  '/dashboard/healthcare': 'healthcare',
-  '/dashboard/healthcare/wards': 'healthcare',
-  '/dashboard/healthcare/rota': 'healthcare',
-  '/dashboard/healthcare/nhif': 'healthcare',
-  '/dashboard/energy': 'energy',
-  '/dashboard/energy/sites': 'energy',
-  '/dashboard/energy/permits': 'energy',
-  '/dashboard/energy/hse': 'energy',
-  '/dashboard/construction': 'construction',
-  '/dashboard/construction/sites': 'construction',
-  '/dashboard/construction/plant': 'construction',
-  '/dashboard/construction/subcontractors': 'construction',
-  '/dashboard/outsourcing/clients': 'outsourcing',
-  '/dashboard/outsourcing/employees': 'outsourcing',
-  '/dashboard/outsourcing/departments': 'outsourcing',
-  '/dashboard/outsourcing/attendance': 'outsourcing',
-  '/dashboard/outsourcing/payroll': 'outsourcing',
-  '/dashboard/outsourcing/payroll/payslips': 'outsourcing',
-  '/dashboard/outsourcing/payroll/statutory': 'outsourcing',
-  '/dashboard/outsourcing/payroll/disbursements': 'outsourcing',
-  '/dashboard/outsourcing/leave': 'outsourcing',
-  '/dashboard/outsourcing/disciplinary': 'outsourcing',
-};
+/** Nav item href → module. Derived from nav catalog + route bindings (lazy — avoids circular import). */
+let navItemModulesCache: Record<string, ModuleKey> | undefined;
+
+export function getNavItemModules(): Record<string, ModuleKey> {
+  if (!navItemModulesCache) {
+    navItemModulesCache = buildNavItemModules(resolveModuleForPath);
+  }
+  return navItemModulesCache;
+}
 
 /** ESS bottom-nav href → module */
 export const ESS_NAV_MODULES: Record<string, ModuleKey> = {

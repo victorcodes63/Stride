@@ -6,7 +6,6 @@ import {
 } from '@/lib/demo-route-access';
 import { DocumentUploadError, uploadEmployeeDocument } from '@/lib/document-upload';
 import { getEssPortalUserIdForEmployee, sendNotification } from '@/lib/notifications';
-import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
 
 const CATEGORIES = new Set([
@@ -42,9 +41,8 @@ export async function GET(
   const verifiedOnly = searchParams.get('verifiedOnly') === 'true';
 
   const documents = await ctx.run(async (tx) => {
-    const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId);
     const employee = await tx.employee.findFirst({
-      where: ctx.where({ id, outsourcingClientId: workspaceId }),
+      where: ctx.where({ id }),
       select: { id: true },
     });
     if (!employee) return null;
@@ -116,13 +114,12 @@ export async function POST(
   }
 
   const { id } = await params;
-  const employee = await ctx.run(async (tx) => {
-    const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId);
-    return tx.employee.findFirst({
-      where: ctx.where({ id, outsourcingClientId: workspaceId }),
+  const employee = await ctx.run((tx) =>
+    tx.employee.findFirst({
+      where: ctx.where({ id }),
       select: { id: true },
-    });
-  });
+    }),
+  );
   if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
   try {

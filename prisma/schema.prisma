@@ -184,6 +184,7 @@ model OutsourcingClient {
   constructionPlantAssets    ConstructionPlantAsset[]
   constructionSubcontractors ConstructionSubcontractor[]
   rateCards                  OutsourcingRateCard[]
+  jobs                       Job[]
 
   @@unique([organizationId, entityCode])
   @@index([name])
@@ -321,8 +322,9 @@ model Department {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  client    OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  employees Employee[]
+  client       OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  employees    Employee[]
+  salesTargets SalesTarget[]
 
   @@index([outsourcingClientId])
 }
@@ -393,12 +395,21 @@ model Employee {
   fleetDriverProfile          FleetDriver?
   performanceGoals            PerformanceGoal[]
   performanceReviews          PerformanceReview[]
+  performanceObjectives       PerformanceObjective[]
+  performancePips             PerformancePip[]
+  performanceRaterAssignments PerformanceRater[] @relation("PerformanceRaterEmployee")
+  salesRepPeriodMetrics       SalesRepPeriodMetric[]
+  salesTargets                SalesTarget[]
+  ownedSalesDeals             SalesDeal[]                  @relation("SalesDealOwner")
+  salesActuals                SalesActual[]
   hseIncidentsReported        HseIncident[]
   saccoMemberProfile          SaccoMember?
   healthcareClinicalAssignments HealthcareClinicalAssignment[]
 
   /// One national ID maps to at most one employee record system-wide (multiple NULL allowed).
   @@unique([idNumber])
+  @@index([organizationId, employmentStatus])
+  @@index([organizationId, outsourcingClientId])
   @@index([outsourcingClientId])
   @@index([departmentId])
   @@index([managerEmployeeId])
@@ -508,6 +519,7 @@ model DisciplinaryCase {
   updatedAt              DateTime               @updatedAt
 
   @@index([employeeId])
+  @@index([organizationId, status])
   @@index([status])
   @@index([type])
 }
@@ -574,6 +586,7 @@ model Grievance {
   documents          GrievanceDocument[]
 
   @@index([employeeId])
+  @@index([organizationId, status])
   @@index([status])
 }
 
@@ -792,6 +805,7 @@ model OnboardingTask {
   documentId    String?
 
   @@index([workflowId, order])
+  @@index([organizationId, status])
   @@index([assignedRole, status])
   @@index([assignedToId, status])
 }
@@ -1207,6 +1221,7 @@ model EmployeeCredential {
   reminders CredentialReminderSent[]
 
   @@index([employeeId, category])
+  @@index([organizationId, status, expiryDate])
   @@index([expiryDate])
   @@index([status])
 }
@@ -1501,6 +1516,7 @@ model LeaveApplication {
   leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
 
   @@index([employeeId])
+  @@index([organizationId, status])
   @@index([status])
 }
 
@@ -1626,11 +1642,14 @@ model Job {
   applicationStartAt     DateTime? // when null, job is open immediately; when set, only visible/apply after this time
   applicationDeadline    DateTime?
   clientId               String?
+  /// OUT-06: RPO jobs scoped to an end-client workforce
+  outsourcingClientId    String?
   concealCompany         Boolean   @default(false) // when true, job board shows "Confidential" instead of company name
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
   client               Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  outsourcingClient    OutsourcingClient?       @relation(fields: [outsourcingClientId], references: [id], onDelete: SetNull)
   applications         Application[]
   scheduleBreaks       InterviewScheduleBreak[]
   requisitionApprovals JobRequisitionApproval[]
@@ -1640,6 +1659,7 @@ model Job {
   @@index([category])
   @@index([location])
   @@index([clientId])
+  @@index([outsourcingClientId])
   @@index([referenceId])
   @@index([slug])
 }
@@ -2067,6 +2087,7 @@ model User {
   jobDescriptionsCreated           JobDescription[]           @relation("JobDescriptionCreator")
   jdDocumentsUploaded              JdDocument[]               @relation("JdDocumentUploader")
   jdParserConfigsConsented         JdParserConfig[]           @relation("JdParserConfigConsent")
+  jdParserConfigsAiEvalConsented   JdParserConfig[]           @relation("JdParserConfigAiEvalConsent")
   projectsOwned                    Project[]                  @relation("ProjectOwner")
   projectsCreated                  Project[]                  @relation("ProjectCreator")
   projectTasksAssigned             ProjectTask[]              @relation("ProjectTaskAssignee")
@@ -2089,6 +2110,9 @@ model User {
   saccoDividendRunsCreated         SaccoDividendRun[]          @relation("SaccoDividendRunCreator")
   supportTicketsCreated            SupportTicket[]             @relation("SupportTicketCreator")
   supportTicketMessages            SupportTicketMessage[]      @relation("SupportTicketMessageAuthor")
+  salesTargetsSet                  SalesTarget[]               @relation("SalesTargetSetBy")
+  salesTargetsApproved             SalesTarget[]               @relation("SalesTargetApprovedBy")
+  salesActualsRecorded             SalesActual[]               @relation("SalesActualRecordedBy")
 
   leaveApprover  User?  @relation("UserLeaveApprover", fields: [leaveApproverId], references: [id], onDelete: SetNull)
   leaveReportees User[] @relation("UserLeaveApprover")
@@ -2387,6 +2411,10 @@ model OrganizationAuthConfig {
   ssoEnforcedEss       Boolean  @default(false)
   jitProvisioning      Boolean  @default(false)
   lockedMsTenantId     String?
+  /// AUTH-09 — SAML IdP metadata URL (enterprise; activation via Raven ops).
+  samlIdpMetadataUrl   String?
+  samlEnabledStaff     Boolean  @default(false)
+  samlEnabledEss       Boolean  @default(false)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -2505,6 +2533,7 @@ model AccountsClient {
   staffAccess    AccountsStaffAccess[]
   payrolls       Payroll[]
   fleetCustomers FleetCustomer[]
+  salesDeals     SalesDeal[]
 
   @@index([type])
   @@index([name])
@@ -2666,6 +2695,8 @@ model AccountsInvoice {
   allocations    AccountsInvoicePaymentAllocation[]
   creditNotes    AccountsCreditNote[]
   fleetTripBill  FleetTrip?                         @relation("FleetTripClientInvoice")
+  salesDeals     SalesDeal[]
+  salesActuals   SalesActual[]
 
   @@unique([clientId, invoiceNumber])
   @@unique([invoiceNumber])
@@ -2891,6 +2922,7 @@ model StaffNotification {
   essPortalUser EssPortalUser?         @relation("EssUserNotifications", fields: [essPortalUserId], references: [id], onDelete: Cascade)
   deliveries    NotificationDelivery[]
 
+  @@index([organizationId, userId, readAt])
   @@index([userId, createdAt])
   @@index([essPortalUserId, createdAt])
   @@index([readAt])
@@ -3555,6 +3587,7 @@ model FleetVehicle {
   drivingTimeLogs  FleetDrivingTimeLog[]
 
   @@unique([outsourcingClientId, registration])
+  @@index([organizationId, status])
   @@index([outsourcingClientId, status])
 }
 
@@ -4338,6 +4371,27 @@ enum BscPerspective {
   learning_growth
 }
 
+enum PerformanceCycleKind {
+  annual
+  quarterly
+  probation
+  multi_rater_360
+}
+
+enum PerformanceObjectiveLevel {
+  organization
+  division
+  role
+  individual
+}
+
+enum PerformancePipStatus {
+  draft
+  active
+  completed
+  cancelled
+}
+
 model JdDivision {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
@@ -4349,6 +4403,8 @@ model JdDivision {
   updatedAt       DateTime @updatedAt
 
   jobDescriptions JobDescription[]
+
+  performanceObjectives PerformanceObjective[]
 
   @@unique([organizationId, name])
   @@index([organizationId, sortOrder])
@@ -4391,6 +4447,7 @@ model JobDescription {
   documents        JdDocument[]    @relation("JdDocuments")
   scorecardTemplates ScorecardTemplate[]
   performanceReviews PerformanceReview[]
+  performanceObjectives PerformanceObjective[]
 
   @@unique([organizationId, title, grade, version])
   @@index([organizationId, status])
@@ -4487,10 +4544,14 @@ model JdParserConfig {
   promptTemplate    String?      @db.Text
   consentAt         DateTime?
   consentByUserId   String?
+  aiEvaluationEnabled Boolean    @default(false)
+  aiEvaluationConsentAt DateTime?
+  aiEvaluationConsentByUserId String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
   consentBy User? @relation("JdParserConfigConsent", fields: [consentByUserId], references: [id], onDelete: SetNull)
+  aiEvaluationConsentBy User? @relation("JdParserConfigAiEvalConsent", fields: [aiEvaluationConsentByUserId], references: [id], onDelete: SetNull)
 }
 
 // --- Performance BSC: Scorecard templates (PERF-03 / RAV-254) ---
@@ -4579,6 +4640,165 @@ model CompetencyRequirement {
   @@index([templateId, sortOrder])
 }
 
+// --- Sales Performance module (SALES-01+) ---
+
+enum SalesTargetPeriodType {
+  month
+  quarter
+  year
+}
+
+enum SalesTargetStatus {
+  draft
+  pending_approval
+  approved
+}
+
+enum SalesDealStage {
+  lead
+  qualified
+  proposal
+  negotiation
+  won
+  lost
+}
+
+enum SalesActualSource {
+  manual
+  deal
+  finance_invoice
+}
+
+enum SalesCommissionRuleStatus {
+  draft
+  active
+  archived
+}
+
+model SalesTarget {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  employeeId       String?
+  departmentId     String?
+  periodType       SalesTargetPeriodType
+  periodStart      DateTime            @db.Date
+  periodEnd        DateTime            @db.Date
+  amount           Decimal             @db.Decimal(14, 2)
+  currency         String              @default("KES")
+  product          String?
+  region           String?
+  segment          String?
+  status           SalesTargetStatus   @default(draft)
+  parentTargetId   String?
+  setByUserId      String?
+  approvedByUserId String?
+  approvedAt       DateTime?
+  notes            String?             @db.Text
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  employee     Employee?    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  parentTarget SalesTarget? @relation("SalesTargetCascade", fields: [parentTargetId], references: [id], onDelete: SetNull)
+  childTargets SalesTarget[] @relation("SalesTargetCascade")
+  setBy        User?        @relation("SalesTargetSetBy", fields: [setByUserId], references: [id], onDelete: SetNull)
+  approvedBy   User?        @relation("SalesTargetApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, periodEnd])
+  @@index([organizationId, employeeId])
+  @@index([organizationId, departmentId])
+  @@index([organizationId, status])
+}
+
+model SalesDeal {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name              String
+  stage             SalesDealStage @default(lead)
+  value             Decimal        @db.Decimal(14, 2)
+  currency          String         @default("KES")
+  ownerEmployeeId   String
+  expectedCloseDate DateTime?      @db.Date
+  closedAt          DateTime?
+  accountsInvoiceId String?
+  accountsClientId  String?
+  notes             String?        @db.Text
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  owner           Employee         @relation("SalesDealOwner", fields: [ownerEmployeeId], references: [id], onDelete: Cascade)
+  accountsInvoice AccountsInvoice? @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
+  accountsClient  AccountsClient?  @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
+  actuals         SalesActual[]
+
+  @@index([organizationId, stage])
+  @@index([organizationId, ownerEmployeeId])
+  @@index([organizationId, expectedCloseDate])
+}
+
+model SalesActual {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  employeeId        String
+  periodStart       DateTime          @db.Date
+  periodEnd         DateTime          @db.Date
+  amount            Decimal           @db.Decimal(14, 2)
+  currency          String            @default("KES")
+  source            SalesActualSource @default(manual)
+  salesDealId       String?
+  accountsInvoiceId String?
+  notes             String?           @db.Text
+  recordedByUserId  String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  employee        Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  salesDeal         SalesDeal?       @relation(fields: [salesDealId], references: [id], onDelete: SetNull)
+  accountsInvoice   AccountsInvoice? @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
+  recordedBy        User?            @relation("SalesActualRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, employeeId, periodEnd])
+  @@index([organizationId, periodStart, periodEnd])
+}
+
+model SalesCommissionRule {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name        String
+  description String?                   @db.Text
+  status      SalesCommissionRuleStatus @default(draft)
+  /// JSON tiers/accelerators/caps — VICTOR TODO: formalize + payroll handoff (SALES-05).
+  config      Json
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@index([organizationId, status])
+}
+
+/// Roll-up per rep/period for attainment % and Performance auto-KPI (PERF-06 / SALES-04).
+model SalesRepPeriodMetric {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  employeeId     String
+  periodStart    DateTime @db.Date
+  periodEnd      DateTime @db.Date
+  pipelineTarget Decimal  @db.Decimal(14, 2)
+  pipelineClosed Decimal  @db.Decimal(14, 2) @default(0)
+  currency       String   @default("KES")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, employeeId, periodStart, periodEnd])
+  @@index([organizationId, periodEnd])
+}
+
 // --- Performance management (RAV-69) ---
 
 enum PerformanceCycleStatus {
@@ -4612,6 +4832,7 @@ model PerformanceCycle {
   periodStart         DateTime              @db.Date
   periodEnd           DateTime              @db.Date
   status              PerformanceCycleStatus @default(draft)
+  cycleKind           PerformanceCycleKind   @default(annual)
   method              PerformanceMethod      @default(bsc)
   resultsWeightPercent Int                   @default(70)
   competenciesWeightPercent Int              @default(30)
@@ -4628,8 +4849,11 @@ model PerformanceCycle {
   createdBy         User?              @relation("PerformanceCycleCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   goals             PerformanceGoal[]
   reviews           PerformanceReview[]
+  objectives        PerformanceObjective[]
+  pips              PerformancePip[]
 
   @@index([organizationId, status])
+  @@index([organizationId, cycleKind])
   @@index([outsourcingClientId])
 }
 
@@ -4674,6 +4898,7 @@ model PerformanceReview {
   finalResultsScore    Decimal? @db.Decimal(5, 2)
   finalCompetenciesScore Decimal? @db.Decimal(5, 2)
   finalBlendedScore    Decimal? @db.Decimal(5, 2)
+  aiSuggestions        Json?
   calibratedAt         DateTime?
   selfSubmittedAt      DateTime?
   managerSubmittedAt   DateTime?
@@ -4688,6 +4913,8 @@ model PerformanceReview {
   jobDescription JobDescription?      @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
   ratings  PerformanceReviewRating[]
   feedback PerformanceFeedback[]
+  pip      PerformancePip?
+  raters   PerformanceRater[]
 
   @@unique([cycleId, employeeId])
   @@index([organizationId, status])
@@ -4728,6 +4955,117 @@ model PerformanceFeedback {
   authorEssUser EssPortalUser?    @relation(fields: [authorEssUserId], references: [id], onDelete: SetNull)
 
   @@index([reviewId])
+}
+
+// --- Performance specialization (PERF-08 / RAV-259) ---
+
+model CompetencyFramework {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name        String
+  description String?  @db.Text
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entries CompetencyFrameworkEntry[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, isDefault])
+}
+
+model CompetencyFrameworkEntry {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  frameworkId      String
+  name             String
+  description      String? @db.Text
+  level1Descriptor String? @db.Text
+  level2Descriptor String? @db.Text
+  level3Descriptor String? @db.Text
+  level4Descriptor String? @db.Text
+  level5Descriptor String? @db.Text
+  sortOrder        Int     @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  framework CompetencyFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+
+  @@index([frameworkId, sortOrder])
+}
+
+model PerformanceObjective {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  cycleId           String?
+  parentObjectiveId String?
+  level             PerformanceObjectiveLevel
+  divisionId        String?
+  jobDescriptionId  String?
+  employeeId        String?
+  title             String
+  description       String? @db.Text
+  weightPercent     Int     @default(100)
+  sortOrder         Int     @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  cycle          PerformanceCycle?    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  parent         PerformanceObjective? @relation("ObjectiveCascade", fields: [parentObjectiveId], references: [id], onDelete: SetNull)
+  children       PerformanceObjective[] @relation("ObjectiveCascade")
+  division       JdDivision?          @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  jobDescription JobDescription?      @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
+  employee       Employee?            @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, cycleId])
+  @@index([parentObjectiveId])
+  @@index([employeeId])
+}
+
+model PerformancePip {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  employeeId String
+  cycleId    String?
+  reviewId   String?  @unique
+  status     PerformancePipStatus @default(draft)
+  startDate  DateTime @db.Date
+  endDate    DateTime @db.Date
+  goals      Json?
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employee Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycle    PerformanceCycle? @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+  review   PerformanceReview? @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([employeeId])
+}
+
+model PerformanceRater {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  reviewId        String
+  raterEmployeeId String
+  relationship    String
+  submittedAt     DateTime?
+  summary         String?  @db.Text
+  ratings         Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  review        PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  raterEmployee Employee          @relation("PerformanceRaterEmployee", fields: [raterEmployeeId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, raterEmployeeId])
+  @@index([organizationId])
 }
 
 // --- Projects (RAV-84 / Phase D1) ---
@@ -4789,6 +5127,7 @@ model Project {
   constructionSites ConstructionSite[]
 
   @@unique([outsourcingClientId, projectCode])
+  @@index([organizationId, status])
   @@index([outsourcingClientId])
   @@index([status])
   @@index([dueDate])
@@ -4839,6 +5178,7 @@ model ProjectTask {
   createdBy User              @relation("ProjectTaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   @@index([projectId])
+  @@index([organizationId, status])
   @@index([milestoneId])
   @@index([status])
   @@index([assigneeUserId])

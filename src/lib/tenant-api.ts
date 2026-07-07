@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
+import { bindQueryTimingRoute } from '@/lib/perf/query-timing-store';
 import { withOrgContext } from '@/lib/org-context';
 import { requireStaffUser, type StaffUser } from '@/lib/staff-api-auth';
 import { can, TenantForbiddenError } from '@/lib/rbac/can';
@@ -51,6 +52,7 @@ export async function withTenant(
     }
 
     const ctx = buildTenantContext(request, staff);
+    bindQueryTimingRoute(request.nextUrl?.pathname ?? 'unknown');
     return await handler(ctx);
   } catch (error) {
     return handleTenantError(request, error);

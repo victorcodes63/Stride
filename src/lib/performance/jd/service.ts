@@ -5,6 +5,7 @@ import type {
   JobDescriptionDto,
   JobDescriptionInput,
 } from '@/lib/performance/jd/types';
+import type { JdManualImport } from '@/lib/performance/jd/jd-manual-import';
 import {
   allStabexJobDescriptionInputs,
   STABEX_DIVISIONS,
@@ -385,6 +386,121 @@ export async function importStabexReferencePack(
     packName: STABEX_REFERENCE_PACK_NAME,
     divisionCount: STABEX_DIVISIONS.length,
     roleCount: created,
+  };
+}
+
+async function findOrCreateDivisionByName(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  name: string,
+  sortOrder: number,
+  cache: Map<string, string>,
+): Promise<string> {
+  const key = name.trim().toLowerCase();
+  const cached = cache.get(key);
+  if (cached) return cached;
+
+  const existing = await tx.jdDivision.findFirst({
+    where: { organizationId, name: { equals: name.trim(), mode: 'insensitive' } },
+    select: { id: true },
+  });
+  if (existing) {
+    cache.set(key, existing.id);
+    return existing.id;
+  }
+
+  const created = await tx.jdDivision.create({
+    data: {
+      organizationId,
+      name: name.trim(),
+      sortOrder,
+      isReferencePack: false,
+    },
+  });
+  cache.set(key, created.id);
+  return created.id;
+}
+
+/** Import a client-owned JD manual (JSON bulk format). Roles land as drafts unless publish=true. */
+export async function importJdManual(
+  tx: Prisma.TransactionClient,
+  input: {
+    organizationId: string;
+    manual: JdManualImport;
+    createdByUserId?: string | null;
+    publish?: boolean;
+    skipDuplicates?: boolean;
+  },
+) {
+  const divisionCache = new Map<string, string>();
+
+  for (const [index, name] of (input.manual.divisions ?? []).entries()) {
+    await findOrCreateDivisionByName(tx, input.organizationId, name, index, divisionCache);
+  }
+
+  let divisionSort = input.manual.divisions?.length ?? 0;
+  for (const role of input.manual.roles) {
+    const divName = role.division?.trim();
+    if (!divName) continue;
+    const key = divName.toLowerCase();
+    if (!divisionCache.has(key)) {
+      await findOrCreateDivisionByName(
+        tx,
+        input.organizationId,
+        divName,
+        divisionSort,
+        divisionCache,
+      );
+      divisionSort += 1;
+    }
+  }
+
+  let created = 0;
+  let skipped = 0;
+  const status = input.publish ? ('published' as const) : ('draft' as const);
+
+  for (const role of input.manual.roles) {
+    const divisionId = role.division?.trim()
+      ? divisionCache.get(role.division.trim().toLowerCase()) ?? null
+      : null;
+
+    if (input.skipDuplicates) {
+      const duplicate = await tx.jobDescription.findFirst({
+        where: {
+          organizationId: input.organizationId,
+          title: { equals: role.title.trim(), mode: 'insensitive' },
+          divisionId: divisionId ?? null,
+          status: { in: ['draft', 'published'] },
+        },
+        select: { id: true },
+      });
+      if (duplicate) {
+        skipped += 1;
+        continue;
+      }
+    }
+
+    const { division: _div, ...roleData } = role;
+    const result = await createJobDescriptionTree(tx, {
+      organizationId: input.organizationId,
+      createdByUserId: input.createdByUserId,
+      status,
+      data: {
+        ...roleData,
+        divisionId,
+        isReferencePack: false,
+      },
+    });
+    if (!result.ok) return result;
+    created += 1;
+  }
+
+  return {
+    ok: true as const,
+    manualName: input.manual.name ?? 'JD manual',
+    divisionCount: divisionCache.size,
+    roleCount: created,
+    skippedCount: skipped,
   };
 }
 

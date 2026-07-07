@@ -29,8 +29,9 @@ describe('module-migration-registry', () => {
     expect(GLOBAL_PRISMA_MODELS.has('Employee')).toBe(false);
   });
 
-  it('returns API prefixes for core module', () => {
-    const prefixes = apiPrefixesForModule('core');
-    expect(prefixes.some((p) => p.startsWith('/api/outsourcing/employees'))).toBe(true);
+  it('returns API prefixes for outsourcing module', () => {
+    const prefixes = apiPrefixesForModule('outsourcing');
+    expect(prefixes.some((p) => '/api/outsourcing/employees'.startsWith(p))).toBe(true);
+    expect(prefixes.some((p) => '/api/outsourcing/clients'.startsWith(p))).toBe(true);
   });
 });

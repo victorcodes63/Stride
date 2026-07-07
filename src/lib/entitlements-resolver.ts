@@ -3,16 +3,19 @@ import type { DeploymentEntitlements } from '@/lib/entitlements-types';
 import { horizontalQuotaForTier } from '@/lib/entitlement-buckets';
 import type { DeploymentTier } from '@/lib/deployment-tier';
 import { getDeploymentTier } from '@/lib/deployment-tier';
+import {
+  getControlPlaneCustomerSlug,
+  getControlPlaneUrl,
+  isControlPlaneSyncConfigured,
+} from '@/lib/entitlements-env';
+
+export { isControlPlaneSyncConfigured } from '@/lib/entitlements-env';
 
 function trimEnv(key: string): string | undefined {
   const v = process.env[key];
   if (typeof v !== 'string') return undefined;
   const t = v.trim();
   return t.length > 0 ? t : undefined;
-}
-
-export function isControlPlaneSyncConfigured(): boolean {
-  return Boolean(trimEnv('CONTROL_PLANE_URL') && trimEnv('CONTROL_PLANE_CUSTOMER_SLUG'));
 }
 
 type ControlPlanePayload = {
@@ -30,8 +33,8 @@ type ControlPlanePayload = {
 };
 
 export async function fetchEntitlementsFromControlPlane(): Promise<DeploymentEntitlements | null> {
-  const baseUrl = trimEnv('CONTROL_PLANE_URL');
-  const slug = trimEnv('CONTROL_PLANE_CUSTOMER_SLUG');
+  const baseUrl = getControlPlaneUrl();
+  const slug = getControlPlaneCustomerSlug();
   if (!baseUrl || !slug) return null;
 
   const apiKey = trimEnv('CONTROL_PLANE_INSTANCE_API_KEY');

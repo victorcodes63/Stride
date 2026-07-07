@@ -14,6 +14,9 @@ import {
  X,
 } from 'lucide-react';
 import { useEntity } from '@/components/EntitySwitcher';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
+import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import {
@@ -70,11 +73,16 @@ function profileScoreForRecord(employee: EmployeeRecord) {
 
 function EmployeesPageInner() {
  const { activeEntity } = useEntity();
+ const {
+  clients,
+  clientId,
+  scope,
+  setClientId,
+  showSwitcher,
+  loading: clientsLoading,
+ } = useOutsourcingClient({ allowAll: true });
  const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
- const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
- const [primaryWorkspaceClientId, setPrimaryWorkspaceClientId] = useState('');
- const [clientFilter, setClientFilter] = useState('');
 
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
@@ -105,7 +113,8 @@ function EmployeesPageInner() {
  const params = new URLSearchParams();
  if (departmentFilter.trim()) params.set('departmentId', departmentFilter.trim());
  if (positionFilter.trim()) params.set('jobTitle', positionFilter.trim());
- if (clientFilter.trim()) params.set('clientId', clientFilter.trim());
+ if (scope === 'all') params.set('clientId', 'all');
+ else if (clientId.trim()) params.set('clientId', clientId.trim());
  if (presetFilter !== 'all') params.set('preset', presetFilter);
  const res = await fetch(`/api/outsourcing/employees?${params.toString()}`);
  const data = await res.json().catch(() => []);
@@ -120,62 +129,33 @@ function EmployeesPageInner() {
  };
 
  useEffect(() => {
- let cancelled = false;
- const loadWorkspaceAndDepartments = async () => {
- try {
- const res = await fetch('/api/outsourcing/clients');
- const data = await res.json().catch(() => []);
- if (cancelled) return;
-
- const clientList = Array.isArray(data)
- ? data.map((c: { id: string; name: string }) => ({ id: String(c.id), name: String(c.name) }))
- : [];
- if (!cancelled) setClients(clientList);
-
- const first = clientList[0] ?? null;
- if (first?.id) {
- setPrimaryWorkspaceClientId(first.id);
- } else {
- setDepartments([]);
- }
- } catch {
- if (!cancelled) setDepartments([]);
- }
- };
- void loadWorkspaceAndDepartments();
- return () => {
- cancelled = true;
- };
- }, [activeEntity.id]);
+  if (clientsLoading) return;
+  void fetchEmployees();
+ }, [departmentFilter, positionFilter, clientId, scope, presetFilter, activeEntity.id, clientsLoading]);
 
  useEffect(() => {
- void fetchEmployees();
- }, [departmentFilter, positionFilter, clientFilter, presetFilter, activeEntity.id]);
+  let cancelled = false;
+  if (scope === 'all' || !clientId) {
+   setDepartments([]);
+   return undefined;
+  }
+  void (async () => {
+   try {
+    const deptRes = await fetch(`/api/outsourcing/clients/${clientId}/departments`);
+    const deptData = await deptRes.json().catch(() => []);
+    if (!cancelled) setDepartments(Array.isArray(deptData) ? deptData : []);
+   } catch {
+    if (!cancelled) setDepartments([]);
+   }
+  })();
+  return () => {
+   cancelled = true;
+  };
+ }, [clientId, scope, activeEntity.id]);
 
  useEffect(() => {
- let cancelled = false;
- const clientId = clientFilter || primaryWorkspaceClientId;
- if (!clientId) {
- setDepartments([]);
- return undefined;
- }
- void (async () => {
- try {
- const deptRes = await fetch(`/api/outsourcing/clients/${clientId}/departments`);
- const deptData = await deptRes.json().catch(() => []);
- if (!cancelled) setDepartments(Array.isArray(deptData) ? deptData : []);
- } catch {
- if (!cancelled) setDepartments([]);
- }
- })();
- return () => {
- cancelled = true;
- };
- }, [clientFilter, primaryWorkspaceClientId, activeEntity.id]);
-
- useEffect(() => {
- setSelectedIds(new Set());
- setBulkDepartmentId('');
+  setSelectedIds(new Set());
+  setBulkDepartmentId('');
  }, [employees]);
 
  useEffect(() => {
@@ -241,14 +221,14 @@ function EmployeesPageInner() {
  !!searchQuery.trim() ||
  !!departmentFilter.trim() ||
  !!positionFilter.trim() ||
- !!clientFilter.trim() ||
+ scope === 'all' ||
  presetFilter !== 'all';
 
  const clearFilters = () => {
  setSearchQuery('');
  setDepartmentFilter('');
  setPositionFilter('');
- setClientFilter('');
+ if (clientId) setClientId(clientId);
  setPresetFilter('all');
  setImportResult(null);
  setSelectedIds(new Set());
@@ -270,6 +250,7 @@ function EmployeesPageInner() {
  try {
  const formData = new FormData();
  formData.append('file', file);
+ if (scope !== 'all' && clientId) formData.append('clientId', clientId);
  const res = await fetch('/api/outsourcing/employees/import', {
  method: 'POST',
  body: formData,
@@ -320,7 +301,7 @@ function EmployeesPageInner() {
  body: JSON.stringify({
  employeeIds: Array.from(selectedIds),
  departmentId: bulkDepartmentId || null,
- clientId: clientFilter || primaryWorkspaceClientId || null,
+ clientId: scope === 'all' ? null : clientId || null,
  }),
  });
  const data = await res.json().catch(() => ({}));
@@ -346,7 +327,7 @@ function EmployeesPageInner() {
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
  employeeIds: Array.from(selectedIds),
- clientId: clientFilter || primaryWorkspaceClientId || null,
+ clientId: scope === 'all' ? null : clientId || null,
  }),
  });
  const data = await res.json().catch(() => ({}));
@@ -366,7 +347,8 @@ function EmployeesPageInner() {
  params.set('month', String(payrollMonth));
  params.set('year', String(payrollYear));
  params.set('employeeIds', Array.from(selectedIds).join(','));
- window.open(`/dashboard/payroll/payslips?${params.toString()}`, '_blank');
+ if (scope !== 'all' && clientId) params.set('clientId', clientId);
+ window.open(`/dashboard/outsourcing/payroll/payslips?${params.toString()}`, '_blank');
  };
 
  const handleSendSelectedPayslips = async () => {
@@ -381,6 +363,7 @@ function EmployeesPageInner() {
  month: payrollMonth,
  year: payrollYear,
  employeeIds: Array.from(selectedIds),
+ ...(scope !== 'all' && clientId ? { clientId } : {}),
  }),
  });
  const data = await res.json().catch(() => ({}));
@@ -447,7 +430,7 @@ function EmployeesPageInner() {
  ) : null}
  </div>
  <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportFile} />
- <Link href="/dashboard/employees/new" className="btn-primary inline-flex shrink-0 items-center gap-2">
+ <Link href={withOutsourcingClientQuery('/dashboard/outsourcing/employees/new', clientId)} className="btn-primary inline-flex shrink-0 items-center gap-2">
  <UserPlus className="h-4 w-4" />
  Add employee
  </Link>
@@ -525,19 +508,14 @@ function EmployeesPageInner() {
  className="h-10 w-full rounded-lg border border-neutral-200/80 bg-white/90 pl-9 pr-3 text-sm text-ink placeholder:text-neutral-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-700 dark:bg-neutral-900/80"
  />
  </div>
- {clients.length > 1 ? (
- <select
- value={clientFilter}
- onChange={(e) => setClientFilter(e.target.value)}
- className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2 dark:border-neutral-700 dark:bg-neutral-900/80"
- >
- <option value="">All clients</option>
- {clients.map((client) => (
- <option key={client.id} value={client.id}>
- {client.name}
- </option>
- ))}
- </select>
+ {showSwitcher ? (
+ <OutsourcingClientSwitcher
+  clients={clients}
+  value={scope === 'all' ? 'all' : clientId}
+  onChange={setClientId}
+  allowAll
+  className="lg:col-span-2"
+ />
  ) : null}
  <select
  value={departmentFilter}
@@ -702,7 +680,7 @@ function EmployeesPageInner() {
  Add your first employee or import a spreadsheet to populate the directory.
  </p>
  <div className="mt-4 flex flex-wrap justify-center gap-2">
- <Link href="/dashboard/employees/new" className="btn-primary inline-flex items-center gap-2">
+ <Link href={withOutsourcingClientQuery('/dashboard/outsourcing/employees/new', clientId)} className="btn-primary inline-flex items-center gap-2">
  <UserPlus className="h-4 w-4" />
  Add employee
  </Link>

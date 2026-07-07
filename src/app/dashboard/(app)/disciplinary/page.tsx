@@ -19,6 +19,10 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
 import { useDashboardTabParam } from '@/hooks/useDashboardTabParam';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
+import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
 import { DISCIPLINARY_STATUSES, GRIEVANCE_STATUSES, JURISDICTION_POLICIES } from '@/lib/east-africa-hr-policy';
 
 type CaseRow = {
@@ -57,6 +61,7 @@ export default function DisciplinaryPage() {
 
 function DisciplinaryPageContent() {
   const { tab, setTab } = useDashboardTabParam('tab', TABS, 'cases');
+  const { clientId, clients, setClientId, showSwitcher } = useOutsourcingClient();
   const [cases, setCases] = useState<CaseRow[]>([]);
   const [grievances, setGrievances] = useState<GrievanceRow[]>([]);
   const [caseStatusFilter, setCaseStatusFilter] = useState('');
@@ -92,17 +97,25 @@ function DisciplinaryPageContent() {
   } | null>(null);
 
   const load = useCallback(async () => {
+    if (!clientId) {
+      setCases([]);
+      setGrievances([]);
+      setSla(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
+      const clientQuery = `clientId=${encodeURIComponent(clientId)}`;
       const [casesRes, grievancesRes, slaRes] = await Promise.all([
         fetch(
-          `/api/disciplinary/cases${caseStatusFilter ? `?status=${encodeURIComponent(caseStatusFilter)}` : ''}`,
+          `/api/disciplinary/cases${caseStatusFilter ? `?status=${encodeURIComponent(caseStatusFilter)}&${clientQuery}` : `?${clientQuery}`}`,
         ),
         fetch(
-          `/api/grievances${grievanceStatusFilter ? `?status=${encodeURIComponent(grievanceStatusFilter)}` : ''}`,
+          `/api/grievances${grievanceStatusFilter ? `?status=${encodeURIComponent(grievanceStatusFilter)}&${clientQuery}` : `?${clientQuery}`}`,
         ),
-        fetch('/api/disciplinary/sla-summary'),
+        fetch(`/api/disciplinary/sla-summary?${clientQuery}`),
       ]);
       if (!casesRes.ok || !grievancesRes.ok) {
         throw new Error('Could not load disciplinary records.');
@@ -122,7 +135,7 @@ function DisciplinaryPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [caseStatusFilter, grievanceStatusFilter]);
+  }, [caseStatusFilter, grievanceStatusFilter, clientId]);
 
   useEffect(() => {
     void load();
@@ -130,7 +143,11 @@ function DisciplinaryPageContent() {
 
   useEffect(() => {
     if (!createOpen && !grievanceCreateOpen) return;
-    void fetch('/api/outsourcing/employees')
+    if (!clientId) {
+      setEmployees([]);
+      return;
+    }
+    void fetch(`/api/outsourcing/employees?clientId=${encodeURIComponent(clientId)}`)
       .then((r) => r.json())
       .then((data) => {
         if (!Array.isArray(data)) return;
@@ -143,17 +160,21 @@ function DisciplinaryPageContent() {
         );
       })
       .catch(() => setEmployees([]));
-  }, [createOpen, grievanceCreateOpen]);
+  }, [createOpen, grievanceCreateOpen, clientId]);
 
   async function createCase() {
+    if (!clientId) return;
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch('/api/disciplinary/cases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(caseForm),
-      });
+      const res = await fetch(
+        `/api/disciplinary/cases?clientId=${encodeURIComponent(clientId ?? '')}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(caseForm),
+        },
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create case.');
       setCreateOpen(false);
@@ -166,7 +187,7 @@ function DisciplinaryPageContent() {
         incidentDate: new Date().toISOString().slice(0, 10),
         laborJurisdiction: 'KE',
       });
-      window.location.href = `/dashboard/disciplinary/cases/${data.id}`;
+      window.location.href = withOutsourcingClientQuery(`/dashboard/disciplinary/cases/${data.id}`, clientId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create case.');
     } finally {
@@ -175,19 +196,23 @@ function DisciplinaryPageContent() {
   }
 
   async function createGrievance() {
+    if (!clientId) return;
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch('/api/grievances', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(grievanceForm),
-      });
+      const res = await fetch(
+        `/api/grievances?clientId=${encodeURIComponent(clientId ?? '')}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(grievanceForm),
+        },
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create grievance.');
       setGrievanceCreateOpen(false);
       setGrievanceForm({ employeeId: '', subject: '', description: '', category: 'OTHER' });
-      window.location.href = `/dashboard/disciplinary/grievances/${data.id}`;
+      window.location.href = withOutsourcingClientQuery(`/dashboard/disciplinary/grievances/${data.id}`, clientId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create grievance.');
     } finally {
@@ -244,6 +269,19 @@ function DisciplinaryPageContent() {
           />
         }
       />
+
+      {showSwitcher ? (
+        <div className="mb-4 overflow-hidden dashboard-surface shadow-sm">
+          <DashboardTableToolbar>
+            <OutsourcingClientSwitcher
+              clients={clients}
+              value={clientId}
+              onChange={setClientId}
+              className={dashboardFilterSelectClass}
+            />
+          </DashboardTableToolbar>
+        </div>
+      ) : null}
 
       {sla ? (
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -540,7 +578,7 @@ function DisciplinaryPageContent() {
                       <DashboardTableCell className="py-2">
                         <Link
                           className="font-medium text-primary-800 hover:underline"
-                          href={`/dashboard/disciplinary/cases/${item.id}`}
+                          href={withOutsourcingClientQuery(`/dashboard/disciplinary/cases/${item.id}`, clientId)}
                         >
                           {item.caseNumber}
                         </Link>
@@ -559,7 +597,7 @@ function DisciplinaryPageContent() {
                       <DashboardTableCell className="col-right">
                         <Link
                           className="text-primary-700 hover:underline"
-                          href={`/dashboard/disciplinary/cases/${item.id}`}
+                          href={withOutsourcingClientQuery(`/dashboard/disciplinary/cases/${item.id}`, clientId)}
                         >
                           View
                         </Link>
@@ -602,7 +640,7 @@ function DisciplinaryPageContent() {
                       <DashboardTableCell className="col-right">
                         <Link
                           className="text-primary-700 hover:underline"
-                          href={`/dashboard/disciplinary/grievances/${item.id}`}
+                          href={withOutsourcingClientQuery(`/dashboard/disciplinary/grievances/${item.id}`, clientId)}
                         >
                           View
                         </Link>

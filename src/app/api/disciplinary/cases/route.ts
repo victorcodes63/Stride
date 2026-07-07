@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const type = request.nextUrl.searchParams.get('type') || undefined;
     const workspaceClientId = await resolvePrimaryWorkspaceClientId(
       prisma,
-      null,
+      request.nextUrl.searchParams.get('clientId'),
       request,
       ctx.organizationId,
     );
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     const workspaceClientId = await resolvePrimaryWorkspaceClientId(
       prisma,
-      null,
+      request.nextUrl.searchParams.get('clientId'),
       request,
       ctx.organizationId,
     );

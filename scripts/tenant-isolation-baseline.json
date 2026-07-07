@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issue": "RAV-251",
+  "updatedAt": "2026-07-02",
+  "routes": {
+    "total": 286,
+    "migrated": 286,
+    "unmigrated": 0
+  },
+  "prismaScope": {
+    "unscopedPrismaRoutes": 0,
+    "globalPrismaInTenantRoutes": 36
+  }
+}

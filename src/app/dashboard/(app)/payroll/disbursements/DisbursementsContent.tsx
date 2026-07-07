@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -28,6 +28,9 @@ import {
 } from '@/components/dashboard/DashboardDataTable';
 import { dashStatusChip } from '@/lib/dashboard-status-chips';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
+import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
 
 type BatchSummary = {
   id: string;
@@ -82,6 +85,7 @@ function statusLabel(status: string) {
 
 export function DisbursementsContent() {
   const now = new Date();
+  const { clientId, clients, setClientId, showSwitcher, selectedClient } = useOutsourcingClient();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [batches, setBatches] = useState<BatchSummary[]>([]);
@@ -95,13 +99,18 @@ export function DisbursementsContent() {
   useEntityConfig();
 
   const loadBatches = useCallback(async () => {
+    if (!clientId) {
+      setBatches([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/outsourcing/payroll/disbursements?month=${month}&year=${year}`,
-        { credentials: 'include' },
-      );
+      const params = new URLSearchParams({ month: String(month), year: String(year), clientId });
+      const res = await fetch(`/api/outsourcing/payroll/disbursements?${params.toString()}`, {
+        credentials: 'include',
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to load disbursements');
       setBatches(data.batches ?? []);
@@ -112,7 +121,7 @@ export function DisbursementsContent() {
     } finally {
       setLoading(false);
     }
-  }, [month, year]);
+  }, [month, year, clientId]);
 
   const loadBatchDetail = useCallback(async (id: string) => {
     const res = await fetch(`/api/outsourcing/payroll/disbursements/${id}`, {
@@ -135,7 +144,7 @@ export function DisbursementsContent() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month, year }),
+        body: JSON.stringify({ month, year, clientId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Disbursement failed');
@@ -167,7 +176,9 @@ export function DisbursementsContent() {
     }
   }
 
-  const bankExportHref = `/api/outsourcing/payroll/bank-export?month=${month}&year=${year}`;
+  const bankExportHref = clientId
+    ? `/api/outsourcing/payroll/bank-export?month=${month}&year=${year}&clientId=${encodeURIComponent(clientId)}`
+    : '#';
 
   const summary = useMemo(() => {
     const totals = batches.reduce(
@@ -201,13 +212,27 @@ export function DisbursementsContent() {
               <> — poll twice to simulate M-Pesa processing → completed.</>
             ) : null}
             {' · '}
-            <Link href="/dashboard/payroll" className="text-primary-600 hover:underline">
+            <Link href={withOutsourcingClientQuery('/dashboard/outsourcing/payroll', clientId)} className="text-primary-600 hover:underline">
               Payroll runs
             </Link>
+            {selectedClient ? (
+              <>
+                {' · '}
+                <span className="text-[var(--dash-text-body)]">{selectedClient.name}</span>
+              </>
+            ) : null}
           </span>
         }
         actions={
-          <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+          <div className="flex flex-shrink-0 flex-wrap items-end gap-3">
+            {showSwitcher ? (
+              <OutsourcingClientSwitcher
+                clients={clients}
+                value={clientId}
+                onChange={setClientId}
+                className="min-w-[12rem]"
+              />
+            ) : null}
             <select
               value={month}
               onChange={(e) => setMonth(parseInt(e.target.value, 10))}

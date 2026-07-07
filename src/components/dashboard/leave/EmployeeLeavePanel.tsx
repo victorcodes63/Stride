@@ -15,6 +15,8 @@ import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
 import type { EmployeeLeaveOverview } from '@/lib/leave/employee-overview';
 import { dashStatusChip } from '@/lib/dashboard-status-chips';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
+import { DASHBOARD_STAT_CARD_CLASS } from '@/lib/dashboard-layout';
 
 type LeaveRow = {
   id: string;
@@ -49,6 +51,7 @@ function queueTabLabel(value: QueueTab) {
 
 export function EmployeeLeavePanel() {
   const searchParams = useSearchParams();
+  const { clientId } = useOutsourcingClient();
   const formatCurrency = useCurrencyFormatter();
   useEntityConfig();
 
@@ -66,7 +69,12 @@ export function EmployeeLeavePanel() {
   const [actingId, setActingId] = useState<string | null>(null);
 
   const loadQueue = useCallback(async () => {
+    if (!clientId) {
+      setRows([]);
+      return;
+    }
     const params = new URLSearchParams();
+    params.set('clientId', clientId);
     if (statusFilter) params.set('status', statusFilter);
     const res = await fetch(`/api/outsourcing/leave/applications?${params.toString()}`, {
       cache: 'no-store',
@@ -74,17 +82,21 @@ export function EmployeeLeavePanel() {
     const data = await res.json().catch(() => []);
     if (!res.ok) throw new Error(data.error || 'Failed to load leave applications');
     setRows(Array.isArray(data) ? data : []);
-  }, [statusFilter]);
+  }, [statusFilter, clientId]);
 
   const loadOverview = useCallback(async () => {
+    if (!clientId) {
+      setOverview(null);
+      return;
+    }
     const res = await fetch(
-      `/api/outsourcing/leave/overview?year=${year}&month=${month}`,
+      `/api/outsourcing/leave/overview?year=${year}&month=${month}&clientId=${encodeURIComponent(clientId)}`,
       { cache: 'no-store' },
     );
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to load leave overview');
     setOverview(data as EmployeeLeaveOverview);
-  }, [year, month]);
+  }, [year, month, clientId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,13 +121,17 @@ export function EmployeeLeavePanel() {
   const pendingCount = useMemo(() => rows.filter((r) => r.status === 'pending').length, [rows]);
 
   async function review(id: string, status: 'approved' | 'rejected') {
+    if (!clientId) return;
     setActingId(id);
     try {
-      const res = await fetch(`/api/outsourcing/leave/applications/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
+      const res = await fetch(
+        `/api/outsourcing/leave/applications/${id}?clientId=${encodeURIComponent(clientId)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        },
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Action failed');
       await loadQueue();
@@ -176,17 +192,17 @@ export function EmployeeLeavePanel() {
 
       {overview && section !== 'queue' ? (
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs uppercase text-zinc-500">Pending requests</div>
-            <div className="mt-1 text-2xl font-semibold">{overview.kpis.pendingApplications}</div>
+          <div className={DASHBOARD_STAT_CARD_CLASS}>
+            <div className="text-xs uppercase text-[var(--dash-text-muted)]">Pending requests</div>
+            <div className="mt-1 text-2xl font-semibold text-[var(--dash-text-strong)]">{overview.kpis.pendingApplications}</div>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs uppercase text-zinc-500">Approved this month</div>
-            <div className="mt-1 text-2xl font-semibold">{overview.kpis.onLeaveThisMonth}</div>
+          <div className={DASHBOARD_STAT_CARD_CLASS}>
+            <div className="text-xs uppercase text-[var(--dash-text-muted)]">Approved this month</div>
+            <div className="mt-1 text-2xl font-semibold text-[var(--dash-text-strong)]">{overview.kpis.onLeaveThisMonth}</div>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs uppercase text-zinc-500">Remaining leave days</div>
-            <div className="mt-1 text-2xl font-semibold">{overview.kpis.totalRemainingDays}</div>
+          <div className={DASHBOARD_STAT_CARD_CLASS}>
+            <div className="text-xs uppercase text-[var(--dash-text-muted)]">Remaining leave days</div>
+            <div className="mt-1 text-2xl font-semibold text-[var(--dash-text-strong)]">{overview.kpis.totalRemainingDays}</div>
           </div>
         </div>
       ) : null}

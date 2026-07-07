@@ -3,7 +3,6 @@ import {
   canAccessEmployeeDocuments,
   forbiddenResponse,
 } from '@/lib/demo-route-access';
-import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
 
 function canViewMedicalDocuments(role: string, staffUserType: string) {
@@ -25,9 +24,8 @@ export async function GET(
     const { id, docId } = await params;
 
     const document = await ctx.run(async (tx) => {
-      const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId);
       const employee = await tx.employee.findFirst({
-        where: ctx.where({ id, outsourcingClientId: workspaceId }),
+        where: ctx.where({ id }),
         select: { id: true },
       });
       if (!employee) return null;

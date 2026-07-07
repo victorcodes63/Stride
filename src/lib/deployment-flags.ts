@@ -1,9 +1,13 @@
 /**
- * Client-safe deployment mode flags (no server-only imports).
+ * Client/edge-safe deployment mode flags — no server-only imports.
  */
-import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-config';
 
-export { isDemoMode, isPublicDemoMode };
+function trimEnv(key: string): string | undefined {
+  const v = process.env[key];
+  if (typeof v !== 'string') return undefined;
+  const t = v.trim();
+  return t.length > 0 ? t : undefined;
+}
 
 function parseBoolean(v: string | undefined, defaultValue: boolean): boolean {
   if (v === undefined || v === '') return defaultValue;
@@ -13,8 +17,19 @@ function parseBoolean(v: string | undefined, defaultValue: boolean): boolean {
   return defaultValue;
 }
 
+export function isDemoMode(): boolean {
+  return parseBoolean(trimEnv('DEMO_MODE'), false);
+}
+
+export function isPublicDemoMode(): boolean {
+  return parseBoolean(trimEnv('NEXT_PUBLIC_DEMO_MODE'), isDemoMode());
+}
+
 /** Local dev: license every module without control-plane entitlements (see .env.example). */
 export function isLocalDevAllModules(): boolean {
-  const raw = process.env.LOCAL_DEV_ALL_MODULES ?? process.env.NEXT_PUBLIC_LOCAL_DEV_ALL_MODULES;
-  return parseBoolean(typeof raw === 'string' ? raw : undefined, false);
+  return parseBoolean(trimEnv('LOCAL_DEV_ALL_MODULES'), false);
+}
+
+export function isPublicLocalDevAllModules(): boolean {
+  return parseBoolean(trimEnv('NEXT_PUBLIC_LOCAL_DEV_ALL_MODULES'), isLocalDevAllModules());
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense, type ComponentType } from 'react';
 import {
   AlertTriangle,
   Building2,
@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
+import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
@@ -234,8 +237,17 @@ function ObligationCard({
 }
 
 export default function PayrollStatutoryPage() {
+  return (
+    <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-neutral-100" />}>
+      <PayrollStatutoryPageInner />
+    </Suspense>
+  );
+}
+
+function PayrollStatutoryPageInner() {
   const entityConfig = useEntityConfig();
   const formatCurrency = useCurrencyFormatter();
+  const { clientId, clients, setClientId, showSwitcher, selectedClient } = useOutsourcingClient();
   const money = (amount: number) => formatCurrency(Number(amount || 0));
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -254,6 +266,7 @@ export default function PayrollStatutoryPage() {
     setError(null);
     try {
       const params = new URLSearchParams({ month: String(month), year: String(year) });
+      if (clientId) params.set('clientId', clientId);
       const res = await fetch(`/api/payroll/statutory?${params.toString()}`);
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(payload.error || 'Failed to load statutory page');
@@ -266,11 +279,12 @@ export default function PayrollStatutoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [month, year]);
+  }, [month, year, clientId]);
 
   useEffect(() => {
+    if (!clientId) return;
     void fetchData();
-  }, [fetchData]);
+  }, [fetchData, clientId]);
 
   const totals = data?.totals;
   const totalLiability = useMemo(() => {
@@ -297,7 +311,7 @@ export default function PayrollStatutoryPage() {
       const res = await fetch('/api/payroll/statutory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month, year, notes }),
+        body: JSON.stringify({ month, year, notes, ...(clientId ? { clientId } : {}) }),
       });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(payload.error || 'Failed to save snapshot');
@@ -355,7 +369,19 @@ export default function PayrollStatutoryPage() {
           ) : undefined
         }
         actions={
-          <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+          <div className="flex flex-shrink-0 flex-wrap items-end gap-3">
+            {showSwitcher ? (
+              <OutsourcingClientSwitcher
+                clients={clients}
+                value={clientId}
+                onChange={setClientId}
+                className="min-w-[12rem]"
+              />
+            ) : selectedClient ? (
+              <p className="text-sm text-[var(--dash-text-muted)]">
+                End-client: <span className="font-medium text-[var(--dash-text-strong)]">{selectedClient.name}</span>
+              </p>
+            ) : null}
             <select
               value={month}
               onChange={(e) => setMonth(parseInt(e.target.value, 10))}

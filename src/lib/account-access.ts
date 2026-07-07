@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 
-import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-config';
+import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-flags';
 import { parseEntitlementsCookie } from '@/lib/entitlements-cookie';
 
 export type AccountStatus =

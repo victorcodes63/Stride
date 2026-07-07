@@ -1,25 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
-import {
-  BarChart3,
-  Bell,
-  Briefcase,
-  Building2,
-  CalendarDays,
-  ClipboardList,
-  FileSignature,
-  FileText,
-  Gavel,
-  Landmark,
-  Megaphone,
-  Route,
-  Scale,
-  Shield,
-  ShoppingCart,
-  Truck,
-  UserPlus,
-  Users,
-  Wallet,
-} from 'lucide-react';
 import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
 import { getDashboardModuleDomain } from '@/lib/dashboard-module-domains';
 import { getDomainQuickActions } from '@/lib/dashboard-domain-quick-actions';
@@ -30,7 +8,7 @@ export type ModuleHomeLink = {
   href: string;
   label: string;
   note?: string;
-  icon: LucideIcon;
+  icon: import('lucide-react').LucideIcon;
 };
 
 export type ModuleHomeWorkspace = {
@@ -38,13 +16,13 @@ export type ModuleHomeWorkspace = {
   links: ModuleHomeLink[];
 };
 
+/** Copy-only metadata for module hub pages — workspace links come from sidebar nav. */
 export type ModuleHomeMeta = {
   domainId: DashboardModuleDomainId;
   eyebrow: string;
   title: string;
   description: string;
   phase?: string;
-  workspaces: ModuleHomeWorkspace[];
   plannedBullets?: string[];
 };
 
@@ -59,34 +37,6 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         title: 'People & workforce',
         description:
           'Headcount, leave, time, payroll, recruitment, and employee lifecycle — your HR command post.',
-        workspaces: [
-          {
-            title: 'People',
-            links: [
-              { href: '/dashboard/employees', label: 'Employees', note: 'Directory & profiles', icon: Users },
-              { href: '/dashboard/onboarding', label: 'Onboarding', note: 'Workflows & tasks', icon: UserPlus },
-              { href: '/dashboard/departments', label: 'Departments', note: 'Org structure', icon: Building2 },
-            ],
-          },
-          {
-            title: 'Time & leave',
-            links: [
-              { href: '/dashboard/attendance', label: 'Attendance', note: 'Clock data & exceptions', icon: ClipboardList },
-              { href: '/dashboard/staff-leave', label: 'Leave', note: 'Applications & approvals', icon: CalendarDays },
-              { href: '/dashboard/rota', label: 'Rota', note: 'Shifts & schedules', icon: CalendarDays },
-            ],
-          },
-          {
-            title: 'Payroll & recruitment',
-            links: [
-              { href: '/dashboard/payroll', label: 'Payroll runs', note: 'Gross, net & statutory', icon: Wallet },
-              { href: '/dashboard/jobs', label: 'Jobs & ATS', note: 'Open roles & applicants', icon: Briefcase },
-              { href: '/dashboard/performance', label: 'Performance', note: 'Reviews & goals', icon: BarChart3 },
-              { href: '/dashboard/performance/jds', label: 'Job descriptions', note: 'JD library', icon: BarChart3 },
-              { href: '/dashboard/performance/scorecards', label: 'BSC scorecards', note: 'From JDs', icon: BarChart3 },
-            ],
-          },
-        ],
       };
 
     case 'finance':
@@ -95,32 +45,6 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         eyebrow: domain.marketingLabel,
         title: 'Finance overview',
         description: 'Invoicing, accounts payable, expenses, budgets, and financial reporting.',
-        workspaces: [
-          {
-            title: 'Receivables',
-            links: [
-              { href: '/dashboard/accounts/invoices', label: 'Invoices', note: 'Bill clients', icon: FileText },
-              { href: '/dashboard/accounts/receipts', label: 'Receipts', note: 'Allocate payments', icon: Landmark },
-              { href: '/dashboard/accounts/clients', label: 'Billing clients', note: 'Debtor master', icon: Building2 },
-            ],
-          },
-          {
-            title: 'Payables',
-            links: [
-              { href: '/dashboard/accounts/vendor-bills', label: 'Vendor bills', note: 'AP & approvals', icon: Wallet },
-              { href: '/dashboard/accounts/vendors', label: 'Vendors', note: 'Creditor profiles', icon: Users },
-              { href: '/dashboard/accounts/expenses', label: 'Expense claims', note: 'Submit & approve', icon: FileText },
-            ],
-          },
-          {
-            title: 'Control & reporting',
-            links: [
-              { href: '/dashboard/accounts/budgets', label: 'Budgets', note: 'Department tracking', icon: Scale },
-              { href: '/dashboard/accounts/financial-reports', label: 'Financial reports', note: 'P&L & analysis', icon: BarChart3 },
-              { href: '/dashboard/accounts/statements', label: 'Statements', note: 'Debtors & creditors', icon: Scale },
-            ],
-          },
-        ],
       };
 
     case 'procurement':
@@ -130,19 +54,6 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         title: 'Procurement',
         description:
           'Purchase-to-pay: requests, LPOs, goods receipt, and spend visibility. Vendor master lives in Finance.',
-        workspaces: [
-          {
-            title: 'Procurement',
-            links: [
-              { href: '/dashboard/procurement/purchase-requests', label: 'Purchase requests', note: 'Approval workflow', icon: ClipboardList },
-              { href: '/dashboard/procurement/lpos', label: 'LPO register', note: 'Issue & receive', icon: FileSignature },
-              { href: '/dashboard/procurement/spend', label: 'Spend dashboard', note: 'Dept & vendor analytics', icon: ShoppingCart },
-              { href: '/dashboard/accounts/vendors', label: 'Vendors', note: 'Finance master', icon: Building2 },
-              { href: '/dashboard/accounts/vendor-bills', label: 'Vendor bills', note: 'AP queue', icon: Wallet },
-              { href: '/dashboard/accounts/budgets', label: 'Budgets', note: 'Spend control', icon: Scale },
-            ],
-          },
-        ],
       };
 
     case 'legal-documents':
@@ -154,17 +65,6 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
           'Contracts, credentials, company policies, and regulatory obligations — one place for document risk.',
         phase: 'Phase B — live',
         plannedBullets: ['Obligation register with owners and due dates', 'Board filing deadlines', 'Evidence document vault'],
-        workspaces: [
-          {
-            title: 'Live today',
-            links: [
-              { href: '/dashboard/people/contracts', label: 'Contracts', note: 'Renewals & reminders', icon: FileSignature },
-              { href: '/dashboard/credentials', label: 'Credentials', note: 'Licences & certifications', icon: Gavel },
-              { href: '/dashboard/company-documents', label: 'Company policies', note: 'Policy library', icon: FileText },
-              { href: '/dashboard/legal/obligations', label: 'Obligations register', note: 'Renewals & expiries', icon: Scale },
-            ],
-          },
-        ],
       };
 
     case 'projects':
@@ -174,17 +74,6 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         title: 'Projects',
         description: 'Deliverables, milestones, and tasks across client and internal work.',
         phase: 'Phase D — live',
-        workspaces: [
-          {
-            title: 'Projects',
-            links: [
-              { href: '/dashboard/projects/all', label: 'All projects', note: 'Register & create', icon: Briefcase },
-              { href: '/dashboard/projects/board', label: 'Project board', note: 'Kanban by status', icon: Briefcase },
-              { href: '/dashboard/projects/tasks', label: 'Tasks & deliverables', note: 'List & assign', icon: ClipboardList },
-              { href: '/dashboard/projects/budget', label: 'Budget vs actual', note: 'Burn from payroll, AP & expenses', icon: Scale },
-            ],
-          },
-        ],
       };
 
     case 'fleet-logistics':
@@ -194,35 +83,6 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         title: 'Fleet & logistics',
         description:
           'End-to-end transport operations — order intake, dispatch, live tracking, compliance, settlements, and client billing. Built for Kenya road freight and cross-border corridors.',
-        workspaces: [
-          {
-            title: 'Orders & dispatch',
-            links: [
-              { href: '/dashboard/fleet/orders', label: 'Transport orders', note: 'Intake & validation', icon: ClipboardList },
-              { href: '/dashboard/fleet/planning', label: 'Route planning', note: 'Distance & fuel estimates', icon: Route },
-              { href: '/dashboard/fleet/trips', label: 'Trip board', note: 'Workflow kanban', icon: Route },
-              { href: '/dashboard/fleet/compliance', label: 'Pre-trip compliance', note: 'Licences & permits', icon: Shield },
-            ],
-          },
-          {
-            title: 'Monitoring',
-            links: [
-              { href: '/dashboard/fleet/tracking', label: 'Live tracking', note: 'Realtime positioning', icon: Truck },
-              { href: '/dashboard/fleet/geofences', label: 'Geofences', note: 'Depot & corridor zones', icon: Route },
-              { href: '/dashboard/fleet/driving-time', label: 'Driving time', note: 'Hours & rest compliance', icon: CalendarDays },
-              { href: '/dashboard/fleet/alarms', label: 'Events & alarms', note: 'Customisable alerts', icon: Bell },
-            ],
-          },
-          {
-            title: 'Commercial & assets',
-            links: [
-              { href: '/dashboard/fleet/vehicles', label: 'Vehicles', note: 'Fleet register', icon: Truck },
-              { href: '/dashboard/fleet/settlements', label: 'Settlements', note: 'Driver & partner pay', icon: Wallet },
-              { href: '/dashboard/fleet/billing', label: 'Client billing', note: 'Finance integration', icon: FileText },
-              { href: '/dashboard/fleet/reports', label: 'Performance reports', note: 'Utilisation & KPIs', icon: BarChart3 },
-            ],
-          },
-        ],
       };
 
     case 'admin-operations':
@@ -231,23 +91,6 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         eyebrow: domain.marketingLabel,
         title: 'Operations',
         description: 'Assets, HSE, company communications, and operational reporting.',
-        workspaces: [
-          {
-            title: 'Operations',
-            links: [
-              { href: '/dashboard/assets', label: 'Assets', note: 'Equipment register', icon: Building2 },
-              { href: '/dashboard/hse', label: 'HSE', note: 'Incidents & safety', icon: Shield },
-            ],
-          },
-          {
-            title: 'Communications & insight',
-            links: [
-              { href: '/dashboard/announcements', label: 'Announcements', note: 'Company comms', icon: Megaphone },
-              { href: '/dashboard/reports', label: 'Reports', note: 'Exports & summaries', icon: BarChart3 },
-              { href: '/dashboard/analytics', label: 'Analytics', note: 'Executive dashboards', icon: BarChart3 },
-            ],
-          },
-        ],
       };
 
     case 'platform-admin':
@@ -257,36 +100,15 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         title: 'Platform admin',
         description:
           'Company branding, system users, roles, holidays, facilities, and workspace settings.',
-        workspaces: [
-          {
-            title: 'Company',
-            links: [
-              {
-                href: '/dashboard/admin/company-setup',
-                label: 'Company setup',
-                note: 'Brand, org name & colours',
-                icon: Building2,
-              },
-              { href: '/dashboard/admin/holidays', label: 'Public holidays', note: 'Leave calendar', icon: CalendarDays },
-              { href: '/dashboard/admin/facilities', label: 'Facilities', note: 'Sites & locations', icon: Building2 },
-              { href: '/dashboard/admin/governance', label: 'Board & governance', note: 'Directors & filings', icon: Landmark },
-            ],
-          },
-          {
-            title: 'Access & governance',
-            links: [
-              { href: '/dashboard/users/staff', label: 'System users', note: 'Staff accounts', icon: Users },
-              {
-                href: '/dashboard/admin/roles-permissions',
-                label: 'Roles & permissions',
-                note: 'Access control',
-                icon: Shield,
-              },
-              { href: '/dashboard/admin/audit-log', label: 'Audit log', note: 'Governance trail', icon: Shield },
-              { href: '/dashboard/settings', label: 'Settings', note: 'Workspace defaults', icon: Landmark },
-            ],
-          },
-        ],
+      };
+
+    case 'hr-outsourcing':
+      return {
+        domainId,
+        eyebrow: domain.marketingLabel,
+        title: 'HR Outsourcing',
+        description:
+          'End clients, outsourced workforce, and per-client payroll, attendance, leave, and disciplinary.',
       };
   }
 }

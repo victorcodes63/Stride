@@ -18,6 +18,7 @@ import {
   Plus,
   Receipt,
   Route,
+  Handshake,
   Shield,
   ShoppingCart,
   UserCog,
@@ -38,6 +39,16 @@ export type DomainQuickAction = {
 export type DomainQuickActions = {
   primary: DomainQuickAction;
   more: DomainQuickAction[];
+};
+
+const DEFAULT_QUICK_ACTIONS: DomainQuickActions = {
+  primary: {
+    label: 'Open overview',
+    href: '/dashboard',
+    icon: Plus,
+    description: 'Return to the command center',
+  },
+  more: [],
 };
 
 function on(modules: Partial<Record<ModuleKey, boolean>>, key: ModuleKey): boolean {
@@ -155,6 +166,21 @@ export function getDomainQuickActions(
         ],
       };
 
+    case 'hr-outsourcing':
+      return {
+        primary: {
+          label: 'Add client',
+          href: '/dashboard/outsourcing/clients',
+          icon: Handshake,
+          description: 'Register an outsourcing client',
+        },
+        more: [
+          { label: 'Outsourcing overview', href: '/dashboard/outsourcing', icon: Handshake },
+          { label: 'Workforce', href: '/dashboard/outsourcing/employees', icon: UserPlus },
+          { label: 'Payroll runs', href: '/dashboard/outsourcing/payroll', icon: Banknote },
+        ],
+      };
+
     case 'admin-operations':
       return {
         primary: {
@@ -191,5 +217,8 @@ export function getDomainQuickActions(
           { label: 'Audit log', href: '/dashboard/admin/audit-log', icon: Shield },
         ],
       };
+
+    default:
+      return DEFAULT_QUICK_ACTIONS;
   }
 }

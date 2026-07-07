@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { Banknote, FileText, Mail, Loader2, Pencil, Calculator, Upload, Download, AlertTriangle, Eye } from 'lucide-react';
 import PayrollEditModal from '@/components/payroll/PayrollEditModal';
@@ -8,6 +8,9 @@ import { PayrollRunWizard } from '@/components/payroll/PayrollRunWizard';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { useEntity } from '@/components/EntitySwitcher';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
+import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import {
@@ -81,14 +84,22 @@ const MONTHS = [
 ];
 
 export default function OutsourcingPayrollPage() {
+ return (
+  <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-neutral-100" />}>
+   <OutsourcingPayrollPageInner />
+  </Suspense>
+ );
+}
+
+function OutsourcingPayrollPageInner() {
  const { activeEntity } = useEntity();
+ const { clientId, clients, setClientId, showSwitcher } = useOutsourcingClient();
  const entityConfig = useEntityConfig();
  const formatCurrency = useCurrencyFormatter();
  const now = new Date();
  const [month, setMonth] = useState(now.getMonth() + 1);
  const [year, setYear] = useState(now.getFullYear());
  const [scope, setScope] = useState<'all' | 'department'>('all');
- const [clientId, setClientId] = useState('');
  const [departmentId, setDepartmentId] = useState('');
  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
  const [payrolls, setPayrolls] = useState<PayrollRecord[]>([]);
@@ -161,17 +172,9 @@ export default function OutsourcingPayrollPage() {
  };
 
  useEffect(() => {
- fetch('/api/outsourcing/clients')
- .then((r) => r.json())
- .then((data) => {
- if (Array.isArray(data) && data[0]?.id) {
- const id = String(data[0].id);
- setClientId(id);
- void fetchDepartments(id);
- }
- })
- .catch(() => {});
- }, [activeEntity.id]);
+  if (clientId.trim()) void fetchDepartments(clientId.trim());
+  else setDepartments([]);
+ }, [clientId, activeEntity.id]);
 
  useEffect(() => {
  fetchPayrolls();
@@ -223,7 +226,7 @@ export default function OutsourcingPayrollPage() {
  params.set('year', String(year));
  if (clientId.trim()) params.set('clientId', clientId.trim());
  if (scope === 'department' && departmentId.trim()) params.set('departmentId', departmentId.trim());
- return `/dashboard/payroll/payslips?${params}`;
+ return `/dashboard/outsourcing/payroll/payslips?${params}`;
  };
 
  const canGenerate = scope === 'all' || (scope === 'department' && departmentId.trim());
@@ -326,7 +329,7 @@ export default function OutsourcingPayrollPage() {
  const res = await fetch('/api/outsourcing/payroll/send-payslips', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ month, year, employeeIds: [employeeId] }),
+ body: JSON.stringify({ month, year, employeeIds: [employeeId], ...(clientId.trim() ? { clientId: clientId.trim() } : {}) }),
  });
  const data = await res.json();
  if (!res.ok) throw new Error(data.error || 'Failed to send');
@@ -435,6 +438,29 @@ export default function OutsourcingPayrollPage() {
  }
  />
  <EntityContextBanner />
+ {showSwitcher ? (
+  <div className="mb-4 max-w-md">
+   <OutsourcingClientSwitcher clients={clients} value={clientId} onChange={setClientId} />
+  </div>
+ ) : null}
+
+ <div className="mb-4 flex flex-wrap gap-2 text-sm">
+  <Link
+   href={withOutsourcingClientQuery('/dashboard/outsourcing/payroll/statutory', clientId)}
+   className="font-medium text-primary-600 hover:underline"
+  >
+   Statutory returns
+  </Link>
+  <span className="text-neutral-300" aria-hidden>
+   ·
+  </span>
+  <Link
+   href={withOutsourcingClientQuery('/dashboard/outsourcing/payroll/disbursements', clientId)}
+   className="font-medium text-primary-600 hover:underline"
+  >
+   M-Pesa disbursements
+  </Link>
+ </div>
 
  {error && (
  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
@@ -567,7 +593,9 @@ export default function OutsourcingPayrollPage() {
  type="button"
  onClick={() => {
  window.open(
- `/api/outsourcing/employees/template?mode=payroll-input`,
+ clientId.trim()
+ ? `/api/outsourcing/employees/template?mode=payroll-input&clientId=${encodeURIComponent(clientId.trim())}`
+ : '/api/outsourcing/employees/template?mode=payroll-input',
  '_blank',
  );
  }}
@@ -713,7 +741,7 @@ export default function OutsourcingPayrollPage() {
  </td>
  <td className="px-4 py-3 text-right">
  <Link
- href={`/dashboard/payroll/payslips?month=${month}&year=${year}&employeeIds=${encodeURIComponent(p.employeeId)}`}
+ href={`/dashboard/outsourcing/payroll/payslips?month=${month}&year=${year}${clientId.trim() ? `&clientId=${encodeURIComponent(clientId.trim())}` : ''}&employeeIds=${encodeURIComponent(p.employeeId)}`}
  title={`View payslip for ${p.employeeName}`}
  className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-neutral-600 hover:bg-primary-50 hover:text-primary-700 transition-colors mr-1"
  >

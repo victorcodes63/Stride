@@ -49,7 +49,27 @@ describe('module-access', () => {
     delete process.env.DEMO_MODE;
     delete process.env.NEXT_PUBLIC_DEMO_MODE;
     try {
-      expect(getBlockedModuleForPath('/api/outsourcing/payroll')).toBe('payroll');
+      expect(getBlockedModuleForPath('/api/payroll')).toBe('payroll');
+    } finally {
+      for (const [k, v] of Object.entries(prev)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
+  });
+
+  it('blocks outsourcing when MODULE_OUTSOURCING=false', () => {
+    const prev = {
+      MODULE_OUTSOURCING: process.env.MODULE_OUTSOURCING,
+      DEMO_MODE: process.env.DEMO_MODE,
+      NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE,
+    };
+    process.env.MODULE_OUTSOURCING = 'false';
+    delete process.env.DEMO_MODE;
+    delete process.env.NEXT_PUBLIC_DEMO_MODE;
+    try {
+      expect(isPathAllowedByModuleLicense('/dashboard/outsourcing')).toBe(false);
+      expect(getBlockedModuleForPath('/api/outsourcing/clients')).toBe('outsourcing');
     } finally {
       for (const [k, v] of Object.entries(prev)) {
         if (v === undefined) delete process.env[k];

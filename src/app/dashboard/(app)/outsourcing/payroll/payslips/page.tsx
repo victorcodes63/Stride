@@ -8,6 +8,8 @@ import { ChevronLeft, Mail, Loader2, Printer, AlertTriangle } from 'lucide-react
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { useEntity } from '@/components/EntitySwitcher';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
 
 interface PayrollRecord {
  id: string;
@@ -42,12 +44,12 @@ const MONTHS = [
 
 function PayslipsContent() {
  const { activeEntity } = useEntity();
+ const { clientId, clients, setClientId, showSwitcher } = useOutsourcingClient();
  const entityConfig = useEntityConfig();
  const formatCurrency = useCurrencyFormatter();
  const searchParams = useSearchParams();
  const month = parseInt(searchParams.get('month') || String(new Date().getMonth() + 1), 10);
  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10);
- const clientId = searchParams.get('clientId') || '';
  const departmentId = searchParams.get('departmentId') || '';
  const employeeIdsParam = searchParams.get('employeeIds') || '';
 
@@ -159,9 +161,12 @@ function PayslipsContent() {
  }`}
  >
  <div className="print:hidden flex flex-col gap-2 mb-6">
+ {showSwitcher ? (
+  <OutsourcingClientSwitcher clients={clients} value={clientId} onChange={setClientId} className="max-w-md" />
+ ) : null}
  <div className="flex items-center justify-between gap-4 flex-wrap">
  <Link
- href="/dashboard/outsourcing/payroll"
+ href={withOutsourcingClientQuery('/dashboard/outsourcing/payroll', clientId)}
  className="inline-flex items-center gap-2 text-neutral-600 hover:text-primary-700"
  >
  <ChevronLeft className="w-5 h-5" />

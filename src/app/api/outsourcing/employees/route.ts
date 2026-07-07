@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '@/lib/prisma';
+import { resolveEntityIdOrDefault } from '@/lib/entity-request';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import {
   allocateNextEmployeeNumber,
@@ -30,24 +31,38 @@ export async function GET(request: NextRequest) {
       }
       const { searchParams } = new URL(request.url);
       const requestedClientId = searchParams.get('clientId') || undefined;
-      const clientId = await resolvePrimaryWorkspaceClientId(
-        prisma,
-        requestedClientId,
-        request,
-        ctx.organizationId,
-      );
+      const entityId = await resolveEntityIdOrDefault(request, ctx.organizationId);
+
+      let clientWhere: { id?: string; entityCode?: string } | undefined;
+      if (requestedClientId === 'all') {
+        clientWhere = entityId ? { entityCode: entityId } : {};
+      } else {
+        const clientId = await resolvePrimaryWorkspaceClientId(
+          prisma,
+          requestedClientId,
+          request,
+          ctx.organizationId,
+        );
+        clientWhere = { id: clientId };
+      }
       const departmentId = searchParams.get('departmentId') || undefined;
       const jobTitle = searchParams.get('jobTitle') || undefined;
       const managerEmployeeId = searchParams.get('managerEmployeeId') || undefined;
       const costCenterCode = searchParams.get('costCenterCode') || undefined;
       const searchPreset = normalizeEmployeeSearchPreset(searchParams.get('preset'));
+      const limitRaw = Number.parseInt(searchParams.get('limit') ?? '200', 10);
+      const offsetRaw = Number.parseInt(searchParams.get('offset') ?? '0', 10);
+      const take = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 500) : 200;
+      const skip = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+      const includeSalary = canViewSalaryFields(ctx.staff);
 
       const employees = await ctx.run((tx) =>
         tx.employee.findMany({
           where: {
+            organizationId: ctx.organizationId,
             client: {
               organizationId: ctx.organizationId,
-              ...(clientId ? { id: clientId } : {}),
+              ...clientWhere,
             },
             ...(departmentId ? { departmentId } : {}),
             ...(jobTitle?.trim() ? { jobTitle: { equals: jobTitle.trim(), mode: 'insensitive' } } : {}),
@@ -79,6 +94,8 @@ export async function GET(request: NextRequest) {
             department: { select: { id: true, name: true } },
           },
           orderBy: [{ client: { name: 'asc' } }, { lastName: 'asc' }, { firstName: 'asc' }],
+          take,
+          skip,
         }),
       );
 
@@ -101,7 +118,7 @@ export async function GET(request: NextRequest) {
         costCenterCode: e.costCenterCode ?? null,
         costCenterName: e.costCenterName ?? null,
         baseSalary:
-          canViewSalaryFields(ctx.staff) && e.baseSalary != null ? Number(e.baseSalary) : null,
+          includeSalary && e.baseSalary != null ? Number(e.baseSalary) : null,
         employmentStatus: e.employmentStatus,
         employmentStatusEffectiveFrom:
           e.employmentStatusEffectiveFrom?.toISOString().slice(0, 10) ?? null,

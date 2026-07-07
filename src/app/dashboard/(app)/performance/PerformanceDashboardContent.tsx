@@ -16,7 +16,15 @@ import {
   DashboardTableToolbar,
   DashboardTableViewport,
 } from '@/components/dashboard/DashboardDataTable';
-import { ratingLabel } from '@/lib/performance/service';
+import { ratingLabel } from '@/lib/performance/rating-label';
+import {
+  DASHBOARD_FORM_FIELD_CLASS,
+  DASHBOARD_FORM_INPUT_CLASS,
+  DASHBOARD_FORM_LABEL_CLASS,
+  DASHBOARD_GRID_CELL_CLASS,
+  DASHBOARD_INLINE_FORM_CLASS,
+  DASHBOARD_STAT_CARD_CLASS,
+} from '@/lib/dashboard-layout';
 
 type Cycle = {
   id: string;
@@ -49,6 +57,10 @@ export function PerformanceDashboardContent() {
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [analytics, setAnalytics] = useState<{
+    distribution: Array<{ label: string; count: number }>;
+    nineBox: Array<{ resultsBand: string; competencyBand: string; count: number }>;
+  } | null>(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -97,6 +109,7 @@ export function PerformanceDashboardContent() {
     if (!res.ok) throw new Error(data.error ?? 'Failed to load reviews');
     setReviews(data.reviews ?? []);
     setStatusCounts(data.statusCounts ?? {});
+    setAnalytics(data.analytics ?? null);
   }, []);
 
   useEffect(() => {
@@ -286,29 +299,29 @@ export function PerformanceDashboardContent() {
       ) : null}
 
       {createOpen ? (
-        <div className="mb-6 grid gap-3 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 md:grid-cols-2">
-          <label className="text-sm md:col-span-2">
-            <span className="text-zinc-500">Name</span>
+        <div className={`mb-6 grid gap-4 md:grid-cols-2 ${DASHBOARD_INLINE_FORM_CLASS}`}>
+          <label className={`md:col-span-2 ${DASHBOARD_FORM_FIELD_CLASS}`}>
+            <span className={DASHBOARD_FORM_LABEL_CLASS}>Name</span>
             <input
-              className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2"
+              className={DASHBOARD_FORM_INPUT_CLASS}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
           </label>
-          <label className="text-sm">
-            <span className="text-zinc-500">Period start</span>
+          <label className={DASHBOARD_FORM_FIELD_CLASS}>
+            <span className={DASHBOARD_FORM_LABEL_CLASS}>Period start</span>
             <input
               type="date"
-              className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2"
+              className={DASHBOARD_FORM_INPUT_CLASS}
               value={form.periodStart}
               onChange={(e) => setForm((f) => ({ ...f, periodStart: e.target.value }))}
             />
           </label>
-          <label className="text-sm">
-            <span className="text-zinc-500">Period end</span>
+          <label className={DASHBOARD_FORM_FIELD_CLASS}>
+            <span className={DASHBOARD_FORM_LABEL_CLASS}>Period end</span>
             <input
               type="date"
-              className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2"
+              className={DASHBOARD_FORM_INPUT_CLASS}
               value={form.periodEnd}
               onChange={(e) => setForm((f) => ({ ...f, periodEnd: e.target.value }))}
             />
@@ -316,7 +329,7 @@ export function PerformanceDashboardContent() {
           <button
             type="button"
             disabled={busy}
-            className="md:col-span-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="btn-primary md:col-span-2 h-10 disabled:opacity-50"
             onClick={() => void createCycle()}
           >
             Create draft cycle
@@ -325,13 +338,13 @@ export function PerformanceDashboardContent() {
       ) : null}
 
       {selectedCycle?.status === 'draft' ? (
-        <div className="mb-6 dashboard-surface shadow-sm p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-neutral-900">Cycle templates (draft)</h2>
-          <p className="text-xs text-neutral-500">Goals must total 100% weight. Applied to all employees when you activate.</p>
+        <div className="mb-6 dashboard-surface shadow-sm p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-[var(--dash-text-strong)]">Cycle templates (draft)</h2>
+          <p className="text-xs text-[var(--dash-text-muted)]">Goals must total 100% weight. Applied to all employees when you activate.</p>
           {goalTemplates.map((goal, idx) => (
             <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_120px]">
               <input
-                className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                className={DASHBOARD_FORM_INPUT_CLASS}
                 value={goal.title}
                 onChange={(e) =>
                   setGoalTemplates((rows) => rows.map((r, i) => (i === idx ? { ...r, title: e.target.value } : r)))
@@ -341,7 +354,7 @@ export function PerformanceDashboardContent() {
                 type="number"
                 min={1}
                 max={100}
-                className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                className={DASHBOARD_FORM_INPUT_CLASS}
                 value={goal.weightPercent}
                 onChange={(e) =>
                   setGoalTemplates((rows) =>
@@ -355,11 +368,11 @@ export function PerformanceDashboardContent() {
             Add goal
           </button>
           <div className="space-y-2">
-            <p className="text-xs font-medium text-neutral-600">Rating dimensions</p>
+            <p className="text-xs font-medium text-[var(--dash-text-muted)]">Rating dimensions</p>
             {ratingDimensions.map((dim, idx) => (
               <input
                 key={idx}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                className={DASHBOARD_FORM_INPUT_CLASS}
                 value={dim}
                 onChange={(e) =>
                   setRatingDimensions((rows) => rows.map((r, i) => (i === idx ? e.target.value : r)))
@@ -381,12 +394,45 @@ export function PerformanceDashboardContent() {
           ['Calibration', statusCounts.calibration_pending ?? 0],
           ['Not started', statusCounts.not_started ?? 0],
         ].map(([label, value]) => (
-          <div key={String(label)} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs uppercase tracking-wide text-zinc-500">{label}</div>
-            <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
+          <div key={String(label)} className={DASHBOARD_STAT_CARD_CLASS}>
+            <div className="dash-stat-label text-xs uppercase tracking-wide text-[var(--dash-text-muted)]">{label}</div>
+            <div className="mt-1 text-2xl font-semibold tabular-nums text-[var(--dash-text-strong)]">{value}</div>
           </div>
         ))}
       </div>
+
+      {analytics ? (
+        <div className="mb-6 grid gap-4 lg:grid-cols-2">
+          <div className={DASHBOARD_STAT_CARD_CLASS}>
+            <h3 className="text-sm font-semibold text-[var(--dash-text-strong)]">Rating distribution</h3>
+            <ul className="mt-3 space-y-2 text-sm">
+              {analytics.distribution.map((row) => (
+                <li key={row.label} className="flex items-center justify-between gap-3">
+                  <span className="text-[var(--dash-text-muted)]">{row.label}</span>
+                  <span className="font-medium tabular-nums text-[var(--dash-text-strong)]">{row.count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className={DASHBOARD_STAT_CARD_CLASS}>
+            <h3 className="text-sm font-semibold text-[var(--dash-text-strong)]">9-box (results × competencies)</h3>
+            <div className="mt-3 grid grid-cols-3 gap-1 text-center text-xs">
+              {analytics.nineBox.map((cell) => (
+                <div
+                  key={`${cell.resultsBand}-${cell.competencyBand}`}
+                  className={DASHBOARD_GRID_CELL_CLASS}
+                  title={`${cell.resultsBand} results / ${cell.competencyBand} competencies`}
+                >
+                  <div className="font-semibold tabular-nums">{cell.count}</div>
+                  <div className="text-[10px] uppercase">
+                    {cell.resultsBand[0]}/{cell.competencyBand[0]}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <DashboardTableCard>
         <DashboardTableToolbar>

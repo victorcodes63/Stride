@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withFleetTenant } from '@/lib/fleet-tenant-api';
+import { generateFleetPerformancePdf } from '@/lib/fleet-report-pdf';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,66 @@ export async function GET(request: NextRequest) {
   return withFleetTenant(request, async (ctx) => {
     const periodDays = parseInt(ctx.request.nextUrl.searchParams.get('days') ?? '30', 10);
     const format = ctx.request.nextUrl.searchParams.get('format');
+    const vehicleId = ctx.request.nextUrl.searchParams.get('vehicleId')?.trim() || null;
+    const partnerId = ctx.request.nextUrl.searchParams.get('partnerId')?.trim() || null;
     const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+
+    let partnerName: string | null = null;
+    if (partnerId) {
+      const partner = await prisma.fleetTransportPartner.findFirst({
+        where: {
+          id: partnerId,
+          outsourcingClientId: ctx.workspaceClientId,
+          organizationId: ctx.organizationId,
+        },
+        select: { name: true },
+      });
+      if (!partner) {
+        return NextResponse.json({ error: 'Transport partner not found.' }, { status: 404 });
+      }
+      partnerName = partner.name;
+    }
+
+    if (vehicleId) {
+      const vehicle = await prisma.fleetVehicle.findFirst({
+        where: {
+          id: vehicleId,
+          outsourcingClientId: ctx.workspaceClientId,
+          organizationId: ctx.organizationId,
+        },
+        select: { id: true },
+      });
+      if (!vehicle) {
+        return NextResponse.json({ error: 'Vehicle not found.' }, { status: 404 });
+      }
+    }
+
+    const tripWhere = {
+      outsourcingClientId: ctx.workspaceClientId,
+      organizationId: ctx.organizationId,
+      createdAt: { gte: since },
+      ...(vehicleId ? { vehicleId } : {}),
+      ...(partnerId ? { partnerId } : {}),
+    };
+
+    const fuelWhere = {
+      outsourcingClientId: ctx.workspaceClientId,
+      organizationId: ctx.organizationId,
+      fueledAt: { gte: since },
+      ...(vehicleId ? { vehicleId } : {}),
+    };
+
+    const settlementWhere = {
+      outsourcingClientId: ctx.workspaceClientId,
+      organizationId: ctx.organizationId,
+      createdAt: { gte: since },
+    };
+
+    const partnerSettlementWhere = {
+      ...settlementWhere,
+      settlementType: 'partner' as const,
+      ...(partnerName ? { payeeName: partnerName } : {}),
+    };
 
     const [
       tripStats,
@@ -24,11 +84,7 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       prisma.fleetTrip.groupBy({
         by: ['status'],
-        where: {
-          outsourcingClientId: ctx.workspaceClientId,
-          organizationId: ctx.organizationId,
-          createdAt: { gte: since },
-        },
+        where: tripWhere,
         _count: { _all: true },
       }),
       prisma.fleetVehicle.groupBy({
@@ -36,25 +92,18 @@ export async function GET(request: NextRequest) {
         where: {
           outsourcingClientId: ctx.workspaceClientId,
           organizationId: ctx.organizationId,
+          ...(vehicleId ? { id: vehicleId } : {}),
         },
         _count: { _all: true },
       }),
       prisma.fleetSettlement.groupBy({
         by: ['status'],
-        where: {
-          outsourcingClientId: ctx.workspaceClientId,
-          organizationId: ctx.organizationId,
-          createdAt: { gte: since },
-        },
+        where: settlementWhere,
         _count: { _all: true },
         _sum: { amountKes: true },
       }),
       prisma.fleetFuelLog.aggregate({
-        where: {
-          outsourcingClientId: ctx.workspaceClientId,
-          organizationId: ctx.organizationId,
-          fueledAt: { gte: since },
-        },
+        where: fuelWhere,
         _sum: { liters: true, amountKes: true },
       }),
       prisma.fleetOrder.groupBy({
@@ -68,12 +117,10 @@ export async function GET(request: NextRequest) {
       }),
       prisma.fleetTrip.findMany({
         where: {
-          outsourcingClientId: ctx.workspaceClientId,
-          organizationId: ctx.organizationId,
+          ...tripWhere,
           status: { in: ['delivered', 'settled', 'invoiced', 'closed'] },
           actualDeliveryAt: { not: null },
           plannedDeliveryAt: { not: null },
-          createdAt: { gte: since },
         },
         select: {
           actualDeliveryAt: true,
@@ -82,12 +129,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.fleetSettlement.groupBy({
         by: ['payeeName', 'settlementType'],
-        where: {
-          outsourcingClientId: ctx.workspaceClientId,
-          organizationId: ctx.organizationId,
-          settlementType: 'partner',
-          createdAt: { gte: since },
-        },
+        where: partnerSettlementWhere,
         _count: { _all: true },
         _sum: { amountKes: true },
       }),
@@ -98,6 +140,7 @@ export async function GET(request: NextRequest) {
           status: { in: ['open', 'investigating'] },
           severity: 'high',
           reportedAt: { lt: new Date(Date.now() - ESCALATION_HOURS * 60 * 60 * 1000) },
+          ...(vehicleId ? { vehicleId } : {}),
         },
       }),
     ]);
@@ -123,6 +166,7 @@ export async function GET(request: NextRequest) {
 
     const payload = {
       periodDays,
+      filters: { vehicleId, partnerId },
       trips: {
         total: totalTrips,
         delivered,
@@ -175,6 +219,30 @@ export async function GET(request: NextRequest) {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
           'Content-Disposition': `attachment; filename="fleet-performance-${periodDays}d.csv"`,
+        },
+      });
+    }
+
+    if (format === 'pdf') {
+      const pdfBytes = await generateFleetPerformancePdf(
+        {
+          periodDays: payload.periodDays,
+          trips: {
+            total: payload.trips.total,
+            delivered: payload.trips.delivered,
+            onTimePct: payload.trips.onTimePct,
+          },
+          fleet: { utilizationPct: payload.fleet.utilizationPct },
+          fuel: { spendKes: payload.fuel.spendKes },
+          settlements: { totalAmountKes: payload.settlements.totalAmountKes },
+          transporterScorecard: payload.transporterScorecard,
+        },
+        'Fleet performance report',
+      );
+      return new NextResponse(Buffer.from(pdfBytes), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `inline; filename="fleet-performance-${periodDays}d.pdf"`,
         },
       });
     }

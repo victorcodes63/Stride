@@ -5,7 +5,7 @@ mix-and-match). Pairs with `ENTITLEMENT-SYNC.md` (the technical contract). Enfor
 plane: **PlanModuleMatrix** = standard package defaults; **SubscriptionModule** = per-customer
 overrides (the negotiation layer); seat usage via **UsageSnapshot**.
 
-## 1. The 18 modules, in 3 buckets
+## 1. The 27 capabilities, in 3 buckets
 - **Foundational** (always on, every plan): `core`, `leave`, `time`, `payroll`, `accounts`, `ess`,
   `reports`, `disciplinary`, `documents`.
 - **Horizontal** (quota-limited add-ons): `ats`, `performance`, `training`, `communications`,

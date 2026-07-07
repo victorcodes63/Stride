@@ -3,6 +3,8 @@ import {
   MODULE_BUCKET,
   MODULE_KEYS,
   MODULE_REGISTRY,
+  MODULE_UI_GROUPS,
+  NAV_SECTION_MODULES,
   getModuleRegistryEntry,
 } from '@/lib/module-registry';
 import { MODULE_DEFINITIONS } from '@/lib/module-catalog';
@@ -61,5 +63,23 @@ describe('module-registry', () => {
         expect(MODULE_KEYS).toContain(parent);
       }
     }
+  });
+
+  it('groups every module under exactly one Company Setup domain', () => {
+    const grouped = MODULE_UI_GROUPS.flatMap((g) => g.keys);
+    expect(grouped.sort()).toEqual([...MODULE_KEYS].sort());
+    expect(new Set(grouped).size).toBe(MODULE_KEYS.length);
+    expect(MODULE_UI_GROUPS.find((g) => g.label.includes('Expansion'))).toBeUndefined();
+    const hrGroup = MODULE_UI_GROUPS.find((g) => g.id === 'hr-payroll');
+    expect(hrGroup?.keys).toContain('ats');
+    expect(hrGroup?.keys).toContain('performance');
+  });
+
+  it('derives nav section modules from registry navSectionId', () => {
+    expect(NAV_SECTION_MODULES['people-hr']).toContain('core');
+    expect(NAV_SECTION_MODULES['people-hr']).toContain('performance');
+    expect(NAV_SECTION_MODULES.recruitment).toContain('ats');
+    expect(NAV_SECTION_MODULES.recruitment).toContain('assessments');
+    expect(NAV_SECTION_MODULES['fleet-monitoring']).toContain('fleet');
   });
 });

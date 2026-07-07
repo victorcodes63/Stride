@@ -5,67 +5,28 @@
  *
  * Company Setup `moduleAdminFlags` can hide licensed modules without redeploying.
  * Effective visibility = licensed (env) AND enabled (admin).
+ *
+ * Module keys and catalog rows are derived from module-registry.ts (MOD-01).
  */
 
-import { isDemoMode, isLocalDevAllModules, isPublicDemoMode } from '@/lib/deployment-flags';
+import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-flags';
+import { MODULE_DEFINITIONS, type ModuleKey, type ModulePhase } from '@/lib/module-catalog';
 import {
-  allModulesAdminEnabled,
-  MODULE_ADMIN_COOKIE,
-  sanitizeModuleAdminFlags,
-} from '@/lib/module-admin-flags';
-export type { ModuleKey, ModulePhase, ModuleDefinition } from '@/lib/module-catalog';
-export { MODULE_DEFINITIONS } from '@/lib/module-catalog';
-import type { ModuleKey, ModuleDefinition } from '@/lib/module-catalog';
-import { MODULE_DEFINITIONS } from '@/lib/module-catalog';
+  buildModuleUiGroups,
+  MODULE_UI_GROUPS,
+  type ModuleUiGroup,
+} from '@/lib/module-registry';
 
-export { MODULE_ADMIN_COOKIE, sanitizeModuleAdminFlags, allModulesAdminEnabled };
+export type { ModuleKey, ModulePhase };
+export type { ModuleDefinition } from '@/lib/module-catalog';
+export { MODULE_DEFINITIONS, buildModuleUiGroups, MODULE_UI_GROUPS, type ModuleUiGroup };
 
-export type ModuleUiGroup = {
-  id: string;
-  label: string;
-  description: string;
-  keys: ModuleKey[];
-  /** Core HR — toggles disabled in UI */
-  locked?: boolean;
-};
-
-export const MODULE_UI_GROUPS: ModuleUiGroup[] = [
-  {
-    id: 'core',
-    label: 'Platform base',
-    description: 'HR people data and Finance — included on every plan.',
-    keys: ['core', 'accounts'],
-    locked: true,
-  },
-  {
-    id: 'people-ops',
-    label: 'Phase 1 — People & operations',
-    description: 'Leave, time, payroll, and day-to-day workforce workflows.',
-    keys: ['leave', 'time', 'payroll', 'performance', 'disciplinary', 'ess', 'reports'],
-  },
-  {
-    id: 'workplace',
-    label: 'Phase 2 — Workplace',
-    description: 'Communications, training, documents, procurement, and legal.',
-    keys: ['communications', 'training', 'documents', 'procurement', 'legal'],
-  },
-  {
-    id: 'projects',
-    label: 'Project management',
-    description: 'Project register, board, tasks, and budget vs actual.',
-    keys: ['projects'],
-  },
-  {
-    id: 'extended',
-    label: 'Phase 2–3 — Expansion modules',
-    description: 'Talent, safety, assets, and vertical engines.',
-    keys: ['ats', 'hse', 'assets', 'fleet', 'sacco', 'healthcare', 'energy', 'construction', 'outsourcing'],
-  },
-];
+/** Cookie synced from deployment config so middleware can enforce admin module toggles. */
+export const MODULE_ADMIN_COOKIE = 'hris_module_prefs';
 
 const MODULE_BY_KEY = Object.fromEntries(MODULE_DEFINITIONS.map((m) => [m.key, m])) as Record<
   ModuleKey,
-  ModuleDefinition
+  (typeof MODULE_DEFINITIONS)[number]
 >;
 
 function parseBoolean(v: string | undefined, defaultValue: boolean): boolean {
@@ -76,6 +37,17 @@ function parseBoolean(v: string | undefined, defaultValue: boolean): boolean {
   return defaultValue;
 }
 
+/** All admin toggles on — used when migrating saved company setup without moduleAdminFlags. */
+export function allModulesAdminEnabled(): Record<ModuleKey, boolean> {
+  return MODULE_DEFINITIONS.reduce(
+    (acc, def) => {
+      acc[def.key] = true;
+      return acc;
+    },
+    {} as Record<ModuleKey, boolean>,
+  );
+}
+
 /** Defaults for new deployments: HR + Finance on; vertical engines off. */
 export function defaultModuleAdminFlags(): Record<ModuleKey, boolean> {
   return MODULE_DEFINITIONS.reduce(
@@ -84,9 +56,6 @@ export function defaultModuleAdminFlags(): Record<ModuleKey, boolean> {
       else if (
         def.key === 'assets' ||
         def.key === 'fleet' ||
-        def.key === 'outsourcing' ||
-        def.key === 'operations' ||
-        def.key === 'sales' ||
         def.key === 'sacco' ||
         def.key === 'healthcare' ||
         def.key === 'energy' ||
@@ -109,16 +78,34 @@ export function hrEssentialsModuleAdminFlags(
     accounts: true,
     assets: false,
     ats: false,
-    assessments: false,
-    outsourcing: false,
-    operations: false,
-    sales: false,
     fleet: false,
     sacco: false,
     healthcare: false,
     energy: false,
     construction: false,
+    sales: false,
+    outsourcing: false,
+    projects: false,
+    operations: false,
+    assessments: false,
   };
+}
+
+export function sanitizeModuleAdminFlags(value: unknown): Record<ModuleKey, boolean> {
+  if (!value || typeof value !== 'object') return allModulesAdminEnabled();
+  const raw = value as Record<string, unknown>;
+  return MODULE_DEFINITIONS.reduce(
+    (acc, def) => {
+      if (!def.canDisable) {
+        acc[def.key] = true;
+        return acc;
+      }
+      const v = raw[def.key];
+      acc[def.key] = typeof v === 'boolean' ? v : true;
+      return acc;
+    },
+    {} as Record<ModuleKey, boolean>,
+  );
 }
 
 /** Env / deployment license — cannot be overridden from Company Setup. */
@@ -187,11 +174,6 @@ export function resolveEffectiveModules(
 ): Record<ModuleKey, boolean> {
   const licensed = listLicensedModules();
   const blocked = isAccountBlocked(subscription?.accountStatus);
-  const effectiveAdminFlags = isLocalDevAllModules() ? allModulesAdminEnabled() : adminFlags;
-  const effectiveSubscription =
-    isLocalDevAllModules() && subscription
-      ? { ...subscription, verticalEnginesAllowed: true }
-      : subscription;
 
   return MODULE_DEFINITIONS.reduce(
     (acc, def) => {
@@ -201,10 +183,7 @@ export function resolveEffectiveModules(
       }
 
       const envOk = licensed[def.key];
-      const entitled =
-        isDemoMode() || isPublicDemoMode() || isLocalDevAllModules()
-          ? true
-          : isSubscribed(def.key, effectiveSubscription?.subscribedModules);
+      const entitled = isSubscribed(def.key, subscription?.subscribedModules);
       const verticalOk =
         def.key !== 'fleet' &&
         def.key !== 'assets' &&
@@ -214,12 +193,12 @@ export function resolveEffectiveModules(
         def.key !== 'energy' &&
         def.key !== 'construction'
           ? true
-          : effectiveSubscription?.verticalEnginesAllowed !== false;
+          : subscription?.verticalEnginesAllowed !== false;
 
       const adminOk =
         !def.canDisable || def.key === 'core' || def.key === 'accounts'
           ? true
-          : effectiveAdminFlags[def.key] !== false;
+          : adminFlags[def.key] !== false;
 
       acc[def.key] = envOk && entitled && verticalOk && adminOk;
       return acc;
@@ -238,7 +217,7 @@ export function listEnabledModules(): Record<ModuleKey, boolean> {
   return listLicensedModules();
 }
 
-export function getModuleDefinition(key: ModuleKey): ModuleDefinition {
+export function getModuleDefinition(key: ModuleKey): (typeof MODULE_DEFINITIONS)[number] {
   return MODULE_BY_KEY[key];
 }
 

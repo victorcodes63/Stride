@@ -16,7 +16,7 @@ import {
   isMicrosoftOAuthConfigured,
   type OAuthProviderKey,
 } from '@/lib/auth-providers';
-import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-config';
+import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-flags';
 import { isCustomerProductionCell } from '@/lib/deployment-cell';
 import { getPublicBrand } from '@/lib/brand';
 import type { NextRequest } from 'next/server';
@@ -102,6 +102,10 @@ export type CompanySetupSettings = {
   /** Short about blurb on public site footer (careers, marketing pages). */
   publicFooterText: string;
   hidePoweredBy: boolean;
+  /** AUTH-09 — enterprise SAML (activation via Raven ops). */
+  samlIdpMetadataUrl: string;
+  samlEnabledStaff: boolean;
+  samlEnabledEss: boolean;
 };
 
 export const DEFAULT_COMPANY_SETUP: CompanySetupSettings = {
@@ -151,6 +155,9 @@ export const DEFAULT_COMPANY_SETUP: CompanySetupSettings = {
   documentFooterText: '',
   publicFooterText: '',
   hidePoweredBy: false,
+  samlIdpMetadataUrl: '',
+  samlEnabledStaff: false,
+  samlEnabledEss: false,
 };
 
 export type PublicCompanySetup = {
@@ -263,6 +270,9 @@ export function sanitizeCompanySetup(value: unknown): CompanySetupSettings {
     documentFooterText: str(raw, 'documentFooterText'),
     publicFooterText: str(raw, 'publicFooterText'),
     hidePoweredBy: bool(raw, 'hidePoweredBy', d.hidePoweredBy),
+    samlIdpMetadataUrl: str(raw, 'samlIdpMetadataUrl'),
+    samlEnabledStaff: bool(raw, 'samlEnabledStaff', d.samlEnabledStaff),
+    samlEnabledEss: bool(raw, 'samlEnabledEss', d.samlEnabledEss),
   };
 
   return syncAuthMethodFields(partial, oauthConfigured);

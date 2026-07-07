@@ -207,6 +207,7 @@ export interface CreateJobInput {
   requiredCertifications?: string | null;
   skills?: string[];
   clientId?: string;
+  outsourcingClientId?: string;
   concealCompany?: boolean;
   salaryPublic?: boolean;
   applicationStartAt?: string | null;

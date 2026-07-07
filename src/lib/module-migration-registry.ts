@@ -126,6 +126,11 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'ScorecardPerspective',
     'ScorecardMeasure',
     'CompetencyRequirement',
+    'CompetencyFramework',
+    'CompetencyFrameworkEntry',
+    'PerformanceObjective',
+    'PerformancePip',
+    'PerformanceRater',
     'PerformanceCycle',
     'PerformanceGoal',
     'PerformanceReview',
@@ -177,7 +182,22 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
   documents: ['CompanyDocument'],
   procurement: ['PurchaseRequest', 'PurchaseRequestLine'],
   legal: ['EmployeeCredential', 'CompanyDocument', 'AccountsContract'],
+  sales: [
+    'SalesTarget',
+    'SalesDeal',
+    'SalesActual',
+    'SalesRepPeriodMetric',
+    'SalesCommissionRule',
+  ],
+  assessments: [
+    'AssessmentTemplate',
+    'AssessmentQuestion',
+    'JobAssessmentAssignment',
+    'ApplicationAssessmentAttempt',
+    'ApplicationAssessmentAnswer',
+  ],
   projects: ['Project', 'ProjectMilestone', 'ProjectTask'],
+  operations: ['CompanyAsset', 'HseIncident', 'Announcement'],
   outsourcing: ['OutsourcingClient', 'OutsourcingRateCard', 'OutsourcingRateCardLine', 'Employee', 'Department'],
 };
 
@@ -240,7 +260,7 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
         ...base,
         phase: 'tenant-safe',
         notes:
-          'PERF-01: JD library (manual entry + Stabex reference pack), parser config, cycles/reviews APIs use withTenant() + RLS.',
+          'PERF-01→08: BSC JD/scorecard/cycles, builtin+registered KPI providers, AI eval assist (consent-gated), competency framework, objective cascade, PIP/360; all APIs use withTenant() + RLS.',
       };
     }
 
@@ -321,6 +341,14 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
         ...base,
         phase: 'tenant-safe',
         notes: 'Training programs API uses withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'sales') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'All /api/sales/* routes use withTenant(); won revenue sources Finance invoices when linked (SALES-02).',
       };
     }
 

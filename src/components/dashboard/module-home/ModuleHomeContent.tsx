@@ -5,7 +5,14 @@ import { ModuleHomePage, type ModuleHomeStat } from '@/components/dashboard/modu
 import { useDashboardSession } from '@/contexts/dashboard-session';
 import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
 import { getModuleHomeHeaderActions, getModuleHomeMeta } from '@/lib/dashboard-module-homes';
-import { ALL_MODULES_ENABLED } from '@/lib/dashboard-nav-catalog';
+import { BOOTSTRAP_PENDING_MODULES } from '@/lib/bootstrap-pending-modules';
+import { buildDomainWorkspacesFromNav } from '@/lib/dashboard-domain-nav';
+import { useDashboardNavBuildOptions } from '@/hooks/use-dashboard-nav-build-options';
+import {
+  buildModuleDomainKpi,
+  resolveOverviewPersona,
+  type CrossModuleKpi,
+} from '@/lib/dashboard-overview-personalization';
 
 type OverviewMetrics = {
   totalStaff?: number;
@@ -264,8 +271,13 @@ function buildStats(
 
 export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomainId }) {
   const { user, modules: sessionModules } = useDashboardSession();
-  const modules = sessionModules ?? ALL_MODULES_ENABLED;
+  const navOptions = useDashboardNavBuildOptions();
+  const modules = sessionModules ?? BOOTSTRAP_PENDING_MODULES;
   const meta = useMemo(() => getModuleHomeMeta(domainId), [domainId]);
+  const workspaces = useMemo(
+    () => buildDomainWorkspacesFromNav(navOptions, domainId),
+    [navOptions, domainId],
+  );
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<OverviewMetrics | null>(null);
   const [fleet, setFleet] = useState<FleetOverview | null>(null);
@@ -312,10 +324,76 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
     () => buildStats(domainId, overview, fleet, projectsSummary),
     [domainId, overview, fleet, projectsSummary],
   );
+
+  const snapshotKpi = useMemo((): CrossModuleKpi | null => {
+    if (!overview) return null;
+    const persona = resolveOverviewPersona(user);
+    const base = buildModuleDomainKpi(domainId, {
+      totalStaff: overview.totalStaff ?? 0,
+      onDuty: overview.onDuty ?? 0,
+      pendingLeave: overview.pendingApprovals ?? 0,
+      credentialsExpiring: overview.credentialsExpiring ?? 0,
+      credentialsExpired: overview.credentialsExpired ?? 0,
+      crossModule: {
+        invoicesOutstanding: overview.crossModule?.invoicesOutstanding ?? 0,
+        vendorBillsOutstanding: overview.crossModule?.vendorBillsOutstanding ?? 0,
+        activeFleetTrips: overview.crossModule?.activeFleetTrips ?? 0,
+        openFleetIncidents: overview.crossModule?.openFleetIncidents ?? 0,
+        pendingPurchaseRequests: overview.crossModule?.pendingPurchaseRequests ?? 0,
+      },
+      persona,
+      modules,
+    });
+    if (!base) return null;
+
+    if (domainId === 'projects' && projectsSummary) {
+      const active = projectsSummary.active ?? 0;
+      const tasks = projectsSummary.openTasks ?? 0;
+      return {
+        ...base,
+        value: active,
+        note: tasks > 0 ? `${tasks} open tasks` : 'Active projects',
+        chartPlaceholder: false,
+        chartSegments: [
+          { label: 'Active', value: active, tone: active > 0 ? 'primary' : 'muted' },
+          { label: 'Tasks', value: tasks, tone: tasks > 0 ? 'violet' : 'muted' },
+          { label: 'Total', value: projectsSummary.total ?? 0, tone: 'muted' },
+        ],
+      };
+    }
+
+    if (domainId === 'fleet-logistics' && fleet) {
+      const trips = fleet.trips?.active ?? overview.crossModule?.activeFleetTrips ?? 0;
+      const incidents = fleet.incidents?.open ?? overview.crossModule?.openFleetIncidents ?? 0;
+      const vehicles = fleet.vehicles?.available ?? 0;
+      return {
+        ...base,
+        value: trips,
+        note: incidents > 0 ? `${incidents} incidents open` : `${vehicles} vehicles available`,
+        chartSegments: [
+          { label: 'Trips', value: trips, tone: trips > 0 ? 'violet' : 'muted' },
+          { label: 'Incidents', value: incidents, tone: incidents > 0 ? 'amber' : 'muted' },
+          { label: 'Available', value: vehicles, tone: vehicles > 0 ? 'emerald' : 'muted' },
+        ],
+      };
+    }
+
+    return base;
+  }, [domainId, overview, fleet, projectsSummary, user, modules]);
+
   const headerActions = useMemo(
     () => getModuleHomeHeaderActions(domainId, user, modules),
     [domainId, user, modules],
   );
 
-  return <ModuleHomePage meta={meta} stats={stats} loading={loading} headerActions={headerActions} />;
+  return (
+    <ModuleHomePage
+      meta={meta}
+      workspaces={workspaces}
+      stats={stats}
+      snapshotKpi={loading ? null : snapshotKpi}
+      loading={loading}
+      headerActions={headerActions}
+    />
+  );
 }

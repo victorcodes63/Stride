@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { isDemoMode } from '@/lib/deployment-flags';
 import { importStabexReferencePack } from '@/lib/performance/jd/service';
 import { withTenant } from '@/lib/tenant-api';
 
 export async function POST(request: NextRequest) {
+  if (!isDemoMode()) {
+    return NextResponse.json(
+      { error: 'Demo reference pack import is disabled on production deployments.' },
+      { status: 403 },
+    );
+  }
+
   return withTenant(
     request,
     async (ctx) => {

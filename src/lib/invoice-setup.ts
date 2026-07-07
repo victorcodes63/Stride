@@ -1,6 +1,5 @@
 import type { Prisma } from '@prisma/client';
 import { withOrgContext } from '@/lib/org-context';
-import { loadCompanySetupSettingsForOrg } from '@/lib/company-setup';
 import { resolvePublicBrand, isCustomLogo } from '@/lib/resolve-public-brand';
 import {
   systemSettingCreate,
@@ -13,7 +12,12 @@ export const INVOICE_SETUP_SETTINGS_KEY = 'accounts.invoice.setup';
 
 export type InvoiceLetterheadMode = 'preprinted' | 'embedded_logo';
 
+/** Plain = monochrome grey layout with letterhead top padding; branded = logo + optional colours. */
+export type InvoiceStyle = 'plain' | 'branded';
+
 export type InvoiceSetupSettings = {
+  /** Preferred PDF layout style (plain letterhead-friendly vs branded with logo). */
+  invoiceStyle: InvoiceStyle;
   letterheadMode: InvoiceLetterheadMode;
   vatPin: string;
   invoiceLegalName: string;
@@ -30,6 +34,7 @@ export type InvoiceSetupSettings = {
 };
 
 export const DEFAULT_INVOICE_SETUP: InvoiceSetupSettings = {
+  invoiceStyle: 'plain',
   letterheadMode: 'preprinted',
   vatPin: '',
   invoiceLegalName: '',
@@ -56,6 +61,7 @@ export type InvoicePdfBranding = {
   panelBackgroundColor: string;
   vatPin: string;
   letterheadMode: InvoiceLetterheadMode;
+  invoiceStyle: InvoiceStyle;
 };
 
 export type InvoiceSetupCheckItem = {
@@ -98,12 +104,30 @@ function parseLetterheadMode(v: unknown): InvoiceLetterheadMode {
   return v === 'embedded_logo' ? 'embedded_logo' : 'preprinted';
 }
 
+function parseInvoiceStyle(v: unknown, letterheadMode: InvoiceLetterheadMode): InvoiceStyle {
+  if (v === 'plain' || v === 'branded') return v;
+  return letterheadMode === 'embedded_logo' ? 'branded' : 'plain';
+}
+
+/** Keep letterhead mode aligned with the selected invoice style. */
+export function resolveLetterheadModeForStyle(
+  invoiceStyle: InvoiceStyle,
+  letterheadMode: InvoiceLetterheadMode,
+): InvoiceLetterheadMode {
+  if (invoiceStyle === 'plain') return 'preprinted';
+  if (invoiceStyle === 'branded') return 'embedded_logo';
+  return letterheadMode;
+}
+
 export function sanitizeInvoiceSetup(raw: unknown): InvoiceSetupSettings {
   const d = DEFAULT_INVOICE_SETUP;
   if (!raw || typeof raw !== 'object') return { ...d };
   const o = raw as Record<string, unknown>;
+  const letterheadMode = parseLetterheadMode(o.letterheadMode);
+  const invoiceStyle = parseInvoiceStyle(o.invoiceStyle, letterheadMode);
   return {
-    letterheadMode: parseLetterheadMode(o.letterheadMode),
+    invoiceStyle,
+    letterheadMode: resolveLetterheadModeForStyle(invoiceStyle, letterheadMode),
     vatPin: str(o.vatPin),
     invoiceLegalName: str(o.invoiceLegalName),
     logoSrc: str(o.logoSrc),
@@ -138,6 +162,7 @@ export async function resolveInvoiceIdentity(
   organizationId: string,
   settings: InvoiceSetupSettings,
 ): Promise<InvoiceSetupSettings> {
+  const { loadCompanySetupSettingsForOrg } = await import('@/lib/company-setup');
   const [company, org] = await Promise.all([
     loadCompanySetupSettingsForOrg(organizationId),
     withOrgContext(organizationId, (tx) =>
@@ -168,6 +193,8 @@ export async function resolveInvoiceIdentity(
 
 export function invoiceSettingsToPdfBranding(settings: InvoiceSetupSettings): InvoicePdfBranding {
   const logoUrl = settings.logoSrc.trim();
+  const invoiceStyle = settings.invoiceStyle;
+  const letterheadMode = resolveLetterheadModeForStyle(invoiceStyle, settings.letterheadMode);
   return {
     legalName: settings.invoiceLegalName.trim(),
     address: settings.contactAddress.trim(),
@@ -176,11 +203,12 @@ export function invoiceSettingsToPdfBranding(settings: InvoiceSetupSettings): In
     logoUrl,
     hasCustomLogo: isCustomLogo(logoUrl),
     documentFooter: settings.documentFooterText.trim(),
-    primaryColor: settings.primaryColor,
-    headerBackgroundColor: settings.headerBackgroundColor,
-    panelBackgroundColor: settings.panelBackgroundColor,
+    primaryColor: invoiceStyle === 'plain' ? '' : settings.primaryColor,
+    headerBackgroundColor: invoiceStyle === 'plain' ? '' : settings.headerBackgroundColor,
+    panelBackgroundColor: invoiceStyle === 'plain' ? '' : settings.panelBackgroundColor,
     vatPin: settings.vatPin.trim(),
-    letterheadMode: settings.letterheadMode,
+    letterheadMode,
+    invoiceStyle,
   };
 }
 
@@ -238,18 +266,20 @@ export function buildInvoiceSetupChecklist(input: {
   const hasLegalName = Boolean(branding.legalName.trim());
   const hasVatPin = Boolean(branding.vatPin.trim());
   const hasPaymentAccount = paymentAccountCount > 0;
-  const embeddedReady = branding.letterheadMode !== 'embedded_logo' || branding.hasCustomLogo;
+  const embeddedReady =
+    branding.invoiceStyle !== 'branded' || branding.hasCustomLogo;
 
   return [
     {
       id: 'logo',
       label: 'Company logo',
-      ok: branding.hasCustomLogo,
-      detail: branding.hasCustomLogo
-        ? 'Custom logo configured'
-        : branding.letterheadMode === 'embedded_logo'
-          ? 'Upload your logo — required for embedded logo mode'
-          : 'Optional for pre-printed letterhead',
+      ok: branding.invoiceStyle === 'plain' || branding.hasCustomLogo,
+      detail:
+        branding.invoiceStyle === 'plain'
+          ? 'Not used on plain invoices — use pre-printed letterhead instead'
+          : branding.hasCustomLogo
+            ? 'Custom logo configured for branded PDFs'
+            : 'Upload your logo for branded invoice PDFs',
       anchor: 'identity',
     },
     {
@@ -283,13 +313,15 @@ export function buildInvoiceSetupChecklist(input: {
       href: '/dashboard/accounts/payment-accounts',
     },
     {
-      id: 'letterhead-mode',
-      label: 'Letterhead mode',
+      id: 'invoice-style',
+      label: 'Invoice style',
       ok: embeddedReady,
       detail:
-        branding.letterheadMode === 'embedded_logo'
-          ? 'Embedded logo in PDF'
-          : 'Pre-printed letterhead (blank top margin)',
+        branding.invoiceStyle === 'branded'
+          ? branding.hasCustomLogo
+            ? 'Branded PDF with embedded logo'
+            : 'Branded PDF — upload a logo to complete setup'
+          : 'Plain PDF — grey lines only, space for pre-printed letterhead',
       anchor: 'pdf-options',
     },
     {

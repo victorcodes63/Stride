@@ -24,4 +24,9 @@ export const BOOTSTRAP_PENDING_MODULES: Record<ModuleKey, boolean> = {
   documents: false,
   procurement: false,
   legal: false,
+  sales: false,
+  projects: false,
+  operations: false,
+  outsourcing: false,
+  assessments: false,
 };

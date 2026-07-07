@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { Prisma as PrismaRuntime } from '@prisma/client';
 import { forbiddenResponse } from '@/lib/demo-route-access';
-import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import {
   EMPLOYEE_LIFECYCLE_EVENTS,
   type EmployeeLifecycleEventType,
@@ -68,9 +67,8 @@ export async function POST(
     const notes = asString(payload.notes);
 
     const outcome = await ctx.run(async (tx) => {
-      const workspaceId = await resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId);
       const employee = await tx.employee.findFirst({
-        where: ctx.where({ id, outsourcingClientId: workspaceId }),
+        where: ctx.where({ id }),
         select: {
           id: true,
           outsourcingClientId: true,

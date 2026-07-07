@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     const workspaceClientId = await resolvePrimaryWorkspaceClientId(
       prisma,
-      null,
+      request.nextUrl.searchParams.get('clientId'),
       request,
       ctx.organizationId,
     );

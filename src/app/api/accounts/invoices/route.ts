@@ -7,12 +7,15 @@ import { sumCreditTotalsByInvoiceIds } from '@/lib/accounts-credit-note-totals';
 import { reportApiError } from '@/lib/monitoring';
 import { getOrCreatePrimaryAccountsClient } from '@/lib/primary-accounts-client';
 import { guardSensitiveAction } from '@/lib/sensitive-reauth-policy';
+import { withOrgContext } from '@/lib/org-context';
 import {
   paymentBankForAccountId,
   resolvePaymentAccountId,
 } from '@/lib/payment-accounts';
 
 export const dynamic = 'force-dynamic';
+
+const INVOICES_READ_TX_TIMEOUT_MS = 30_000;
 
 const PAYMENT_BANK_VALUES = new Set(['payroll_only', 'consultancy_fees']);
 
@@ -36,25 +39,26 @@ function str(v: unknown): string | null {
 export async function GET(request: NextRequest) {
   return withAccountsTenant(request, async (ctx) => {
     try {
-      const list = await ctx.run(async (tx) => {
-        let clientId = request.nextUrl.searchParams.get('clientId')?.trim() || undefined;
-        if (!clientId) {
-          const ac = await getOrCreatePrimaryAccountsClient(tx, ctx.organizationId, request);
-          clientId = ac.id;
-        }
-        const openOnly = ['1', 'true', 'yes'].includes(
-          request.nextUrl.searchParams.get('openOnly')?.toLowerCase() ?? '',
-        );
-        const withBalance = ['1', 'true', 'yes'].includes(
-          request.nextUrl.searchParams.get('withBalance')?.toLowerCase() ?? '',
-        );
+      const clientIdParam = request.nextUrl.searchParams.get('clientId')?.trim() || undefined;
+      const openOnly = ['1', 'true', 'yes'].includes(
+        request.nextUrl.searchParams.get('openOnly')?.toLowerCase() ?? '',
+      );
+      const withBalance = ['1', 'true', 'yes'].includes(
+        request.nextUrl.searchParams.get('withBalance')?.toLowerCase() ?? '',
+      );
 
-        const invoices = await tx.accountsInvoice.findMany({
-          where: {
-            organizationId: ctx.organizationId,
-            ...(clientId ? { clientId } : {}),
-            ...(openOnly ? { status: { in: ['unpaid', 'partial'] } } : {}),
-          },
+      const list = await withOrgContext(
+        ctx.organizationId,
+        async (tx) => {
+          // Org-wide list when clientId is omitted — avoid provisioning a billing client on every read.
+          const clientId = clientIdParam;
+
+          const invoices = await tx.accountsInvoice.findMany({
+            where: {
+              organizationId: ctx.organizationId,
+              ...(clientId ? { clientId } : {}),
+              ...(openOnly ? { status: { in: ['unpaid', 'partial'] } } : {}),
+            },
           select: {
             id: true,
             invoiceNumber: true,
@@ -144,7 +148,9 @@ export async function GET(request: NextRequest) {
               : {}),
           };
         });
-      });
+        },
+        { timeout: INVOICES_READ_TX_TIMEOUT_MS },
+      );
 
       return NextResponse.json({ invoices: list });
     } catch (error) {

@@ -7,6 +7,13 @@ describe('module-routes', () => {
     expect(resolveModuleForPath('/api/outsourcing/payroll/generate')).toBe('payroll');
   });
 
+  it('resolves outsourcing paths to their functional modules', () => {
+    expect(resolveModuleForPath('/dashboard/outsourcing')).toBe('outsourcing');
+    expect(resolveModuleForPath('/api/outsourcing/clients')).toBe('outsourcing');
+    expect(resolveModuleForPath('/dashboard/outsourcing/leave')).toBe('leave');
+    expect(resolveModuleForPath('/dashboard/outsourcing/disciplinary')).toBe('outsourcing');
+  });
+
   it('resolves leave before generic ess', () => {
     expect(resolveModuleForPath('/ess/leave')).toBe('leave');
     expect(resolveModuleForPath('/api/ess/leave/applications')).toBe('leave');

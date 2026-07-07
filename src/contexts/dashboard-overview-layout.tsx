@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -17,7 +18,7 @@ import {
   toggleWidgetPin,
   toggleWidgetHidden,
   sanitizeDashboardOverviewLayout,
-} from '@/lib/dashboard-overview-preferences';
+} from '@/lib/dashboard-overview-layout';
 import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
 
 type DashboardOverviewLayoutContextValue = {
@@ -34,12 +35,37 @@ type DashboardOverviewLayoutContextValue = {
 
 const DashboardOverviewLayoutContext = createContext<DashboardOverviewLayoutContextValue | null>(null);
 
-export function DashboardOverviewLayoutProvider({ children }: { children: ReactNode }) {
-  const [layout, setLayout] = useState<DashboardOverviewLayout>(DEFAULT_OVERVIEW_LAYOUT);
-  const [isCustom, setIsCustom] = useState(false);
-  const [loading, setLoading] = useState(true);
+export function DashboardOverviewLayoutProvider({
+  children,
+  initialLayout = null,
+  initialIsCustom = false,
+  layoutReady = false,
+}: {
+  children: ReactNode;
+  initialLayout?: DashboardOverviewLayout | null;
+  initialIsCustom?: boolean;
+  /** When true, bootstrap finished — safe to seed from `initialLayout` or fetch preferences. */
+  layoutReady?: boolean;
+}) {
+  const [layout, setLayout] = useState<DashboardOverviewLayout>(
+    () => initialLayout ?? DEFAULT_OVERVIEW_LAYOUT,
+  );
+  const [isCustom, setIsCustom] = useState(initialIsCustom);
+  const [loading, setLoading] = useState(!layoutReady && initialLayout == null);
+  const hasSeededLayoutRef = useRef(initialLayout != null);
 
   useEffect(() => {
+    if (hasSeededLayoutRef.current) return;
+    if (!layoutReady) return;
+
+    if (initialLayout) {
+      setLayout(sanitizeDashboardOverviewLayout(initialLayout));
+      setIsCustom(initialIsCustom);
+      setLoading(false);
+      hasSeededLayoutRef.current = true;
+      return;
+    }
+
     let cancelled = false;
     fetch('/api/dashboard/overview-preferences', { credentials: 'include' })
       .then((response) => (response.ok ? response.json() : null))
@@ -49,12 +75,15 @@ export function DashboardOverviewLayoutProvider({ children }: { children: ReactN
         setIsCustom(data.isCustom === true);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          hasSeededLayoutRef.current = true;
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialLayout, initialIsCustom, layoutReady]);
 
   const persist = useCallback(async (next: DashboardOverviewLayout, reset = false) => {
     const response = await fetch('/api/dashboard/overview-preferences', {
@@ -79,47 +108,59 @@ export function DashboardOverviewLayoutProvider({ children }: { children: ReactN
 
   const handleToggleWidgetPin = useCallback(
     async (widgetId: OverviewWidgetId) => {
-      const previous = layout;
-      const next = toggleWidgetPin(layout, widgetId);
-      setLayout(next);
+      let previousLayout: DashboardOverviewLayout | null = null;
+      let nextLayout: DashboardOverviewLayout | null = null;
+      setLayout((current) => {
+        previousLayout = current;
+        nextLayout = toggleWidgetPin(current, widgetId);
+        return nextLayout;
+      });
       setIsCustom(true);
       try {
-        await persist(next);
+        await persist(nextLayout!);
       } catch {
-        setLayout(previous);
+        if (previousLayout) setLayout(previousLayout);
       }
     },
-    [layout, persist],
+    [persist],
   );
 
   const handleToggleKpiPin = useCallback(
     async (domainId: DashboardModuleDomainId) => {
-      const previous = layout;
-      const next = toggleKpiPin(layout, domainId);
-      setLayout(next);
+      let previousLayout: DashboardOverviewLayout | null = null;
+      let nextLayout: DashboardOverviewLayout | null = null;
+      setLayout((current) => {
+        previousLayout = current;
+        nextLayout = toggleKpiPin(current, domainId);
+        return nextLayout;
+      });
       setIsCustom(true);
       try {
-        await persist(next);
+        await persist(nextLayout!);
       } catch {
-        setLayout(previous);
+        if (previousLayout) setLayout(previousLayout);
       }
     },
-    [layout, persist],
+    [persist],
   );
 
   const handleToggleWidgetHidden = useCallback(
     async (widgetId: OverviewWidgetId) => {
-      const previous = layout;
-      const next = toggleWidgetHidden(layout, widgetId);
-      setLayout(next);
+      let previousLayout: DashboardOverviewLayout | null = null;
+      let nextLayout: DashboardOverviewLayout | null = null;
+      setLayout((current) => {
+        previousLayout = current;
+        nextLayout = toggleWidgetHidden(current, widgetId);
+        return nextLayout;
+      });
       setIsCustom(true);
       try {
-        await persist(next);
+        await persist(nextLayout!);
       } catch {
-        setLayout(previous);
+        if (previousLayout) setLayout(previousLayout);
       }
     },
-    [layout, persist],
+    [persist],
   );
 
   const resetLayout = useCallback(async () => {

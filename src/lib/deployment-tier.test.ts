@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('server-only', () => ({}));
+
 import {
   canAccessCompanySetup,
   getDeploymentTier,
-  resolveDeploymentTier,
 } from '@/lib/deployment-tier';
+import { resolveDeploymentTier } from '@/lib/deployment-tier-server';
 
 describe('deployment-tier', () => {
   afterEach(() => {

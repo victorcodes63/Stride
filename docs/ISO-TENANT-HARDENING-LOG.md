@@ -10,6 +10,7 @@ Branch: `iso/tenant-hardening` (app repo) — **not pushed to main**
 | RAV-248 ISO-04 | done | **277/277 routes (100%)** tenant-wrapped |
 | RAV-249 ISO-05 | done | SystemSetting composite PK + all loader/seed updates |
 | RAV-250 ISO-06 | handoff | VICTOR TODO only — no DB role flip |
+| RAV-251 ISO-07 | done | CI gates: `npm run iso:ci`, baseline in `scripts/tenant-isolation-baseline.json` |
 
 ## Verify log (deploy 2026-06-27)
 

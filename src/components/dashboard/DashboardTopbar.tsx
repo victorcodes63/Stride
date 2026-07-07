@@ -38,6 +38,7 @@ import { ALL_MODULES_ENABLED } from '@/lib/dashboard-nav-catalog';
 import { DASHBOARD_SHELL_GUTTER } from '@/lib/dashboard-layout';
 import { useDashboardDomain } from '@/contexts/dashboard-domain';
 import { getDomainQuickActions } from '@/lib/dashboard-domain-quick-actions';
+import { getDomainSearchPlaceholder } from '@/lib/dashboard-domain-nav';
 
 type NotificationItem = {
   id: string;
@@ -218,6 +219,10 @@ export default function DashboardTopbar({
     () => getDomainQuickActions(activeDomain.id, currentUser, enabledModules),
     [activeDomain.id, currentUser, enabledModules],
   );
+  const searchPlaceholder = useMemo(
+    () => getDomainSearchPlaceholder(activeDomain.id),
+    [activeDomain.id],
+  );
   const PrimaryIcon = domainActions.primary.icon;
 
   const handleLogout = useCallback(async () => {
@@ -257,11 +262,11 @@ export default function DashboardTopbar({
             strokeWidth={1.75}
           />
           <input
-            type="search"
-            placeholder={sidebarOpen ? 'Search people, payroll, departments…' : 'Search…'}
+            type="text"
+            placeholder={sidebarOpen ? searchPlaceholder : 'Search…'}
             onFocus={() => setPaletteOpen(true)}
             readOnly
-            className="h-9 w-full cursor-pointer rounded-lg border pl-9 pr-14 text-sm transition-colors dash-search-input focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            className="dash-command-palette-input h-9 w-full cursor-pointer rounded-lg border pl-9 pr-14 text-sm transition-colors dash-search-input focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             aria-label="Search"
           />
           <kbd className="dash-kbd pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 sm:inline-flex">
@@ -269,7 +274,12 @@ export default function DashboardTopbar({
           </kbd>
         </div>
 
-        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} initialQuery="" />
+        <CommandPalette
+          open={paletteOpen}
+          onClose={() => setPaletteOpen(false)}
+          initialQuery=""
+          sidebarOpen={sidebarOpen}
+        />
 
         {/* Workspace: module + entity when multi-entity; otherwise standalone module switcher */}
         {hasEntitySwitcher ? (
@@ -473,7 +483,14 @@ export default function DashboardTopbar({
               )}
             </div>
             {notifications.length > 0 ? (
-              <div className="dash-popover-header border-t px-4 py-2">
+              <div className="dash-popover-header flex items-center justify-between gap-3 border-t px-4 py-2">
+                <Link
+                  href="/dashboard/notifications"
+                  onClick={() => setNotificationsOpen(false)}
+                  className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                >
+                  View all
+                </Link>
                 <button
                   type="button"
                   onClick={async () => {
@@ -485,12 +502,22 @@ export default function DashboardTopbar({
                     setNotifications((prev) => prev.map((x) => ({ ...x, unread: false })));
                     setUnreadCount(0);
                   }}
-                  className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                  className="text-xs font-medium text-[var(--dash-text-muted)] hover:text-[var(--dash-text-strong)]"
                 >
                   Mark all read
                 </button>
               </div>
-            ) : null}
+            ) : (
+              <div className="dash-popover-header border-t px-4 py-2">
+                <Link
+                  href="/dashboard/notifications"
+                  onClick={() => setNotificationsOpen(false)}
+                  className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                >
+                  Open notifications
+                </Link>
+              </div>
+            )}
           </TopbarAnchoredPopover>
 
           <div className="sm:hidden">

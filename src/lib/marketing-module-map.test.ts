@@ -47,6 +47,6 @@ describe('marketing-module-map', () => {
     }
     expect(MARKETING_MODULE_READINESS.fleet).toBe('live');
     expect(MARKETING_MODULE_READINESS.sacco).toBe('roadmap');
-    expect(MARKETING_MODULE_READINESS.sales).toBe('roadmap');
+    expect(MARKETING_MODULE_READINESS.sales).toBe('partial');
   });
 });

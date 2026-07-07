@@ -91,3 +91,18 @@ describe('Daraja helpers', () => {
     expect(poll.lines).toHaveLength(2);
   });
 });
+
+describe('M-Pesa production readiness (RAV-177)', () => {
+  it('reports missing Daraja configuration in simulated mode', async () => {
+    const prevProvider = process.env.MPESA_PROVIDER;
+    process.env.MPESA_PROVIDER = 'simulated';
+    const { assessMpesaProductionReadiness } = await import(
+      '@/lib/payroll-disbursement/mpesa-production-readiness'
+    );
+    const status = assessMpesaProductionReadiness();
+    expect(status.ready).toBe(false);
+    expect(status.missing.some((m) => m.includes('MPESA_PROVIDER=daraja'))).toBe(true);
+    if (prevProvider === undefined) delete process.env.MPESA_PROVIDER;
+    else process.env.MPESA_PROVIDER = prevProvider;
+  });
+});

@@ -100,18 +100,53 @@ export function DashboardTableEmpty({
   icon,
   title,
   description,
+  message,
+  colSpan,
+  children,
 }: {
   icon?: ReactNode;
-  title: string;
+  title?: string;
   description?: string;
+  /** Shorthand for `title` — used by vertical module tables. */
+  message?: string;
+  /** When set, renders a valid `<tr>` for use inside `<tbody>`. */
+  colSpan?: number;
+  children?: ReactNode;
 }) {
-  return (
-    <div className="table-empty-state min-h-[240px] border-0 px-4">
+  const displayTitle = title ?? message;
+
+  const content = (
+    <div
+      className={cn(
+        'table-empty-state min-h-[240px] border-0 px-4',
+        colSpan != null && 'flex flex-col items-center justify-center py-10 text-center',
+      )}
+    >
       {icon}
-      <p className="text-sm font-medium text-neutral-700">{title}</p>
-      {description ? <p className="max-w-sm text-center text-sm text-neutral-500">{description}</p> : null}
+      {children ? (
+        <p className="text-sm text-neutral-500">{children}</p>
+      ) : (
+        <>
+          {displayTitle ? <p className="text-sm font-medium text-neutral-700">{displayTitle}</p> : null}
+          {description ? (
+            <p className="max-w-sm text-center text-sm text-neutral-500">{description}</p>
+          ) : null}
+        </>
+      )}
     </div>
   );
+
+  if (colSpan != null) {
+    return (
+      <tr>
+        <td colSpan={colSpan} className="border-0 p-0">
+          {content}
+        </td>
+      </tr>
+    );
+  }
+
+  return content;
 }
 
 export function DashboardTableFooter({ children }: { children: ReactNode }) {

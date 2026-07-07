@@ -1,0 +1,434 @@
+{
+  "version": 1,
+  "generatedAt": "2026-07-06T13:04:36.587Z",
+  "keys": [
+    "core",
+    "ess",
+    "leave",
+    "time",
+    "payroll",
+    "disciplinary",
+    "accounts",
+    "reports",
+    "documents",
+    "communications",
+    "ats",
+    "performance",
+    "training",
+    "procurement",
+    "legal",
+    "projects",
+    "operations",
+    "outsourcing",
+    "sales",
+    "assessments",
+    "fleet",
+    "assets",
+    "hse",
+    "sacco",
+    "healthcare",
+    "energy",
+    "construction"
+  ],
+  "modules": [
+    {
+      "key": "core",
+      "label": "People",
+      "bucket": "foundational",
+      "canDisable": false,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_CORE",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "ess",
+      "label": "Employee Self-Service",
+      "bucket": "foundational",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_ESS",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "leave",
+      "label": "Leave",
+      "bucket": "foundational",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_LEAVE",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "time",
+      "label": "Time & Attendance",
+      "bucket": "foundational",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_TIME",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "payroll",
+      "label": "Payroll",
+      "bucket": "foundational",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_PAYROLL",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "disciplinary",
+      "label": "Disciplinary & Grievance",
+      "bucket": "foundational",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_DISCIPLINARY",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "accounts",
+      "label": "Finance",
+      "bucket": "foundational",
+      "canDisable": false,
+      "domainId": "finance",
+      "envVar": "MODULE_ACCOUNTS",
+      "requires": [],
+      "readiness": "partial"
+    },
+    {
+      "key": "reports",
+      "label": "Reports & Analytics",
+      "bucket": "foundational",
+      "canDisable": true,
+      "domainId": "admin-operations",
+      "envVar": "MODULE_REPORTS",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "documents",
+      "label": "Document Management",
+      "bucket": "foundational",
+      "canDisable": true,
+      "domainId": "legal-documents",
+      "envVar": "MODULE_DOCUMENTS",
+      "requires": [],
+      "readiness": "partial"
+    },
+    {
+      "key": "communications",
+      "label": "Communications",
+      "bucket": "foundational",
+      "canDisable": true,
+      "domainId": "admin-operations",
+      "envVar": "MODULE_COMMUNICATIONS",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "ats",
+      "label": "Recruitment & talent",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_ATS",
+      "requires": [
+        "core"
+      ],
+      "readiness": "live"
+    },
+    {
+      "key": "performance",
+      "label": "Performance management",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_PERFORMANCE",
+      "requires": [
+        "core"
+      ],
+      "readiness": "live"
+    },
+    {
+      "key": "training",
+      "label": "Training & Development",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_TRAINING",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "procurement",
+      "label": "Procurement",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "procurement",
+      "envVar": "MODULE_PROCUREMENT",
+      "requires": [],
+      "readiness": "partial"
+    },
+    {
+      "key": "legal",
+      "label": "Legal & Compliance",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "legal-documents",
+      "envVar": "MODULE_LEGAL",
+      "requires": [],
+      "readiness": "partial"
+    },
+    {
+      "key": "projects",
+      "label": "Project Management",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "projects",
+      "envVar": "MODULE_PROJECTS",
+      "requires": [],
+      "readiness": "planned"
+    },
+    {
+      "key": "operations",
+      "label": "Operations",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "admin-operations",
+      "envVar": "MODULE_OPERATIONS",
+      "requires": [],
+      "readiness": "partial"
+    },
+    {
+      "key": "outsourcing",
+      "label": "HR Outsourcing (BPO)",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "hr-outsourcing",
+      "envVar": "MODULE_OUTSOURCING",
+      "requires": [],
+      "readiness": "partial"
+    },
+    {
+      "key": "sales",
+      "label": "Sales",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "sales",
+      "envVar": "MODULE_SALES",
+      "requires": [
+        "performance"
+      ],
+      "readiness": "partial"
+    },
+    {
+      "key": "assessments",
+      "label": "Candidate assessments",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_ASSESSMENTS",
+      "requires": [
+        "ats"
+      ],
+      "readiness": "partial"
+    },
+    {
+      "key": "fleet",
+      "label": "Fleet & Logistics",
+      "bucket": "vertical",
+      "canDisable": true,
+      "domainId": "fleet-logistics",
+      "envVar": "MODULE_FLEET",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "assets",
+      "label": "Asset Manager",
+      "bucket": "vertical",
+      "canDisable": true,
+      "domainId": "admin-operations",
+      "envVar": "MODULE_ASSETS",
+      "requires": [],
+      "readiness": "partial"
+    },
+    {
+      "key": "hse",
+      "label": "HSE",
+      "bucket": "vertical",
+      "canDisable": true,
+      "domainId": "admin-operations",
+      "envVar": "MODULE_HSE",
+      "requires": [],
+      "readiness": "live"
+    },
+    {
+      "key": "sacco",
+      "label": "SACCO",
+      "bucket": "vertical",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_SACCO",
+      "requires": [],
+      "readiness": "planned"
+    },
+    {
+      "key": "healthcare",
+      "label": "Healthcare",
+      "bucket": "vertical",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_HEALTHCARE",
+      "requires": [],
+      "readiness": "planned"
+    },
+    {
+      "key": "energy",
+      "label": "Energy",
+      "bucket": "vertical",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_ENERGY",
+      "requires": [],
+      "readiness": "planned"
+    },
+    {
+      "key": "construction",
+      "label": "Construction",
+      "bucket": "vertical",
+      "canDisable": true,
+      "domainId": "hr-payroll",
+      "envVar": "MODULE_CONSTRUCTION",
+      "requires": [],
+      "readiness": "planned"
+    }
+  ],
+  "bucket": {
+    "core": "foundational",
+    "ess": "foundational",
+    "leave": "foundational",
+    "time": "foundational",
+    "payroll": "foundational",
+    "disciplinary": "foundational",
+    "accounts": "foundational",
+    "reports": "foundational",
+    "documents": "foundational",
+    "communications": "foundational",
+    "ats": "horizontal",
+    "performance": "horizontal",
+    "training": "horizontal",
+    "procurement": "horizontal",
+    "legal": "horizontal",
+    "projects": "horizontal",
+    "operations": "horizontal",
+    "outsourcing": "horizontal",
+    "sales": "horizontal",
+    "assessments": "horizontal",
+    "fleet": "vertical",
+    "assets": "vertical",
+    "hse": "vertical",
+    "sacco": "vertical",
+    "healthcare": "vertical",
+    "energy": "vertical",
+    "construction": "vertical"
+  },
+  "uiGroups": [
+    {
+      "id": "hr-payroll",
+      "label": "HR & Payroll",
+      "description": "People, leave, time, payroll, ESS, disciplinary.",
+      "keys": [
+        "core",
+        "ess",
+        "leave",
+        "time",
+        "payroll",
+        "disciplinary",
+        "ats",
+        "performance",
+        "training",
+        "assessments",
+        "sacco",
+        "healthcare",
+        "energy",
+        "construction"
+      ]
+    },
+    {
+      "id": "sales",
+      "label": "Sales",
+      "description": "Pipeline KPIs, targets, attainment, and scorecard auto-measures.",
+      "keys": [
+        "sales"
+      ]
+    },
+    {
+      "id": "finance",
+      "label": "Finance",
+      "description": "Invoicing, AP, expenses, budgets, and financial reports.",
+      "keys": [
+        "accounts"
+      ]
+    },
+    {
+      "id": "procurement",
+      "label": "Procurement",
+      "description": "Purchase requests, LPOs, vendor spend, and approvals.",
+      "keys": [
+        "procurement"
+      ]
+    },
+    {
+      "id": "legal-documents",
+      "label": "Legal & Documents",
+      "description": "Contracts, credentials, policies, and compliance obligations.",
+      "keys": [
+        "documents",
+        "legal"
+      ]
+    },
+    {
+      "id": "projects",
+      "label": "Projects",
+      "description": "Deliverables, tasks, and budget vs execution.",
+      "keys": [
+        "projects"
+      ]
+    },
+    {
+      "id": "fleet-logistics",
+      "label": "Fleet management",
+      "description": "Transport orders, dispatch, telematics, compliance, and client billing.",
+      "keys": [
+        "fleet"
+      ]
+    },
+    {
+      "id": "hr-outsourcing",
+      "label": "HR Outsourcing",
+      "description": "End-client register and outsourced workforce services.",
+      "keys": [
+        "outsourcing"
+      ]
+    },
+    {
+      "id": "admin-operations",
+      "label": "Operations",
+      "description": "Assets, HSE, announcements, and operational reporting.",
+      "keys": [
+        "reports",
+        "communications",
+        "operations",
+        "assets",
+        "hse"
+      ]
+    }
+  ]
+}

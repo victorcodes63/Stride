@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssStatusPill } from '@/components/ess/EssStatusPill';
-import { ratingLabel } from '@/lib/performance/service';
+import { ratingLabel } from '@/lib/performance/rating-label';
 
 type ReviewDetail = {
   id: string;

@@ -1,7 +1,17 @@
 import type { ModuleKey } from '@/lib/modules';
-import { ESS_NAV_MODULES, NAV_ITEM_MODULES, NAV_SECTION_MODULES } from '@/lib/module-routes';
+import { NAV_SECTION_MODULES } from '@/lib/module-registry';
+import { ESS_NAV_MODULES, getNavItemModules, resolveModuleForPath } from '@/lib/module-routes';
 
 export type EnabledModulesMap = Record<ModuleKey, boolean>;
+
+function normalizeNavHref(href: string): string {
+  return href.split('?')[0] ?? href;
+}
+
+function resolveNavItemModule(href: string): ModuleKey | null {
+  const path = normalizeNavHref(href);
+  return getNavItemModules()[path] ?? resolveModuleForPath(path);
+}
 
 export function isNavSectionVisible(sectionId: string, enabled: EnabledModulesMap | undefined): boolean {
   if (!enabled) return true;
@@ -16,13 +26,14 @@ export function isDashboardNavItemVisible(
   enabled: EnabledModulesMap | undefined,
 ): boolean {
   if (!enabled) return true;
-  const itemModule = NAV_ITEM_MODULES[href];
+  const itemModule = resolveNavItemModule(href);
   if (itemModule) return enabled[itemModule];
 
   const sectionModules = NAV_SECTION_MODULES[sectionId];
   if (!sectionModules?.length) return true;
 
   if (sectionId === 'people-hr') {
+    if (href.startsWith('/dashboard/performance')) return enabled.performance;
     return enabled.core;
   }
 

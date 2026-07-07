@@ -18,6 +18,9 @@ export type OrgAuthConfigSnapshot = {
   ssoEnforcedEss: boolean;
   jitProvisioning: boolean;
   lockedMsTenantId: string | null;
+  samlIdpMetadataUrl: string | null;
+  samlEnabledStaff: boolean;
+  samlEnabledEss: boolean;
 };
 
 const DEFAULT_SNAPSHOT: OrgAuthConfigSnapshot = {
@@ -28,6 +31,9 @@ const DEFAULT_SNAPSHOT: OrgAuthConfigSnapshot = {
   ssoEnforcedEss: false,
   jitProvisioning: false,
   lockedMsTenantId: null,
+  samlIdpMetadataUrl: null,
+  samlEnabledStaff: false,
+  samlEnabledEss: false,
 };
 
 export function authProviderToPortalMethod(provider: AuthProvider): PortalAuthMethod {
@@ -57,6 +63,9 @@ export function snapshotFromRow(row: OrganizationAuthConfig): OrgAuthConfigSnaps
     ssoEnforcedEss: row.ssoEnforcedEss,
     jitProvisioning: row.jitProvisioning,
     lockedMsTenantId: row.lockedMsTenantId,
+    samlIdpMetadataUrl: row.samlIdpMetadataUrl,
+    samlEnabledStaff: row.samlEnabledStaff,
+    samlEnabledEss: row.samlEnabledEss,
   };
 }
 
@@ -151,6 +160,9 @@ export async function upsertOrgAuthConfig(
       | 'ssoEnforcedEss'
       | 'jitProvisioning'
       | 'lockedMsTenantId'
+      | 'samlIdpMetadataUrl'
+      | 'samlEnabledStaff'
+      | 'samlEnabledEss'
     >
   >,
 ): Promise<OrgAuthConfigSnapshot> {
@@ -165,6 +177,9 @@ export async function upsertOrgAuthConfig(
         ssoEnforcedEss: input.ssoEnforcedEss ?? false,
         jitProvisioning: input.jitProvisioning ?? false,
         lockedMsTenantId: input.lockedMsTenantId ?? null,
+        samlIdpMetadataUrl: input.samlIdpMetadataUrl ?? null,
+        samlEnabledStaff: input.samlEnabledStaff ?? false,
+        samlEnabledEss: input.samlEnabledEss ?? false,
         updatedAt: new Date(),
       },
       update: {
@@ -178,6 +193,9 @@ export async function upsertOrgAuthConfig(
         ...(input.ssoEnforcedEss !== undefined && { ssoEnforcedEss: input.ssoEnforcedEss }),
         ...(input.jitProvisioning !== undefined && { jitProvisioning: input.jitProvisioning }),
         ...(input.lockedMsTenantId !== undefined && { lockedMsTenantId: input.lockedMsTenantId }),
+        ...(input.samlIdpMetadataUrl !== undefined && { samlIdpMetadataUrl: input.samlIdpMetadataUrl }),
+        ...(input.samlEnabledStaff !== undefined && { samlEnabledStaff: input.samlEnabledStaff }),
+        ...(input.samlEnabledEss !== undefined && { samlEnabledEss: input.samlEnabledEss }),
         updatedAt: new Date(),
       },
     });

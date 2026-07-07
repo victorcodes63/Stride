@@ -10,11 +10,11 @@ export type { ModuleKey, ModulePhase };
 
 export type ModuleDefinition = Pick<
   ModuleRegistryEntry,
-  'key' | 'label' | 'envVar' | 'description' | 'phase' | 'billable' | 'canDisable'
+  'key' | 'label' | 'envVar' | 'description' | 'phase' | 'billable' | 'canDisable' | 'requires'
 >;
 
 export const MODULE_DEFINITIONS: ModuleDefinition[] = MODULE_REGISTRY.map(
-  ({ key, label, envVar, description, phase, billable, canDisable }) => ({
+  ({ key, label, envVar, description, phase, billable, canDisable, requires }) => ({
     key,
     label,
     envVar,
@@ -22,5 +22,6 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = MODULE_REGISTRY.map(
     phase,
     billable,
     canDisable,
+    requires,
   }),
 );

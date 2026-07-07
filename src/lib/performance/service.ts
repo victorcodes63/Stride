@@ -39,14 +39,7 @@ export const DEFAULT_GOAL_TEMPLATES = [
   { title: 'Complete compliance and training requirements', weightPercent: 50 },
 ] as const;
 
-export function ratingLabel(score: number | null | undefined): string {
-  if (score == null) return 'Not rated';
-  if (score >= 5) return 'Exceptional';
-  if (score >= 4) return 'Exceeds expectations';
-  if (score >= 3) return 'Meets expectations';
-  if (score >= 2) return 'Needs improvement';
-  return 'Unsatisfactory';
-}
+export { ratingLabel } from '@/lib/performance/rating-label';
 
 /** Resolve staff User id for an employee's line manager (email match), else fallback. */
 export async function resolveManagerUserId(
@@ -77,9 +70,18 @@ export type PerformanceReviewDto = {
   status: string;
   overallSelfRating: number | null;
   overallManagerRating: number | null;
+  finalResultsScore: number | null;
+  finalCompetenciesScore: number | null;
+  finalBlendedScore: number | null;
   selfSubmittedAt: string | null;
   managerSubmittedAt: string | null;
 };
+
+function decimalToNumber(value: unknown): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 export function serializeReview(
   review: {
@@ -89,6 +91,9 @@ export function serializeReview(
     status: string;
     overallSelfRating: number | null;
     overallManagerRating: number | null;
+    finalResultsScore?: unknown;
+    finalCompetenciesScore?: unknown;
+    finalBlendedScore?: unknown;
     selfSubmittedAt: Date | null;
     managerSubmittedAt: Date | null;
     employee: {
@@ -109,6 +114,9 @@ export function serializeReview(
     status: review.status,
     overallSelfRating: review.overallSelfRating,
     overallManagerRating: review.overallManagerRating,
+    finalResultsScore: decimalToNumber(review.finalResultsScore),
+    finalCompetenciesScore: decimalToNumber(review.finalCompetenciesScore),
+    finalBlendedScore: decimalToNumber(review.finalBlendedScore),
     selfSubmittedAt: review.selfSubmittedAt?.toISOString() ?? null,
     managerSubmittedAt: review.managerSubmittedAt?.toISOString() ?? null,
   };

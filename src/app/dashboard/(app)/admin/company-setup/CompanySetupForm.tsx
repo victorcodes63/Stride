@@ -406,6 +406,37 @@ export function CompanySetupForm({
   <AuthDomainsSection capabilities={capabilities} initialDomains={emailDomains} />
  </SectionCard>
 
+ {capabilities.canConfigureSaml ? (
+  <SectionCard
+   title="Enterprise SAML (AUTH-09)"
+   icon={Shield}
+   description="Store IdP metadata URL for Raven ops activation. SAML sign-in returns 501 until activated."
+  >
+   <Field label="IdP metadata URL">
+    <input
+     value={form.samlIdpMetadataUrl}
+     onChange={(e) => setForm((f) => ({ ...f, samlIdpMetadataUrl: e.target.value }))}
+     className={inputClass}
+     placeholder="https://idp.example.com/metadata.xml"
+    />
+   </Field>
+   <div className="mt-4 space-y-2">
+    <ToggleRow
+     label="Enable SAML for staff"
+     description="When activated, staff can use SAML 2.0 instead of OAuth/password."
+     checked={form.samlEnabledStaff}
+     onChange={(value) => setForm((f) => ({ ...f, samlEnabledStaff: value }))}
+    />
+    <ToggleRow
+     label="Enable SAML for ESS"
+     description="When activated, employees can use SAML 2.0 on the ESS portal."
+     checked={form.samlEnabledEss}
+     onChange={(value) => setForm((f) => ({ ...f, samlEnabledEss: value }))}
+    />
+   </div>
+  </SectionCard>
+ ) : null}
+
  <SectionCard
   title="Sensitive actions"
   icon={Shield}

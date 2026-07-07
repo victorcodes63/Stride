@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import DashboardNav, { readSidebarCollapsed, writeSidebarCollapsed } from '@/components/dashboard/DashboardNav';
 import { DashboardSidebarPoweredBy } from '@/components/dashboard/DashboardSidebarPoweredBy';
 import DashboardTopbar from '@/components/dashboard/DashboardTopbar';
 import { DashboardSetupBanner } from '@/components/dashboard/DashboardSetupBanner';
+import { SupportOperatorBanner } from '@/components/dashboard/SupportOperatorBanner';
 import { PastDueBanner } from '@/components/dashboard/PastDueBanner';
 import {
   getPastDueGraceDays,
@@ -20,6 +21,8 @@ import { STAFF_USER_TYPE_LABELS } from '@/lib/staff-permissions';
 import { EntityProvider, type Entity } from '@/components/EntitySwitcher';
 import { BOOTSTRAP_PENDING_MODULES } from '@/lib/bootstrap-pending-modules';
 import type { ModuleKey } from '@/lib/modules';
+import type { OverviewCoreMetrics } from '@/lib/dashboard-overview-metrics';
+import type { DashboardOverviewLayout } from '@/lib/dashboard-overview-layout';
 import type { DeploymentTier } from '@/lib/deployment-tier';
 import { writeModuleAdminFlagsCookie } from '@/lib/module-cookie';
 import { DashboardSessionProvider } from '@/contexts/dashboard-session';
@@ -38,6 +41,9 @@ import {
 type BootstrapPayload = {
  me?: UserSummary;
  modules?: Record<ModuleKey, boolean>;
+ overviewCore?: OverviewCoreMetrics;
+ overviewLayout?: DashboardOverviewLayout;
+ overviewLayoutIsCustom?: boolean;
  moduleAdminFlags?: Record<ModuleKey, boolean>;
  entities?: Entity[];
  defaultEntityId?: string;
@@ -80,6 +86,9 @@ export default function DashboardAppLayoutClient({
  const [enabledModules, setEnabledModules] = useState<Record<ModuleKey, boolean>>(ALL_MODULES_ON);
  const [deploymentTier, setDeploymentTier] = useState<DeploymentTier>('growth');
  const [entityBootstrap, setEntityBootstrap] = useState<BootstrapPayload | undefined>(undefined);
+ const [overviewCore, setOverviewCore] = useState<OverviewCoreMetrics | null>(null);
+ const [overviewLayout, setOverviewLayout] = useState<DashboardOverviewLayout | null>(null);
+ const [overviewLayoutIsCustom, setOverviewLayoutIsCustom] = useState(false);
  const [pastDueBanner, setPastDueBanner] = useState<{
   visible: boolean;
   graceDaysRemaining: number | null;
@@ -110,6 +119,9 @@ export default function DashboardAppLayoutClient({
  if (!data) return;
  if (data.me) setCurrentUser(data.me);
  if (data.modules) setEnabledModules(data.modules);
+ if (data.overviewCore) setOverviewCore(data.overviewCore);
+ if (data.overviewLayout) setOverviewLayout(data.overviewLayout);
+ setOverviewLayoutIsCustom(data.overviewLayoutIsCustom === true);
  if (data.deploymentTier) setDeploymentTier(data.deploymentTier);
  if (data.moduleAdminFlags) writeModuleAdminFlagsCookie(data.moduleAdminFlags);
  setCanAccessCompanySetup(data.deployment?.canAccessCompanySetup === true);
@@ -222,9 +234,25 @@ export default function DashboardAppLayoutClient({
 
  const showBackdrop = hasMounted && sidebarOpen && isMobileNav;
 
+ const entityInitialConfig = useMemo(
+  () =>
+   entityBootstrap
+    ? {
+       entities: entityBootstrap.entities,
+       defaultEntityId: entityBootstrap.defaultEntityId,
+       showSwitcher: entityBootstrap.showEntitySwitcher,
+      }
+    : null,
+  [entityBootstrap],
+ );
+
  return (
  <DashboardDomainProvider initialPathname={initialPathname}>
- <DashboardOverviewLayoutProvider>
+ <DashboardOverviewLayoutProvider
+  initialLayout={overviewLayout}
+  initialIsCustom={overviewLayoutIsCustom}
+  layoutReady={!sessionBootstrapping}
+ >
  <DashboardModuleOrderProvider
   enabledModules={enabledModules}
   deploymentTier={deploymentTier}
@@ -233,17 +261,7 @@ export default function DashboardAppLayoutClient({
   canViewSystemAnalytics={currentUser?.canViewSystemAnalytics ?? false}
   canAccessCompanySetup={canAccessCompanySetup}
  >
- <EntityProvider
- initialConfig={
- entityBootstrap
- ? {
- entities: entityBootstrap.entities,
- defaultEntityId: entityBootstrap.defaultEntityId,
- showSwitcher: entityBootstrap.showEntitySwitcher,
- }
- : null
- }
- >
+ <EntityProvider initialConfig={entityInitialConfig}>
  <div className="dashboard-canvas h-screen overflow-hidden">
  <PlatformNavigationLoader />
  <SkipToMain />
@@ -378,8 +396,15 @@ export default function DashboardAppLayoutClient({
  <div
  className={`w-full min-w-0 ${DASHBOARD_SHELL_GUTTER} ${DASHBOARD_MAIN_PADDING_TOP} ${DASHBOARD_MAIN_PADDING_BOTTOM}`}
  >
+          <SupportOperatorBanner />
           <DashboardSetupBanner />
-          <DashboardSessionProvider user={currentUser} modules={enabledModules}>
+          <DashboardSessionProvider
+            user={currentUser}
+            modules={enabledModules}
+            overviewCore={overviewCore}
+            overviewLayout={overviewLayout}
+            overviewLayoutIsCustom={overviewLayoutIsCustom}
+          >
           {children}
           </DashboardSessionProvider>
  </div>

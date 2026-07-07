@@ -2,7 +2,7 @@ import type { Prisma, PrismaClient } from '@prisma/client';
 import type { NextRequest } from 'next/server';
 import { withOrgContext } from '@/lib/org-context';
 import { requireStaffUser } from '@/lib/staff-api-auth';
-import { getWorkspaceDefaults } from '@/lib/deployment-config';
+import { getWorkspaceDefaults } from '@/lib/deployment-config-shared';
 import { resolveEntityIdOrDefault } from '@/lib/entity-request';
 import { getActiveEntities, loadOperatingEntitiesSettings, loadOperatingEntitiesSettingsForOrg } from '@/lib/operating-entities';
 

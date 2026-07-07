@@ -92,6 +92,7 @@ async function listJobs(
   const keyword = searchParams.get('keyword')?.toLowerCase();
   const location = searchParams.get('location')?.toLowerCase();
   const category = searchParams.get('category');
+  const outsourcingClientId = searchParams.get('outsourcingClientId')?.trim() || undefined;
   const now = new Date();
   const recruitmentSettings = activeOnly ? await getOrCreateRecruitmentSettings(db) : null;
   let employerCompany: string | undefined;
@@ -122,6 +123,7 @@ async function listJobs(
         : {}),
       ...(location ? { location: { contains: location, mode: 'insensitive' } } : {}),
       ...(category ? { category } : {}),
+      ...(outsourcingClientId ? { outsourcingClientId } : {}),
     },
     include: { client: true, _count: { select: { applications: true } } },
     orderBy: { postedDate: 'desc' },
@@ -258,6 +260,8 @@ export async function POST(request: NextRequest) {
     ? (b.skills as unknown[]).map((x) => (typeof x === 'string' ? x.trim() : String(x))).filter(Boolean)
     : [];
   const concealCompany = b.concealCompany === true;
+  const outsourcingClientId =
+    typeof b.outsourcingClientId === 'string' ? b.outsourcingClientId.trim() || undefined : undefined;
   const salaryPublic = b.salaryPublic === true;
   const applicationStartAt =
     typeof b.applicationStartAt === 'string' && b.applicationStartAt.trim()
@@ -293,6 +297,7 @@ export async function POST(request: NextRequest) {
     requiredCertifications,
     skills: skills.length ? skills : undefined,
     clientId: resolvedClientId ?? undefined,
+    outsourcingClientId,
     concealCompany,
     salaryPublic,
     applicationStartAt: applicationStartAt ? applicationStartAt.toISOString() : undefined,
@@ -301,6 +306,18 @@ export async function POST(request: NextRequest) {
 
   try {
     const job = await ctx.run(async (tx) => {
+      if (outsourcingClientId) {
+        const endClient = await tx.outsourcingClient.findFirst({
+          where: { id: outsourcingClientId, organizationId: ctx.organizationId },
+          select: { id: true, name: true },
+        });
+        if (!endClient) {
+          throw Object.assign(new Error('OUTSOURCING_CLIENT_NOT_FOUND'), {
+            code: 'OUTSOURCING_CLIENT_NOT_FOUND',
+          });
+        }
+      }
+
       const year = new Date().getFullYear();
       const prefix = `JOB-${year}-`;
       const existing = await tx.job.findMany({
@@ -344,6 +361,7 @@ export async function POST(request: NextRequest) {
           requiredCertifications: input.requiredCertifications ?? null,
           skills: input.skills ?? [],
           clientId: resolvedClientId ?? null,
+          outsourcingClientId: outsourcingClientId ?? null,
           concealCompany: input.concealCompany ?? false,
           salaryPublic: input.salaryPublic ?? false,
           applicationStartAt: applicationStartAt ?? null,
@@ -352,7 +370,11 @@ export async function POST(request: NextRequest) {
       });
     });
     return NextResponse.json(prismaJobToListing(job as unknown as PrismaJobForListing));
-  } catch (_e) {
+  } catch (e: unknown) {
+    const err = e as { code?: string };
+    if (err.code === 'OUTSOURCING_CLIENT_NOT_FOUND') {
+      return NextResponse.json({ error: 'End-client not found for RPO job.' }, { status: 404 });
+    }
     return NextResponse.json({ error: 'Failed to create job.' }, { status: 500 });
   }
   });

@@ -123,17 +123,17 @@ export function getOverviewRoleLabel(user: UserSummary | null): string {
 export function getOverviewSubtitle(persona: OverviewPersona): string {
   switch (persona) {
     case 'admin':
-      return 'Your command center — what needs action across HR, Finance, Legal, and Operations today.';
+      return 'What needs you today — then open a module from the sidebar for charts and depth.';
     case 'director':
-      return 'Board-ready signals across people, finance, compliance, and operations.';
+      return 'Cross-module priorities at a glance — drill into Finance, HR, or Operations for detail.';
     case 'finance':
-      return 'Cash, payables, payroll, and approvals — finance-first view of the business.';
+      return 'Quick signals on payables and payroll — open Finance for invoices, AP, and trends.';
     case 'business_manager':
-      return 'Your team’s people workflows — expand HR details below when you need depth.';
+      return 'People workflows and approvals — open HR & Payroll for attendance, leave, and payroll.';
     case 'viewer':
-      return 'Read-only snapshot. Contact an administrator to request access changes.';
+      return 'Read-only overview. Contact an administrator to request access changes.';
     default:
-      return 'Business command center — pick a module below or jump to what needs you today.';
+      return 'Pick a module to work in — charts and detailed metrics live on each module home.';
   }
 }
 
@@ -367,7 +367,7 @@ export function buildAttentionItems(input: {
       id: 'notifications',
       label: 'Notifications',
       detail: `${input.unreadNotifications} unread update${input.unreadNotifications === 1 ? '' : 's'}`,
-      href: '/dashboard/settings',
+      href: '/dashboard/notifications',
       tone: 'neutral',
       domainId: 'platform-admin',
     });
@@ -634,4 +634,11 @@ export function buildCrossModuleKpis(input: {
       ],
     },
   ].filter((k) => k.show);
+}
+
+export function buildModuleDomainKpi(
+  domainId: DashboardModuleDomainId,
+  input: Parameters<typeof buildCrossModuleKpis>[0],
+): CrossModuleKpi | null {
+  return buildCrossModuleKpis(input).find((k) => k.domainId === domainId) ?? null;
 }
