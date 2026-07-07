@@ -23,7 +23,9 @@ const STAFF_SESSION_COOKIE = 'staff_session';
 const ESS_SESSION_COOKIE = 'ess_session';
 const LOGIN_PATH = '/dashboard/login';
 const FORGOT_PASSWORD_PATH = '/dashboard/forgot-password';
+const RESET_PASSWORD_PATH = '/dashboard/reset-password';
 const ESS_LOGIN_PATH = '/ess/login';
+const ESS_RESET_PASSWORD_PATH = '/ess/reset-password';
 
 function redirectPermanent(pathname: string, request: NextRequest) {
   const u = new URL(request.url);
@@ -114,7 +116,10 @@ export function middleware(request: NextRequest) {
   const readOnlyBlock = enforcePastDueReadOnly(request);
   if (readOnlyBlock) return readOnlyBlock;
 
-  const isAuthPage = pathname.startsWith(LOGIN_PATH) || pathname.startsWith(FORGOT_PASSWORD_PATH);
+  const isAuthPage =
+    pathname.startsWith(LOGIN_PATH) ||
+    pathname.startsWith(FORGOT_PASSWORD_PATH) ||
+    pathname.startsWith(RESET_PASSWORD_PATH);
   if (pathname.startsWith('/dashboard') && !isAuthPage) {
     const session = request.cookies.get(STAFF_SESSION_COOKIE);
     if (!session?.value) {
@@ -125,7 +130,9 @@ export function middleware(request: NextRequest) {
   }
 
   const isEssPublicPage =
-    pathname.startsWith(ESS_LOGIN_PATH) || pathname === '/ess/offline';
+    pathname.startsWith(ESS_LOGIN_PATH) ||
+    pathname.startsWith(ESS_RESET_PASSWORD_PATH) ||
+    pathname === '/ess/offline';
   if (pathname.startsWith('/ess') && !isEssPublicPage) {
     const session = request.cookies.get(ESS_SESSION_COOKIE);
     if (!session?.value) {
