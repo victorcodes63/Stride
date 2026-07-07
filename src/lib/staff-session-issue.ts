@@ -1,7 +1,7 @@
 import type { UserRole } from '@prisma/client';
 import { membershipForLogin } from '@/lib/org-membership';
 import { buildStaffSessionValue } from '@/lib/staff-session-cookie';
-import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
+import { resolveOrgByEmail, resolveOrgForAuthenticatedLogin } from '@/lib/auth/resolve-org-by-email';
 
 export async function buildStaffSessionForUser(input: {
   provider: 'local' | 'ms' | 'google';
@@ -12,7 +12,9 @@ export async function buildStaffSessionForUser(input: {
 }): Promise<string> {
   let preferredOrgId = input.preferredOrgId ?? null;
   if (!preferredOrgId && input.email?.includes('@')) {
-    const resolved = await resolveOrgByEmail(input.email.trim().toLowerCase(), 'staff');
+    const resolved = input.userId
+      ? await resolveOrgForAuthenticatedLogin(input.email.trim().toLowerCase(), input.userId, 'staff')
+      : await resolveOrgByEmail(input.email.trim().toLowerCase(), 'staff', { userId: input.userId });
     if (resolved?.verifiedDomain) {
       preferredOrgId = resolved.organizationId;
     }

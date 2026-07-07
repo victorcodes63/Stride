@@ -63,6 +63,8 @@ function runMigrateAttempt(migrateEnv) {
 
 /** Idempotent login/auth RLS hotfixes for db-push baselined Neon DBs (P3005). */
 const LOGIN_RLS_HOTFIX_FILES = [
+  '20260624193000_org_membership_login_read/migration.sql',
+  '20260625143000_organization_login_read/migration.sql',
   '20260627160000_rls_auth_tables_uuid_cast/migration.sql',
   '20260707103000_rls_auth_public_lookup_safe_cast/migration.sql',
   '20260707104500_rls_org_membership_login_safe_cast/migration.sql',

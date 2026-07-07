@@ -165,16 +165,55 @@ export async function resolveOrgByEmail(
     return null;
   }
 
-  const authConfig = await ensureOrgAuthConfig(org.organizationId);
+  return buildResolvedOrgForEmail(org, emailDomain, audience);
+}
+
+/** Prefer an org the user belongs to when their verified email domain maps to multiple tenants. */
+export async function resolveOrgForAuthenticatedLogin(
+  email: string,
+  userId: string,
+  audience: PortalAudience = 'staff',
+): Promise<ResolvedOrgForEmail | null> {
+  const emailDomain = extractEmailDomain(email);
+  if (!emailDomain) return null;
+
+  const memberOrgIds = await listMemberOrgIdsForLogin(userId);
+  for (const organizationId of memberOrgIds) {
+    if (!(await isDomainVerified(organizationId, emailDomain))) continue;
+
+    const org = await withOrgContext(organizationId, (tx) =>
+      tx.organization.findUnique({
+        where: { id: organizationId },
+        select: { id: true, name: true, slug: true },
+      }),
+    );
+    if (!org) continue;
+
+    return buildResolvedOrgForEmail(org, emailDomain, audience);
+  }
+
+  return resolveOrgByEmail(email, audience, { userId });
+}
+
+async function buildResolvedOrgForEmail(
+  org: { id?: string; organizationId?: string; name: string; slug: string },
+  emailDomain: string,
+  audience: PortalAudience,
+): Promise<ResolvedOrgForEmail> {
+  const organizationId = org.id ?? org.organizationId;
+  if (!organizationId) {
+    throw new Error('Organization id is required to build login resolution snapshot.');
+  }
+
+  const authConfig = await ensureOrgAuthConfig(organizationId);
   const staffMethod = primaryAuthMethod(authConfig.staffEnabledProviders);
   const essMethod = primaryAuthMethod(authConfig.essEnabledProviders);
-  const method = audience === 'staff' ? staffMethod : essMethod;
   const enforced = isSsoEnforced(authConfig, audience);
   const credentialsEnabled = isProviderEnabledForAudience(authConfig, audience, 'credentials');
-  const verified = await isDomainVerified(org.organizationId, emailDomain);
+  const verified = await isDomainVerified(organizationId, emailDomain);
 
   return {
-    organizationId: org.organizationId,
+    organizationId,
     organizationName: org.name,
     organizationSlug: org.slug,
     emailDomain,

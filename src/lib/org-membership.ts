@@ -126,16 +126,30 @@ export async function membershipForLogin(
   preferredOrgId?: string | null,
   email?: string | null,
 ): Promise<ResolvedMembership> {
-  return withLoginUserScope(userId, async (db) => {
-    if (preferredOrgId) {
-      const preferred = await resolveMembership(userId, preferredOrgId, db);
-      if (preferred) return preferred;
+  if (preferredOrgId) {
+    const direct = await withOrgContext(preferredOrgId, (tx) =>
+      tx.organizationMembership.findFirst({
+        where: { userId, organizationId: preferredOrgId, status: 'active' },
+        include: {
+          organization: { select: { id: true, name: true, slug: true } },
+        },
+      }),
+    );
+    if (direct) {
+      return {
+        id: direct.id,
+        organizationId: direct.organizationId,
+        role: direct.role,
+        organization: direct.organization,
+      };
     }
+  }
 
+  return withLoginUserScope(userId, async (db) => {
     const normalizedEmail = email?.trim().toLowerCase();
     let verifiedDomainOrgId: string | null = null;
     if (normalizedEmail && normalizedEmail.includes('@')) {
-      const resolved = await resolveOrgByEmail(normalizedEmail, 'staff');
+      const resolved = await resolveOrgByEmail(normalizedEmail, 'staff', { userId });
       if (resolved?.verifiedDomain) {
         verifiedDomainOrgId = resolved.organizationId;
         const domainMembership = await resolveMembership(userId, resolved.organizationId, db);

@@ -14,7 +14,7 @@ import {
   isProviderEnabledForAudience,
   type OrgAuthConfigSnapshot,
 } from '@/lib/auth/org-auth-config';
-import { isEmailDomainVerifiedForOrg, resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
+import { isEmailDomainVerifiedForOrg, resolveOrgByEmail, resolveOrgForAuthenticatedLogin } from '@/lib/auth/resolve-org-by-email';
 import type { MicrosoftOAuthProfile } from '@/lib/oauth/microsoft-email';
 
 export type SsoProvider = 'microsoft' | 'google';
@@ -136,7 +136,9 @@ export async function completeStaffSsoLogin(
     select: { id: true },
   });
 
-  const resolved = await resolveOrgByEmail(email, 'staff', { userId: existingUser?.id });
+  const resolved = existingUser
+    ? await resolveOrgForAuthenticatedLogin(email, existingUser.id, 'staff')
+    : await resolveOrgByEmail(email, 'staff');
   if (!resolved || !resolved.verifiedDomain) {
     return { ok: false, reason: 'domain' };
   }
