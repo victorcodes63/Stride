@@ -8,6 +8,7 @@ import {
   sanitizeInvoicePrimaryColor,
   loadRawInvoiceSetupSettings,
   type InvoiceLetterheadMode,
+  type InvoiceStyle,
 } from '@/lib/invoice-setup';
 import { reportApiError } from '@/lib/monitoring';
 
@@ -50,8 +51,11 @@ export async function PATCH(request: NextRequest) {
 
     try {
       const stored = await loadRawInvoiceSetupSettings(ctx.organizationId);
-      const next = sanitizeInvoiceSetup({
+      const nextRaw = sanitizeInvoiceSetup({
         ...stored,
+        ...(body.invoiceStyle != null
+          ? { invoiceStyle: body.invoiceStyle as InvoiceStyle }
+          : {}),
         ...(body.letterheadMode != null
           ? { letterheadMode: body.letterheadMode as InvoiceLetterheadMode }
           : {}),
@@ -77,7 +81,7 @@ export async function PATCH(request: NextRequest) {
           : {}),
       });
 
-      await persistInvoiceSetupSettings(ctx.organizationId, next, ctx.staff.id);
+      await persistInvoiceSetupSettings(ctx.organizationId, nextRaw, ctx.staff.id);
       const updated = await loadInvoiceSetupSnapshot(ctx.organizationId);
       return NextResponse.json(updated);
     } catch (error) {

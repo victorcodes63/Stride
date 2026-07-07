@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Loader2, Trophy } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DASHBOARD_STAT_CARD_CLASS, DASHBOARD_SURFACE_CLASS } from '@/lib/dashboard-layout';
 
 type RepRow = {
   employeeName: string;
@@ -69,10 +70,10 @@ export default function SalesAttainmentContent() {
                 accent: true,
               },
             ].map(({ label, value, accent }) => (
-              <div key={label} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
+              <div key={label} className={DASHBOARD_STAT_CARD_CLASS}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dash-text-muted)]">{label}</p>
                 <p
-                  className={`mt-2 text-2xl font-semibold ${accent ? 'text-[var(--stride-coral)]' : 'text-neutral-900'}`}
+                  className={`mt-2 text-2xl font-semibold ${accent ? 'text-[var(--stride-coral)]' : 'text-[var(--dash-text-strong)]'}`}
                 >
                   {value}
                 </p>
@@ -80,7 +81,7 @@ export default function SalesAttainmentContent() {
             ))}
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+          <div className={`overflow-hidden ${DASHBOARD_SURFACE_CLASS} shadow-sm`}>
             <div className="flex items-center gap-2 border-b border-neutral-100 px-4 py-3">
               <Trophy className="h-4 w-4 text-[var(--stride-coral)]" />
               <h2 className="text-sm font-semibold text-neutral-900">Leaderboard</h2>

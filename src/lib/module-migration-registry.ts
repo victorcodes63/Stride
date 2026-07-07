@@ -180,7 +180,15 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'SalesRepPeriodMetric',
     'SalesCommissionRule',
   ],
+  assessments: [
+    'AssessmentTemplate',
+    'AssessmentQuestion',
+    'JobAssessmentAssignment',
+    'ApplicationAssessmentAttempt',
+    'ApplicationAssessmentAnswer',
+  ],
   projects: ['Project', 'ProjectMilestone', 'ProjectTask'],
+  operations: ['CompanyAsset', 'HseIncident', 'Announcement'],
   outsourcing: ['OutsourcingClient', 'OutsourcingRateCard', 'OutsourcingRateCardLine', 'Employee', 'Department'],
 };
 

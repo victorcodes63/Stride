@@ -246,9 +246,9 @@ html.dark .public-app.studio-craft-marketing :where(h1, h2, h3, h4, h5, h6) {
 
 /* --- Autofill --- */
 
-.public-app input:-webkit-autofill,
-.public-app input:-webkit-autofill:hover,
-.public-app input:-webkit-autofill:focus {
+html:not(.dark) .public-app input:-webkit-autofill,
+html:not(.dark) .public-app input:-webkit-autofill:hover,
+html:not(.dark) .public-app input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px var(--pub-surface-elevated) inset;
   -webkit-text-fill-color: var(--pub-ink);
   transition: background-color 5000s ease-in-out 0s;

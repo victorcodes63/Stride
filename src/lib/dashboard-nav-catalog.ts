@@ -101,10 +101,6 @@ const primarySections: DashboardNavSection[] = [
       { href: '/dashboard/onboarding', label: 'Onboarding', icon: ClipboardList },
       { href: '/dashboard/performance', label: 'Performance', icon: BarChart2 },
       { href: '/dashboard/performance/jds', label: 'Job descriptions', icon: BarChart2 },
-      { href: '/dashboard/sales', label: 'Sales performance', icon: TrendingUp },
-      { href: '/dashboard/sales/targets', label: 'Sales targets', icon: Target },
-      { href: '/dashboard/sales/deals', label: 'Pipeline', icon: Handshake },
-      { href: '/dashboard/sales/attainment', label: 'Attainment', icon: TrendingUp },
       { href: '/dashboard/disciplinary', label: 'Disciplinary', icon: Shield },
     ],
   },
@@ -265,6 +261,18 @@ const outsourcingServicesSection: DashboardNavSection = {
     { href: '/dashboard/outsourcing/attendance', label: 'Time & attendance', icon: Clock4 },
     { href: '/dashboard/outsourcing/leave', label: 'Leave', icon: CalendarOff },
     { href: '/dashboard/outsourcing/disciplinary', label: 'Disciplinary', icon: Shield },
+  ],
+};
+
+const salesSection: DashboardNavSection = {
+  id: 'sales',
+  label: 'Sales',
+  icon: TrendingUp,
+  items: [
+    { href: '/dashboard/sales', label: 'Sales performance', icon: TrendingUp },
+    { href: '/dashboard/sales/targets', label: 'Sales targets', icon: Target },
+    { href: '/dashboard/sales/deals', label: 'Pipeline', icon: Handshake },
+    { href: '/dashboard/sales/attainment', label: 'Attainment', icon: TrendingUp },
   ],
 };
 
@@ -493,6 +501,9 @@ export function buildDashboardNavSections(options: DashboardNavBuildOptions): Da
       outsourcingServicesSection,
     );
   }
+  if (isNavSectionVisible('sales', enabledModules)) {
+    chunks.push(salesSection);
+  }
   chunks.push(
     operationsSection,
     buildCommunicationsInsightSection(options.canViewSystemAnalytics),
@@ -505,6 +516,35 @@ export function buildDashboardNavSections(options: DashboardNavBuildOptions): Da
     chunks.push(adminSection);
   }
   return filterSections(chunks, enabledModules, resolvedOptions);
+}
+
+/** Unfiltered nav sections for static href→module maps (MOD-02 audit — no visibility resolver). */
+export function getStaticNavCatalogSections(): DashboardNavSection[] {
+  return [
+    ...primarySections,
+    payrollSection,
+    developmentSection,
+    essSelfServiceSection,
+    financeSection,
+    procurementSection,
+    legalDocumentsSection,
+    projectsSection,
+    saccoSection,
+    healthcareSection,
+    energySection,
+    constructionSection,
+    fleetOperationsSection,
+    fleetMonitoringSection,
+    fleetAssetsSection,
+    fleetCommercialSection,
+    outsourcingClientsSection,
+    outsourcingWorkforceSection,
+    outsourcingServicesSection,
+    salesSection,
+    operationsSection,
+    buildCommunicationsInsightSection(true),
+    adminSection,
+  ];
 }
 
 export function flattenDashboardNavItems(
@@ -555,9 +595,22 @@ export const ALL_MODULES_ENABLED = {
   procurement: true,
   legal: true,
   projects: true,
+  operations: true,
   outsourcing: true,
   sales: true,
+  assessments: true,
 } satisfies EnabledModulesMap;
+
+/** Full nav catalog with all modules enabled — for audits and static binding maps. */
+export function getDashboardNavCatalogSections(): DashboardNavSection[] {
+  return buildDashboardNavSections({
+    currentUserRole: 'admin',
+    hasAccountsAccess: true,
+    canViewSystemAnalytics: true,
+    canAccessCompanySetup: true,
+    enabledModules: ALL_MODULES_ENABLED,
+  });
+}
 
 export const DASHBOARD_NAV_EXPANDABLE_SECTION_IDS = [
   ...primarySections.map((s) => s.id),
@@ -579,6 +632,7 @@ export const DASHBOARD_NAV_EXPANDABLE_SECTION_IDS = [
   outsourcingClientsSection.id,
   outsourcingWorkforceSection.id,
   outsourcingServicesSection.id,
+  salesSection.id,
   operationsSection.id,
   'communications-insight',
   adminSection.id,
@@ -593,6 +647,7 @@ export const DASHBOARD_NAV_GROUPS = [
   { label: '05 — Projects', startSectionId: 'projects' },
   { label: '06 — Fleet management', startSectionId: 'fleet-operations' },
   { label: '09 — HR Outsourcing', startSectionId: 'outsourcing-clients' },
+  { label: '10 — Sales', startSectionId: 'sales' },
   { label: '07 — Operations', startSectionId: 'operations' },
   { label: '08 — Platform admin', startSectionId: 'admin' },
 ] as const;

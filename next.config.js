@@ -51,43 +51,28 @@ const nextConfig = {
         permanent: false,
       },
       {
-        source: '/dashboard/outsourcing/payroll',
-        destination: '/dashboard/payroll',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/outsourcing/payroll/payslips',
-        destination: '/dashboard/payroll/payslips',
+        source: '/dashboard/outsourcing/disciplinary',
+        destination: '/dashboard/disciplinary',
         permanent: false,
       },
       {
         source: '/dashboard/accounts/payroll',
-        destination: '/dashboard/payroll',
+        destination: '/dashboard/outsourcing/payroll',
         permanent: false,
       },
       {
         source: '/dashboard/accounts/payroll/payslips',
-        destination: '/dashboard/payroll/payslips',
+        destination: '/dashboard/outsourcing/payroll/payslips',
         permanent: false,
       },
       {
-        source: '/dashboard/outsourcing/clients',
-        destination: '/dashboard/employees',
+        source: '/dashboard/payroll',
+        destination: '/dashboard/outsourcing/payroll',
         permanent: false,
       },
       {
-        source: '/dashboard/outsourcing/clients/new',
-        destination: '/dashboard/employees',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/outsourcing/clients/:id',
-        destination: '/dashboard/employees',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/outsourcing/clients/:id/edit',
-        destination: '/dashboard/settings',
+        source: '/dashboard/payroll/payslips',
+        destination: '/dashboard/outsourcing/payroll/payslips',
         permanent: false,
       },
       {

@@ -705,9 +705,59 @@ html.dark .dash-coral-icon-wrap {
   backdrop-filter: blur(8px);
 }
 
+.dashboard-inline-form {
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px dashed var(--dash-border);
+  background: var(--dash-surface-raised);
+  box-shadow: var(--dash-shadow-sm);
+}
+
+.dashboard-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.dashboard-form-label {
+  font-size: 0.875rem;
+  color: var(--dash-text-muted);
+}
+
+.dashboard-grid-cell {
+  border-radius: 0.375rem;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-solid);
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--dash-text-muted);
+}
+
+.dashboard-grid-cell .font-semibold {
+  color: var(--dash-text-strong);
+}
+
 /* Nested cards on panels sit one step above the panel surface */
 html.dark .dashboard-canvas .bg-white {
   background-color: var(--dash-surface-raised);
+}
+
+/* Remap hardcoded light-only stat/panel shells inside the dashboard canvas */
+.dashboard-canvas .rounded-xl.border.border-neutral-200.bg-white,
+.dashboard-canvas .rounded-xl.border.border-zinc-200.bg-white,
+.dashboard-canvas .rounded-2xl.border.border-zinc-200.bg-white {
+  border-color: var(--dash-border);
+  background: var(--dash-surface-raised);
+  color: var(--dash-text-strong);
+}
+
+.dashboard-canvas .rounded-xl.border.border-dashed.border-zinc-300.bg-zinc-50,
+.dashboard-canvas .rounded-2xl.border.border-dashed.border-zinc-300.bg-zinc-50 {
+  border-color: var(--dash-border);
+  background: var(--dash-surface-raised);
 }
 
 html.dark .dashboard-canvas .from-white {
@@ -1148,6 +1198,25 @@ html.dark .dashboard-canvas .text-emerald-700 {
 .dash-search-input:focus {
   border-color: var(--brand-primary);
   background: var(--dash-surface-solid);
+}
+
+.dash-command-palette-input {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.dash-command-palette-input::-webkit-search-decoration,
+.dash-command-palette-input::-webkit-search-cancel-button,
+.dash-command-palette-input::-webkit-search-results-button,
+.dash-command-palette-input::-webkit-search-results-decoration {
+  display: none;
+}
+
+.dash-search-input::-webkit-search-decoration,
+.dash-search-input::-webkit-search-cancel-button,
+.dash-search-input::-webkit-search-results-button,
+.dash-search-input::-webkit-search-results-decoration {
+  display: none;
 }
 
 .dash-dropdown {
@@ -1775,6 +1844,22 @@ html.dark .public-app .auth-login-card select {
   background: var(--dash-input-bg);
   border-color: var(--dash-input-border);
   color: var(--dash-text-strong);
+  color-scheme: dark;
+  caret-color: var(--dash-text-strong);
+}
+
+html.dark .public-app .dash-auth-input,
+html.dark .public-app .auth-login-card input:-webkit-autofill,
+html.dark .public-app .auth-login-card input:-webkit-autofill:hover,
+html.dark .public-app .auth-login-card input:-webkit-autofill:focus,
+html.dark .public-app .dash-auth-input:-webkit-autofill,
+html.dark .public-app .dash-auth-input:-webkit-autofill:hover,
+html.dark .public-app .dash-auth-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--dash-input-bg) inset !important;
+  box-shadow: 0 0 0 1000px var(--dash-input-bg) inset !important;
+  -webkit-text-fill-color: var(--dash-text-strong) !important;
+  caret-color: var(--dash-text-strong);
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 html.dark .public-app .auth-login-card label {
@@ -1806,6 +1891,7 @@ html.dark .public-app .dash-auth-divider-label {
   padding: 0 0.75rem;
   font-size: 0.875rem;
   color: var(--dash-text-strong);
+  caret-color: var(--dash-text-strong);
   box-shadow: var(--dash-shadow-sm);
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }

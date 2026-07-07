@@ -5,24 +5,23 @@ import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
  ArrowRight,
- Banknote,
  Building2,
- Coins,
- FileSignature,
- FileStack,
  FileText,
  Landmark,
  LayoutGrid,
- PieChart,
- BarChart3,
- Receipt,
- Scale,
  Users,
- Wallet,
 } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardInlineLoading } from '@/components/dashboard/DashboardAsyncState';
+import { useDashboardNavBuildOptions } from '@/hooks/use-dashboard-nav-build-options';
+import { getDomainNavModuleItems } from '@/lib/dashboard-domain-nav';
+
+const FINANCE_HIGHLIGHT_HREFS = new Set([
+  '/dashboard/accounts/invoices',
+  '/dashboard/accounts/invoicing-setup',
+  '/dashboard/accounts/financial-reports',
+]);
 
 type ClientRow = {
  id: string;
@@ -39,125 +38,63 @@ type InvoiceRow = {
  currency: string;
 };
 
-const MODULES: {
- href: string;
- title: string;
- desc: string;
- icon: React.ComponentType<{ className?: string }>;
- highlight?: boolean;
-}[] = [
- {
- href: '/dashboard/accounts/clients',
- title: 'Billing clients',
- desc: 'Parties and entities you invoice',
- icon: Building2,
- },
- {
- href: '/dashboard/accounts/invoices',
- title: 'Invoices',
- desc: 'Multi-line, VAT, PDFs & numbering',
- icon: FileText,
- highlight: true,
- },
- {
- href: '/dashboard/accounts/invoicing-setup',
- title: 'Invoicing setup',
- desc: 'Logo, letterhead, VAT PIN & bank details',
- icon: FileSignature,
- highlight: true,
- },
- {
- href: '/dashboard/accounts/receipts',
- title: 'Receipts & allocations',
- desc: 'Client payments → invoices',
- icon: Receipt,
- },
- {
- href: '/dashboard/accounts/payment-accounts',
- title: 'Payment accounts',
- desc: 'Bank details shown on invoice PDFs',
- icon: Banknote,
- },
- {
- href: '/dashboard/people/contracts',
- title: 'Contracts',
- desc: 'Reminders & managers',
- icon: FileSignature,
- },
- {
- href: '/dashboard/accounts/vendors',
- title: 'Vendors',
- desc: 'Creditor profiles & spend history',
- icon: Wallet,
- },
- {
- href: '/dashboard/accounts/vendor-bills',
- title: 'Vendor bills',
- desc: 'AP lines, VAT & payment allocations',
- icon: FileStack,
- },
- {
- href: '/dashboard/accounts/statements',
- title: 'Statements',
- desc: 'Debtors & creditors views',
- icon: Scale,
- },
- {
- href: '/dashboard/accounts/expenses',
- title: 'Expense claims',
- desc: 'Submit & approve reimbursements',
- icon: Receipt,
- },
- {
- href: '/dashboard/accounts/budgets',
- title: 'Budgets',
- desc: 'Departmental budget tracking',
- icon: PieChart,
- },
- {
- href: '/dashboard/accounts/petty-cash',
- title: 'Petty cash',
- desc: 'Float management & disbursements',
- icon: Coins,
- },
- {
- href: '/dashboard/accounts/financial-reports',
- title: 'Financial reports',
- desc: 'P&L, revenue & expense analysis',
- icon: BarChart3,
- highlight: true,
- },
-];
-
 export default function AccountsOverviewContent() {
+ const navOptions = useDashboardNavBuildOptions();
+ const modules = useMemo(
+   () =>
+     getDomainNavModuleItems(navOptions, 'finance').map((item) => ({
+       href: item.href,
+       title: item.label,
+       desc: item.sectionLabel,
+       icon: item.icon,
+       highlight: FINANCE_HIGHLIGHT_HREFS.has(item.href),
+     })),
+   [navOptions],
+ );
  const [clients, setClients] = useState<ClientRow[] | null>(null);
  const [invoices, setInvoices] = useState<InvoiceRow[] | null>(null);
  const [loading, setLoading] = useState(true);
- const [error, setError] = useState<string | null>(null);
+ const [clientsError, setClientsError] = useState<string | null>(null);
+ const [invoicesError, setInvoicesError] = useState<string | null>(null);
 
  const load = useCallback(() => {
  setLoading(true);
- setError(null);
- Promise.all([
- fetch('/api/accounts/clients').then(async (r) => {
+ setClientsError(null);
+ setInvoicesError(null);
+ Promise.allSettled([
+ fetch('/api/accounts/clients', { credentials: 'include' }).then(async (r) => {
  const data = await r.json().catch(() => ({}));
  if (!r.ok) throw new Error(data.error || 'Failed to load clients');
  return data as { clients?: ClientRow[] };
  }),
- fetch('/api/accounts/invoices').then(async (r) => {
+ fetch('/api/accounts/invoices', { credentials: 'include' }).then(async (r) => {
  const data = await r.json().catch(() => ({}));
  if (!r.ok) throw new Error(data.error || 'Failed to load invoices');
  return data as { invoices?: InvoiceRow[] };
  }),
  ])
- .then(([c, inv]) => {
- setClients(Array.isArray(c.clients) ? c.clients : []);
- setInvoices(Array.isArray(inv.invoices) ? inv.invoices : []);
- })
- .catch((e) => {
- setError(e instanceof Error ? e.message : 'Failed to load Accounts data');
+ .then(([clientsResult, invoicesResult]) => {
+ if (clientsResult.status === 'fulfilled') {
+ setClients(Array.isArray(clientsResult.value.clients) ? clientsResult.value.clients : []);
+ } else {
  setClients([]);
+ setClientsError(
+ clientsResult.reason instanceof Error
+ ? clientsResult.reason.message
+ : 'Failed to load clients',
+ );
+ }
+
+ if (invoicesResult.status === 'fulfilled') {
+ setInvoices(Array.isArray(invoicesResult.value.invoices) ? invoicesResult.value.invoices : []);
+ } else {
  setInvoices([]);
+ setInvoicesError(
+ invoicesResult.reason instanceof Error
+ ? invoicesResult.reason.message
+ : 'Failed to load invoices',
+ );
+ }
  })
  .finally(() => setLoading(false));
  }, []);
@@ -216,16 +153,22 @@ export default function AccountsOverviewContent() {
  return <DashboardInlineLoading label="Loading accounts overview…" />;
  }
 
- if (error) {
+ const blockingError =
+ clientsError && invoicesError ? `${clientsError} ${invoicesError}` : null;
+
+ if (blockingError) {
  return (
  <div className="w-full min-w-0 space-y-4">
       <DashboardPageHeader
         eyebrow="Finance & payroll"
         title="Accounts"
-        description="Manage billing clients, invoices, receipts, contracts, vendors, statements, and payroll from one place."
+        description="Manage billing clients, invoices, receipts, vendors, statements, and payroll from one place."
       />
  <div className="rounded-2xl border border-red-100 bg-red-50/80 p-5 text-red-800 text-sm max-w-2xl">
- {error}
+ {blockingError}
+ <button type="button" onClick={load} className="mt-3 font-medium text-red-900 underline">
+ Retry
+ </button>
  </div>
  </div>
  );
@@ -236,12 +179,22 @@ export default function AccountsOverviewContent() {
       <DashboardPageHeader
         eyebrow="Finance & payroll"
         title="Accounts"
-        description="Manage billing clients, invoices, receipts, contracts, vendors, statements, and payroll from one place."
+        description="Manage billing clients, invoices, receipts, vendors, statements, and payroll from one place."
         actions={[
           { href: '/dashboard/accounts/clients', label: 'Billing clients', icon: Building2, variant: 'primary' },
           { href: '/dashboard/accounts/invoices', label: 'All invoices', icon: LayoutGrid, variant: 'secondary' },
         ]}
       />
+
+ {clientsError || invoicesError ? (
+ <div className="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
+ {clientsError ? <p>{clientsError}</p> : null}
+ {invoicesError ? <p>{invoicesError}</p> : null}
+ <button type="button" onClick={load} className="mt-2 font-medium text-amber-950 underline">
+ Retry
+ </button>
+ </div>
+ ) : null}
 
  {/* Snapshot */}
  <section className="space-y-4">
@@ -270,7 +223,7 @@ export default function AccountsOverviewContent() {
  </div>
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
- {MODULES.map((tile, idx) => {
+ {modules.map((tile, idx) => {
  const Icon = tile.icon;
  return (
  <motion.div

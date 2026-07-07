@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DASHBOARD_SURFACE_CLASS } from '@/lib/dashboard-layout';
 
 type Estimate = {
   employeeId: string;
@@ -59,7 +60,7 @@ export default function SalesCommissionsContent() {
           No active commission rule. POST to /api/sales/commissions to configure tiers.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+        <div className={`overflow-hidden ${DASHBOARD_SURFACE_CLASS} shadow-sm`}>
           <table className="min-w-full text-sm">
             <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
               <tr>

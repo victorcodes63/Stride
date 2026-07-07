@@ -10,7 +10,8 @@ import {
 } from '@/lib/modules';
 import { parseModuleAdminFlagsCookie } from '@/lib/module-cookie';
 import { parseEntitlementsCookie } from '@/lib/entitlements-cookie';
-import { isControlPlaneSyncConfigured } from '@/lib/entitlements-resolver';
+import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-flags';
+import { isControlPlaneSyncConfigured } from '@/lib/entitlements-env';
 import { isModuleGuardExempt, resolveModuleForPath } from '@/lib/module-routes';
 
 export type ModuleAccessDenied = {
@@ -48,7 +49,7 @@ export function getSubscriptionFromRequest(
     };
   }
 
-  if (isControlPlaneSyncConfigured()) {
+  if (isControlPlaneSyncConfigured() && !isDemoMode() && !isPublicDemoMode()) {
     return {
       subscribedModules: foundationalModulesOnly(),
       accountStatus: 'active',

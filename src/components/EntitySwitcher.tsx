@@ -1,10 +1,10 @@
 'use client';
 
-import { createContext, useContext, useState, useLayoutEffect, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useLayoutEffect, useEffect, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, Building2, Loader2 } from 'lucide-react';
 import { HRIS_ENTITY_COOKIE } from '@/lib/entity-constants';
-import { parseVerticalShowcasePackFromEntitySlug } from '@/lib/operating-entities';
+import { parseVerticalShowcasePackFromEntitySlug } from '@/lib/operating-entities-shared';
 import {
   useWorkspaceControl,
   WorkspaceAnchoredPopover,
@@ -106,8 +106,16 @@ function pickPreferredEntity(entities: Entity[], defaultEntityId: string): Entit
   return entities.find((e) => e.id === defaultEntityId) ?? entities[0]!;
 }
 
+function entityConfigKey(config: EntityConfigResponse | null | undefined): string {
+  if (config === undefined) return '__pending__';
+  if (!config) return '__empty__';
+  const ids = (config.entities ?? []).map((entity) => entity.id).join(',');
+  return `${config.defaultEntityId ?? ''}|${config.showSwitcher ? '1' : '0'}|${ids}`;
+}
+
 export function EntityProvider({ children, initialConfig = null }: EntityProviderProps) {
   const router = useRouter();
+  const appliedConfigKeyRef = useRef<string | null>(null);
   const [entities, setEntities] = useState<Entity[]>(() => {
     if (initialConfig?.entities?.length) return initialConfig.entities;
     return [FALLBACK_ENTITY];
@@ -122,15 +130,19 @@ export function EntityProvider({ children, initialConfig = null }: EntityProvide
   });
 
   useEffect(() => {
+    const configKey = entityConfigKey(initialConfig);
+    if (appliedConfigKeyRef.current === configKey) return;
+
     if (initialConfig !== undefined) {
       const list = initialConfig?.entities?.length ? initialConfig.entities : [FALLBACK_ENTITY];
       const defaultId = initialConfig?.defaultEntityId ?? list[0]!.id;
+      const preferred = pickPreferredEntity(list, defaultId);
       setEntities(list);
       setShowSwitcher(Boolean(initialConfig?.showSwitcher));
-      const preferred = pickPreferredEntity(list, defaultId);
       syncEntityCookie(preferred.id);
-      setActiveEntityState(preferred);
+      setActiveEntityState((prev) => (prev.id === preferred.id ? prev : preferred));
       setLoading(false);
+      appliedConfigKeyRef.current = configKey;
       return;
     }
 
@@ -138,15 +150,17 @@ export function EntityProvider({ children, initialConfig = null }: EntityProvide
     setEntities([FALLBACK_ENTITY]);
     setShowSwitcher(false);
     setLoading(true);
+    appliedConfigKeyRef.current = configKey;
   }, [initialConfig]);
 
   useLayoutEffect(() => {
     if (loading || entities.length === 0) return;
-    const preferred = pickPreferredEntity(entities, entities[0]!.id);
+    const defaultId = entities[0]!.id;
+    const preferred = pickPreferredEntity(entities, defaultId);
     const previousCookie = readCookieEntityId();
     syncEntityCookie(preferred.id);
     setActiveEntityState((prev) => (prev.id === preferred.id ? prev : preferred));
-    if (previousCookie !== preferred.id) {
+    if (previousCookie && previousCookie !== preferred.id) {
       router.refresh();
     }
   }, [loading, entities, router]);

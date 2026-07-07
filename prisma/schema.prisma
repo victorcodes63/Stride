@@ -184,6 +184,7 @@ model OutsourcingClient {
   constructionPlantAssets    ConstructionPlantAsset[]
   constructionSubcontractors ConstructionSubcontractor[]
   rateCards                  OutsourcingRateCard[]
+  jobs                       Job[]
 
   @@unique([organizationId, entityCode])
   @@index([name])
@@ -1641,11 +1642,14 @@ model Job {
   applicationStartAt     DateTime? // when null, job is open immediately; when set, only visible/apply after this time
   applicationDeadline    DateTime?
   clientId               String?
+  /// OUT-06: RPO jobs scoped to an end-client workforce
+  outsourcingClientId    String?
   concealCompany         Boolean   @default(false) // when true, job board shows "Confidential" instead of company name
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
   client               Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  outsourcingClient    OutsourcingClient?       @relation(fields: [outsourcingClientId], references: [id], onDelete: SetNull)
   applications         Application[]
   scheduleBreaks       InterviewScheduleBreak[]
   requisitionApprovals JobRequisitionApproval[]
@@ -1655,6 +1659,7 @@ model Job {
   @@index([category])
   @@index([location])
   @@index([clientId])
+  @@index([outsourcingClientId])
   @@index([referenceId])
   @@index([slug])
 }
@@ -2406,6 +2411,10 @@ model OrganizationAuthConfig {
   ssoEnforcedEss       Boolean  @default(false)
   jitProvisioning      Boolean  @default(false)
   lockedMsTenantId     String?
+  /// AUTH-09 — SAML IdP metadata URL (enterprise; activation via Raven ops).
+  samlIdpMetadataUrl   String?
+  samlEnabledStaff     Boolean  @default(false)
+  samlEnabledEss       Boolean  @default(false)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

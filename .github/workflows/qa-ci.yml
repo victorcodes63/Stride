@@ -1,0 +1,114 @@
+name: QA CI (RAV-280/281/284)
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  qa-gates:
+    name: Unit + isolation + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: QA CI (critical tests + static isolation)
+        env:
+          QA_CI_SKIP_BUILD: '1'
+        run: npm run qa:ci
+
+  qa-live-db:
+    name: RLS + cross-tenant (live DB)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Live DB isolation tests
+        if: ${{ secrets.DATABASE_URL != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+        run: |
+          npm run test:rls
+          npm run test:cross-tenant
+
+  qa-build:
+    name: Production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  qa-e2e:
+    name: Playwright E2E (credentialed)
+    runs-on: ubuntu-latest
+    if: ${{ secrets.E2E_DEMO_EMAIL != '' }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Playwright E2E
+        env:
+          QA_CI_E2E: '1'
+          E2E_APP_BASE_URL: ${{ vars.E2E_APP_BASE_URL || 'http://localhost:3000' }}
+          E2E_CP_BASE_URL: ${{ vars.E2E_CP_BASE_URL || 'http://localhost:3001' }}
+          E2E_DEMO_EMAIL: ${{ secrets.E2E_DEMO_EMAIL }}
+          E2E_DEMO_PASSWORD: ${{ secrets.E2E_DEMO_PASSWORD }}
+          E2E_ESS_EMAIL: ${{ secrets.E2E_ESS_EMAIL }}
+          E2E_ESS_PASSWORD: ${{ secrets.E2E_ESS_PASSWORD }}
+          E2E_CP_EMAIL: ${{ secrets.E2E_CP_EMAIL }}
+          E2E_CP_PASSWORD: ${{ secrets.E2E_CP_PASSWORD }}
+        run: npm run test:e2e

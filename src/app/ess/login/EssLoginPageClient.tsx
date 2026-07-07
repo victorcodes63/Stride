@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
-import type { LoginPublicConfig } from '@/lib/login-public-config';
 import { MicrosoftIcon, GoogleIcon } from '@/components/auth/OAuthBrandIcons';
 import { getOAuthStartPath, type OAuthAudience } from '@/lib/oauth-utils';
 
@@ -41,10 +40,8 @@ function useOAuthProviders(audience: OAuthAudience) {
 }
 
 export function EssLoginForm({
-  loginConfig,
   welcomeCopy,
 }: {
-  loginConfig: LoginPublicConfig;
   welcomeCopy: {
     welcomeTitle: string;
     welcomeSubtitle: string;
@@ -160,7 +157,6 @@ export function EssLoginForm({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={inputCls}
-                    placeholder="you@company.com"
                   />
                 </div>
                 <div>
@@ -176,7 +172,6 @@ export function EssLoginForm({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className={`${inputCls} pr-12`}
-                      placeholder="••••••••"
                     />
                     <button
                       type="button"

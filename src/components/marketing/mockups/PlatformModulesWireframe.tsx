@@ -8,22 +8,17 @@ import {
   Gavel,
   Landmark,
   ShoppingCart,
-  Truck,
   Users,
-  UserSquare,
 } from 'lucide-react';
 import { DEMO_PLATFORM_OVERVIEW, DEMO_TENANT } from './demo-data';
 
 const MODULE_ICONS = {
   finance: Landmark,
   'hr-payroll': Users,
-  'legal-documents': Gavel,
+  legal: Gavel,
   procurement: ShoppingCart,
-  'admin-operations': Building2,
+  admin: Building2,
   projects: ClipboardList,
-  'fleet-logistics': Truck,
-  'hr-outsourcing': UserSquare,
-  sales: Briefcase,
 } as const;
 
 const SNAPSHOT_TONE: Record<
@@ -48,7 +43,7 @@ export function PlatformModulesWireframe({ className = '' }: PlatformModulesWire
     <div
       className={`flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#12100E] text-left ${className}`.trim()}
       role="img"
-      aria-label="Stride platform overview — nine product areas on one login with live business snapshot"
+      aria-label="Stride platform overview — six modules on one login with live business snapshot"
     >
       {/* Greeting */}
       <div
@@ -75,7 +70,7 @@ export function PlatformModulesWireframe({ className = '' }: PlatformModulesWire
                 What needs you today, by module
               </p>
             </div>
-            <span className="hidden text-[9px] text-white/35 sm:inline">9 product areas</span>
+            <span className="hidden text-[9px] text-white/35 sm:inline">6 modules live</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">
             {modules.map((mod) => {

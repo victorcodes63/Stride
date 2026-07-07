@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssEmptyState } from '@/components/ess/EssUi';
-import { ratingLabel } from '@/lib/performance/service';
+import { ratingLabel } from '@/lib/performance/rating-label';
 
 type EssPerformancePayload = {
   cycle: { id: string; name: string; periodStart: string; periodEnd: string } | null;

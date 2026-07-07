@@ -27,7 +27,12 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const clientId = await resolvePrimaryWorkspaceClientId(prisma, null, request, ctx.organizationId);
+    const clientId = await resolvePrimaryWorkspaceClientId(
+      prisma,
+      request.nextUrl.searchParams.get('clientId'),
+      request,
+      ctx.organizationId,
+    );
 
     const existing = await ctx.run((tx) =>
       tx.leaveApplication.findFirst({

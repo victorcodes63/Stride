@@ -23,4 +23,18 @@ describe('resolveDomainAccess', () => {
       resolveDomainAccess('finance', modules({ accounts: true }), 'growth'),
     ).toBe('active');
   });
+
+  it('locks projects when projects key is not entitled', () => {
+    expect(resolveDomainAccess('projects', modules(), 'growth')).toBe('locked');
+    expect(
+      resolveDomainAccess('projects', modules({ projects: true }), 'growth'),
+    ).toBe('active');
+  });
+
+  it('locks HR outsourcing when outsourcing is not entitled', () => {
+    expect(resolveDomainAccess('hr-outsourcing', modules(), 'growth')).toBe('locked');
+    expect(
+      resolveDomainAccess('hr-outsourcing', modules({ outsourcing: true }), 'growth'),
+    ).toBe('active');
+  });
 });

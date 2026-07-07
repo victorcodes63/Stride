@@ -5,303 +5,28 @@
  *
  * Company Setup `moduleAdminFlags` can hide licensed modules without redeploying.
  * Effective visibility = licensed (env) AND enabled (admin).
+ *
+ * Module keys and catalog rows are derived from module-registry.ts (MOD-01).
  */
 
 import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-flags';
+import { MODULE_DEFINITIONS, type ModuleKey, type ModulePhase } from '@/lib/module-catalog';
+import {
+  buildModuleUiGroups,
+  MODULE_UI_GROUPS,
+  type ModuleUiGroup,
+} from '@/lib/module-registry';
 
-export type ModuleKey =
-  | 'core'
-  | 'leave'
-  | 'time'
-  | 'payroll'
-  | 'ats'
-  | 'performance'
-  | 'hse'
-  | 'accounts'
-  | 'disciplinary'
-  | 'reports'
-  | 'assets'
-  | 'fleet'
-  | 'sacco'
-  | 'healthcare'
-  | 'energy'
-  | 'construction'
-  | 'ess'
-  | 'communications'
-  | 'training'
-  | 'documents'
-  | 'procurement'
-  | 'legal'
-  | 'sales';
-
-export type ModulePhase = 1 | 2 | 3;
-
-export type ModuleDefinition = {
-  key: ModuleKey;
-  label: string;
-  envVar: string;
-  description: string;
-  /** Roadmap phase (Stride platform). */
-  phase: ModulePhase;
-  /** Independently billable add-on (platform base includes core). */
-  billable: boolean;
-  /** When false, the module cannot be disabled (always on). */
-  canDisable: boolean;
-};
-
-export const MODULE_DEFINITIONS: ModuleDefinition[] = [
-  {
-    key: 'core',
-    label: 'People (HR Core)',
-    envVar: 'MODULE_CORE',
-    description: 'Employee directory, org chart, profiles, documents, and ESS — the platform base.',
-    phase: 1,
-    billable: false,
-    canDisable: false,
-  },
-  {
-    key: 'leave',
-    label: 'Leave',
-    envVar: 'MODULE_LEAVE',
-    description: 'Leave policies, balances, approvals, and statutory leave pay.',
-    phase: 1,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'time',
-    label: 'Time & Attendance',
-    envVar: 'MODULE_TIME',
-    description: 'Rota, attendance, biometrics, and shift scheduling.',
-    phase: 1,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'payroll',
-    label: 'Payroll',
-    envVar: 'MODULE_PAYROLL',
-    description: 'KE/UG statutory payroll, M-Pesa disbursement, payslips, and bank export.',
-    phase: 1,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'ats',
-    label: 'Talent & Recruitment',
-    envVar: 'MODULE_ATS',
-    description: 'Careers site, ATS, onboarding, and native psychometric assessments (AssessIQ).',
-    phase: 2,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'performance',
-    label: 'Performance',
-    envVar: 'MODULE_PERFORMANCE',
-    description: 'Goals, review cycles, and performance management.',
-    phase: 2,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'hse',
-    label: 'HSE',
-    envVar: 'MODULE_HSE',
-    description: 'Health, safety, and environment incident tracking.',
-    phase: 3,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'accounts',
-    label: 'Finance',
-    envVar: 'MODULE_ACCOUNTS',
-    description: 'Expenses, approvals, reimbursements, invoicing, and core GL hooks.',
-    phase: 1,
-    billable: false,
-    canDisable: false,
-  },
-  {
-    key: 'disciplinary',
-    label: 'Disciplinary & Grievance',
-    envVar: 'MODULE_DISCIPLINARY',
-    description: 'Disciplinary cases and grievance workflows.',
-    phase: 1,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'reports',
-    label: 'Reports & Analytics',
-    envVar: 'MODULE_REPORTS',
-    description: 'Workforce reports and executive analytics.',
-    phase: 1,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'assets',
-    label: 'Asset Manager',
-    envVar: 'MODULE_ASSETS',
-    description: 'Company asset registry, assignments, and lifecycle tracking.',
-    phase: 3,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'fleet',
-    label: 'Fleet & Logistics',
-    envVar: 'MODULE_FLEET',
-    description: 'Transport orders, trip workflow, fleet register, and logistics operations.',
-    phase: 3,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'sacco',
-    label: 'SACCO',
-    envVar: 'MODULE_SACCO',
-    description: 'Member ledger, BOSA/FOSA accounts, dividend runs, and SASRA reporting templates.',
-    phase: 3,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'healthcare',
-    label: 'Healthcare',
-    envVar: 'MODULE_HEALTHCARE',
-    description: 'Clinical rota rules, licence gates on shifts, and NHIF/SHIF compliance hooks.',
-    phase: 3,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'energy',
-    label: 'Energy',
-    envVar: 'MODULE_ENERGY',
-    description: 'Permit tracking, site register, and multi-entity HSE rollup for energy operators.',
-    phase: 3,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'construction',
-    label: 'Construction',
-    envVar: 'MODULE_CONSTRUCTION',
-    description: 'Site hierarchy, plant asset tracking, and subcontractor accounts payable.',
-    phase: 3,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'ess',
-    label: 'Employee Self-Service',
-    envVar: 'MODULE_ESS',
-    description: 'Employee portal for leave, payslips, attendance, and cases.',
-    phase: 1,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'communications',
-    label: 'Communications',
-    envVar: 'MODULE_COMMUNICATIONS',
-    description: 'Company announcements, notices, and internal communications.',
-    phase: 2,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'training',
-    label: 'Training & Development',
-    envVar: 'MODULE_TRAINING',
-    description: 'Training programs, enrollments, org chart, and skill development.',
-    phase: 2,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'documents',
-    label: 'Document Management',
-    envVar: 'MODULE_DOCUMENTS',
-    description: 'Company policies, SOPs, handbooks, and shared documents.',
-    phase: 2,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'procurement',
-    label: 'Procurement',
-    envVar: 'MODULE_PROCUREMENT',
-    description: 'Purchase requests, LPOs, vendor spend, and procurement workflows.',
-    phase: 2,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'legal',
-    label: 'Legal & Compliance',
-    envVar: 'MODULE_LEGAL',
-    description: 'Contracts, credentials, obligations, and compliance tracking.',
-    phase: 2,
-    billable: true,
-    canDisable: true,
-  },
-  {
-    key: 'sales',
-    label: 'Sales Performance',
-    envVar: 'MODULE_SALES',
-    description: 'Sales quotas, pipeline, attainment KPIs, and commission estimates for revenue roles.',
-    phase: 2,
-    billable: true,
-    canDisable: true,
-  },
-];
+export type { ModuleKey, ModulePhase };
+export type { ModuleDefinition } from '@/lib/module-catalog';
+export { MODULE_DEFINITIONS, buildModuleUiGroups, MODULE_UI_GROUPS, type ModuleUiGroup };
 
 /** Cookie synced from deployment config so middleware can enforce admin module toggles. */
 export const MODULE_ADMIN_COOKIE = 'hris_module_prefs';
 
-export type ModuleUiGroup = {
-  id: string;
-  label: string;
-  description: string;
-  keys: ModuleKey[];
-  /** Core HR — toggles disabled in UI */
-  locked?: boolean;
-};
-
-export const MODULE_UI_GROUPS: ModuleUiGroup[] = [
-  {
-    id: 'core',
-    label: 'Platform base',
-    description: 'HR people data and Finance — included on every plan.',
-    keys: ['core', 'accounts'],
-    locked: true,
-  },
-  {
-    id: 'people-ops',
-    label: 'Phase 1 — People & operations',
-    description: 'Leave, time, payroll, and day-to-day workforce workflows.',
-    keys: ['leave', 'time', 'payroll', 'performance', 'sales', 'disciplinary', 'ess', 'reports'],
-  },
-  {
-    id: 'workplace',
-    label: 'Phase 2 — Workplace',
-    description: 'Communications, training, documents, procurement, and legal.',
-    keys: ['communications', 'training', 'documents', 'procurement', 'legal'],
-  },
-  {
-    id: 'extended',
-    label: 'Phase 2–3 — Expansion modules',
-    description: 'Talent, safety, assets, and vertical engines.',
-    keys: ['ats', 'hse', 'assets', 'fleet', 'sacco', 'healthcare', 'energy', 'construction'],
-  },
-];
-
 const MODULE_BY_KEY = Object.fromEntries(MODULE_DEFINITIONS.map((m) => [m.key, m])) as Record<
   ModuleKey,
-  ModuleDefinition
+  (typeof MODULE_DEFINITIONS)[number]
 >;
 
 function parseBoolean(v: string | undefined, defaultValue: boolean): boolean {
@@ -358,6 +83,11 @@ export function hrEssentialsModuleAdminFlags(
     healthcare: false,
     energy: false,
     construction: false,
+    sales: false,
+    outsourcing: false,
+    projects: false,
+    operations: false,
+    assessments: false,
   };
 }
 
@@ -487,7 +217,7 @@ export function listEnabledModules(): Record<ModuleKey, boolean> {
   return listLicensedModules();
 }
 
-export function getModuleDefinition(key: ModuleKey): ModuleDefinition {
+export function getModuleDefinition(key: ModuleKey): (typeof MODULE_DEFINITIONS)[number] {
   return MODULE_BY_KEY[key];
 }
 

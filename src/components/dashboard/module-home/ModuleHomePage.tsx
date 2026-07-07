@@ -8,7 +8,9 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { NavReadinessBadge } from '@/components/dashboard/NavReadinessBadge';
 import { getDashboardModuleDomain } from '@/lib/dashboard-module-domains';
-import type { ModuleHomeMeta } from '@/lib/dashboard-module-homes';
+import type { ModuleHomeMeta, ModuleHomeWorkspace } from '@/lib/dashboard-module-homes';
+import { ModuleKpiSnapshotCard } from '@/components/dashboard/overview/ModuleKpiSnapshotCard';
+import type { CrossModuleKpi } from '@/lib/dashboard-overview-personalization';
 import type { DashboardStatTone } from '@/lib/platform-swatches';
 import type { NavReadiness } from '@/lib/dashboard-nav-readiness';
 
@@ -23,7 +25,9 @@ export type ModuleHomeStat = {
 
 export type ModuleHomePageProps = {
   meta: ModuleHomeMeta;
+  workspaces: ModuleHomeWorkspace[];
   stats?: ModuleHomeStat[];
+  snapshotKpi?: CrossModuleKpi | null;
   loading?: boolean;
   headerActions?: {
     href: string;
@@ -89,7 +93,14 @@ function WorkspacePanel({
   );
 }
 
-export function ModuleHomePage({ meta, stats = [], loading = false, headerActions }: ModuleHomePageProps) {
+export function ModuleHomePage({
+  meta,
+  workspaces,
+  stats = [],
+  snapshotKpi = null,
+  loading = false,
+  headerActions,
+}: ModuleHomePageProps) {
   const domain = getDashboardModuleDomain(meta.domainId);
   const hasRoadmap = Boolean(meta.plannedBullets?.length);
 
@@ -141,12 +152,26 @@ export function ModuleHomePage({ meta, stats = [], loading = false, headerAction
         </DashboardPageSection>
       ) : null}
 
+      {snapshotKpi ? (
+        <DashboardPageSection title="Module snapshot" description="Trend-style signals for this module.">
+          <ModuleKpiSnapshotCard
+            label={snapshotKpi.label}
+            value={snapshotKpi.value}
+            note={snapshotKpi.note}
+            icon={snapshotKpi.icon}
+            href={snapshotKpi.href}
+            chartSegments={snapshotKpi.chartSegments}
+            chartPlaceholder={snapshotKpi.chartPlaceholder}
+          />
+        </DashboardPageSection>
+      ) : null}
+
       <DashboardPageSection
         title="Workspaces"
         description="Jump into the areas you manage in this module."
       >
-        <div className={`grid gap-4 ${workspaceGridClass(meta.workspaces.length)}`}>
-          {meta.workspaces.map((workspace) => (
+        <div className={`grid gap-4 ${workspaceGridClass(workspaces.length)}`}>
+          {workspaces.map((workspace) => (
             <WorkspacePanel key={workspace.title} title={workspace.title} links={workspace.links} />
           ))}
         </div>

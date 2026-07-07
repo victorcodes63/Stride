@@ -2,14 +2,8 @@
 
 import {
   buildCoreModulesFromRegistry,
-  MARKETING_PRODUCT_AREAS,
-  MARKETING_AREA_MODULE_KEYS,
-  MARKETING_MODULE_READINESS,
-  type IndustryPackModuleKey,
-  type MarketingModuleReadiness,
+  buildPlatformModulesFromRegistry,
 } from '@/lib/marketing-module-map';
-
-export type { MarketingModuleReadiness };
 
 export const MARKETING_ROUTES = {
   home: '/',
@@ -359,6 +353,8 @@ export const TRUST_CLIENTS = [
   "St. Paul's",
 ] as const;
 
+export type MarketingModuleReadiness = 'live' | 'partial' | 'roadmap';
+
 export const MARKETING_READINESS_META: Record<
   MarketingModuleReadiness,
   { label: string; title: string; badgeClass: string }
@@ -382,16 +378,8 @@ export const MARKETING_READINESS_META: Record<
 
 export const CORE_MODULES = buildCoreModulesFromRegistry();
 
-/** Rich module detail for /platform — derived from marketing-module-map (MKT-01). */
-export const PLATFORM_MODULES = MARKETING_PRODUCT_AREAS.map((area) => ({
-  num: area.num,
-  name: area.name,
-  headline: area.headline,
-  description: area.description,
-  features: area.features,
-  readiness: area.readiness,
-  modules: area.modules,
-}));
+/** Rich module detail for /platform — prospective-client depth beyond homepage cards. */
+export const PLATFORM_MODULES = buildPlatformModulesFromRegistry();
 
 export const PLATFORM_PAGE = {
   hero: {
@@ -400,7 +388,7 @@ export const PLATFORM_PAGE = {
     description:
       'Stride is a horizontal operations platform — not just HR software. Payroll is the wedge every business needs, but finance, procurement, documents, projects and admin share the same org chart, employee records and approval flows.',
     highlights: [
-      'Nine product areas on one login — HR, finance, fleet, outsourcing, sales and more',
+      'Six core modules on one login — all live in production',
       'Kenyan payroll, M-Pesa disbursements and statutory filing on the core',
       'Enable modules as you grow — no forced bundles or shelfware',
     ],
@@ -446,9 +434,9 @@ export const PLATFORM_WORKFLOWS = [
   },
   {
     title: 'Request to pay',
-    status: 'partial' as const,
+    status: 'roadmap' as const,
     flow: 'Purchase request → approval → LPO → GRN → vendor payment',
-    body: 'Purchase requests and approvals are live — LPO generation, goods received notes and finance matching are still on the roadmap.',
+    body: 'Procurement is on the roadmap — the intended flow is approvals feeding finance when goods are received, with a full audit trail from who asked to who paid.',
   },
   {
     title: 'Trip to invoice',
@@ -548,7 +536,7 @@ export const PLATFORM_FAQ = [
   {
     question: 'What modules do we sign up with?',
     answer:
-      'Every Stride account includes two sign-up areas: HR & Payroll and Finance. Switch on fleet, outsourcing, sales, procurement, legal, admin, projects and industry packs when your operations need them — one login, one data layer throughout.',
+      'Every Stride account includes two sign-up modules: HR & Payroll and Finance. Switch on procurement, legal, admin, projects and vertical packs when your operations need them — one login, one data layer throughout.',
   },
   {
     question: 'Which modules are included in each pricing tier?',
@@ -568,74 +556,87 @@ export const PLATFORM_FAQ = [
   {
     question: 'What industry verticals are available today?',
     answer:
-      'Logistics & Cargo (fleet workflow) is live today. SACCOs, Healthcare, Energy and Construction industry packs are on the roadmap — each layers on the same Stride core when they ship.',
+      'HR Consultancy, Logistics & Cargo, SACCOs, Healthcare, Oil & Gas / Energy, and Construction are live vertical packs today — each with a demo pack on the platform.',
   },
 ] as const;
 
-export type IndustrySector = 'logistics' | 'saccos' | 'healthcare' | 'energy' | 'construction';
+export type IndustrySector =
+  | 'hr_consultancy'
+  | 'logistics'
+  | 'saccos'
+  | 'healthcare'
+  | 'energy'
+  | 'construction';
 
 export const INDUSTRY_VERTICALS: {
   id: IndustrySector;
   name: string;
   status: 'available' | 'coming_soon';
-  moduleKey: IndustryPackModuleKey;
   description: string;
   features: string[];
   href: string;
 }[] = [
   {
+    id: 'hr_consultancy',
+    name: 'HR Consultancy',
+    status: 'available',
+    description:
+      'Careers site, recruitment ATS, built-in AssessIQ candidate assessments, and Kenya-compliant payroll for client workforces — built for boutique HR firms and outsourcing operators.',
+    features: [
+      'Careers site & job posts',
+      'Applicant tracking pipeline',
+      'AssessIQ skills & aptitude assessments',
+      'Interview scheduling',
+      'Client payroll & finance',
+    ],
+    href: '/industries#hr-consultancy',
+  },
+  {
     id: 'logistics',
     name: 'Logistics & Cargo',
     status: 'available',
-    moduleKey: 'fleet',
     description:
-      'Order intake, route and trip planning, vehicle and driver allocation, pre-trip compliance, in-transit monitoring, proof of delivery, settlement and billing — the full fleet workflow on one platform.',
+      'Order intake, route & trip planning, vehicle and driver allocation, pre-trip compliance, in-transit monitoring, proof of delivery, settlement and billing — the full fleet workflow on one platform.',
     features: [
-      'Transport orders and trip board',
-      'Vehicle and driver registers',
-      'Live tracking and compliance gates',
-      'Settlements and client billing',
+      'Fleet & vehicle register',
+      'Route & trip planning',
+      'Driver records & compliance',
+      'Fuel & maintenance logs',
+      'Delivery tracking & POD',
     ],
     href: '/industries/logistics',
   },
   {
     id: 'saccos',
     name: 'SACCOs',
-    status: 'coming_soon',
-    moduleKey: 'sacco',
+    status: 'available',
     description:
-      'Member ledger, BOSA/FOSA accounts, dividend runs and SASRA reporting templates — built for regulated SACCO operators.',
-    features: ['Member management', 'BOSA & FOSA accounts', 'Dividend runs', 'SASRA reporting'],
+      'Member-trusted payroll, workforce operations and board-ready reporting — our beachhead vertical with a live demo pack.',
+    features: ['Member management', 'Dividends', 'BOSA / FOSA', 'Regulatory reporting'],
     href: '/industries/saccos',
   },
   {
     id: 'healthcare',
     name: 'Healthcare',
-    status: 'coming_soon',
-    moduleKey: 'healthcare',
-    description:
-      'Clinical rota rules, licence gates on shifts, and NHIF/SHIF compliance hooks for hospital and clinic operators.',
-    features: ['Ward rules', 'Clinical rota', 'Licence tracking', 'NHIF / SHIF payroll'],
+    status: 'available',
+    description: 'Rota, biometric clock-in, and shift scheduling for clinical and non-clinical teams.',
+    features: ['Shift rota', 'Biometric clock-in', 'Licence tracking', 'NHIF-ready payroll'],
     href: '/industries/healthcare',
   },
   {
     id: 'energy',
     name: 'Oil & Gas / Energy',
-    status: 'coming_soon',
-    moduleKey: 'energy',
-    description:
-      'Permit tracking, site register and multi-entity HSE rollup for energy operators.',
-    features: ['Site register', 'Permit tracking', 'HSE rollup', 'Multi-entity'],
+    status: 'available',
+    description: 'HSE and compliance, incident reporting, and multi-entity operations for energy operators.',
+    features: ['HSE & compliance', 'Incident reporting', 'Multi-entity', 'Permit tracking'],
     href: '/industries/energy',
   },
   {
     id: 'construction',
     name: 'Construction',
-    status: 'coming_soon',
-    moduleKey: 'construction',
-    description:
-      'Site hierarchy, plant asset tracking and subcontractor accounts payable for contractors.',
-    features: ['Site hierarchy', 'Plant assets', 'Subcontractors', 'Project budgets'],
+    status: 'available',
+    description: 'Site and project management, plant tracking, and subcontractor workflows.',
+    features: ['Site management', 'Asset / plant tracking', 'Subcontractors', 'Project budgets'],
     href: '/industries/construction',
   },
 ];
@@ -664,7 +665,7 @@ export const PRICING_TIERS = [
     unit: 'per month · up to 100 staff',
     description: 'For growing organisations running multiple functions across one or more entities.',
     features: [
-      '4+ product areas included',
+      '4 core modules included',
       'Up to 100 employees',
       'Multi-entity support',
       'Advanced approvals & workflows',
@@ -680,7 +681,7 @@ export const PRICING_TIERS = [
     unit: '100+ staff · multi-entity',
     description: 'For SACCOs and regulated mid-market needing the full platform and bespoke rollout.',
     features: [
-      'Nine product areas included',
+      'All six modules',
       'Unlimited employees',
       'Dedicated success manager',
       'Custom integrations & SLAs',
@@ -716,94 +717,87 @@ const add: PricingCompareCell = { type: 'mark', value: 'addon' };
 const none: PricingCompareCell = { type: 'mark', value: 'none' };
 const txt = (value: string): PricingCompareCell => ({ type: 'text', value });
 
-/** Per-module tier marks — honest defaults aligned with sign-up modules (RAV-163). */
-function pricingTierForModule(key: string): Pick<PricingCompareRow, 'starter' | 'growth' | 'enterprise'> {
-  const signUpHr = new Set([
-    'core',
-    'ess',
-    'leave',
-    'time',
-    'payroll',
-    'disciplinary',
-    'reports',
-    'communications',
-  ]);
-  const growthHr = new Set(['ats', 'assessments', 'performance', 'training']);
-  const partialHorizontal = new Set(['accounts', 'procurement', 'legal', 'documents', 'assets', 'hse', 'operations']);
-  const roadmap = new Set(['projects', 'sales']);
-  const verticalLive = new Set(['fleet', 'outsourcing']);
-
-  if (signUpHr.has(key)) return { starter: inc, growth: inc, enterprise: inc };
-  if (key === 'accounts') return { starter: inc, growth: inc, enterprise: inc };
-  if (growthHr.has(key)) return { starter: add, growth: inc, enterprise: inc };
-  if (partialHorizontal.has(key)) return { starter: add, growth: inc, enterprise: inc };
-  if (roadmap.has(key)) return { starter: none, growth: add, enterprise: inc };
-  if (verticalLive.has(key)) return { starter: add, growth: add, enterprise: inc };
-  return { starter: none, growth: add, enterprise: inc };
-}
-
-function pricingRowsForArea(
-  areaId: keyof typeof MARKETING_AREA_MODULE_KEYS,
-  title: string,
-): PricingCompareGroup {
-  const keys = MARKETING_AREA_MODULE_KEYS[areaId];
-  const area = MARKETING_PRODUCT_AREAS.find((a) => a.id === areaId);
-  return {
-    id: areaId,
-    title,
-    rows: keys.map((key) => {
-      const mod = area?.modules.find((m) => m.key === key);
-      const readiness = MARKETING_MODULE_READINESS[key];
-      const suffix =
-        readiness === 'partial' ? ' (Partial)' : readiness === 'roadmap' ? ' (Roadmap)' : '';
-      return {
-        label: `${mod?.label ?? key}${suffix}`,
-        ...pricingTierForModule(key),
-      };
-    }),
-  };
-}
-
 export const PRICING_COMPARE_GROUPS: PricingCompareGroup[] = [
-  pricingRowsForArea('hr-payroll', 'HR & Payroll'),
-  pricingRowsForArea('finance', 'Finance'),
-  pricingRowsForArea('procurement', 'Procurement'),
-  pricingRowsForArea('legal-documents', 'Legal & Documents'),
-  pricingRowsForArea('projects', 'Projects'),
-  pricingRowsForArea('admin-operations', 'Admin & Operations'),
-  pricingRowsForArea('fleet-logistics', 'Fleet & Logistics'),
-  pricingRowsForArea('hr-outsourcing', 'HR Outsourcing'),
-  pricingRowsForArea('sales', 'Sales'),
   {
-    id: 'industry-packs',
-    title: 'Industry vertical packs',
-    rows: INDUSTRY_VERTICALS.map((vertical) => {
-      const readiness =
-        vertical.status === 'available'
-          ? MARKETING_MODULE_READINESS[vertical.moduleKey]
-          : 'roadmap';
-      const suffix =
-        readiness === 'partial' ? ' (Partial)' : readiness === 'roadmap' ? ' (Coming soon)' : '';
-      const tiers =
-        vertical.status === 'available'
-          ? { starter: add, growth: txt('1 pack included'), enterprise: inc }
-          : { starter: none, growth: add, enterprise: add };
-      return {
-        label: `${vertical.name}${suffix}`,
-        ...tiers,
-      };
-    }),
+    id: 'core-hr',
+    title: 'Core HR (HRIS)',
+    rows: [
+      {
+        label: 'Records, profiles, org structure, custom fields, document storage, company branding, unique URL',
+        starter: inc,
+        growth: inc,
+        enterprise: inc,
+      },
+      { label: 'Employee self-service (ESS) + mobile PWA', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Notifications, email alerts, announcements', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Workflows & approvals', starter: txt('✓ (basic)'), growth: txt('✓ (advanced)'), enterprise: txt('✓ (advanced)') },
+      { label: 'Audit trail', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Standard + custom reporting', starter: inc, growth: inc, enterprise: inc },
+    ],
+  },
+  {
+    id: 'leave',
+    title: 'Leave & time-off',
+    rows: [
+      {
+        label: 'Policies, balances, calendar/planner, approvals',
+        starter: inc,
+        growth: inc,
+        enterprise: inc,
+      },
+    ],
+  },
+  {
+    id: 'time',
+    title: 'Time & attendance',
+    rows: [
+      { label: 'Rota/scheduling, attendance', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Biometric device integration', starter: add, growth: inc, enterprise: inc },
+      { label: 'Geo mobile clock-in', starter: add, growth: inc, enterprise: inc },
+    ],
+  },
+  {
+    id: 'payroll',
+    title: 'Payroll (Kenya)',
+    rows: [
+      { label: 'Runs, payslips, KRA/NSSF/SHIF/Housing', starter: inc, growth: inc, enterprise: inc },
+      { label: 'M-Pesa disbursements', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Multi-entity payroll', starter: none, growth: inc, enterprise: inc },
+    ],
+  },
+  {
+    id: 'finance',
+    title: 'Finance',
+    rows: [
+      {
+        label: 'Invoicing (AR), vendor bills (AP), expenses, petty cash, budgets',
+        starter: inc,
+        growth: inc,
+        enterprise: inc,
+      },
+      { label: 'Statements / ageing, M-Pesa reconciliation', starter: add, growth: inc, enterprise: inc },
+    ],
+  },
+  {
+    id: 'modules',
+    title: 'People & operations modules',
+    rows: [
+      { label: 'Disciplinary & grievance', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Recruitment / ATS — jobs, pipeline, interviews, careers', starter: add, growth: inc, enterprise: inc },
+      { label: 'Candidate assessments', starter: add, growth: inc, enterprise: inc },
+      { label: 'Performance — goals, reviews, cycles', starter: add, growth: inc, enterprise: inc },
+      { label: 'Training / learning', starter: add, growth: inc, enterprise: inc },
+      { label: 'Procurement — PR → LPO → GRN, spend', starter: add, growth: inc, enterprise: inc },
+      { label: 'Legal & compliance — contracts, credentials, obligations', starter: add, growth: inc, enterprise: inc },
+      { label: 'Communications', starter: add, growth: inc, enterprise: inc },
+    ],
   },
   {
     id: 'platform',
     title: 'Platform & scale',
     rows: [
-      {
-        label: 'Product areas on one login',
-        starter: txt('2 sign-up areas'),
-        growth: txt('up to 6 areas'),
-        enterprise: txt('all 9 areas'),
-      },
+      { label: 'Horizontal modules included', starter: txt('up to 2'), growth: txt('up to 4'), enterprise: txt('all') },
+      { label: 'Vertical packs — Fleet, Assets, HSE', starter: add, growth: txt('1 included'), enterprise: txt('full suite') },
       { label: 'Multi-entity / regional cells', starter: none, growth: inc, enterprise: inc },
       { label: 'Dedicated instance + custom integrations + SLAs', starter: none, growth: none, enterprise: inc },
       { label: 'Staff band', starter: txt('up to 25'), growth: txt('up to 100'), enterprise: txt('100+ / unlimited') },
@@ -826,7 +820,7 @@ export const FAQ_ITEMS = [
   {
     question: 'What modules do we sign up with?',
     answer:
-      'Every Stride account includes two sign-up areas: HR & Payroll and Finance. Switch on fleet, outsourcing, sales, procurement, legal, admin, projects and industry packs when your operations need them — one login, one data layer throughout.',
+      'Every Stride account includes two sign-up modules: HR & Payroll and Finance. Switch on procurement, legal, admin, projects and vertical packs when your operations need them — one login, one data layer throughout.',
   },
   {
     question: 'Do you support M-Pesa for salary disbursements?',
@@ -856,7 +850,7 @@ export const FAQ_ITEMS = [
   {
     question: 'Do you support my industry?',
     answer:
-      'The horizontal core works for any business. Logistics & Cargo is live today; SACCOs, Healthcare, Energy and Construction industry packs are on the roadmap — each layers on the same Stride core when they ship.',
+      'The horizontal core works for any business. Six vertical packs are live today — HR Consultancy, Logistics, SACCOs, Healthcare, Energy, and Construction — each layered on the same Stride core.',
   },
 ] as const;
 
@@ -864,7 +858,7 @@ export const HOW_IT_WORKS_STEPS = [
   {
     step: 'Step 01',
     title: 'Start with what you need',
-    body: 'Sign up with HR & Payroll and Finance — your two included areas. Add fleet, outsourcing, sales, procurement or industry packs when you need them. No forced bundles, no shelfware.',
+    body: 'Sign up with HR & Payroll and Finance — your two included modules. Add Procurement, Projects, Admin or vertical packs when you need them. No forced bundles, no shelfware.',
   },
   {
     step: 'Step 02',
@@ -951,7 +945,7 @@ export const ABOUT_PAGE = {
     title: 'Three principles we do not compromise on.',
   },
   stats: [
-    { value: '9', label: 'Product areas on one login' },
+    { value: '6', label: 'Core modules on one login' },
     { value: '100%', label: 'Kenyan statutory coverage — KRA, NSSF, SHIF' },
     { value: 'Days', label: 'To go live, not months' },
     { value: '2', label: 'Countries supported — Kenya & Uganda' },

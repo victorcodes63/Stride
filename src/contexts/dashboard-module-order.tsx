@@ -19,7 +19,7 @@ import {
   type DomainWithAccess,
   type SwitcherAccessContext,
 } from '@/lib/dashboard-module-domains';
-import { CANONICAL_MODULE_ORDER, orderModuleDomains } from '@/lib/dashboard-module-preferences';
+import { CANONICAL_MODULE_ORDER, orderModuleDomains } from '@/lib/dashboard-module-order-utils';
 import type { ModuleKey } from '@/lib/modules';
 import type { DeploymentTier } from '@/lib/deployment-tier';
 import { getDeploymentTier } from '@/lib/deployment-tier';

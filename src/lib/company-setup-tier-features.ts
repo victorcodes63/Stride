@@ -22,6 +22,8 @@ export type CompanySetupCapabilities = {
   canConfigureDashboardBanner: boolean;
   /** Enterprise — disable password login when SSO is configured. */
   canEnforceSso: boolean;
+  /** Enterprise — SAML IdP metadata (AUTH-09 stub; Raven activates). */
+  canConfigureSaml: boolean;
   /** Growth+ — toggle licensed modules in navigation. */
   canConfigureModuleNav: boolean;
 };
@@ -37,6 +39,7 @@ export function getCompanySetupCapabilities(_tier: DeploymentTier = 'enterprise'
     canConfigureDashboardBanner: true,
     canConfigureModuleNav: true,
     canEnforceSso: true,
+    canConfigureSaml: true,
   };
 }
 
@@ -65,6 +68,12 @@ export function enforceCompanySetupTier(
   if (!caps.canConfigureDashboardBanner) {
     next.dashboardBannerEnabled = false;
     next.dashboardBannerText = '';
+  }
+
+  if (!caps.canConfigureSaml) {
+    next.samlIdpMetadataUrl = '';
+    next.samlEnabledStaff = false;
+    next.samlEnabledEss = false;
   }
 
   if (!caps.canConfigureCareersPortal) {

@@ -18,8 +18,8 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DEFAULT_BRAND_LOGO_SRC } from '@/lib/brand-constants';
 import { isValidHexColor } from '@/lib/brand-theme';
-import type { InvoiceLetterheadMode, InvoiceSetupSettings, InvoiceSetupSnapshot } from '@/lib/invoice-setup';
-import { DEFAULT_INVOICE_PANEL_BACKGROUND } from '@/lib/invoice-setup';
+import type { InvoiceSetupSettings, InvoiceSetupSnapshot, InvoiceStyle } from '@/lib/invoice-setup';
+import { DEFAULT_INVOICE_PANEL_BACKGROUND, resolveLetterheadModeForStyle } from '@/lib/invoice-setup';
 
 const inputClass =
   'w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
@@ -125,6 +125,7 @@ function InvoicingSetupPageInner() {
     ? form!.primaryColor
     : accentFallback
   ).toLowerCase();
+  const isBranded = form?.invoiceStyle === 'branded';
 
   return (
     <DashboardPage>
@@ -133,15 +134,26 @@ function InvoicingSetupPageInner() {
         title="Invoicing setup"
         description="Everything you need for client invoices and credit notes — company identity, PDF layout, and payment details. Independent of Admin → Company setup."
         actions={
-          <a
-            href="/api/accounts/invoice-setup/sample-pdf?disposition=inline"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary inline-flex items-center gap-2"
-          >
-            <ExternalLink className="h-4 w-4" strokeWidth={1.75} />
-            Preview sample PDF
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/api/accounts/invoice-setup/sample-pdf?style=plain&disposition=inline"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              <ExternalLink className="h-4 w-4" strokeWidth={1.75} />
+              Preview plain PDF
+            </a>
+            <a
+              href="/api/accounts/invoice-setup/sample-pdf?style=branded&disposition=inline"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              <ExternalLink className="h-4 w-4" strokeWidth={1.75} />
+              Preview branded PDF
+            </a>
+          </div>
         }
       />
 
@@ -223,10 +235,10 @@ function InvoicingSetupPageInner() {
               <h2 className="text-sm font-semibold text-neutral-900">Company identity on invoices</h2>
             </div>
             <p className="text-sm text-neutral-600 mb-4">
-              Logo, legal name, address, and colours used on invoice and credit note PDFs only.
+              Logo, legal name, address, and colours used on branded invoice and credit note PDFs.
             </p>
 
-            <div className="flex flex-col lg:flex-row gap-6 mb-4">
+            <div className={`flex flex-col lg:flex-row gap-6 mb-4 ${isBranded ? '' : 'opacity-60'}`}>
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 min-w-[140px] flex items-center justify-center">
                 <img
                   src={logoPreview}
@@ -249,7 +261,7 @@ function InvoicingSetupPageInner() {
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
-                    disabled={uploading}
+                    disabled={uploading || !isBranded}
                     onClick={() => logoInputRef.current?.click()}
                     className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60"
                   >
@@ -304,7 +316,7 @@ function InvoicingSetupPageInner() {
                   onChange={(e) => setForm((f) => (f ? { ...f, contactPhone: e.target.value } : f))}
                 />
               </div>
-              <div>
+              <div className={isBranded ? '' : 'opacity-60 pointer-events-none'}>
                 <label className="block text-sm font-medium text-neutral-800 mb-1.5">PDF accent colour</label>
                 <div className="flex gap-2">
                   <input
@@ -329,7 +341,7 @@ function InvoicingSetupPageInner() {
                     : null}
                 </p>
               </div>
-              <div>
+              <div className={isBranded ? '' : 'opacity-60 pointer-events-none'}>
                 <label className="block text-sm font-medium text-neutral-800 mb-1.5">Header background</label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {[
@@ -398,21 +410,58 @@ function InvoicingSetupPageInner() {
 
           <section id="pdf-options" className="dashboard-surface p-5 shadow-sm scroll-mt-6">
             <h2 className="text-sm font-semibold text-neutral-900 mb-1">Invoice PDF options</h2>
-            <p className="text-sm text-neutral-600 mb-4">Letterhead mode and tax details for PDF output.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
-              <div>
-                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Letterhead mode</label>
-                <select
-                  className={inputClass}
-                  value={form.letterheadMode}
-                  onChange={(e) =>
-                    setForm((f) => (f ? { ...f, letterheadMode: e.target.value as InvoiceLetterheadMode } : f))
-                  }
-                >
-                  <option value="preprinted">Pre-printed letterhead (blank top margin)</option>
-                  <option value="embedded_logo">Embed company logo in PDF</option>
-                </select>
+            <p className="text-sm text-neutral-600 mb-4">
+              Choose a plain monochrome layout for pre-printed letterhead, or a branded PDF with your logo
+              and optional colours.
+            </p>
+
+            <div className="mb-6 max-w-3xl">
+              <label className="block text-sm font-medium text-neutral-800 mb-2">Invoice style</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(
+                  [
+                    {
+                      value: 'plain' as InvoiceStyle,
+                      title: 'Plain',
+                      description:
+                        'Grey lines only, no logo or colours. Extra top space for pre-printed letterhead.',
+                    },
+                    {
+                      value: 'branded' as InvoiceStyle,
+                      title: 'Branded',
+                      description:
+                        'Embeds your company logo with optional accent colours and header styling.',
+                    },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      setForm((f) =>
+                        f
+                          ? {
+                              ...f,
+                              invoiceStyle: option.value,
+                              letterheadMode: resolveLetterheadModeForStyle(option.value, f.letterheadMode),
+                            }
+                          : f,
+                      )
+                    }
+                    className={`rounded-xl border p-4 text-left transition-colors ${
+                      form.invoiceStyle === option.value
+                        ? 'border-primary-800 bg-primary-50 ring-1 ring-primary-800/20'
+                        : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-neutral-900">{option.title}</p>
+                    <p className="text-sm text-neutral-600 mt-1">{option.description}</p>
+                  </button>
+                ))}
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
               <div>
                 <label className="block text-sm font-medium text-neutral-800 mb-1.5">VAT PIN</label>
                 <input
@@ -422,7 +471,7 @@ function InvoicingSetupPageInner() {
                   placeholder="e.g. P051234567X"
                 />
               </div>
-              <div className="md:col-span-2">
+              <div className={`md:col-span-2 ${isBranded ? '' : 'hidden'}`}>
                 <label className="block text-sm font-medium text-neutral-800 mb-1.5">
                   Panel shading colour
                 </label>

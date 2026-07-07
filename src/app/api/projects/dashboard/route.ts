@@ -1,13 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
+import { setOrgContext } from '@/lib/org-context';
+import { prisma } from '@/lib/prisma';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { reportApiError } from '@/lib/monitoring';
-import { buildProjectBudgetReport } from '@/lib/projects/project-budget';
+import { buildProjectBudgetReport, type ProjectBudgetReport } from '@/lib/projects/project-budget';
 import { withTenant } from '@/lib/tenant-api';
+
+const BURN_REPORT_PROJECT_LIMIT = 8;
+const BURN_REPORT_TX_TIMEOUT_MS = 30_000;
+
+async function loadBurnTopReports(
+  organizationId: string,
+  clientId: string,
+  activeProjectIds: string[],
+): Promise<ProjectBudgetReport[]> {
+  if (activeProjectIds.length === 0) return [];
+
+  return prisma.$transaction(
+    async (tx: Prisma.TransactionClient) => {
+      await setOrgContext(tx, organizationId);
+      const reports = await Promise.all(
+        activeProjectIds.map((projectId) =>
+          buildProjectBudgetReport(tx, { projectId, outsourcingClientId: clientId }),
+        ),
+      );
+      return reports
+        .filter((report): report is ProjectBudgetReport => report != null)
+        .sort((a, b) => b.utilizationPercent - a.utilizationPercent)
+        .slice(0, 5);
+    },
+    { timeout: BURN_REPORT_TX_TIMEOUT_MS },
+  );
+}
 
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
     try {
-      const payload = await ctx.run(async (tx) => {
+      const base = await ctx.run(async (tx) => {
         const clientId = await resolvePrimaryWorkspaceClientId(tx, undefined, request, ctx.organizationId);
         const now = new Date();
         const soon = new Date(now);
@@ -79,17 +109,6 @@ export async function GET(request: NextRequest) {
           completed: projects.filter((p) => p.status === 'completed').length,
         };
 
-        const activeProjects = projects.filter((p) => p.status === 'active').slice(0, 12);
-        const burnReports = [];
-        for (const p of activeProjects) {
-          const report = await buildProjectBudgetReport(tx, {
-            projectId: p.id,
-            outsourcingClientId: clientId,
-          });
-          if (report) burnReports.push(report);
-        }
-        burnReports.sort((a, b) => b.utilizationPercent - a.utilizationPercent);
-
         const milestoneByProject = await tx.projectMilestone.groupBy({
           by: ['projectId', 'status'],
           where: { projectId: { in: projects.map((p) => p.id) }, ...ctx.where() },
@@ -119,7 +138,13 @@ export async function GET(request: NextRequest) {
             };
           });
 
+        const burnProjectIds = projects
+          .filter((p) => p.status === 'active')
+          .slice(0, BURN_REPORT_PROJECT_LIMIT)
+          .map((p) => p.id);
+
         return {
+          clientId,
           summary: {
             total: projects.length,
             active: activeCount,
@@ -129,8 +154,8 @@ export async function GET(request: NextRequest) {
             milestonesTotal,
           },
           statusBreakdown,
-          burnTop: burnReports.slice(0, 5),
           deliverables,
+          burnProjectIds,
           tasksDueSoon: tasksDueSoon.map((t) => ({
             id: t.id,
             title: t.title,
@@ -141,7 +166,15 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      return NextResponse.json(payload);
+      const burnTop = await loadBurnTopReports(
+        ctx.organizationId,
+        base.clientId,
+        base.burnProjectIds,
+      );
+
+      const { clientId: _clientId, burnProjectIds: _burnProjectIds, ...payload } = base;
+
+      return NextResponse.json({ ...payload, burnTop });
     } catch (error) {
       await reportApiError({
         route: 'GET /api/projects/dashboard',

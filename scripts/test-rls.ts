@@ -4,8 +4,17 @@
  */
 import { PrismaClient, type Prisma } from '@prisma/client';
 
+function ownerClient(): PrismaClient {
+  const url = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL;
+  return url ? new PrismaClient({ datasources: { db: { url } } }) : new PrismaClient();
+}
+
+function appClient(): PrismaClient {
+  return new PrismaClient();
+}
+
 async function withAppRole<T>(fn: (db: PrismaClient) => Promise<T>): Promise<T> {
-  const db = new PrismaClient();
+  const db = appClient();
   try {
     await db.$executeRaw`SET ROLE stride_app`;
     return await fn(db);
@@ -16,7 +25,7 @@ async function withAppRole<T>(fn: (db: PrismaClient) => Promise<T>): Promise<T> 
 }
 
 async function withOwner<T>(fn: (db: PrismaClient) => Promise<T>): Promise<T> {
-  const db = new PrismaClient();
+  const db = ownerClient();
   try {
     return await fn(db);
   } finally {

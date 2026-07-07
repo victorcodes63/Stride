@@ -15,7 +15,7 @@ export function IndustriesSectorNav() {
           </p>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--sc-ink-muted)] sm:text-base">
             Jump to your industry — each section covers the pain, what Stride runs, and whether the
-            pack is live on the shared core. Logistics is live today; other sector packs are on the roadmap.
+            pack is live on the shared core. Six vertical packs are available today.
           </p>
         </Reveal>
         <Stagger

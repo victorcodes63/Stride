@@ -72,6 +72,7 @@ export const STAFF_TRIP_STATUS_TRANSITIONS: Partial<Record<FleetTripStatus, Flee
 export const DRIVER_TRIP_STATUS_TRANSITIONS: Partial<Record<FleetTripStatus, FleetTripStatus[]>> = {
   compliance_check: ['loaded'],
   loaded: ['in_transit'],
+  in_transit: ['delivered'],
   exception: ['in_transit'],
 };
 

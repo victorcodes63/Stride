@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Download, Upload } from 'lucide-react';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 
@@ -22,8 +24,8 @@ type ImportResponse = {
 function NewEmployeeForm() {
  const router = useRouter();
  const fileInputRef = useRef<HTMLInputElement>(null);
+ const { clients, clientId, setClientId, showSwitcher } = useOutsourcingClient();
 
- const [clientId, setClientId] = useState('');
  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
  const [form, setForm] = useState({
  firstName: '',
@@ -52,17 +54,6 @@ function NewEmployeeForm() {
  const [importResult, setImportResult] = useState<ImportResponse | null>(null);
  const [pendingFile, setPendingFile] = useState<File | null>(null);
  const [departmentPrompt, setDepartmentPrompt] = useState<string[] | null>(null);
-
- useEffect(() => {
- fetch('/api/outsourcing/clients')
- .then((r) => r.json())
- .then((data) => {
- if (Array.isArray(data) && data[0]?.id) {
- setClientId(String(data[0].id));
- }
- })
- .catch(() => {});
- }, []);
 
  useEffect(() => {
  if (!clientId) {
@@ -148,6 +139,10 @@ function NewEmployeeForm() {
  return;
  }
 
+ if (!clientId) {
+ setError('Select an end-client before adding an employee.');
+ return;
+ }
  setSubmitting(true);
  try {
  const res = await fetch('/api/outsourcing/employees', {
@@ -210,6 +205,12 @@ function NewEmployeeForm() {
  className="min-w-0 flex-1 !mb-0"
  />
  </div>
+
+ {showSwitcher ? (
+ <div className="mb-6 max-w-md">
+ <OutsourcingClientSwitcher clients={clients} value={clientId} onChange={setClientId} />
+ </div>
+ ) : null}
 
  <form onSubmit={handleSubmit} className="space-y-6">
  {error ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div> : null}

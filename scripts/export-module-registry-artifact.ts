@@ -19,7 +19,7 @@ const artifact = {
   version: 1,
   generatedAt: new Date().toISOString(),
   keys: [...MODULE_KEYS],
-  modules: MODULE_REGISTRY.map((row) => ({
+    modules: MODULE_REGISTRY.map((row) => ({
     key: row.key,
     label: row.label,
     bucket: row.bucket,
@@ -27,6 +27,7 @@ const artifact = {
     domainId: row.domainId,
     envVar: row.envVar,
     requires: row.requires ?? [],
+    readiness: row.readiness,
   })),
   bucket: MODULE_BUCKET,
   uiGroups: buildModuleUiGroups(),

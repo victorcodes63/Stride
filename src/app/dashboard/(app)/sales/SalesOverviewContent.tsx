@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Loader2, Target, TrendingUp, Handshake, Coins } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DASHBOARD_STAT_CARD_CLASS } from '@/lib/dashboard-layout';
 
 type AttainmentReport = {
   teamTotals: { target: number; actual: number; attainmentPct: number | null };
@@ -51,37 +52,37 @@ export default function SalesOverviewContent() {
           <Link
             key={href}
             href={href}
-            className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:border-[var(--stride-coral)] hover:shadow-md"
+            className={`${DASHBOARD_STAT_CARD_CLASS} block p-5 transition hover:border-[var(--stride-coral)] hover:shadow-md`}
           >
             <Icon className="h-5 w-5 text-[var(--stride-coral)]" />
-            <p className="mt-3 font-semibold text-neutral-900">{label}</p>
+            <p className="mt-3 font-semibold text-[var(--dash-text-strong)]">{label}</p>
           </Link>
         ))}
       </div>
 
-      <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">This period</h2>
+      <div className={`mt-8 ${DASHBOARD_STAT_CARD_CLASS} p-6`}>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--dash-text-muted)]">This period</h2>
         {loading ? (
-          <div className="mt-4 flex items-center gap-2 text-neutral-500">
+          <div className="mt-4 flex items-center gap-2 text-[var(--dash-text-muted)]">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading attainment…
           </div>
         ) : report ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <div>
-              <p className="text-xs text-neutral-500">Team target</p>
-              <p className="text-2xl font-semibold text-neutral-900">
+              <p className="text-xs text-[var(--dash-text-muted)]">Team target</p>
+              <p className="text-2xl font-semibold text-[var(--dash-text-strong)]">
                 {report.teamTotals.target.toLocaleString('en-KE')} {report.currency}
               </p>
             </div>
             <div>
-              <p className="text-xs text-neutral-500">Closed revenue</p>
-              <p className="text-2xl font-semibold text-neutral-900">
+              <p className="text-xs text-[var(--dash-text-muted)]">Closed revenue</p>
+              <p className="text-2xl font-semibold text-[var(--dash-text-strong)]">
                 {report.teamTotals.actual.toLocaleString('en-KE')} {report.currency}
               </p>
             </div>
             <div>
-              <p className="text-xs text-neutral-500">Attainment</p>
+              <p className="text-xs text-[var(--dash-text-muted)]">Attainment</p>
               <p className="text-2xl font-semibold text-[var(--stride-coral)]">
                 {report.teamTotals.attainmentPct != null ? `${report.teamTotals.attainmentPct}%` : '—'}
               </p>

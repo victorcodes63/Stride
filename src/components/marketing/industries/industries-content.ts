@@ -28,7 +28,7 @@ export const INDUSTRIES_HERO = {
   eyebrow: 'Industries',
   title: 'Built for your industry.',
   subhead:
-    'Sector-specific workflows on Stride — logistics is live today; SACCOs, healthcare, energy and construction packs are on the roadmap, all on the shared core.',
+    'Sector-specific workflows on Stride — from HR consultancies and fleets to SACCOs, hospitals, energy sites, and construction projects. Six vertical packs are live on the shared core.',
 } as const;
 
 /** Shared core platform capabilities */

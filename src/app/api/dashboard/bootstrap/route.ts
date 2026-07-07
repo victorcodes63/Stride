@@ -23,6 +23,11 @@ import {
 import { planIdToTier } from '@/lib/entitlements-resolver';
 import { isModuleEntitled } from '@/lib/entitlements-guard';
 import { getDeploymentTier } from '@/lib/deployment-tier';
+import {
+  isLayoutCustomized,
+  parseDashboardOverviewLayout,
+  sanitizeDashboardOverviewLayout,
+} from '@/lib/dashboard-overview-preferences';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,11 +39,12 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const [fullUser, setup, entitySettings, memberships] = await Promise.all([
+      const [fullUser, setup, entitySettings, memberships, entitlements] = await Promise.all([
         ctx.run((tx) => tx.user.findUnique({ where: { id: ctx.staff.id } })),
         loadCompanySetupSettingsForOrg(ctx.organizationId),
         loadOperatingEntitiesSettingsForOrg(ctx.organizationId),
         ctx.run((tx) => listActiveMemberships(ctx.staff.id, tx as typeof prisma)),
+        resolveSessionEntitlements(ctx.organizationId),
       ]);
 
       if (!fullUser) {
@@ -48,8 +54,6 @@ export async function GET(request: NextRequest) {
       const licensed = listLicensedModules();
       const moduleAdminFlags = setup.moduleAdminFlags;
 
-      let entitlements = await resolveSessionEntitlements(ctx.organizationId);
-
       const subscription = subscriptionFromEntitlements(entitlements);
 
       const modules = resolveEffectiveModules(moduleAdminFlags, subscription);
@@ -57,6 +61,10 @@ export async function GET(request: NextRequest) {
         ? planIdToTier(entitlements.planId)
         : getDeploymentTier();
       const entities = toPublicEntities(entitySettings);
+
+      const overviewLayout = sanitizeDashboardOverviewLayout(
+        parseDashboardOverviewLayout(fullUser.dashboardOverviewLayout),
+      );
 
       const current =
         memberships.find((m) => m.organizationId === ctx.organizationId) ?? memberships[0] ?? null;
@@ -67,12 +75,16 @@ export async function GET(request: NextRequest) {
         role: m.role,
       }));
 
+      const me = await userRowToSummary(fullUser, {
+        currentOrgId: current?.organizationId ?? ctx.organizationId,
+        currentOrgName: current?.organization.name ?? null,
+        organizations,
+      });
+
       const response = NextResponse.json({
-        me: await userRowToSummary(fullUser, {
-          currentOrgId: current?.organizationId ?? ctx.organizationId,
-          currentOrgName: current?.organization.name ?? null,
-          organizations,
-        }),
+        me,
+        overviewLayout,
+        overviewLayoutIsCustom: isLayoutCustomized(overviewLayout),
         deployment: getDeploymentSummary(),
         authProviders: getAuthProvidersSummary(),
         modules,

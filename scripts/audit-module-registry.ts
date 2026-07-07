@@ -52,7 +52,7 @@ function readArtifact() {
   }
   return JSON.parse(fs.readFileSync(ARTIFACT_PATH, 'utf8')) as {
     keys: string[];
-    modules: { key: string; label: string; bucket: string }[];
+    modules: { key: string; label: string; bucket: string; readiness: string }[];
   };
 }
 
@@ -77,6 +77,9 @@ function checkRegistryInternal() {
     }
     if (!row.envVar.startsWith('MODULE_')) {
       fail(`${row.key} envVar must start with MODULE_`);
+    }
+    if (!row.readiness) {
+      fail(`${row.key} missing readiness`);
     }
   }
 }
@@ -119,6 +122,7 @@ function checkOverviewSidebarParity() {
 
   const domains = [
     'hr-payroll',
+    'sales',
     'finance',
     'procurement',
     'legal-documents',
@@ -174,6 +178,9 @@ function checkArtifactSync(artifact: NonNullable<ReturnType<typeof readArtifact>
     }
     if (art.bucket !== row.bucket) {
       fail(`Artifact bucket for ${row.key} diverges`);
+    }
+    if (art.readiness !== row.readiness) {
+      fail(`Artifact readiness for ${row.key}: "${art.readiness}" !== registry "${row.readiness}"`);
     }
   }
   if (fs.existsSync(CP_ARTIFACT_PATH)) {

@@ -28,6 +28,22 @@ export const DASHBOARD_SURFACE_CLASS = 'dashboard-surface';
 /** Compact KPI / stat tile on list and overview pages. */
 export const DASHBOARD_STAT_CARD_CLASS = 'dashboard-stat-card';
 
+/** Inline create/edit form panel (dashed border, theme-aware surface). */
+export const DASHBOARD_INLINE_FORM_CLASS = 'dashboard-inline-form';
+
+/** Label + control stack for dashboard forms. */
+export const DASHBOARD_FORM_FIELD_CLASS = 'dashboard-form-field';
+
+/** Muted label text inside dashboard forms. */
+export const DASHBOARD_FORM_LABEL_CLASS = 'dashboard-form-label';
+
+/** Theme-aware text/select/date input — matches filter bars and toolbars. */
+export const DASHBOARD_FORM_INPUT_CLASS =
+  'dash-filter-select h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
+
+/** Small grid/heatmap cell (e.g. 9-box matrix). */
+export const DASHBOARD_GRID_CELL_CLASS = 'dashboard-grid-cell';
+
 /** Toolbar strip above tables (filters, search). */
 export const DASHBOARD_TOOLBAR_CLASS = 'dashboard-toolbar';
 

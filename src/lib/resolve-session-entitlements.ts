@@ -1,4 +1,5 @@
 import { isCustomerProductionCell, isDemoSandboxCell } from '@/lib/deployment-cell';
+import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-flags';
 import type { DeploymentEntitlements } from '@/lib/entitlements-types';
 import { isEntitlementsStale } from '@/lib/entitlements-types';
 import {
@@ -52,6 +53,17 @@ export function subscriptionFromEntitlements(
   accountStatus?: string;
   verticalEnginesAllowed?: boolean;
 } | undefined {
+  /** Sales/demo cells license every module — control plane toggles are for operator testing only. */
+  if (isDemoMode() || isPublicDemoMode()) {
+    return entitlements
+      ? {
+          subscribedModules: entitlements.modules,
+          accountStatus: entitlements.accountStatus,
+          verticalEnginesAllowed: true,
+        }
+      : undefined;
+  }
+
   if (entitlements) {
     return {
       subscribedModules: entitlements.modules,

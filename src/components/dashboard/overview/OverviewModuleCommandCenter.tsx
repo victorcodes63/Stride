@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { type DashboardModuleDomain } from '@/lib/dashboard-module-domains';
@@ -74,12 +75,21 @@ export function OverviewModuleCommandCenter({
   const { visibleDomains } = useDashboardModuleOrder();
   const snapshotByDomain = Object.fromEntries(domainSnapshots.map((s) => [s.domainId, s.lines]));
 
+  const sortedDomains = useMemo(() => {
+    return [...visibleDomains].sort((a, b) => {
+      const aCount = attentionByDomain[a.id]?.length ?? 0;
+      const bCount = attentionByDomain[b.id]?.length ?? 0;
+      if (aCount !== bCount) return bCount - aCount;
+      return 0;
+    });
+  }, [visibleDomains, attentionByDomain]);
+
   return (
     <section className="dashboard-panel group/pin-target overflow-hidden">
       <OverviewWidgetHeader
         widgetId="command-center"
-        title="Across your business"
-        description="What needs you today, by module — use the module switcher to change context."
+        title="Business pulse"
+        description="One-line status per module — items needing action are listed first. Use the sidebar to switch context."
         trailing={
           <p className="flex items-center gap-3 text-[10px] text-[var(--dash-text-subtle)]">
             <span className="inline-flex items-center gap-1">
@@ -94,7 +104,7 @@ export function OverviewModuleCommandCenter({
         }
       />
       <div className="dash-overview-hairline-grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-        {visibleDomains.map((domain) => (
+        {sortedDomains.map((domain) => (
           <ModuleRow
             key={domain.id}
             domain={domain}

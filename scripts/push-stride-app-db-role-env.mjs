@@ -35,15 +35,17 @@ function setEnv(name, value, { sensitive = false, targets = ['production'] } = {
 
 function setPreviewEnv(name, value, { sensitive = false } = {}) {
   spawnSync('vercel', ['env', 'rm', name, 'preview', '--yes'], { cwd: root, stdio: 'ignore' });
-  const args = ['env', 'add', name, 'preview', '*', '--value', value, '--force', '--yes'];
+  const args = ['env', 'add', name, 'preview', '--value', value, '--force', '--yes'];
   if (sensitive) args.push('--sensitive');
   const result = spawnSync('vercel', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   if (result.status !== 0) {
-    throw new Error(
-      `vercel env add ${name} (preview *) failed: ${(result.stderr || result.stdout || '').trim()}`,
+    console.warn(
+      `⚠ preview ${name} skipped: ${(result.stderr || result.stdout || '').trim()}`,
     );
+    return false;
   }
   console.log(`✓ ${name} (preview)`);
+  return true;
 }
 
 console.log('Updating stride-platform Vercel DB env (stride_app runtime + owner migrations)…');

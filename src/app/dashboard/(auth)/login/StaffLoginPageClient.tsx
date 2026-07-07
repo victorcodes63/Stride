@@ -10,7 +10,6 @@ import { getMetadataTitle } from '@/lib/brand';
 import { MicrosoftIcon, GoogleIcon } from '@/components/auth/OAuthBrandIcons';
 import { OAuthEmailDivider } from '@/components/auth/OAuthProviderButtons';
 import { LoginCard, LoginPageShell } from '@/components/auth/LoginPageShell';
-import type { LoginPublicConfig } from '@/lib/login-public-config';
 
 const STAFF_LOGIN_PATH = '/api/auth/login';
 const RESOLVE_EMAIL_PATH = '/api/auth/resolve-email';
@@ -30,7 +29,6 @@ type StaffWelcomeCopy = {
 };
 
 type StaffLoginContentProps = {
-  loginConfig: LoginPublicConfig;
   initialError: string;
   welcomeCopy: StaffWelcomeCopy;
 };
@@ -55,7 +53,7 @@ function GoogleSignInButton({ email }: { email: string }) {
   );
 }
 
-export function StaffLoginContent({ loginConfig, initialError, welcomeCopy }: StaffLoginContentProps) {
+export function StaffLoginContent({ initialError, welcomeCopy }: StaffLoginContentProps) {
   const { privacyPolicyUrl, termsUrl, defaultLandingPath } = usePublicBrand();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -218,7 +216,6 @@ export function StaffLoginContent({ loginConfig, initialError, welcomeCopy }: St
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="dash-auth-input"
-                placeholder={loginConfig.emailPlaceholder}
               />
             </div>
             <button type="submit" disabled={resolving} className="dash-auth-submit">
@@ -278,7 +275,6 @@ export function StaffLoginContent({ loginConfig, initialError, welcomeCopy }: St
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         className="dash-auth-input pr-9"
-                        placeholder="••••••••"
                       />
                       <button
                         type="button"
@@ -304,7 +300,6 @@ export function StaffLoginContent({ loginConfig, initialError, welcomeCopy }: St
                       onChange={(e) => setMfaCode(e.target.value)}
                       required
                       className="dash-auth-input"
-                      placeholder="123456"
                     />
                   </div>
                 )}
@@ -346,10 +341,8 @@ export function StaffLoginContent({ loginConfig, initialError, welcomeCopy }: St
 }
 
 export function StaffLoginWithSearchParams({
-  loginConfig,
   welcomeCopy,
 }: {
-  loginConfig: LoginPublicConfig;
   welcomeCopy: StaffWelcomeCopy;
 }) {
   const searchParams = useSearchParams();
@@ -362,5 +355,5 @@ export function StaffLoginWithSearchParams({
   else if (oauthError === 'tenant_mismatch') initialError = 'Your Microsoft tenant is not authorized for this organization.';
   else if (oauthError === 'oauth') initialError = 'Sign-in with Microsoft or Google failed. Please try again.';
   else if (oauthError === 'oauth_disabled') initialError = 'That sign-in method is disabled for this organisation.';
-  return <StaffLoginContent loginConfig={loginConfig} initialError={initialError} welcomeCopy={welcomeCopy} />;
+  return <StaffLoginContent initialError={initialError} welcomeCopy={welcomeCopy} />;
 }

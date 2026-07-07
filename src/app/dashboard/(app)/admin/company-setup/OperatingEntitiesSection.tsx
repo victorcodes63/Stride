@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Globe, Loader2, Plus, Save, Trash2 } from 'lucide-react';
-import type { CountryCode, OperatingEntity, OperatingEntitiesSettings } from '@/lib/operating-entities';
-import { COUNTRY_PROFILES } from '@/lib/operating-entities';
+import type { CountryCode, OperatingEntity, OperatingEntitiesSettings } from '@/lib/operating-entities-shared';
+import { COUNTRY_PROFILES } from '@/lib/operating-entities-shared';
 
 type ApiResponse = OperatingEntitiesSettings & {
  envMultiEntityEnabled: boolean;

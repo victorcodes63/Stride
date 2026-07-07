@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DASHBOARD_SURFACE_CLASS } from '@/lib/dashboard-layout';
 
 const STAGE_COLORS: Record<string, string> = {
   lead: 'bg-neutral-100 text-neutral-700',
@@ -58,7 +59,7 @@ export default function SalesDealsContent() {
           <Loader2 className="h-4 w-4 animate-spin" /> Loading pipeline…
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+        <div className={`overflow-hidden ${DASHBOARD_SURFACE_CLASS} shadow-sm`}>
           <table className="min-w-full text-sm">
             <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
               <tr>

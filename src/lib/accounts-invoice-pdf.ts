@@ -6,7 +6,7 @@
 import { PDFDocument, PDFPage, StandardFonts, rgb, type RGB } from 'pdf-lib';
 import type { PDFFont } from 'pdf-lib';
 import type { PaymentAccountDetails } from '@/lib/payment-accounts';
-import type { InvoiceLetterheadMode, InvoicePdfBranding } from '@/lib/invoice-setup';
+import type { InvoiceLetterheadMode, InvoicePdfBranding, InvoiceStyle } from '@/lib/invoice-setup';
 import { resolveInvoicePanelBackground } from '@/lib/invoice-setup';
 import { embedImageFromUrl } from '@/lib/pdf-embed-image';
 import { DEFAULT_PRIMARY_COLOR, isValidHexColor, sanitizeHexColor } from '@/lib/brand-theme';
@@ -98,6 +98,8 @@ function resolveContrastOnBackground(
 }
 
 const PREPRINTED_TOP_INSET_PT = 72;
+/** Extra top space on plain invoices for pre-printed letterhead above the title. */
+const PLAIN_LETTERHEAD_TOP_INSET_PT = 108;
 const GAP_BEFORE_PAYMENT_DETAILS_PT = 36;
 const TABLE_LINE_HEIGHT_PT = 13;
 const TABLE_ROW_PAD_PT = 12;
@@ -143,33 +145,55 @@ function drawTextRight(
 }
 
 function resolveBranding(input?: Partial<InvoicePdfBranding>) {
-  const letterheadMode: InvoiceLetterheadMode = input?.letterheadMode ?? 'preprinted';
-  const headerBgHex = input?.headerBackgroundColor?.trim() ?? '';
+  const invoiceStyle: InvoiceStyle = input?.invoiceStyle ?? 'plain';
+  const isPlain = invoiceStyle === 'plain';
+  const letterheadMode: InvoiceLetterheadMode = isPlain
+    ? 'preprinted'
+    : (input?.letterheadMode ?? 'embedded_logo');
+  const headerBgHex = isPlain ? '' : (input?.headerBackgroundColor?.trim() ?? '');
   const hasHeaderBand = Boolean(headerBgHex && isValidHexColor(headerBgHex));
-  const panelHex = resolveInvoicePanelBackground(input?.panelBackgroundColor?.trim() ?? '');
-  const accentHex = sanitizeHexColor(input?.primaryColor ?? DEFAULT_PRIMARY_COLOR, DEFAULT_PRIMARY_COLOR);
+  const panelHex = isPlain
+    ? '#FFFFFF'
+    : resolveInvoicePanelBackground(input?.panelBackgroundColor?.trim() ?? '');
+  const accentHex = isPlain
+    ? '#1A1714'
+    : sanitizeHexColor(input?.primaryColor ?? DEFAULT_PRIMARY_COLOR, DEFAULT_PRIMARY_COLOR);
   const headerContrast = resolveContrastOnBackground(
     hasHeaderBand ? headerBgHex : null,
     accentHex,
   );
-  const panelContrast = resolveContrastOnBackground(panelHex, accentHex);
+  const panelContrast = isPlain
+    ? {
+        isDark: false,
+        heading: INK,
+        body: GRAY_600,
+        muted: GRAY_500,
+        border: BORDER,
+      }
+    : resolveContrastOnBackground(panelHex, accentHex);
 
   return {
     legalName: input?.legalName?.trim() ?? '',
     address: input?.address?.trim() ?? '',
-    logoUrl: input?.logoUrl?.trim() ?? '',
+    logoUrl: isPlain ? '' : (input?.logoUrl?.trim() ?? ''),
     documentFooter: input?.documentFooter?.trim() ?? '',
     primaryColor: hexToRgb(accentHex),
     accentHex,
     headerBackgroundColor: hasHeaderBand ? hexToRgb(headerBgHex) : null,
     headerBackgroundHex: hasHeaderBand ? headerBgHex : null,
     headerContrast,
-    panelBackgroundColor: hexToRgb(panelHex),
+    panelBackgroundColor: isPlain ? null : hexToRgb(panelHex),
     panelBackgroundHex: panelHex,
     panelContrast,
     vatPin: input?.vatPin?.trim() ?? '',
     letterheadMode,
-    topInset: letterheadMode === 'embedded_logo' ? 16 : PREPRINTED_TOP_INSET_PT,
+    invoiceStyle,
+    isPlain,
+    topInset: isPlain
+      ? PLAIN_LETTERHEAD_TOP_INSET_PT
+      : letterheadMode === 'embedded_logo'
+        ? 16
+        : PREPRINTED_TOP_INSET_PT,
   };
 }
 
@@ -300,6 +324,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const PANEL_BG = branding.panelBackgroundColor;
   const panelText = branding.panelContrast;
   const topInset = branding.topInset;
+  const usePanelFill = !branding.isPlain && PANEL_BG != null;
 
   const ensureSpace = (
     pageRef: { page: PDFPage; y: number },
@@ -459,17 +484,22 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const tTop = cursor.y;
   const tBot = tTop - tableH;
 
-  cursor.page.drawRectangle({
-    x: margin,
-    y: tTop - theadH,
-    width: contentW,
-    height: theadH,
-    color: PANEL_BG,
-  });
+  if (usePanelFill) {
+    cursor.page.drawRectangle({
+      x: margin,
+      y: tTop - theadH,
+      width: contentW,
+      height: theadH,
+      color: PANEL_BG!,
+    });
+  } else {
+    drawLineH(tTop, margin, margin + contentW);
+  }
 
+  const headerLabelColor = branding.isPlain ? GRAY_500 : panelText.muted;
   const hY = tTop - theadH / 2 - 4;
-  cursor.page.drawText('#', { x: margin + 10, y: hY, size: 8, font: helveticaBold, color: panelText.muted });
-  cursor.page.drawText('Description', { x: descX, y: hY, size: 8, font: helveticaBold, color: panelText.muted });
+  cursor.page.drawText('#', { x: margin + 10, y: hY, size: 8, font: helveticaBold, color: headerLabelColor });
+  cursor.page.drawText('Description', { x: descX, y: hY, size: 8, font: helveticaBold, color: headerLabelColor });
   drawTextRight(
     cursor.page,
     `Amount (${data.currency})`,
@@ -477,7 +507,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     hY,
     8,
     helveticaBold,
-    panelText.muted,
+    headerLabelColor,
   );
 
   drawLineH(tTop - theadH, margin, margin + contentW);

@@ -12,9 +12,9 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  Target,
   Truck,
   Users,
-  Handshake,
 } from 'lucide-react';
 import type { UserRole } from '@/types/dashboard';
 import type { DashboardNavItem, DashboardNavSection } from '@/lib/dashboard-nav-catalog';
@@ -24,6 +24,7 @@ import { verticalAllowedOnTier } from '@/lib/entitlement-buckets';
 
 export type DashboardModuleDomainId =
   | 'hr-payroll'
+  | 'sales'
   | 'finance'
   | 'procurement'
   | 'legal-documents'
@@ -58,6 +59,16 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     hubHref: '/dashboard/people',
     sectionIds: ['people-hr', 'recruitment', 'time-attendance', 'payroll', 'employee-self-service', 'development'],
     readiness: 'live',
+  },
+  {
+    id: 'sales',
+    marketingLabel: '09 — Sales',
+    shortLabel: 'Sales',
+    icon: Target,
+    description: 'Pipeline KPIs, targets, attainment, and scorecard auto-measures.',
+    hubHref: '/dashboard/sales',
+    sectionIds: ['sales'],
+    readiness: 'partial',
   },
   {
     id: 'finance',
@@ -112,11 +123,10 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
   },
   {
     id: 'hr-outsourcing',
-    marketingLabel: '09 — HR Outsourcing',
+    marketingLabel: '08 — HR Outsourcing',
     shortLabel: 'HR Outsourcing',
-    icon: Handshake,
-    description:
-      'End-client register, outsourced workforce, and per-client payroll, attendance, and leave.',
+    icon: Users,
+    description: 'End-client register, outsourced workforce, and per-client payroll and leave.',
     hubHref: '/dashboard/outsourcing',
     sectionIds: ['outsourcing-clients', 'outsourcing-workforce', 'outsourcing-services'],
     readiness: 'partial',
@@ -183,6 +193,7 @@ export function resolveDomainForPath(pathname: string): DashboardModuleDomainId 
   if (path.startsWith('/dashboard/procurement')) return 'procurement';
   if (path.startsWith('/dashboard/legal')) return 'legal-documents';
   if (path.startsWith('/dashboard/projects')) return 'projects';
+  if (path.startsWith('/dashboard/sales')) return 'sales';
   if (path.startsWith('/dashboard/fleet')) return 'fleet-logistics';
   if (path.startsWith('/dashboard/outsourcing')) return 'hr-outsourcing';
   if (path.startsWith('/dashboard/operations')) return 'admin-operations';
@@ -246,15 +257,15 @@ export function isHrefInDomain(href: string, domainId: DashboardModuleDomainId):
 
 export const DOMAIN_REQUIRED_MODULES: Record<DashboardModuleDomainId, ModuleKey[]> = {
   'hr-payroll': ['core'],
+  sales: ['sales'],
   finance: ['accounts'],
   procurement: ['procurement'],
   'legal-documents': ['legal', 'documents'],
   projects: ['projects'],
   'fleet-logistics': ['fleet'],
   'hr-outsourcing': ['outsourcing'],
-  'admin-operations': ['operations', 'assets', 'hse', 'reports', 'communications'],
-  /** Role-gated in resolveDomainAccess — not tied to HR core. */
-  'platform-admin': [],
+  'admin-operations': ['assets', 'hse', 'reports', 'communications'],
+  'platform-admin': ['core'],
 };
 
 export type DomainAccessState = 'active' | 'locked';
@@ -290,14 +301,6 @@ export function resolveDomainAccess(
 
   if (domainId === 'hr-payroll') {
     return modules.core !== false ? 'active' : 'locked';
-  }
-
-  if (domainId === 'projects') {
-    return modules.projects === true ? 'active' : 'locked';
-  }
-
-  if (domainId === 'hr-outsourcing') {
-    return modules.outsourcing === true ? 'active' : 'locked';
   }
 
   if (domainId === 'admin-operations' && !verticalAllowedOnTier(tier)) {

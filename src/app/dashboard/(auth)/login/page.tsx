@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import { getLoginPublicConfig } from '@/lib/login-public-config';
 import { getLoginWelcomeCopy } from '@/lib/get-login-welcome-copy';
 import { StaffLoginWithSearchParams } from './StaffLoginPageClient';
 
@@ -12,12 +11,11 @@ function LoginFallback() {
 }
 
 export default async function StaffLoginPage() {
- const loginConfig = getLoginPublicConfig();
  const welcomeCopy = await getLoginWelcomeCopy();
 
  return (
  <Suspense fallback={<LoginFallback />}>
- <StaffLoginWithSearchParams loginConfig={loginConfig} welcomeCopy={welcomeCopy.staff} />
+ <StaffLoginWithSearchParams welcomeCopy={welcomeCopy.staff} />
  </Suspense>
  );
 }

@@ -4,7 +4,7 @@ import { marketingMetadata } from '@/lib/marketing-metadata';
 export const metadata = marketingMetadata({
   title: 'Platform',
   description:
-    'Nine product areas on one platform — HR, finance, fleet, outsourcing, sales and more. Built for East Africa with KRA, NSSF, SHIF and M-Pesa from day one.',
+    'Six core modules on one platform — HR, finance, procurement, legal, projects and admin. Built for East Africa with KRA, NSSF, SHIF and M-Pesa from day one.',
   path: '/platform',
 });
 

@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
-import { useEntity } from '@/components/EntitySwitcher';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
+import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
@@ -16,8 +18,7 @@ interface Department {
 }
 
 function DepartmentsPageInner() {
-  const { activeEntity } = useEntity();
-  const [clientId, setClientId] = useState('');
+  const { clientId, clients, setClientId, showSwitcher, loading: clientsLoading } = useOutsourcingClient();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -28,22 +29,16 @@ function DepartmentsPageInner() {
   const [editName, setEditName] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const loadDepartments = async (resolvedClientId?: string) => {
+  const loadDepartments = async () => {
+    if (!clientId) {
+      setDepartments([]);
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       setLoading(true);
-      const clientsRes = await fetch('/api/outsourcing/clients');
-      const clientsData = await clientsRes.json().catch(() => []);
-      const singletonId =
-        resolvedClientId ||
-        (Array.isArray(clientsData) && clientsData[0]?.id ? String(clientsData[0].id) : '');
-      if (!singletonId) {
-        setDepartments([]);
-        return;
-      }
-      setClientId(singletonId);
-
-      const res = await fetch(`/api/outsourcing/clients/${singletonId}/departments`);
+      const res = await fetch(`/api/outsourcing/clients/${clientId}/departments`);
       const data = await res.json().catch(() => []);
       setDepartments(Array.isArray(data) ? data : []);
     } catch {
@@ -55,8 +50,9 @@ function DepartmentsPageInner() {
   };
 
   useEffect(() => {
+    if (clientsLoading) return;
     void loadDepartments();
-  }, [activeEntity.id]);
+  }, [clientId, clientsLoading]);
 
   const filteredDepartments = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -147,7 +143,16 @@ function DepartmentsPageInner() {
         title="Departments"
         description="Group employees by department for payroll and reporting."
         footer={
-          <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end">
+            {showSwitcher ? (
+              <OutsourcingClientSwitcher
+                clients={clients}
+                value={clientId}
+                onChange={setClientId}
+                className="sm:max-w-xs"
+              />
+            ) : null}
+            <form onSubmit={handleAdd} className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
             <input
               type="text"
               value={newName}
@@ -164,6 +169,7 @@ function DepartmentsPageInner() {
               {adding ? 'Adding…' : 'Add department'}
             </button>
           </form>
+          </div>
         }
       />
 

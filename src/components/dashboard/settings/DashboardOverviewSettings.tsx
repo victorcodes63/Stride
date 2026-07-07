@@ -9,11 +9,11 @@ import {
   OVERVIEW_WIDGET_IDS,
   SIDEBAR_OVERVIEW_WIDGETS,
   type OverviewWidgetId,
-} from '@/lib/dashboard-overview-preferences';
+} from '@/lib/dashboard-overview-layout';
 import { DASHBOARD_MODULE_DOMAINS } from '@/lib/dashboard-module-domains';
 
 const WIDGET_LABELS: Record<OverviewWidgetId, string> = {
-  'command-center': 'Across your business',
+  'command-center': 'Business pulse',
   attention: 'Needs attention',
   snapshot: 'Business snapshot',
   'hr-details': 'HR & Payroll details',

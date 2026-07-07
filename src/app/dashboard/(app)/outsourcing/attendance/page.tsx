@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { AlertTriangle, Clock, Plus } from 'lucide-react';
 import { useEntity } from '@/components/EntitySwitcher';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
@@ -42,9 +44,16 @@ function attendanceStatusClass(label: string) {
 }
 
 export default function OutsourcingAttendancePage() {
+ return (
+ <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-neutral-100" />}>
+ <OutsourcingAttendancePageInner />
+ </Suspense>
+ );
+}
+
+function OutsourcingAttendancePageInner() {
  const { activeEntity } = useEntity();
- const [clients, setClients] = useState<Client[]>([]);
- const [selectedClientId, setSelectedClientId] = useState('');
+ const { clientId, clients, setClientId, showSwitcher } = useOutsourcingClient();
  const [region, setRegion] = useState<'all' | 'uganda' | 'kenya'>('all');
  const [from, setFrom] = useState(new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10));
  const [to, setTo] = useState(new Date().toISOString().slice(0, 10));
@@ -57,32 +66,25 @@ export default function OutsourcingAttendancePage() {
  const [error, setError] = useState<string | null>(null);
 
  async function load() {
+ if (!clientId) {
+  setSummaries([]);
+  setExceptions([]);
+  setLoading(false);
+  return;
+ }
  try {
  setLoading(true);
  setError(null);
- const [clientsRes, attendanceRes] = await Promise.all([
- fetch('/api/outsourcing/clients', { cache: 'no-store' }),
- fetch(
- `/api/outsourcing/attendance?clientId=${encodeURIComponent(selectedClientId)}&from=${from}&to=${to}${
+ const attendanceRes = await fetch(
+ `/api/outsourcing/attendance?clientId=${encodeURIComponent(clientId)}&from=${from}&to=${to}${
  region === 'all'
  ? '&combinedEntities=1'
  : `&region=${encodeURIComponent(region)}`
  }`,
- {
- cache: 'no-store',
- },
- ),
- ]);
- const clientsJson = await clientsRes.json();
+ { cache: 'no-store' },
+ );
  const attendanceJson = await attendanceRes.json();
- if (!clientsRes.ok) throw new Error(clientsJson.error || 'Failed to load clients');
  if (!attendanceRes.ok) throw new Error(attendanceJson.error || 'Failed to load attendance');
- setClients(clientsJson);
- if (Array.isArray(clientsJson) && clientsJson.length === 1 && clientsJson[0]?.id) {
- setSelectedClientId(clientsJson[0].id);
- } else if (!selectedClientId && clientsJson[0]?.id) {
- setSelectedClientId(clientsJson[0].id);
- }
  setSummaries(attendanceJson.summaries ?? []);
  setExceptions(attendanceJson.exceptions ?? []);
  } catch (e) {
@@ -94,7 +96,7 @@ export default function OutsourcingAttendancePage() {
 
  useEffect(() => {
  void load();
- }, [selectedClientId, from, to, region, activeEntity.id]);
+ }, [clientId, from, to, region, activeEntity.id]);
 
  const openExceptions = useMemo(() => exceptions.filter((item) => item.status === 'open').length, [exceptions]);
  const exceptionByEmployeeDate = useMemo(() => {
@@ -133,9 +135,9 @@ export default function OutsourcingAttendancePage() {
  description="Reconciled day summaries with manual override support."
  />
 
- {selectedClientId ? (
+ {clientId ? (
  <div className="mb-4">
- <AttendanceWorkSitesPanel clientId={selectedClientId} />
+ <AttendanceWorkSitesPanel clientId={clientId} />
  </div>
  ) : null}
 
@@ -148,19 +150,12 @@ export default function OutsourcingAttendancePage() {
  <div className="overflow-hidden dashboard-surface shadow-sm">
  <DashboardTableToolbar>
  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
- <select
- value={selectedClientId}
- onChange={(e) => setSelectedClientId(e.target.value)}
- className={dashboardFilterSelectClass}
- aria-label="Workspace client"
- >
- <option value="">Select workspace</option>
- {clients.map((client) => (
- <option key={client.id} value={client.id}>
- {client.label ?? client.name}
- </option>
- ))}
- </select>
+ <OutsourcingClientSwitcher
+  clients={clients}
+  value={clientId}
+  onChange={setClientId}
+  className={dashboardFilterSelectClass}
+ />
  <select
  value={region}
  onChange={(e) => setRegion(e.target.value as 'all' | 'uganda' | 'kenya')}

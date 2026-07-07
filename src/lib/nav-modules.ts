@@ -33,7 +33,6 @@ export function isDashboardNavItemVisible(
   if (!sectionModules?.length) return true;
 
   if (sectionId === 'people-hr') {
-    if (href.startsWith('/dashboard/sales')) return enabled.sales;
     if (href.startsWith('/dashboard/performance')) return enabled.performance;
     return enabled.core;
   }

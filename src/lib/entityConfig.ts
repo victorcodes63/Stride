@@ -1,4 +1,4 @@
-import { slugToCountryCode } from '@/lib/operating-entities';
+import { slugToCountryCode } from '@/lib/operating-entities-shared';
 
 export type EntityId = 'ug' | 'ke';
 

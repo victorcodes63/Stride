@@ -7,11 +7,16 @@ import { CalendarOff, Users } from 'lucide-react';
 import { EmployeeLeavePanel } from '@/components/dashboard/leave/EmployeeLeavePanel';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
+import { dashboardFilterSelectClass } from '@/components/dashboard/DashboardFilterBar';
+import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
 
 function LeaveHubContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { clientId, clients, setClientId, showSwitcher } = useOutsourcingClient();
   const audience = searchParams.get('audience') === 'staff' ? 'staff' : 'employees';
 
   useEffect(() => {
@@ -25,7 +30,9 @@ function LeaveHubContent() {
       router.push('/dashboard/staff-leave');
       return;
     }
-    router.push('/dashboard/leave?audience=employees');
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('audience', 'employees');
+    router.push(`/dashboard/leave?${params.toString()}`);
   }
 
   if (audience === 'staff') {
@@ -54,6 +61,18 @@ function LeaveHubContent() {
           />
         }
       />
+      {showSwitcher ? (
+        <div className="mb-4 overflow-hidden dashboard-surface shadow-sm">
+          <DashboardTableToolbar>
+            <OutsourcingClientSwitcher
+              clients={clients}
+              value={clientId}
+              onChange={setClientId}
+              className={dashboardFilterSelectClass}
+            />
+          </DashboardTableToolbar>
+        </div>
+      ) : null}
       <Suspense fallback={<div className="py-12 text-center text-sm text-neutral-500">Loading employee leave…</div>}>
         <EmployeeLeavePanel />
       </Suspense>

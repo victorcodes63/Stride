@@ -14,7 +14,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const application = await ctx.run((tx) =>
       tx.application.findFirst({
         where: ctx.where({ id: applicationId }),
-        include: { candidate: true, job: true, hireConversion: true },
+        include: {
+          candidate: true,
+          job: { select: { title: true, outsourcingClientId: true } },
+          hireConversion: true,
+        },
       }),
     );
     if (!application) return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
@@ -34,20 +38,51 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const body = (await request.json().catch(() => null)) as { profile?: Partial<HireProfileInput> } | null;
     const profile = body?.profile ?? {};
-    const missing = validateHireProfileInput(profile);
+    const missing = validateHireProfileInput(profile, {
+      requireOutsourcingClient: Boolean(application.job.outsourcingClientId),
+    });
     if (missing.length) {
       return NextResponse.json({ error: `Missing required profile fields: ${missing.join(', ')}` }, { status: 400 });
     }
 
-    const payload = buildEmployeeFromHireConversion({
-      candidate: application.candidate,
-      job: { title: application.job.title },
-      offer: {
-        startDate: approvedOffer.startDate,
-        proposedGrossSalary: approvedOffer.proposedGrossSalary ? Number(approvedOffer.proposedGrossSalary) : null,
-      },
-      profile: profile as HireProfileInput,
-    });
+    let payload;
+    try {
+      payload = buildEmployeeFromHireConversion({
+        candidate: application.candidate,
+        job: application.job,
+        offer: {
+          startDate: approvedOffer.startDate,
+          proposedGrossSalary: approvedOffer.proposedGrossSalary ? Number(approvedOffer.proposedGrossSalary) : null,
+        },
+        profile: profile as HireProfileInput,
+      });
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err.code === 'RPO_CLIENT_MISMATCH') {
+        return NextResponse.json({ error: 'Profile end-client does not match the RPO job scope.' }, { status: 400 });
+      }
+      throw error;
+    }
+
+    if (payload.outsourcingClientId) {
+      const department = await ctx.run((tx) =>
+        tx.department.findFirst({
+          where: {
+            id: payload.departmentId,
+            organizationId: ctx.organizationId,
+            outsourcingClientId: payload.outsourcingClientId!,
+          },
+          select: { id: true },
+        }),
+      );
+      if (!department) {
+        return NextResponse.json(
+          { error: 'Department must belong to the RPO end-client workforce.' },
+          { status: 400 },
+        );
+      }
+    }
+
     assertEmployeeProfileCompleteness(payload);
 
     const existingNationalId = await ctx.run((tx) =>
@@ -64,7 +99,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const employee = await tx.employee.create({
         data: {
           organizationId: ctx.organizationId,
-          outsourcingClientId: payload.clientId,
+          outsourcingClientId: payload.outsourcingClientId,
           departmentId: payload.departmentId,
           managerEmployeeId: payload.managerEmployeeId,
           firstName: payload.firstName,
@@ -101,6 +136,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           metadata: {
             offerApprovalId: approvedOffer.id,
             source: 'ats_to_hr_core',
+            outsourcingClientId: payload.outsourcingClientId,
+            rpoJobId: application.job.outsourcingClientId ? application.jobId : null,
           },
         },
       });

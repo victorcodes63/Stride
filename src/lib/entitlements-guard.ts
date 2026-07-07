@@ -3,7 +3,6 @@ import { loadDeploymentEntitlements } from '@/lib/entitlements-store';
 import { loadOrganizationEntitlements } from '@/lib/org-entitlements-store';
 import type { ModuleKey } from '@/lib/modules';
 import { getModuleLabel } from '@/lib/modules';
-import { enforceDependencyClosure } from '@/lib/module-dependencies';
 
 export type ModuleEntitlementViolation = {
   module: ModuleKey;
@@ -55,7 +54,7 @@ export function clampModuleAdminFlags(
       next[key] = false;
     }
   }
-  return enforceDependencyClosure(next);
+  return next;
 }
 
 /** Per-org entitlements (pooled cell) with deployment-level fallback (demo / legacy only). */

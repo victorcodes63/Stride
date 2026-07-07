@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { OverviewPinButton } from '@/components/dashboard/overview/OverviewPinButton';
 import { useDashboardOverviewLayout } from '@/contexts/dashboard-overview-layout';
-import type { OverviewWidgetId } from '@/lib/dashboard-overview-preferences';
+import type { OverviewWidgetId } from '@/lib/dashboard-overview-layout';
 
 type Props = {
   widgetId: OverviewWidgetId;

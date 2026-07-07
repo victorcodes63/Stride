@@ -287,13 +287,13 @@ export default function ContractsPageClient() {
  </form>
  ) : null}
 
- <div className="mb-3 flex items-center gap-2 dashboard-surface p-3">
- <Search className="h-4 w-4 text-neutral-400" />
+ <div className="mb-3 flex items-center gap-2 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] px-3 py-2.5">
+ <Search className="h-4 w-4 shrink-0 text-[var(--dash-text-subtle)]" strokeWidth={1.75} />
  <input
  value={query}
  onChange={(e) => setQuery(e.target.value)}
  placeholder="Search by name, reference, type, or manager..."
- className="w-full border-0 p-0 text-sm focus:outline-none"
+ className="dash-command-palette-input min-w-0 flex-1 border-0 bg-transparent py-0.5 text-sm text-[var(--dash-text-strong)] placeholder:text-[var(--dash-text-subtle)] focus:outline-none"
  />
  </div>
 

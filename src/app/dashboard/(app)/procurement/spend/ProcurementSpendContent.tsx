@@ -5,6 +5,7 @@ import { BarChart3, Loader2, AlertCircle, ShoppingCart, Building2, Wallet, Trend
 import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DASHBOARD_FORM_INPUT_CLASS, DASHBOARD_STAT_CARD_CLASS, DASHBOARD_SURFACE_CLASS } from '@/lib/dashboard-layout';
 
 type SpendReport = {
   year: number;
@@ -50,12 +51,12 @@ function fmtMoney(v: number, currency = 'KES') {
 
 function StatCard({ label, value, icon: Icon }: { label: string; value: string; icon: typeof BarChart3 }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-2 text-neutral-600">
+    <div className={DASHBOARD_STAT_CARD_CLASS}>
+      <div className="flex items-center gap-2 text-[var(--dash-text-muted)]">
         <Icon className="h-4 w-4" />
         <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
       </div>
-      <p className="mt-2 text-xl font-semibold text-neutral-900">{value}</p>
+      <p className="mt-2 text-xl font-semibold text-[var(--dash-text-strong)]">{value}</p>
     </div>
   );
 }
@@ -117,7 +118,7 @@ export default function ProcurementSpendContent() {
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            className="rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm font-semibold"
+            className={`${DASHBOARD_FORM_INPUT_CLASS} font-semibold`}
           >
             {[2024, 2025, 2026, 2027].map((y) => (
               <option key={y} value={y}>
@@ -154,7 +155,7 @@ export default function ProcurementSpendContent() {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
+            className={`${DASHBOARD_SURFACE_CLASS} p-5 shadow-sm`}
           >
             <h2 className="text-sm font-semibold text-neutral-900">Monthly LPO spend ({report.year})</h2>
             <div className="mt-4">
@@ -163,7 +164,7 @@ export default function ProcurementSpendContent() {
           </motion.div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <section className={`${DASHBOARD_SURFACE_CLASS} p-5 shadow-sm`}>
               <h2 className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
                 <Building2 className="h-4 w-4" />
                 By department
@@ -198,7 +199,7 @@ export default function ProcurementSpendContent() {
               )}
             </section>
 
-            <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <section className={`${DASHBOARD_SURFACE_CLASS} p-5 shadow-sm`}>
               <h2 className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
                 <ShoppingCart className="h-4 w-4" />
                 By vendor
@@ -232,7 +233,7 @@ export default function ProcurementSpendContent() {
             </section>
           </div>
 
-          <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <section className={`${DASHBOARD_SURFACE_CLASS} p-5 shadow-sm`}>
             <h2 className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
               <Wallet className="h-4 w-4" />
               Budget lines vs procurement

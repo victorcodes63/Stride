@@ -3,7 +3,7 @@ import DynamicJobListings from '@/components/ats/DynamicJobListings';
 import { CareersDemoBanner } from '@/components/public/CareersDemoBanner';
 import CareersHighlights from '@/components/public/CareersHighlights';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
-import { isPublicDemoMode } from '@/lib/deployment-config';
+import { isPublicDemoMode } from '@/lib/deployment-flags';
 import { getMarketingPageUrl } from '@/lib/marketing-config';
 
 type CareersPageProps = {

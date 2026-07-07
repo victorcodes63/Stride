@@ -1,4 +1,5 @@
 import type { ModuleKey } from '@/lib/modules';
+import { buildNavItemModules } from '@/lib/module-nav-bindings';
 
 export type RouteModuleBinding = {
   prefix: string;
@@ -159,14 +160,13 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
 
   // —— Core HR (employees, org, onboarding, credentials) ——
   { prefix: '/api/onboarding', module: 'core' },
-  { prefix: '/api/outsourcing/clients', module: 'core' },
-  { prefix: '/api/outsourcing/employees', module: 'core' },
   { prefix: '/api/outsourcing/ess', module: 'ess' },
   { prefix: '/api/outsourcing/document-requests', module: 'ess' },
+  { prefix: '/api/outsourcing', module: 'outsourcing' },
   { prefix: '/dashboard/ess/portal-accounts', module: 'ess' },
   { prefix: '/dashboard/ess/shifts', module: 'ess' },
   { prefix: '/dashboard/ess/document-requests', module: 'ess' },
-  { prefix: '/dashboard/outsourcing', module: 'core' },
+  { prefix: '/dashboard/outsourcing', module: 'outsourcing' },
   { prefix: '/api/employees', module: 'core' },
   { prefix: '/api/departments', module: 'core' },
   { prefix: '/api/credentials', module: 'core' },

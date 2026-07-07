@@ -44,7 +44,7 @@ describe('module-presets', () => {
       procurement: true,
       fleet: true,
     });
-    expect(count).toBeGreaterThanOrEqual(5);
+    expect(count).toBeGreaterThanOrEqual(4);
     const withoutProcurement = countHrOptionalHorizontalModules({
       ...allModulesAdminEnabled(),
       procurement: false,

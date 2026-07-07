@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Building2, Layers, Plus, Search, Users } from 'lucide-react';
+import { Building2, Handshake, Layers, Plus, Search, Users } from 'lucide-react';
 import { DashboardAsyncState } from '@/components/dashboard/DashboardAsyncState';
 import {
   DashboardTable,
@@ -15,23 +15,22 @@ import {
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import {
+  outsourcingClientStatusLabel,
+  type OutsourcingClientJson,
+  type OutsourcingClientStatus,
+} from '@/lib/outsourcing-client';
 
-type Client = {
-  id: string;
-  name: string;
-  contactName: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  county: string | null;
-  employeeCount: number;
-  departmentCount: number;
-  contractStartDate: string | null;
-  contractEndDate: string | null;
-  currency: string;
-};
+type ClientRow = OutsourcingClientJson & { label?: string };
+
+function statusTone(status: OutsourcingClientStatus) {
+  if (status === 'active') return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+  if (status === 'suspended') return 'text-amber-800 bg-amber-50 border-amber-200';
+  return 'text-neutral-700 bg-neutral-100 border-neutral-200';
+}
 
 export default function OutsourcingClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState('');
@@ -62,14 +61,16 @@ export default function OutsourcingClientsPage() {
         c.name.toLowerCase().includes(query) ||
         (c.contactName || '').toLowerCase().includes(query) ||
         (c.contactEmail || '').toLowerCase().includes(query) ||
-        (c.county || '').toLowerCase().includes(query),
+        (c.county || '').toLowerCase().includes(query) ||
+        c.status.toLowerCase().includes(query),
     );
   }, [clients, q]);
 
   const totals = useMemo(() => {
     const totalEmployees = clients.reduce((sum, c) => sum + c.employeeCount, 0);
     const totalDepts = clients.reduce((sum, c) => sum + c.departmentCount, 0);
-    return { totalEmployees, totalDepts, totalClients: clients.length };
+    const activeClients = clients.filter((c) => c.status === 'active').length;
+    return { totalEmployees, totalDepts, totalClients: clients.length, activeClients };
   }, [clients]);
 
   const listStatus = useMemo(() => {
@@ -82,18 +83,19 @@ export default function OutsourcingClientsPage() {
   return (
     <DashboardPage>
       <DashboardPageHeader
-        icon={Building2}
-        title="Workspace Clients"
-        description="Manage client organizations, contracts, and workforce."
+        icon={Handshake}
+        title="End-client register"
+        description="Manage end-clients, service contracts, rate cards, and report delivery settings."
         actions={[
-          { href: '/dashboard/outsourcing/clients/new', label: 'Add client', icon: Plus, variant: 'primary' },
+          { href: '/dashboard/outsourcing/clients/new', label: 'Add end-client', icon: Plus, variant: 'primary' },
         ]}
       />
 
-      <DashboardStatGrid columns={3}>
-        <DashboardStatCard label="Total clients" value={totals.totalClients} tone="primary" />
-        <DashboardStatCard label="Total employees" value={totals.totalEmployees} tone="success" />
-        <DashboardStatCard label="Departments" value={totals.totalDepts} tone="violet" />
+      <DashboardStatGrid columns={4}>
+        <DashboardStatCard label="End-clients" value={totals.totalClients} tone="primary" />
+        <DashboardStatCard label="Active" value={totals.activeClients} tone="success" />
+        <DashboardStatCard label="Outsourced workforce" value={totals.totalEmployees} tone="violet" />
+        <DashboardStatCard label="Departments" value={totals.totalDepts} />
       </DashboardStatGrid>
 
       <DashboardTableCard>
@@ -103,7 +105,7 @@ export default function OutsourcingClientsPage() {
             <DashboardTableSearchInput
               value={q}
               onChange={setQ}
-              placeholder="Search by name, contact, county..."
+              placeholder="Search by name, contact, county, status..."
             />
           </div>
         </DashboardTableToolbar>
@@ -114,21 +116,23 @@ export default function OutsourcingClientsPage() {
           empty={
             <DashboardTableEmpty
               icon={<Building2 className="h-8 w-8 text-neutral-300" aria-hidden />}
-              title="No clients found"
-              description={q ? 'Try different search terms.' : 'Add your first client to get started.'}
+              title="No end-clients found"
+              description={q ? 'Try different search terms.' : 'Add your first end-client to get started.'}
             />
           }
         >
-          <DashboardTableViewport minWidth={760}>
+          <DashboardTableViewport minWidth={860}>
             <DashboardTable>
               <thead className="bg-neutral-50 border-b border-neutral-200">
                 <tr>
-                  <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase">Client</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase">End-client</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase">Status</th>
                   <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase">Contact</th>
                   <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase">County</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase text-center">Employees</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase text-center">Workforce</th>
                   <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase text-center">Departments</th>
                   <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase">Contract</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase">Rate card</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,10 +147,15 @@ export default function OutsourcingClientsPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${statusTone(client.status)}`}>
+                        {outsourcingClientStatusLabel(client.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
                       <div className="text-sm text-neutral-700">{client.contactName || '—'}</div>
-                      {client.contactEmail && (
+                      {client.contactEmail ? (
                         <div className="text-xs text-neutral-500">{client.contactEmail}</div>
-                      )}
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-600">{client.county || '—'}</td>
                     <td className="px-4 py-3 text-center">
@@ -164,6 +173,11 @@ export default function OutsourcingClientsPage() {
                     <td className="px-4 py-3 text-sm text-neutral-600">
                       {client.contractStartDate
                         ? `${client.contractStartDate}${client.contractEndDate ? ` → ${client.contractEndDate}` : ' → ongoing'}`
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-neutral-600">
+                      {client.activeRateCard?.lines[0]
+                        ? `${client.activeRateCard.lines[0].label}: ${client.currency} ${client.activeRateCard.lines[0].unitAmount}`
                         : '—'}
                     </td>
                   </tr>

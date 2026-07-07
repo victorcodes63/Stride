@@ -7,8 +7,10 @@ import {
   Building2,
   CalendarOff,
   Clock4,
+  Handshake,
   LayoutGrid,
   ListTodo,
+  Shield,
   UserCog,
   Users,
 } from 'lucide-react';
@@ -21,11 +23,13 @@ import {
 
 /** Routes reachable in the app but absent from (or aliased vs) the sidebar catalog. */
 const EXTRA_PAGE_ICON_ROUTES: Record<string, LucideIcon> = {
+  '/dashboard/outsourcing': Handshake,
   '/dashboard/outsourcing/employees': Users,
   '/dashboard/outsourcing/departments': Building2,
   '/dashboard/outsourcing/attendance': Clock4,
   '/dashboard/outsourcing/payroll': Banknote,
   '/dashboard/outsourcing/leave': CalendarOff,
+  '/dashboard/outsourcing/disciplinary': Shield,
   '/dashboard/outsourcing/clients': Building2,
   '/dashboard/staff-leave': CalendarOff,
   '/dashboard/staff': UserCog,

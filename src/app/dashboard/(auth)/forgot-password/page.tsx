@@ -74,7 +74,6 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="dash-auth-input"
-                placeholder="you@company.co.ke"
               />
             </div>
 

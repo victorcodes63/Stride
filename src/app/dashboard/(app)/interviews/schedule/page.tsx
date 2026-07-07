@@ -591,10 +591,12 @@ function ScheduleInterviewsPageContent() {
  const formHintClass = 'text-[11px] text-[var(--dash-text-muted)]';
  const sectionLabelClass = 'text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-1';
  const stepPanelClass = 'rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] p-4 mb-6';
+ const bulkStepPanelClass =
+  'rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-muted)]/60 p-4 sm:p-5 lg:border-0 lg:bg-transparent lg:p-0';
  const errorBoxClass = 'p-4 rounded-lg border border-[var(--dash-danger-border)] bg-[var(--dash-danger-bg)] text-[var(--dash-danger-fg)] text-sm';
- const listShellClass = 'border border-[var(--dash-border)] rounded-lg divide-y divide-[var(--dash-border)] max-h-[min(85vh,28rem)] overflow-y-auto overflow-x-hidden bg-[var(--dash-surface)] pr-1';
- const emptyDashedClass = 'border border-dashed border-[var(--dash-border)] rounded-lg p-8 text-center bg-[var(--dash-surface-muted)]/40';
- const previewShellClass = 'rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] overflow-hidden shadow-sm';
+ const listShellClass = 'border border-[var(--dash-border)] rounded-lg divide-y divide-[var(--dash-border)] max-h-[min(70vh,24rem)] overflow-y-auto overflow-x-hidden bg-[var(--dash-surface)] pr-1';
+ const emptyDashedClass = 'border border-dashed border-[var(--dash-border)] rounded-lg p-8 text-center bg-[var(--dash-surface-muted)]/40 min-h-[10rem] flex items-center justify-center';
+ const previewShellClass = 'rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] shadow-sm';
 
  return (
  <DashboardPage>
@@ -620,7 +622,7 @@ function ScheduleInterviewsPageContent() {
 
  <div className="space-y-6 sm:space-y-8">
  {/* Bulk schedule (max 10) */}
- <div className="dashboard-surface shadow-sm p-5 sm:p-6 lg:p-8">
+ <div className="dashboard-surface overflow-visible shadow-sm p-5 sm:p-6 lg:p-8">
  <h2 className="text-base sm:text-lg font-semibold text-[var(--dash-text-strong)] flex items-center gap-2 mb-5 sm:mb-6">
  <Users className="w-5 h-5 shrink-0" />
  Bulk schedule (max 10)
@@ -686,10 +688,11 @@ function ScheduleInterviewsPageContent() {
  <form
  id="bulk-schedule-form"
  onSubmit={handleBulkCreate}
- className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1.2fr] lg:gap-6 xl:gap-8 lg:items-start"
+ className="space-y-8"
  >
+ <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8 lg:items-start">
  {/* Schedule + breaks */}
- <div className="min-w-0 space-y-3 dashboard-surface rounded-lg p-4 lg:border-0 lg:bg-transparent lg:p-0">
+ <div className={`min-w-0 space-y-4 ${bulkStepPanelClass}`}>
  <p className="text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">2. Set schedule details</p>
  {bulkFormError && (
  <div className={errorBoxClass}>
@@ -783,8 +786,8 @@ function ScheduleInterviewsPageContent() {
  value={bulkNotes}
  onChange={(e) => setBulkNotes(e.target.value)}
  placeholder="e.g. Please bring ID, certificates, or other documents. These notes will be included in the invite email."
- rows={2}
- className={`${formInputClass} resize-y`}
+ rows={3}
+ className={`${formInputClass} resize-y min-h-[5.5rem]`}
  />
  </div>
 
@@ -890,7 +893,7 @@ function ScheduleInterviewsPageContent() {
  </div>
  </div>
  {/* Candidates */}
- <div className="min-w-0 mt-6 lg:mt-0 dashboard-surface rounded-lg p-4 lg:border-0 lg:bg-transparent lg:p-0">
+ <div className={`min-w-0 ${bulkStepPanelClass}`}>
  <p className="text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">3. Select candidates</p>
  <label className="block text-sm font-medium text-[var(--dash-text-strong)] mb-2">
  Shortlisted candidates (max 10)
@@ -999,15 +1002,10 @@ function ScheduleInterviewsPageContent() {
  </p>
  )}
  </div>
+ </div>
 
- {/* Day preview — ~1.2fr so a bit wider, not half the page */}
- <aside
- id="day-preview"
- className="w-full min-w-0 mt-8 pt-8 border-t border-[var(--dash-border)] lg:mt-0 lg:pt-0 lg:border-t-0 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain"
- >
- <p className="lg:hidden text-xs text-neutral-500 mb-3">
- Day preview is below on small screens. On a wider window it stays fixed on the right while you edit.
- </p>
+ {/* Day preview — full width below schedule + candidates */}
+ <aside id="day-preview" className="w-full min-w-0">
  <div className={previewShellClass}>
  <div className="px-3 sm:px-4 py-3 sm:py-4 border-b border-[var(--dash-border)] bg-[var(--dash-surface-muted)]/60">
  <div className="flex flex-col gap-2">

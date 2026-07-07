@@ -32,9 +32,9 @@ describe('company-setup', () => {
     expect(items.some((i) => i.id === 'org-name')).toBe(true);
   });
 
-  it('defaults moduleAdminFlags with finance and assets off for fresh setup', () => {
+  it('defaults moduleAdminFlags with finance on and vertical engines off for fresh setup', () => {
     const flags = defaultModuleAdminFlags();
-    expect(flags.accounts).toBe(false);
+    expect(flags.accounts).toBe(true);
     expect(flags.assets).toBe(false);
     expect(flags.core).toBe(true);
   });

@@ -58,24 +58,35 @@ export default function BrandLogo({
   src,
 }: BrandLogoProps) {
   const { appName, logoSrc: brandLogoSrc } = usePublicBrand();
+  const useWordmark = WORDMARK_VARIANTS.has(variant);
   const size = variantSize[variant];
   const cls = className ?? markVariantClass[variant];
-  const useWordmark = WORDMARK_VARIANTS.has(variant);
-  const defaultSrc = useWordmark ? STRIDE_WORDMARK_SRC : STRIDE_MARK_SRC;
-  const logoSrc = normalizeLogoSrc(
-    src ?? (useWordmark ? STRIDE_WORDMARK_SRC : (brandLogoSrc ?? defaultSrc)),
-  );
-  const resolvedSrc =
-    !src && !useWordmark && logoSrc.includes('stride-wordmark')
-      ? STRIDE_MARK_SRC
-      : logoSrc;
+
+  // Wordmarks use fixed Stride assets — stable <img> attrs for SSR/hydration.
+  if (useWordmark) {
+    const wordmarkSrc = normalizeLogoSrc(src ?? STRIDE_WORDMARK_SRC);
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={wordmarkSrc}
+        alt={alt ?? 'Stride'}
+        width={144}
+        height={size}
+        className={cls}
+        decoding="async"
+      />
+    );
+  }
+
+  const logoSrc = normalizeLogoSrc(src ?? brandLogoSrc ?? STRIDE_MARK_SRC);
+  const resolvedSrc = logoSrc.includes('stride-wordmark') ? STRIDE_MARK_SRC : logoSrc;
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={resolvedSrc}
       alt={alt ?? appName}
-      width={useWordmark ? undefined : size}
+      width={size}
       height={size}
       className={cls}
       decoding="async"

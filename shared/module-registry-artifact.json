@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-06T12:19:45.202Z",
+  "generatedAt": "2026-07-06T13:04:36.587Z",
   "keys": [
     "core",
     "ess",
@@ -38,7 +38,8 @@
       "canDisable": false,
       "domainId": "hr-payroll",
       "envVar": "MODULE_CORE",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "ess",
@@ -47,7 +48,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_ESS",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "leave",
@@ -56,7 +58,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_LEAVE",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "time",
@@ -65,7 +68,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_TIME",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "payroll",
@@ -74,7 +78,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_PAYROLL",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "disciplinary",
@@ -83,7 +88,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_DISCIPLINARY",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "accounts",
@@ -92,7 +98,8 @@
       "canDisable": false,
       "domainId": "finance",
       "envVar": "MODULE_ACCOUNTS",
-      "requires": []
+      "requires": [],
+      "readiness": "partial"
     },
     {
       "key": "reports",
@@ -101,7 +108,8 @@
       "canDisable": true,
       "domainId": "admin-operations",
       "envVar": "MODULE_REPORTS",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "documents",
@@ -110,7 +118,8 @@
       "canDisable": true,
       "domainId": "legal-documents",
       "envVar": "MODULE_DOCUMENTS",
-      "requires": []
+      "requires": [],
+      "readiness": "partial"
     },
     {
       "key": "communications",
@@ -119,7 +128,8 @@
       "canDisable": true,
       "domainId": "admin-operations",
       "envVar": "MODULE_COMMUNICATIONS",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "ats",
@@ -130,7 +140,8 @@
       "envVar": "MODULE_ATS",
       "requires": [
         "core"
-      ]
+      ],
+      "readiness": "live"
     },
     {
       "key": "performance",
@@ -141,7 +152,8 @@
       "envVar": "MODULE_PERFORMANCE",
       "requires": [
         "core"
-      ]
+      ],
+      "readiness": "live"
     },
     {
       "key": "training",
@@ -150,7 +162,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_TRAINING",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "procurement",
@@ -159,7 +172,8 @@
       "canDisable": true,
       "domainId": "procurement",
       "envVar": "MODULE_PROCUREMENT",
-      "requires": []
+      "requires": [],
+      "readiness": "partial"
     },
     {
       "key": "legal",
@@ -168,7 +182,8 @@
       "canDisable": true,
       "domainId": "legal-documents",
       "envVar": "MODULE_LEGAL",
-      "requires": []
+      "requires": [],
+      "readiness": "partial"
     },
     {
       "key": "projects",
@@ -177,7 +192,8 @@
       "canDisable": true,
       "domainId": "projects",
       "envVar": "MODULE_PROJECTS",
-      "requires": []
+      "requires": [],
+      "readiness": "planned"
     },
     {
       "key": "operations",
@@ -186,7 +202,8 @@
       "canDisable": true,
       "domainId": "admin-operations",
       "envVar": "MODULE_OPERATIONS",
-      "requires": []
+      "requires": [],
+      "readiness": "partial"
     },
     {
       "key": "outsourcing",
@@ -195,18 +212,20 @@
       "canDisable": true,
       "domainId": "hr-outsourcing",
       "envVar": "MODULE_OUTSOURCING",
-      "requires": []
+      "requires": [],
+      "readiness": "partial"
     },
     {
       "key": "sales",
       "label": "Sales",
       "bucket": "horizontal",
       "canDisable": true,
-      "domainId": "hr-payroll",
+      "domainId": "sales",
       "envVar": "MODULE_SALES",
       "requires": [
         "performance"
-      ]
+      ],
+      "readiness": "partial"
     },
     {
       "key": "assessments",
@@ -217,7 +236,8 @@
       "envVar": "MODULE_ASSESSMENTS",
       "requires": [
         "ats"
-      ]
+      ],
+      "readiness": "partial"
     },
     {
       "key": "fleet",
@@ -226,7 +246,8 @@
       "canDisable": true,
       "domainId": "fleet-logistics",
       "envVar": "MODULE_FLEET",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "assets",
@@ -235,7 +256,8 @@
       "canDisable": true,
       "domainId": "admin-operations",
       "envVar": "MODULE_ASSETS",
-      "requires": []
+      "requires": [],
+      "readiness": "partial"
     },
     {
       "key": "hse",
@@ -244,7 +266,8 @@
       "canDisable": true,
       "domainId": "admin-operations",
       "envVar": "MODULE_HSE",
-      "requires": []
+      "requires": [],
+      "readiness": "live"
     },
     {
       "key": "sacco",
@@ -253,7 +276,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_SACCO",
-      "requires": []
+      "requires": [],
+      "readiness": "planned"
     },
     {
       "key": "healthcare",
@@ -262,7 +286,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_HEALTHCARE",
-      "requires": []
+      "requires": [],
+      "readiness": "planned"
     },
     {
       "key": "energy",
@@ -271,7 +296,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_ENERGY",
-      "requires": []
+      "requires": [],
+      "readiness": "planned"
     },
     {
       "key": "construction",
@@ -280,7 +306,8 @@
       "canDisable": true,
       "domainId": "hr-payroll",
       "envVar": "MODULE_CONSTRUCTION",
-      "requires": []
+      "requires": [],
+      "readiness": "planned"
     }
   ],
   "bucket": {
@@ -327,12 +354,19 @@
         "ats",
         "performance",
         "training",
-        "sales",
         "assessments",
         "sacco",
         "healthcare",
         "energy",
         "construction"
+      ]
+    },
+    {
+      "id": "sales",
+      "label": "Sales",
+      "description": "Pipeline KPIs, targets, attainment, and scorecard auto-measures.",
+      "keys": [
+        "sales"
       ]
     },
     {

@@ -1,10 +1,10 @@
 /**
- * RAV-67: Audit tenant migration gate per licensed module.
+ * RAV-67 / RAV-251: Audit tenant migration gate per licensed module.
  * - Schema: tenant models have organizationId + RLS policies
  * - Routes: staff API handlers under module prefixes use withTenant()
  *
  * Usage: npm run audit:module-tenant
- * Exit 1 on schema/RLS violations; exit 0 with warnings for unmigrated routes.
+ * Exit 1 on schema/RLS violations or route regression above baseline.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,26 +17,21 @@ import {
 } from '../src/lib/module-migration-registry';
 import { ROUTE_MODULE_BINDINGS } from '../src/lib/module-routes';
 import type { ModuleKey } from '../src/lib/modules';
+import { isExemptApiPath, usesTenantWrapper } from './tenant-audit-shared';
 
 const ROOT = path.join(import.meta.dirname, '..');
 const SCHEMA_PATH = path.join(ROOT, 'prisma/schema.prisma');
 const RLS_PATH = path.join(ROOT, 'prisma/migrations/rls_policies.sql');
 const API_ROOT = path.join(ROOT, 'src/app/api');
+const BASELINE_PATH = path.join(import.meta.dirname, 'tenant-isolation-baseline.json');
 
-const ROUTE_EXEMPT_PREFIXES = [
-  '/api/auth',
-  '/api/config',
-  '/api/webhooks',
-  '/api/internal',
-  '/api/cron',
-  '/api/ess/auth',
-  '/api/ess/manifest',
-  '/api/marketing',
-  '/api/contact',
-  '/api/test',
-  '/api/upload',
-  '/api/interview/respond',
-];
+type Baseline = {
+  routes: {
+    total: number;
+    migrated: number;
+    unmigrated: number;
+  };
+};
 
 function readFile(filePath: string): string {
   return fs.readFileSync(filePath, 'utf8');
@@ -69,6 +64,10 @@ function routeFileToApiPath(filePath: string): string {
   return `/api/${dir}`;
 }
 
+function isExemptApiPathLocal(apiPath: string): boolean {
+  return isExemptApiPath(apiPath);
+}
+
 function resolveModuleForApiPath(apiPath: string): ModuleKey | null {
   const sorted = [...ROUTE_MODULE_BINDINGS]
     .filter((b) => b.prefix.startsWith('/api/'))
@@ -81,12 +80,6 @@ function resolveModuleForApiPath(apiPath: string): ModuleKey | null {
   return null;
 }
 
-function isExemptApiPath(apiPath: string): boolean {
-  return ROUTE_EXEMPT_PREFIXES.some(
-    (prefix) => apiPath === prefix || apiPath.startsWith(`${prefix}/`),
-  );
-}
-
 function collectApiRouteFiles(dir: string): string[] {
   const out: string[] = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -95,18 +88,6 @@ function collectApiRouteFiles(dir: string): string[] {
     else if (entry.name === 'route.ts') out.push(full);
   }
   return out;
-}
-
-function usesTenantWrapper(source: string): boolean {
-  return (
-    /\bwithTenant\s*\(/.test(source) ||
-    /\bwithTenantAudit\s*\(/.test(source) ||
-    /\bwithFleetTenant\s*\(/.test(source) ||
-    /\bwithAccountsTenant\s*\(/.test(source) ||
-    /\bwithEssTenant\s*\(/.test(source) ||
-    /\bwithAssessmentAccessToken\s*\(/.test(source) ||
-    (/\bwithOrgContext\s*\(/.test(source) && /\brequireStaffUser\b/.test(source))
-  );
 }
 
 type ModuleRouteStats = {
@@ -137,7 +118,7 @@ function main() {
 
   for (const file of routeFiles) {
     const apiPath = routeFileToApiPath(file);
-    if (isExemptApiPath(apiPath)) continue;
+    if (isExemptApiPathLocal(apiPath)) continue;
 
     const module = resolveModuleForApiPath(apiPath);
     if (!module) continue;
@@ -213,7 +194,40 @@ function main() {
 
   console.log('\nRunbook: docs/MODULE-MIGRATION-CHECKLIST.md\n');
 
-  if (schemaErrors.length) {
+  let totalRoutes = 0;
+  let migratedRoutes = 0;
+  for (const stats of byModule.values()) {
+    totalRoutes += stats.total;
+    migratedRoutes += stats.migrated;
+  }
+  const unmigratedRoutes = totalRoutes - migratedRoutes;
+
+  const routeErrors: string[] = [];
+  if (unmigratedRoutes > 0) {
+    routeErrors.push(`${unmigratedRoutes} staff API route(s) missing tenant wrapper`);
+  }
+
+  const baseline = JSON.parse(readFile(BASELINE_PATH)) as Baseline;
+  if (unmigratedRoutes > baseline.routes.unmigrated) {
+    routeErrors.push(
+      `Unmigrated route count regressed: baseline ${baseline.routes.unmigrated} → ${unmigratedRoutes}`,
+    );
+  }
+  if (totalRoutes > 0 && migratedRoutes < baseline.routes.migrated) {
+    routeErrors.push(
+      `Migrated route count regressed: baseline ${baseline.routes.migrated} → ${migratedRoutes}`,
+    );
+  }
+
+  console.log(`Route totals: ${migratedRoutes}/${totalRoutes} migrated (${unmigratedRoutes} pending)\n`);
+
+  if (routeErrors.length) {
+    console.error('ROUTE MIGRATION FAILURES:');
+    for (const err of routeErrors) console.error(`  ✗ ${err}`);
+    console.error('');
+  }
+
+  if (schemaErrors.length || routeErrors.length) {
     process.exit(1);
   }
 }

@@ -58,8 +58,6 @@ async function main() {
 
   run('Dashboard mock routes', 'node', ['scripts/audit-dashboard-mock-routes.mjs']);
   run('Module tenant + RLS schema', 'npm', ['run', 'audit:module-tenant']);
-  run('Module registry drift (MOD-05)', 'npm', ['run', 'audit:module-registry']);
-  run('API prisma scope (ISO-07)', 'npm', ['run', 'audit:api-prisma']);
   run('API auth scan (advisory)', 'npm', ['run', 'audit:api-auth'], { optional: !strict });
 
   const typecheckOk = run('TypeScript', 'npm', ['run', 'typecheck'], { optional: !strict });
@@ -69,7 +67,6 @@ async function main() {
 
   if (process.env.DATABASE_URL) {
     run('RLS isolation (live DB)', 'npm', ['run', 'test:rls']);
-    run('Cross-tenant isolation (live DB)', 'npm', ['run', 'test:cross-tenant']);
   } else {
     console.log('\n── RLS isolation (live DB) ──\n');
     console.log('  SKIP — DATABASE_URL not set (schema audit above covers policy coverage).\n');

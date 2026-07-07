@@ -150,6 +150,16 @@ function run() {
       return;
     }
 
+    if (lastOutput.includes('P3005')) {
+      process.stdout.write(stdout);
+      process.stderr.write(stderr);
+      console.warn(
+        '\n[prisma-migrate-deploy] Detected P3005 (schema exists without _prisma_migrations). ' +
+          'This Neon DB is db-push baselined — skipping migrate deploy and continuing build.',
+      );
+      return;
+    }
+
     const lockTimeout = lastOutput.includes('P1002') || lastOutput.includes('advisory lock');
     if (lockTimeout && attempt < maxAttempts) {
       process.stderr.write(stderr);

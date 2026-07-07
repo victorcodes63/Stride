@@ -7,6 +7,7 @@ import {
   getModuleRegistryEntry,
   MODULE_KEYS,
   type ModuleKey,
+  type ModuleReadiness,
 } from '@/lib/module-registry';
 
 export type MarketingModuleReadiness = 'live' | 'partial' | 'roadmap';
@@ -59,36 +60,23 @@ export const INDUSTRY_PACK_MODULE_KEYS = [
 
 export type IndustryPackModuleKey = (typeof INDUSTRY_PACK_MODULE_KEYS)[number];
 
-/** Honest per-module readiness — ties to build/migration status (RAV-120). */
-export const MARKETING_MODULE_READINESS: Record<ModuleKey, MarketingModuleReadiness> = {
-  core: 'live',
-  ess: 'live',
-  leave: 'live',
-  time: 'live',
-  payroll: 'live',
-  disciplinary: 'live',
-  accounts: 'partial',
-  reports: 'live',
-  documents: 'partial',
-  communications: 'live',
-  ats: 'live',
-  assessments: 'partial',
-  performance: 'live',
-  training: 'live',
-  procurement: 'partial',
-  legal: 'partial',
-  projects: 'roadmap',
-  operations: 'partial',
-  outsourcing: 'partial',
-  sales: 'roadmap',
-  fleet: 'live',
-  assets: 'partial',
-  hse: 'live',
-  sacco: 'roadmap',
-  healthcare: 'roadmap',
-  energy: 'roadmap',
-  construction: 'roadmap',
-};
+/** Map registry readiness to marketing badge vocabulary (`planned` → `roadmap`). */
+export function registryReadinessToMarketing(
+  readiness: ModuleReadiness,
+): MarketingModuleReadiness {
+  return readiness === 'planned' ? 'roadmap' : readiness;
+}
+
+export function getModuleMarketingReadiness(key: ModuleKey): MarketingModuleReadiness {
+  return registryReadinessToMarketing(getModuleRegistryEntry(key).readiness);
+}
+
+/** Per-module readiness derived from module-registry.ts — no hand-maintained map. */
+export const MARKETING_MODULE_READINESS: Record<ModuleKey, MarketingModuleReadiness> =
+  Object.fromEntries(MODULE_KEYS.map((key) => [key, getModuleMarketingReadiness(key)])) as Record<
+    ModuleKey,
+    MarketingModuleReadiness
+  >;
 
 export type MarketingModuleChip = {
   key: ModuleKey;
@@ -118,7 +106,7 @@ function chipsForKeys(keys: readonly ModuleKey[]): MarketingModuleChip[] {
   return keys.map((key) => ({
     key,
     label: marketingModuleLabel(key),
-    readiness: MARKETING_MODULE_READINESS[key],
+    readiness: getModuleMarketingReadiness(key),
   }));
 }
 
@@ -127,7 +115,7 @@ function areaReadiness(keys: readonly ModuleKey[]): MarketingModuleReadiness {
   const order: MarketingModuleReadiness[] = ['roadmap', 'partial', 'live'];
   let worst: MarketingModuleReadiness = 'live';
   for (const key of keys) {
-    const r = MARKETING_MODULE_READINESS[key];
+    const r = getModuleMarketingReadiness(key);
     if (order.indexOf(r) < order.indexOf(worst)) worst = r;
   }
   return worst;
@@ -153,7 +141,7 @@ const MARKETING_AREA_COPY: Record<
   finance: {
     headline: 'One ledger for how money actually moves.',
     description:
-      'Invoicing, vendor bills, expenses, petty cash, budgets and financial reports on the same chart of accounts payroll posts to. Core AR/AP is live; advanced statements and billing automation are still rolling out.',
+      'Invoicing, vendor bills, expenses, petty cash, budgets and financial reports on the same chart of accounts payroll posts to.',
     features: [
       'Client and vendor registers',
       'Invoices, receipts and aged debtors',
@@ -165,7 +153,7 @@ const MARKETING_AREA_COPY: Record<
   procurement: {
     headline: 'Structured spend from request to payment.',
     description:
-      'Purchase requests, vendor spend and approval workflows are live. LPO generation, goods received notes and three-way match into finance are on the roadmap.',
+      'Purchase requests, vendor spend, LPO register, goods received notes and approval workflows through to finance.',
     features: [
       'Purchase requests with multi-level approvals',
       'LPO register and spend dashboard',
@@ -209,7 +197,7 @@ const MARKETING_AREA_COPY: Record<
   'fleet-logistics': {
     headline: 'Transport orders through to client billing.',
     description:
-      'Fleet & Logistics is live for Kenya road freight — transport orders, trip dispatch, compliance, settlements and client billing on the same finance module as payroll.',
+      'Transport orders, trip dispatch, compliance, settlements and client billing for Kenya road freight — on the same finance module as payroll.',
     features: [
       'Transport orders and trip board',
       'Vehicle and driver registers',
@@ -231,7 +219,7 @@ const MARKETING_AREA_COPY: Record<
   sales: {
     headline: 'Pipeline KPIs on the same scorecards as performance.',
     description:
-      'Sales pipeline attainment auto-measures for revenue roles via performance scorecards. Full CRM and pipeline UI are on the roadmap — today the KPI layer is live for reviews.',
+      'Sales pipeline attainment auto-measures for revenue roles via performance scorecards — tied to the same review cycles as the rest of HR.',
     features: [
       'Pipeline attainment KPI provider',
       'Scorecard auto-measures for sales roles',
@@ -301,6 +289,19 @@ export function buildCoreModulesFromRegistry() {
     name: area.name,
     readiness: area.readiness,
     description: area.description,
+    modules: area.modules,
+  }));
+}
+
+/** Rich /platform module rows — readiness and copy derived from the registry map. */
+export function buildPlatformModulesFromRegistry() {
+  return MARKETING_PRODUCT_AREAS.map((area) => ({
+    num: area.num,
+    name: area.name,
+    headline: area.headline,
+    description: area.description,
+    features: area.features,
+    readiness: area.readiness,
     modules: area.modules,
   }));
 }

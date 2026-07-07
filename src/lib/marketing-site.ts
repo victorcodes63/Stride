@@ -1,4 +1,4 @@
-import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-config';
+import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-flags';
 import { isModuleLicensed } from '@/lib/modules';
 
 function trimEnv(key: string): string | undefined {

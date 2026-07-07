@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { BarChart2, Download, Route, Truck } from 'lucide-react';
 import {
@@ -14,6 +14,7 @@ import { DashboardTableCard } from '@/components/dashboard/DashboardDataTable';
 
 type PerformanceReport = {
   periodDays: number;
+  filters?: { vehicleId: string | null; partnerId: string | null };
   trips: { total: number; delivered: number; onTimeDeliveries: number; onTimePct: number };
   fleet: { total: number; inTransit: number; utilizationPct: number };
   fuel: { liters: number; spendKes: number };
@@ -22,35 +23,137 @@ type PerformanceReport = {
   incidents: { escalatedHighSeverity: number };
 };
 
+type VehicleOption = { id: string; registration: string; label: string | null };
+type PartnerOption = { id: string; name: string };
+
+const PERIOD_OPTIONS = [
+  { label: 'Last 7 days', days: 7 },
+  { label: 'Last 30 days', days: 30 },
+  { label: 'Last 90 days', days: 90 },
+  { label: 'Year to date', days: 365 },
+];
+
 export default function FleetReportsPage() {
+  const [periodDays, setPeriodDays] = useState(30);
+  const [vehicleId, setVehicleId] = useState('');
+  const [partnerId, setPartnerId] = useState('');
+  const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+  const [partners, setPartners] = useState<PartnerOption[]>([]);
   const [report, setReport] = useState<PerformanceReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/fleet/reports/performance?days=30')
-      .then(async (r) => {
-        if (!r.ok) throw new Error('Unable to load performance report.');
-        setReport((await r.json()) as PerformanceReport);
+    void Promise.all([fetch('/api/fleet/vehicles'), fetch('/api/fleet/partners')])
+      .then(async ([vehiclesRes, partnersRes]) => {
+        if (vehiclesRes.ok) {
+          const rows = (await vehiclesRes.json()) as VehicleOption[];
+          setVehicles(Array.isArray(rows) ? rows : []);
+        }
+        if (partnersRes.ok) {
+          const rows = (await partnersRes.json()) as PartnerOption[];
+          setPartners(Array.isArray(rows) ? rows : []);
+        }
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Error'))
-      .finally(() => setLoading(false));
+      .catch(() => undefined);
   }, []);
+
+  const exportQuery = useMemo(() => {
+    const params = new URLSearchParams({ days: String(periodDays) });
+    if (vehicleId) params.set('vehicleId', vehicleId);
+    if (partnerId) params.set('partnerId', partnerId);
+    return params.toString();
+  }, [periodDays, vehicleId, partnerId]);
+
+  const loadReport = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/fleet/reports/performance?${exportQuery}`);
+      if (!res.ok) throw new Error('Unable to load performance report.');
+      setReport((await res.json()) as PerformanceReport);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+      setReport(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [exportQuery]);
+
+  useEffect(() => {
+    void loadReport();
+  }, [loadReport]);
 
   return (
     <DashboardPage>
       <DashboardPageHeader
         eyebrow="Fleet & Logistics"
         title="Performance reports"
-        description="Fleet utilisation, trip volumes, delivery performance, fuel usage, and settlement totals — last 30 days."
+        description="Fleet utilisation, trip volumes, delivery performance, fuel usage, and settlement totals."
         actions={
-          <a
-            href="/api/fleet/reports/performance?days=30&format=csv"
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:underline"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </a>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-sm text-neutral-600">
+              <span className="sr-only">Report period</span>
+              <select
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                value={periodDays}
+                onChange={(e) => setPeriodDays(Number(e.target.value))}
+              >
+                {PERIOD_OPTIONS.map((opt) => (
+                  <option key={opt.days} value={opt.days}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm text-neutral-600">
+              <span className="sr-only">Vehicle filter</span>
+              <select
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                value={vehicleId}
+                onChange={(e) => setVehicleId(e.target.value)}
+              >
+                <option value="">All vehicles</option>
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.registration}
+                    {v.label ? ` — ${v.label}` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm text-neutral-600">
+              <span className="sr-only">Partner filter</span>
+              <select
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                value={partnerId}
+                onChange={(e) => setPartnerId(e.target.value)}
+              >
+                <option value="">All partners</option>
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <a
+              href={`/api/fleet/reports/performance?${exportQuery}&format=csv`}
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:underline"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </a>
+            <a
+              href={`/api/fleet/reports/performance?${exportQuery}&format=pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:underline"
+            >
+              <Download className="h-4 w-4" />
+              Export PDF
+            </a>
+          </div>
         }
       />
 
@@ -61,6 +164,10 @@ export default function FleetReportsPage() {
       >
         {report ? (
           <>
+            <p className="mb-4 text-sm text-neutral-600">
+              Showing metrics for the last {report.periodDays} days
+              {vehicleId || partnerId ? ' (filtered)' : ''}.
+            </p>
             <DashboardStatGrid>
               <DashboardMetricCard label="Trips" value={report.trips.total} icon={Route} />
               <DashboardMetricCard label="Delivered" value={report.trips.delivered} icon={Route} tone="success" />
@@ -119,13 +226,6 @@ export default function FleetReportsPage() {
                     settlements queue
                   </Link>
                   .
-                </li>
-                <li>
-                  <strong>Accounts:</strong> Fleet customer debtors bill through{' '}
-                  <Link href="/dashboard/fleet/billing" className="text-primary-600 hover:underline">
-                    client billing
-                  </Link>{' '}
-                  with AR ageing.
                 </li>
               </ul>
             </DashboardTableCard>

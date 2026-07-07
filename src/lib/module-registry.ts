@@ -8,6 +8,8 @@ import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
 
 export type ModuleBucket = 'foundational' | 'horizontal' | 'vertical';
 export type ModulePhase = 1 | 2 | 3;
+/** Product readiness — marketing badges and compare tables derive from this field. */
+export type ModuleReadiness = 'live' | 'partial' | 'planned';
 
 export const MODULE_KEYS = [
   'core',
@@ -55,6 +57,8 @@ export type ModuleRegistryEntry = {
   description: string;
   /** When false, the module cannot be disabled (always on). */
   canDisable: boolean;
+  /** Shipping status — flip to `live` when acceptance criteria are met. */
+  readiness: ModuleReadiness;
 };
 
 export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
@@ -70,6 +74,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: false,
     envVar: 'MODULE_CORE',
     description: 'Employee directory, org chart, profiles, documents, and ESS — the platform base.',
+    readiness: 'live',
   },
   {
     key: 'ess',
@@ -82,6 +87,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_ESS',
     description: 'Employee portal for leave, payslips, attendance, and cases.',
+    readiness: 'live',
   },
   {
     key: 'leave',
@@ -94,6 +100,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_LEAVE',
     description: 'Leave policies, balances, approvals, and statutory leave pay.',
+    readiness: 'live',
   },
   {
     key: 'time',
@@ -106,6 +113,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_TIME',
     description: 'Rota, attendance, biometrics, and shift scheduling.',
+    readiness: 'live',
   },
   {
     key: 'payroll',
@@ -118,6 +126,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_PAYROLL',
     description: 'KE/UG statutory payroll, M-Pesa disbursement, payslips, and bank export.',
+    readiness: 'live',
   },
   {
     key: 'disciplinary',
@@ -130,6 +139,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_DISCIPLINARY',
     description: 'Disciplinary cases and grievance workflows.',
+    readiness: 'live',
   },
   {
     key: 'accounts',
@@ -142,6 +152,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: false,
     envVar: 'MODULE_ACCOUNTS',
     description: 'Expenses, approvals, reimbursements, invoicing, and core GL hooks.',
+    readiness: 'partial',
   },
   {
     key: 'reports',
@@ -154,6 +165,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_REPORTS',
     description: 'Workforce reports and executive analytics.',
+    readiness: 'live',
   },
   {
     key: 'documents',
@@ -166,6 +178,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_DOCUMENTS',
     description: 'Company policies, SOPs, handbooks, and shared documents.',
+    readiness: 'partial',
   },
   {
     key: 'communications',
@@ -178,6 +191,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_COMMUNICATIONS',
     description: 'Company announcements, notices, and internal communications.',
+    readiness: 'live',
   },
 
   // —— Horizontal ——
@@ -193,6 +207,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_ATS',
     description: 'Careers site, ATS, onboarding, and talent pipeline.',
+    readiness: 'live',
   },
   {
     key: 'performance',
@@ -206,6 +221,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_PERFORMANCE',
     description: 'Goals, review cycles, scorecards, and performance management.',
+    readiness: 'live',
   },
   {
     key: 'training',
@@ -218,6 +234,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_TRAINING',
     description: 'Training programs, enrollments, org chart, and skill development.',
+    readiness: 'live',
   },
   {
     key: 'procurement',
@@ -230,6 +247,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_PROCUREMENT',
     description: 'Purchase requests, LPOs, vendor spend, and procurement workflows.',
+    readiness: 'partial',
   },
   {
     key: 'legal',
@@ -242,6 +260,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_LEGAL',
     description: 'Contracts, credentials, obligations, and compliance tracking.',
+    readiness: 'partial',
   },
   {
     key: 'projects',
@@ -254,6 +273,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_PROJECTS',
     description: 'Project register, kanban board, tasks, deliverables, and budget vs actual.',
+    readiness: 'planned',
   },
   {
     key: 'operations',
@@ -266,6 +286,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_OPERATIONS',
     description: 'Assets, HSE, announcements, and operational reporting hub.',
+    readiness: 'partial',
   },
   {
     key: 'outsourcing',
@@ -279,12 +300,13 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     envVar: 'MODULE_OUTSOURCING',
     description:
       'End-client register, outsourced workforce, and per-client payroll, attendance, and leave.',
+    readiness: 'partial',
   },
   {
     key: 'sales',
     label: 'Sales',
-    domainId: 'hr-payroll',
-    navSectionId: 'people-hr',
+    domainId: 'sales',
+    navSectionId: 'sales',
     bucket: 'horizontal',
     phase: 2,
     billable: true,
@@ -292,6 +314,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_SALES',
     description: 'Sales pipeline KPIs and scorecard auto-measures for revenue roles.',
+    readiness: 'partial',
   },
   {
     key: 'assessments',
@@ -305,6 +328,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_ASSESSMENTS',
     description: 'AssessIQ templates, assignments, and candidate assessment attempts.',
+    readiness: 'partial',
   },
 
   // —— Vertical ——
@@ -319,6 +343,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_FLEET',
     description: 'Transport orders, trip workflow, fleet register, and logistics operations.',
+    readiness: 'live',
   },
   {
     key: 'assets',
@@ -331,6 +356,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_ASSETS',
     description: 'Company asset registry, assignments, and lifecycle tracking.',
+    readiness: 'partial',
   },
   {
     key: 'hse',
@@ -343,6 +369,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_HSE',
     description: 'Health, safety, and environment incident tracking.',
+    readiness: 'live',
   },
   {
     key: 'sacco',
@@ -355,6 +382,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_SACCO',
     description: 'Member ledger, BOSA/FOSA accounts, dividend runs, and SASRA reporting templates.',
+    readiness: 'planned',
   },
   {
     key: 'healthcare',
@@ -367,6 +395,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_HEALTHCARE',
     description: 'Clinical rota rules, licence gates on shifts, and NHIF/SHIF compliance hooks.',
+    readiness: 'planned',
   },
   {
     key: 'energy',
@@ -379,6 +408,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_ENERGY',
     description: 'Permit tracking, site register, and multi-entity HSE rollup for energy operators.',
+    readiness: 'planned',
   },
   {
     key: 'construction',
@@ -391,6 +421,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_CONSTRUCTION',
     description: 'Site hierarchy, plant asset tracking, and subcontractor accounts payable.',
+    readiness: 'planned',
   },
 ] as const;
 
@@ -422,6 +453,7 @@ export type ModuleUiGroup = {
 /** Product-domain order for Company Setup — matches the module switcher. */
 const COMPANY_SETUP_DOMAIN_ORDER: DashboardModuleDomainId[] = [
   'hr-payroll',
+  'sales',
   'finance',
   'procurement',
   'legal-documents',
@@ -438,6 +470,10 @@ const COMPANY_SETUP_DOMAIN_META: Record<
   'hr-payroll': {
     label: 'HR & Payroll',
     description: 'People, leave, time, payroll, ESS, and disciplinary.',
+  },
+  sales: {
+    label: 'Sales',
+    description: 'Pipeline KPIs, targets, and scorecard auto-measures for revenue roles.',
   },
   finance: {
     label: 'Finance',
@@ -481,11 +517,16 @@ function describeHrPayrollDomain(flags?: Partial<Record<ModuleKey, boolean>>): s
   return `${parts.join(', ')}.`;
 }
 
+function describeSalesDomain(): string {
+  return 'Pipeline KPIs, targets, attainment, and scorecard auto-measures.';
+}
+
 function describeDomain(
   domainId: DashboardModuleDomainId,
   flags?: Partial<Record<ModuleKey, boolean>>,
 ): string {
   if (domainId === 'hr-payroll') return describeHrPayrollDomain(flags);
+  if (domainId === 'sales') return describeSalesDomain();
   return COMPANY_SETUP_DOMAIN_META[domainId].description;
 }
 

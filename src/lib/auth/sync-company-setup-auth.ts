@@ -21,6 +21,9 @@ export async function syncCompanySetupToOrgAuth(
     ssoEnforcedEss?: boolean;
     jitProvisioning?: boolean;
     lockedMsTenantId?: string | null;
+    samlIdpMetadataUrl?: string | null;
+    samlEnabledStaff?: boolean;
+    samlEnabledEss?: boolean;
   },
 ): Promise<void> {
   await upsertOrgAuthConfig(organizationId, {
@@ -30,5 +33,8 @@ export async function syncCompanySetupToOrgAuth(
     ssoEnforcedEss: options?.ssoEnforcedEss ?? false,
     jitProvisioning: options?.jitProvisioning ?? false,
     lockedMsTenantId: options?.lockedMsTenantId ?? null,
+    samlIdpMetadataUrl: setup.samlIdpMetadataUrl.trim() || null,
+    samlEnabledStaff: setup.samlEnabledStaff,
+    samlEnabledEss: setup.samlEnabledEss,
   });
 }

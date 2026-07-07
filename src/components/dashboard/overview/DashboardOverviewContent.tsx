@@ -46,7 +46,7 @@ import {
 import { useDashboardOverviewLayout } from '@/contexts/dashboard-overview-layout';
 import { OverviewWidgetHeader } from '@/components/dashboard/overview/OverviewWidgetHeader';
 import { DemoWalkthroughCard } from '@/components/dashboard/DemoWalkthroughCard';
-import { isPublicDemoMode } from '@/lib/deployment-config';
+import { isPublicDemoMode } from '@/lib/deployment-flags';
 import type { ModuleKey } from '@/lib/modules';
 
 const ALL_MODULES_ON: Record<ModuleKey, boolean> = {
