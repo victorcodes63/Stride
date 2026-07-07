@@ -2,8 +2,10 @@
  * Pre-login org resolution by email domain (AUTH-03/04).
  */
 
-import { withAuthPublicLookup } from '@/lib/auth/auth-public-lookup';
+import { AUTH_PUBLIC_LOOKUP_ORG_SENTINEL, withAuthPublicLookup } from '@/lib/auth/auth-public-lookup';
 import { withOrgContext } from '@/lib/org-context';
+import { isCustomerProductionCell } from '@/lib/deployment-cell';
+import { prisma } from '@/lib/prisma';
 import type { AuthProvider } from '@prisma/client';
 import {
   ensureOrgAuthConfig,
@@ -36,31 +38,71 @@ function extractEmailDomain(email: string): string | null {
   return normalized.slice(at + 1);
 }
 
-async function findOrgByVerifiedDomain(
+async function findVerifiedDomainRows(
   emailDomain: string,
-): Promise<{ organizationId: string; name: string; slug: string } | null> {
-  const domainRow = await withAuthPublicLookup(async (db) => {
-    const match = await db.organizationEmailDomain.findFirst({
-      where: {
-        domain: emailDomain,
-        verifiedAt: { not: null },
-      },
-      orderBy: { createdAt: 'asc' },
+): Promise<Array<{ organizationId: string; createdAt: Date }>> {
+  return withAuthPublicLookup(async (db) => {
+    const exact = await db.organizationEmailDomain.findMany({
+      where: { domain: emailDomain, verifiedAt: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      select: { organizationId: true, createdAt: true },
     });
-    if (match) return match;
+    if (exact.length > 0) return exact;
 
-    // Subdomain match: user@mail.acme.co.ke → verified acme.co.ke
     const parts = emailDomain.split('.');
     for (let i = 1; i < parts.length; i++) {
       const parent = parts.slice(i).join('.');
-      const parentMatch = await db.organizationEmailDomain.findFirst({
+      const parentRows = await db.organizationEmailDomain.findMany({
         where: { domain: parent, verifiedAt: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        select: { organizationId: true, createdAt: true },
       });
-      if (parentMatch) return parentMatch;
+      if (parentRows.length > 0) return parentRows;
     }
-    return null;
+    return [];
   });
+}
 
+async function listMemberOrgIdsForLogin(userId: string): Promise<string[]> {
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.current_org', ${AUTH_PUBLIC_LOOKUP_ORG_SENTINEL}, true)`;
+    await tx.$executeRaw`SELECT set_config('app.login_user_id', ${userId}, true)`;
+    const rows = await tx.organizationMembership.findMany({
+      where: { userId, status: 'active' },
+      select: { organizationId: true },
+    });
+    return rows.map((row) => row.organizationId);
+  });
+}
+
+async function pickVerifiedDomainRow(
+  rows: Array<{ organizationId: string; createdAt: Date }>,
+  userId?: string | null,
+): Promise<{ organizationId: string } | null> {
+  if (rows.length === 0) return null;
+  if (rows.length === 1) return rows[0];
+
+  if (userId) {
+    const memberOrgIds = new Set(await listMemberOrgIdsForLogin(userId));
+    const memberMatch = rows.find((row) => memberOrgIds.has(row.organizationId));
+    if (memberMatch) return memberMatch;
+  }
+
+  let candidates = rows;
+  if (isCustomerProductionCell()) {
+    const nonDefault = rows.filter((row) => row.organizationId !== DEFAULT_ORGANIZATION_ID);
+    if (nonDefault.length > 0) candidates = nonDefault;
+  }
+
+  return candidates[0] ?? rows[0] ?? null;
+}
+
+async function findOrgByVerifiedDomain(
+  emailDomain: string,
+  userId?: string | null,
+): Promise<{ organizationId: string; name: string; slug: string } | null> {
+  const rows = await findVerifiedDomainRows(emailDomain);
+  const domainRow = await pickVerifiedDomainRow(rows, userId);
   if (!domainRow) return null;
 
   // Organization RLS requires app.current_org — domain lookup uses auth_public_lookup only.
@@ -97,18 +139,26 @@ async function isDomainVerified(organizationId: string, emailDomain: string): Pr
   });
 }
 
+export async function isEmailDomainVerifiedForOrg(
+  organizationId: string,
+  emailDomain: string,
+): Promise<boolean> {
+  return isDomainVerified(organizationId, emailDomain);
+}
+
 export async function resolveOrgByEmail(
   email: string,
   audience: PortalAudience = 'staff',
+  options?: { userId?: string | null },
 ): Promise<ResolvedOrgForEmail | null> {
   const emailDomain = extractEmailDomain(email);
   if (!emailDomain) return null;
 
-  let org = await findOrgByVerifiedDomain(emailDomain);
+  let org = await findOrgByVerifiedDomain(emailDomain, options?.userId);
 
-  if (!org) {
+  if (!org && !isCustomerProductionCell()) {
     await seedLegacyDomainsIfEmpty(DEFAULT_ORGANIZATION_ID);
-    org = await findOrgByVerifiedDomain(emailDomain);
+    org = await findOrgByVerifiedDomain(emailDomain, options?.userId);
   }
 
   if (!org) {

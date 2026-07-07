@@ -9,12 +9,12 @@ import { withAuthPublicLookup } from '@/lib/auth/auth-public-lookup';
 import { prisma } from '@/lib/prisma';
 import { withOrgContext } from '@/lib/org-context';
 import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
-import { findOrgMembershipForLogin, membershipForLogin } from '@/lib/org-membership';
+import { findOrgMembershipForLogin, NoOrgMembershipForLoginError } from '@/lib/org-membership';
 import {
   isProviderEnabledForAudience,
   type OrgAuthConfigSnapshot,
 } from '@/lib/auth/org-auth-config';
-import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
+import { isEmailDomainVerifiedForOrg, resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
 import type { MicrosoftOAuthProfile } from '@/lib/oauth/microsoft-email';
 
 export type SsoProvider = 'microsoft' | 'google';
@@ -131,7 +131,12 @@ export async function completeStaffSsoLogin(
     return { ok: false, reason: 'oauth' };
   }
 
-  const resolved = await resolveOrgByEmail(email, 'staff');
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  const resolved = await resolveOrgByEmail(email, 'staff', { userId: existingUser?.id });
   if (!resolved || !resolved.verifiedDomain) {
     return { ok: false, reason: 'domain' };
   }
@@ -186,16 +191,21 @@ export async function completeStaffSsoLogin(
   if (!user) return { ok: false, reason: 'no_account' };
   if (!user.isActive) return { ok: false, reason: 'inactive' };
 
-  await membershipForLogin(user.id, user.role, resolved.organizationId);
-
-  const sessionProvider = input.provider === 'microsoft' ? 'ms' : 'google';
-  const sessionValue = await buildStaffSessionForUser({
-    provider: sessionProvider,
-    userId: user.id,
-    userRole: user.role,
-    email,
-    preferredOrgId: resolved.organizationId,
-  });
+  let sessionValue: string;
+  try {
+    sessionValue = await buildStaffSessionForUser({
+      provider: input.provider === 'microsoft' ? 'ms' : 'google',
+      userId: user.id,
+      userRole: user.role,
+      email,
+      preferredOrgId: resolved.organizationId,
+    });
+  } catch (error) {
+    if (error instanceof NoOrgMembershipForLoginError) {
+      return { ok: false, reason: 'no_account' };
+    }
+    throw error;
+  }
 
   return {
     ok: true,

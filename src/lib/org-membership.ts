@@ -1,7 +1,7 @@
 import { AUTH_PUBLIC_LOOKUP_ORG_SENTINEL } from '@/lib/auth/auth-public-lookup';
 import { prisma } from '@/lib/prisma';
 import type { UserRole } from '@prisma/client';
-import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
+import { resolveOrgByEmail, isEmailDomainVerifiedForOrg } from '@/lib/auth/resolve-org-by-email';
 import { withOrgContext } from '@/lib/org-context';
 import { isDemoSandboxCell } from '@/lib/deployment-cell';
 import { DEFAULT_ORGANIZATION_ID } from '@/lib/org-constants';
@@ -165,6 +165,13 @@ export async function membershipForLogin(
     if (resolved) return resolved;
 
     if (verifiedDomainOrgId) {
+      const emailDomain = normalizedEmail.split('@')[1] ?? '';
+      const rows = await listActiveMemberships(userId, db);
+      for (const row of rows) {
+        if (await isEmailDomainVerifiedForOrg(row.organizationId, emailDomain)) {
+          return row;
+        }
+      }
       throw new NoOrgMembershipForLoginError();
     }
 
