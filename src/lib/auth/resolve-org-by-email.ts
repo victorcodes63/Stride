@@ -2,7 +2,7 @@
  * Pre-login org resolution by email domain (AUTH-03/04).
  */
 
-import { prisma } from '@/lib/prisma';
+import { withAuthPublicLookup } from '@/lib/auth/auth-public-lookup';
 import { withOrgContext } from '@/lib/org-context';
 import type { AuthProvider } from '@prisma/client';
 import {
@@ -34,14 +34,6 @@ function extractEmailDomain(email: string): string | null {
   const at = normalized.lastIndexOf('@');
   if (at <= 0) return null;
   return normalized.slice(at + 1);
-}
-
-/** Set RLS scope for unauthenticated login lookups (verified domains + auth config). */
-async function withAuthPublicLookup<T>(fn: (db: typeof prisma) => Promise<T>): Promise<T> {
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.auth_public_lookup', 'true', true)`;
-    return fn(tx as typeof prisma);
-  });
 }
 
 async function findOrgByVerifiedDomain(

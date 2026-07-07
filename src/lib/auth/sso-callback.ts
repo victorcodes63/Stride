@@ -5,6 +5,7 @@
 import type { UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { withAuthPublicLookup } from '@/lib/auth/auth-public-lookup';
 import { prisma } from '@/lib/prisma';
 import { withOrgContext } from '@/lib/org-context';
 import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
@@ -51,10 +52,9 @@ function isConsumerGoogleEmail(email: string, hostedDomain?: string): boolean {
 }
 
 async function loadAuthConfigPublic(organizationId: string): Promise<OrgAuthConfigSnapshot | null> {
-  const row = await prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.auth_public_lookup', 'true', true)`;
-    return tx.organizationAuthConfig.findUnique({ where: { organizationId } });
-  });
+  const row = await withAuthPublicLookup((tx) =>
+    tx.organizationAuthConfig.findUnique({ where: { organizationId } }),
+  );
   if (!row) return null;
   return {
     organizationId: row.organizationId,
@@ -165,13 +165,12 @@ export async function completeStaffSsoLogin(
     if (isConsumerGoogleEmail(email, input.googleHostedDomain)) {
       return { ok: false, reason: 'consumer_account' };
     }
-    const allowedDomains = await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT set_config('app.auth_public_lookup', 'true', true)`;
-      return tx.organizationEmailDomain.findMany({
+    const allowedDomains = await withAuthPublicLookup((tx) =>
+      tx.organizationEmailDomain.findMany({
         where: { organizationId: resolved.organizationId, verifiedAt: { not: null } },
         select: { domain: true },
-      });
-    });
+      }),
+    );
     const domainList = allowedDomains.map((d) => d.domain);
     const emailDomain = resolved.emailDomain;
     const hdOk =
