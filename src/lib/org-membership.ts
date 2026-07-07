@@ -104,6 +104,18 @@ export async function ensureDefaultMembership(
   );
 }
 
+/** Read a single membership during password/OAuth login (before session org is set). */
+export async function findOrgMembershipForLogin(
+  userId: string,
+  organizationId: string,
+) {
+  return withLoginUserScope(userId, (db) =>
+    db.organizationMembership.findUnique({
+      where: { userId_organizationId: { userId, organizationId } },
+    }),
+  );
+}
+
 export async function membershipForLogin(
   userId: string,
   userRole: UserRole,

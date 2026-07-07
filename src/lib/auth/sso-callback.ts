@@ -9,7 +9,7 @@ import { withAuthPublicLookup } from '@/lib/auth/auth-public-lookup';
 import { prisma } from '@/lib/prisma';
 import { withOrgContext } from '@/lib/org-context';
 import { buildStaffSessionForUser } from '@/lib/staff-session-issue';
-import { membershipForLogin } from '@/lib/org-membership';
+import { findOrgMembershipForLogin, membershipForLogin } from '@/lib/org-membership';
 import {
   isProviderEnabledForAudience,
   type OrgAuthConfigSnapshot,
@@ -78,11 +78,7 @@ async function findOrProvisionUser(
   });
 
   if (existing) {
-    const membership = await prisma.organizationMembership.findUnique({
-      where: {
-        userId_organizationId: { userId: existing.id, organizationId },
-      },
-    });
+    const membership = await findOrgMembershipForLogin(existing.id, organizationId);
     if (!membership && authConfig.jitProvisioning && existing.isActive) {
       await withOrgContext(organizationId, (tx) =>
         tx.organizationMembership.create({
