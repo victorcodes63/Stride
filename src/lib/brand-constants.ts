@@ -1,10 +1,20 @@
 /** Client-safe brand constants (no server imports). */
 
-/** Official Stride wordmark — coral lowercase logotype with accent square. */
+/** Official Stride wordmark — coral lowercase logotype (#FF5436). */
 export const STRIDE_WORDMARK_SRC = '/brand/stride-wordmark.svg';
 
-/** Circular gradient mark — favicon, compact UI, app icon. */
+/** Primary mark — coral circle, white bolt. Favicon, sidebar, compact UI. */
 export const STRIDE_MARK_SRC = '/brand/stride-mark.svg';
+
+/** White circle, coral bolt — for coral or dark backgrounds. */
+export const STRIDE_MARK_REVERSED_SRC = '/brand/stride-mark-reversed.svg';
+
+/** Bolt glyph only (transparent background). */
+export const STRIDE_BOLT_CORAL_SRC = '/brand/stride-bolt-coral.svg';
+export const STRIDE_BOLT_WHITE_SRC = '/brand/stride-bolt-white.svg';
+
+/** PNG mark for email clients and PDF embeds that reject SVG. */
+export const STRIDE_MARK_PNG_SRC = '/brand/stride-mark.png';
 
 /** Default product logo (mark) for dashboard, favicon, and metadata fallbacks. */
 export const DEFAULT_BRAND_LOGO_SRC = STRIDE_MARK_SRC;

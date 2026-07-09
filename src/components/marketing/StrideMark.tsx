@@ -1,6 +1,10 @@
 'use client';
 
-import { STRIDE_MARK_SRC, STRIDE_WORDMARK_SRC } from '@/lib/brand-constants';
+import {
+  STRIDE_MARK_REVERSED_SRC,
+  STRIDE_MARK_SRC,
+  STRIDE_WORDMARK_SRC,
+} from '@/lib/brand-constants';
 
 function cn(...parts: (string | false | undefined)[]) {
   return parts.filter(Boolean).join(' ');
@@ -36,21 +40,27 @@ export function StrideLogo({
 
 type StrideMarkProps = {
   className?: string;
-  /** @deprecated Mark is a fixed SVG gradient; variant is ignored. */
+  /** Primary (coral circle), reversed (white circle), or ink (mono black). */
   variant?: 'coral' | 'white' | 'ink';
   alt?: string;
+};
+
+const MARK_SRC: Record<NonNullable<StrideMarkProps['variant']>, string> = {
+  coral: STRIDE_MARK_SRC,
+  white: STRIDE_MARK_REVERSED_SRC,
+  ink: '/brand/stride-mark-mono-black.svg',
 };
 
 /** Circular Stride mark — favicon, compact chrome, mockups. */
 export function StrideMark({
   className,
-  variant: _variant = 'coral',
+  variant = 'coral',
   alt = '',
 }: StrideMarkProps) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={STRIDE_MARK_SRC}
+      src={MARK_SRC[variant]}
       alt={alt}
       aria-hidden={alt === ''}
       className={cn('aspect-square object-contain', className ?? 'h-8 w-8')}

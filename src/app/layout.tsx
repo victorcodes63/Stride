@@ -95,15 +95,9 @@ export const metadata: Metadata = {
     google: process.env.GOOGLE_SITE_VERIFICATION?.trim() || undefined,
   },
   icons: {
-    icon: [
-      {
-        url: brand.logoSrc.startsWith('/') ? brand.logoSrc : `/${brand.logoSrc}`,
-        sizes: 'any',
-        type: brand.logoSrc.endsWith('.svg') ? 'image/svg+xml' : 'image/png',
-      },
-    ],
-    shortcut: brand.logoSrc.startsWith('/') ? brand.logoSrc : `/${brand.logoSrc}`,
-    apple: brand.logoSrc.startsWith('/') ? brand.logoSrc : `/${brand.logoSrc}`,
+    icon: [{ url: '/favicon.ico', sizes: 'any' }],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
   other: {
     'twitter:image:alt': brand.orgName,
@@ -157,7 +151,7 @@ export default async function RootLayout({
 }>) {
   const publicBrand = await getResolvedPublicBrand();
   const themeStyle = brandThemeStyle();
-  const favicon = publicBrand.faviconSrc || publicBrand.logoSrc;
+  const favicon = '/favicon.ico';
 
   return (
     <html

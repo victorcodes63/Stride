@@ -20,6 +20,8 @@
     "capture:marketing": "node scripts/capture-marketing-verticals.mjs && node scripts/capture-marketing-hero.mjs",
     "capture:hero-dashboard": "node scripts/capture-hero-dashboard.mjs",
     "capture:platform-overview": "node scripts/capture-platform-overview.mjs",
+    "generate:uat-checklist-pdf": "node scripts/generate-uat-checklist-pdf.mjs",
+    "generate:brand-assets": "node scripts/generate-brand-assets.mjs",
     "sanitize:marketing-billing-clients": "node scripts/sanitize-marketing-billing-clients.mjs",
     "db:generate": "set -a; [ -f .env.local ] && . ./.env.local; set +a; prisma generate",
     "db:push": "set -a; [ -f .env.local ] && . ./.env.local; set +a; prisma db push",
