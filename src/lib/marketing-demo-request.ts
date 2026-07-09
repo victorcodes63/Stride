@@ -1,6 +1,8 @@
 import { sendEmail } from '@/lib/email';
 import { buildBrandedEmailHtml, escapeHtml } from '@/lib/email-template';
-import { brandConfig } from '@/lib/brand.config';
+
+/** Inbox for Book a demo leads — override with MARKETING_LEADS_TO if needed. */
+const DEFAULT_MARKETING_LEADS_TO = 'hello@raventechgroup.com';
 
 export type DemoRequestPayload = {
   firstName: string;
@@ -60,7 +62,7 @@ async function notifyMarketingLeadWebhook(payload: DemoRequestPayload, leadId: s
 
 export async function notifyDemoRequest(payload: DemoRequestPayload): Promise<DemoRequestNotifyResult> {
   const leadId = buildLeadId();
-  const to = process.env.MARKETING_LEADS_TO?.trim() || brandConfig.supportEmail;
+  const to = process.env.MARKETING_LEADS_TO?.trim() || DEFAULT_MARKETING_LEADS_TO;
   const name = `${payload.firstName} ${payload.lastName}`.trim();
 
   const webhookSent = await notifyMarketingLeadWebhook(payload, leadId);
@@ -92,6 +94,7 @@ export async function notifyDemoRequest(payload: DemoRequestPayload): Promise<De
     `,
   });
 
+  // Same Resend path as password reset / welcome mail (no-reply@getstride.co.ke).
   const emailResult = await sendEmail({
     to,
     subject: `[Stride] Demo request — ${payload.company} (${name})`,
