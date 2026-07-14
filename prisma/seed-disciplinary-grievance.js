@@ -31,16 +31,32 @@ async function main() {
   const DEMO_CASE_NUMBERS = [`DC-${year}-901`, `DC-${year}-902`, `DC-${year}-903`];
   const DEMO_GRIEVANCE_NUMBERS = [`GR-${year}-901`, `GR-${year}-902`];
 
-  const hrUser = await prisma.user.findFirst({
-    where: { isActive: true },
-    orderBy: { createdAt: 'asc' },
-  });
+  const pack = (process.env.DEMO_PACK || '').trim().toLowerCase();
+  const preferredOrgSlug = pack ? `demo-${pack}` : null;
+  const preferredAdmin =
+    process.env.ACCOUNTS_SEED_USER_EMAIL?.trim() ||
+    process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL?.trim() ||
+    'admin@imara.co.ke';
+
+  const hrUser =
+    (await prisma.user.findFirst({
+      where: { email: preferredAdmin, isActive: true },
+    })) ||
+    (await prisma.user.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: 'asc' },
+    }));
   if (!hrUser) {
     console.error('[seed-disciplinary-grievance] No active User found. Create a staff user first.');
     process.exit(1);
   }
 
+  const preferredOrg = preferredOrgSlug
+    ? await prisma.organization.findUnique({ where: { slug: preferredOrgSlug }, select: { id: true } })
+    : null;
+
   const employees = await prisma.employee.findMany({
+    where: preferredOrg ? { organizationId: preferredOrg.id } : undefined,
     take: 6,
     orderBy: [{ employeeNumber: 'asc' }],
   });
@@ -50,6 +66,7 @@ async function main() {
   }
 
   const [e0, e1, e2, e3] = [employees[0], employees[1], employees[2] ?? employees[0], employees[3] ?? employees[1]];
+  const organizationId = e0.organizationId;
 
   const existingCases = await prisma.disciplinaryCase.findMany({
     where: { caseNumber: { in: DEMO_CASE_NUMBERS } },
@@ -72,6 +89,7 @@ async function main() {
 
   const case1 = await prisma.disciplinaryCase.create({
     data: {
+      organizationId,
       employeeId: e0.id,
       caseNumber: DEMO_CASE_NUMBERS[0],
       type: 'ABSENTEEISM',
@@ -87,6 +105,7 @@ async function main() {
       hearingAt: null,
       actions: {
         create: {
+          organizationId,
           type: 'VERBAL_WARNING',
           description:
             'Verbal warning: improvement required within 14 days; repeated lateness may escalate per employer disciplinary policy and Employment Act procedures. [Demo seed]',
@@ -101,6 +120,7 @@ async function main() {
 
   const case2 = await prisma.disciplinaryCase.create({
     data: {
+      organizationId,
       employeeId: e1.id,
       caseNumber: DEMO_CASE_NUMBERS[1],
       type: 'POLICY_VIOLATION',
@@ -117,6 +137,7 @@ async function main() {
       actions: {
         create: [
           {
+            organizationId,
             type: 'WRITTEN_WARNING',
             description: 'First written warning regarding health & safety policy compliance. [Demo seed]',
             actionDate: daysFromNow(-10),
@@ -125,6 +146,7 @@ async function main() {
             acknowledgedAt: daysFromNow(-9),
           },
           {
+            organizationId,
             type: 'SHOW_CAUSE_LETTER',
             description:
               'Show-cause: explain in writing why further disciplinary action should not follow the documented breach. [Demo seed]',
@@ -139,6 +161,7 @@ async function main() {
 
   const case3 = await prisma.disciplinaryCase.create({
     data: {
+      organizationId,
       employeeId: e2.id,
       caseNumber: DEMO_CASE_NUMBERS[2],
       type: 'MISCONDUCT',
@@ -155,6 +178,7 @@ async function main() {
       actions: {
         create: [
           {
+            organizationId,
             type: 'VERBAL_WARNING',
             description: 'Initial formal notice of concerns (historical step). [Demo seed]',
             actionDate: daysFromNow(-28),
@@ -163,6 +187,7 @@ async function main() {
             acknowledgedAt: daysFromNow(-27),
           },
           {
+            organizationId,
             type: 'WRITTEN_WARNING',
             description: 'Written warning following investigation findings summary shared with employee. [Demo seed]',
             actionDate: daysFromNow(-18),
@@ -171,6 +196,7 @@ async function main() {
             acknowledgedAt: daysFromNow(-17),
           },
           {
+            organizationId,
             type: 'HEARING',
             description:
               'Formal disciplinary hearing scheduled; employee invited to attend with union/steward if applicable per policy. [Demo seed]',
@@ -185,6 +211,7 @@ async function main() {
 
   await prisma.grievance.create({
     data: {
+      organizationId,
       employeeId: e2.id,
       grievanceNumber: DEMO_GRIEVANCE_NUMBERS[0],
       status: 'SUBMITTED',
@@ -197,6 +224,7 @@ async function main() {
 
   await prisma.grievance.create({
     data: {
+      organizationId,
       employeeId: e3.id,
       grievanceNumber: DEMO_GRIEVANCE_NUMBERS[1],
       status: 'INVESTIGATING',

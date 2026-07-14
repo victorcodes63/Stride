@@ -94,7 +94,20 @@ async function main() {
     process.exit(1);
   }
 
+  const pack = (process.env.DEMO_PACK || '').trim().toLowerCase();
+  let organizationIdFilter = undefined;
+  if (pack) {
+    const org = await prisma.organization.findUnique({
+      where: { slug: `demo-${pack}` },
+      select: { id: true },
+    });
+    organizationIdFilter = org?.id;
+  }
+
   const clients = await prisma.outsourcingClient.findMany({
+    where: organizationIdFilter
+      ? { organizationId: organizationIdFilter }
+      : undefined,
     orderBy: { name: 'asc' },
     take: TARGET_CLIENTS,
     include: {
@@ -136,6 +149,7 @@ async function main() {
 
       const device = await prisma.biometricDevice.create({
         data: {
+          organizationId: client.organizationId,
           outsourcingClientId: client.id,
           name: deviceName,
           adapterKind: 'hikvision_isapi',
@@ -167,6 +181,7 @@ async function main() {
 
           await prisma.biometricPunch.create({
             data: {
+              organizationId: client.organizationId,
               biometricDeviceId: device.id,
               externalEventId,
               observedAt,

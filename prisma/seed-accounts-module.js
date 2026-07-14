@@ -84,6 +84,19 @@ async function main() {
     process.exit(1);
   }
 
+  const membership = await prisma.organizationMembership.findFirst({
+    where: { userId: user.id, status: 'active' },
+    orderBy: { createdAt: 'asc' },
+    select: { organizationId: true },
+  });
+  const organizationId =
+    membership?.organizationId ||
+    (await prisma.organization.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } }))?.id;
+  if (!organizationId) {
+    console.error('No organization found for accounts seed.');
+    process.exit(1);
+  }
+
   await wipe();
 
   const syncResult = await syncLinkedBillingClients(prisma);
@@ -92,6 +105,7 @@ async function main() {
   );
 
   const primary = await prisma.accountsClient.findFirst({
+    where: { organizationId },
     orderBy: [{ type: 'asc' }, { name: 'asc' }],
   });
 
@@ -100,7 +114,7 @@ async function main() {
       '  No billing clients after sync. Add Recruitment clients and/or Outsourcing clients, then re-run or open Accounts → Clients. Setting staff access only.',
     );
     const globalAccess = await prisma.accountsStaffAccess.findFirst({
-      where: { userId: user.id, accountsClientId: null },
+      where: { userId: user.id, accountsClientId: null, organizationId },
     });
     const accessPayload = {
       canManageContracts: true,
@@ -112,7 +126,7 @@ async function main() {
       await prisma.accountsStaffAccess.update({ where: { id: globalAccess.id }, data: accessPayload });
     } else {
       await prisma.accountsStaffAccess.create({
-        data: { userId: user.id, accountsClientId: null, ...accessPayload },
+        data: { organizationId, userId: user.id, accountsClientId: null, ...accessPayload },
       });
     }
     console.log(`  User ${user.email}: global AccountsStaffAccess only (no demo data).`);
@@ -120,7 +134,7 @@ async function main() {
   }
 
   const globalAccess = await prisma.accountsStaffAccess.findFirst({
-    where: { userId: user.id, accountsClientId: null },
+    where: { userId: user.id, accountsClientId: null, organizationId },
   });
   const accessPayload = {
     canManageContracts: true,
@@ -132,7 +146,7 @@ async function main() {
     await prisma.accountsStaffAccess.update({ where: { id: globalAccess.id }, data: accessPayload });
   } else {
     await prisma.accountsStaffAccess.create({
-      data: { userId: user.id, accountsClientId: null, ...accessPayload },
+      data: { organizationId, userId: user.id, accountsClientId: null, ...accessPayload },
     });
   }
 
@@ -141,6 +155,7 @@ async function main() {
       userId_accountsClientId: { userId: user.id, accountsClientId: primary.id },
     },
     create: {
+      organizationId,
       userId: user.id,
       accountsClientId: primary.id,
       canManageContracts: true,
