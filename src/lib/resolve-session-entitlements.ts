@@ -1,5 +1,5 @@
 import { isCustomerProductionCell, isDemoSandboxCell } from '@/lib/deployment-cell';
-import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-flags';
+import { isDemoMode, isLocalDevAllModules, isPublicDemoMode } from '@/lib/deployment-flags';
 import type { DeploymentEntitlements } from '@/lib/entitlements-types';
 import { isEntitlementsStale } from '@/lib/entitlements-types';
 import {
@@ -22,14 +22,24 @@ export async function resolveSessionEntitlements(
 ): Promise<DeploymentEntitlements | null> {
   let entitlements = await loadOrganizationEntitlements(organizationId);
 
-  if (
+  /**
+   * Demo sandboxes license every module locally — never block bootstrap on a stale/misconfigured
+   * control-plane URL (this hung demo.getstride.co.ke when CONTROL_PLANE_URL pointed at localhost).
+   */
+  const shouldSyncFromControlPlane =
     isControlPlaneSyncConfigured() &&
-    (!entitlements || isEntitlementsStale(entitlements.syncedAt))
-  ) {
-    const fresh = await fetchEntitlementsFromControlPlane();
-    if (fresh) {
-      await saveOrganizationEntitlements(organizationId, fresh);
-      entitlements = fresh;
+    !isDemoSandboxCell() &&
+    (!entitlements || isEntitlementsStale(entitlements.syncedAt));
+
+  if (shouldSyncFromControlPlane) {
+    try {
+      const fresh = await fetchEntitlementsFromControlPlane();
+      if (fresh) {
+        await saveOrganizationEntitlements(organizationId, fresh);
+        entitlements = fresh;
+      }
+    } catch {
+      // Keep cached org entitlements / demo defaults when the control plane is unreachable.
     }
   }
 
@@ -54,10 +64,9 @@ export function subscriptionFromEntitlements(
   verticalEnginesAllowed?: boolean;
 } | undefined {
   /** Sales/demo cells license every module — control plane toggles are for operator testing only. */
-  if (isDemoMode() || isPublicDemoMode()) {
+  if (isDemoMode() || isPublicDemoMode() || isDemoSandboxCell() || isLocalDevAllModules()) {
     return entitlements
       ? {
-          subscribedModules: entitlements.modules,
           accountStatus: entitlements.accountStatus,
           verticalEnginesAllowed: true,
         }

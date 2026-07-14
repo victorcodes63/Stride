@@ -167,7 +167,11 @@ export default function DashboardOverviewContent() {
   }, [bootstrapOverviewCore, sessionUser?.currentOrgId, activeEntity.id]);
 
   useEffect(() => {
-    if (!sessionUser?.currentOrgId) return;
+    if (!sessionUser?.currentOrgId) {
+      // Avoid an infinite skeleton if bootstrap fails or never yields a session.
+      setCoreLoading(false);
+      return;
+    }
 
     let cancelled = false;
     const hasWarmCore = Boolean(
