@@ -90,7 +90,7 @@ export default function EssLeavePage() {
   return (
     <>
       <EssPullRefresh onRefresh={load}>
-        <EssPageHeader title="Leave" subtitle="Balances and requests" backHref="/ess/work" />
+        <EssPageHeader title="Leave" subtitle="Balances and requests" />
 
         {primaryBalance ? (
           <div className="mb-4">

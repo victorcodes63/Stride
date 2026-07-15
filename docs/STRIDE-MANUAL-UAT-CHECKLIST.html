@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Stride Manual UAT Checklist</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.45; }
+    h1 { font-size: 22pt; margin: 0 0 6px; color: #9f1239; }
+    h2 { font-size: 13pt; margin: 18px 0 8px; page-break-after: avoid; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; }
+    h3 { font-size: 11pt; margin: 14px 0 6px; }
+    p, li { margin: 4px 0; }
+    .cover { page-break-after: always; padding-top: 24mm; }
+    .subtitle { font-size: 12pt; color: #4b5563; margin-bottom: 20px; }
+    .meta { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    .meta dt { font-weight: 600; float: left; width: 130px; clear: left; }
+    .meta dd { margin-left: 140px; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 9pt; }
+    th, td { border: 1px solid #d1d5db; padding: 5px 6px; vertical-align: top; }
+    th { background: #f3f4f6; text-align: left; font-weight: 600; }
+    td.tick, th:nth-child(n+4):nth-child(-n+6) { width: 32px; text-align: center; }
+    td.num { width: 22px; text-align: center; color: #6b7280; }
+    td.notes { min-width: 120px; height: 28px; }
+    td.ready { width: 52px; text-align: center; font-size: 8pt; font-weight: 600; }
+    code { font-size: 8.5pt; background: #f3f4f6; padding: 1px 4px; border-radius: 3px; }
+    .muted { color: #6b7280; font-size: 8.5pt; }
+    .hint { font-size: 9pt; color: #4b5563; font-style: italic; margin: 0 0 8px; }
+    .badge { font-size: 8pt; padding: 2px 8px; border-radius: 999px; font-weight: 600; vertical-align: middle; }
+    .badge.live, .ready.live { background: #dcfce7; color: #166534; }
+    .badge.partial, .ready.partial { background: #fef3c7; color: #92400e; }
+    .badge.planned, .ready.planned { background: #fee2e2; color: #991b1b; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0; font-size: 9pt; }
+    .module-section { page-break-inside: avoid; }
+    .module-section table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; }
+    .page-break { page-break-before: always; }
+    ul.compact { margin: 6px 0; padding-left: 18px; }
+    ul.compact li { margin: 2px 0; }
+  </style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Stride — Manual UAT Checklist</h1>
+  <p class="subtitle">Page-by-page verification for localhost / demo environment<br>Tick Pass · Fail · N/A and record issues in the notes column.</p>
+
+  <dl class="meta">
+    <dt>Document version</dt><dd>2026-07-08 (generated from app nav catalog)</dd>
+    <dt>Environment</dt><dd>http://localhost:3000 — local PostgreSQL recommended</dd>
+    <dt>Primary login</dt><dd><code>demo@demo.imara.co.ke</code> / <code>Demo@2026!</code></dd>
+    <dt>HR login</dt><dd><code>hr@swiftfreight.imara.co.ke</code> (per active vertical)</dd>
+    <dt>Finance login</dt><dd><code>finance@swiftfreight.imara.co.ke</code></dd>
+    <dt>ESS login</dt><dd><code>moses.okello@swiftfreight.imara.co.ke</code> → /ess/login</dd>
+    <dt>Tester name</dt><dd>_______________________________</dd>
+    <dt>Test date</dt><dd>_______________________________</dd>
+    <dt>Build / branch</dt><dd>_______________________________</dd>
+  </dl>
+
+  <h3>How to use this document</h3>
+  <ol class="compact">
+    <li>Work module-by-module using the module switcher (top bar) or sidebar.</li>
+    <li>For each page: confirm it loads without console errors, shows sensible demo data, and primary actions work.</li>
+    <li>Mark <strong>Pass</strong> if acceptable for demo/client UAT; <strong>Fail</strong> if broken; <strong>N/A</strong> if not licensed or not applicable.</li>
+    <li>Log every Fail in the notes column and in the Issue Log (last section).</li>
+    <li>Compare against <strong>Known platform gaps</strong> — some items are expected limitations, not bugs.</li>
+  </ol>
+
+  <div class="legend">
+    <span><span class="badge live">Live</span> Production-ready target</span>
+    <span><span class="badge partial">Partial</span> Some gaps expected</span>
+    <span><span class="badge planned">Planned</span> Roadmap / shell UI</span>
+  </div>
+</div>
+
+<section>
+  <h2>Critical end-to-end flows</h2>
+  <p>Complete these first — they cover the main sales demo story.</p>
+  <table>
+    <thead><tr><th>Done</th><th>Flow</th><th>Issues</th></tr></thead>
+    <tbody><tr>
+  <td class="tick">☐</td>
+  <td><strong>Login & session</strong><br><span class="muted">Resolve email → password → dashboard loads with modules & overview KPIs (< 3s local DB)</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>Entity switcher</strong><br><span class="muted">Switch each vertical context — data/branding scopes correctly (6 sectors if multi-vertical seed)</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>Add employee</strong><br><span class="muted">People → Employees → Add employee → save → appears in list</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>Import / export</strong><br><span class="muted">Download template dropdown visible → download → import Excel (optional)</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>Leave approval</strong><br><span class="muted">Leave hub → pending queue → approve/reject → balance updates</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>Payroll run</strong><br><span class="muted">Payroll runs → validate → generate → review → approve → payslip PDF</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>M-Pesa disbursements</strong><br><span class="muted">Disbursements → select approved month → sandbox batch → poll status</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>Recruitment</strong><br><span class="muted">Job opening → application in pipeline → schedule interview</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>Onboarding workflow</strong><br><span class="muted">Start onboarding for employee → tasks appear for HR role</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>Finance invoice</strong><br><span class="muted">Create invoice → PDF preview → record receipt (if seeded)</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>Fleet trip</strong><br><span class="muted">Fleet → trips/orders → open trip → compliance/docs visible</span></td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="tick">☐</td>
+  <td><strong>ESS employee</strong><br><span class="muted">ESS login → payslips → leave request → profile</span></td>
+  <td class="notes"></td>
+</tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Vertical entity switcher (multi-sector demo)</h2>
+  <p>Test each context from the top-bar company switcher after <code>demo:reseed:all-verticals</code>.</p>
+  <table>
+    <thead><tr><th>Done</th><th>Entity</th><th>Issues</th></tr></thead>
+    <tbody>
+      <tr><td class="tick">☐</td><td>Heritage Members SACCO Ltd (imara-sacco__ke)</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Northline Kenya Ltd (petroleum-retail__ke)</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>SwiftFreight East Africa Ltd (cargo-logistics__ke)</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Amani Medical Centre (hospital-healthcare__ke)</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Horizon Travels Ltd (travel-agency__ke)</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Kilimani Builders Ltd (construction__ke)</td><td class="notes"></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="page-break"></div>
+
+<section class="module-section">
+  <h2>Command center & platform <span class="badge live">Live</span></h2>
+  <p class="hint">Should work end-to-end with demo data</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard</code><br><span class="muted">Overview / command center</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/people</code><br><span class="muted">HR & Payroll hub</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/notifications</code><br><span class="muted">Notifications center</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/help</code><br><span class="muted">Help & support</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>01 — HR & Payroll · People <span class="badge live">Live</span></h2>
+  <p class="hint">Should work end-to-end with demo data</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/employees</code><br><span class="muted">Employees list & search</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/employees/new</code><br><span class="muted">Add employee form</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/departments</code><br><span class="muted">Departments</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/people/tasks</code><br><span class="muted">My onboarding/offboarding tasks</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/onboarding</code><br><span class="muted">Onboarding workflows</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/onboarding/templates</code><br><span class="muted">Onboarding templates</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/performance</code><br><span class="muted">Performance cycles & reviews</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/performance/jds</code><br><span class="muted">Job description library</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/disciplinary</code><br><span class="muted">Disciplinary & grievance</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/org-chart</code><br><span class="muted">Org chart</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/staff-leave</code><br><span class="muted">Internal staff leave (if enabled)</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>01 — HR & Payroll · Recruitment <span class="badge live">Live</span></h2>
+  <p class="hint">Should work end-to-end with demo data</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/jobs</code><br><span class="muted">Job openings</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/jobs/new</code><br><span class="muted">Create job opening</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/applications</code><br><span class="muted">Applications pipeline</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/candidates</code><br><span class="muted">Talent pool</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/assessments</code><br><span class="muted">Assessment templates</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/interviews</code><br><span class="muted">Interviews list</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/interviews/schedule</code><br><span class="muted">Interview calendar</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/careers</code><br><span class="muted">Public careers board</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>01 — HR & Payroll · Time & attendance <span class="badge live">Live</span></h2>
+  <p class="hint">Should work end-to-end with demo data</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/rota</code><br><span class="muted">Rota & scheduling</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/attendance</code><br><span class="muted">Attendance records</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/leave</code><br><span class="muted">Leave hub (balances, queue, calendar)</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/biometric-devices</code><br><span class="muted">Biometric devices</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>01 — HR & Payroll · Payroll <span class="badge live">Live</span></h2>
+  <p class="hint">Should work end-to-end with demo data</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/payroll</code><br><span class="muted">Payroll runs wizard</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/payroll/payslips</code><br><span class="muted">Payslips</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/payroll/statutory</code><br><span class="muted">Statutory returns (PAYE/NSSF/SHIF)</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/payroll/disbursements</code><br><span class="muted">M-Pesa & disbursements</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>01 — HR & Payroll · Development & ESS admin <span class="badge live">Live</span></h2>
+  <p class="hint">Should work end-to-end with demo data</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/training</code><br><span class="muted">Training programs</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/ess/portal-accounts</code><br><span class="muted">ESS portal accounts</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/ess/shifts</code><br><span class="muted">ESS & shifts admin</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/ess/document-requests</code><br><span class="muted">Document requests</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="page-break"></div>
+
+<section class="module-section">
+  <h2>02 — Finance <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts</code><br><span class="muted">Finance overview</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/clients</code><br><span class="muted">Billing clients</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/invoices</code><br><span class="muted">Invoices (AR)</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/invoices/new</code><br><span class="muted">Create invoice</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/invoicing-setup</code><br><span class="muted">Invoicing setup</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/receipts</code><br><span class="muted">Receipts & allocations</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/mpesa-reconciliation</code><br><span class="muted">M-Pesa reconciliation</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/payment-accounts</code><br><span class="muted">Payment accounts</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/vendors</code><br><span class="muted">Vendors</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/vendor-bills</code><br><span class="muted">Vendor bills (AP)</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/expenses</code><br><span class="muted">Expense claims</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/statements</code><br><span class="muted">Statements & ageing</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/budgets</code><br><span class="muted">Budgets</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/petty-cash</code><br><span class="muted">Petty cash</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/accounts/financial-reports</code><br><span class="muted">Financial reports</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>03 — Procurement <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/procurement</code><br><span class="muted">Procurement overview</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/procurement/purchase-requests</code><br><span class="muted">Purchase requests</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/procurement/lpos</code><br><span class="muted">LPO register</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/procurement/spend</code><br><span class="muted">Spend dashboard</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>04 — Legal & Documents <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/legal</code><br><span class="muted">Compliance hub</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/people/contracts</code><br><span class="muted">Employee contracts</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/credentials</code><br><span class="muted">Licences & credentials register</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/company-documents</code><br><span class="muted">Company policies & SOPs</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/legal/obligations</code><br><span class="muted">Obligations register</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>05 — Projects <span class="badge planned">Planned</span></h2>
+  <p class="hint">Mostly shell / roadmap — note gaps explicitly</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/projects</code><br><span class="muted">Projects overview</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/projects/all</code><br><span class="muted">All projects</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/projects/board</code><br><span class="muted">Project board</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/projects/tasks</code><br><span class="muted">Tasks & deliverables</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/projects/budget</code><br><span class="muted">Budget vs actual</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="page-break"></div>
+
+<section class="module-section">
+  <h2>06 — Fleet · Orders & dispatch <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet</code><br><span class="muted">Fleet overview</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/orders</code><br><span class="muted">Transport orders</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/customers</code><br><span class="muted">Fleet customers</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/planning</code><br><span class="muted">Route planning</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/trips</code><br><span class="muted">Trip board</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/compliance</code><br><span class="muted">Pre-trip compliance</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>06 — Fleet · Monitoring <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/tracking</code><br><span class="muted">Live tracking</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/geofences</code><br><span class="muted">Geofences</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/driving-time</code><br><span class="muted">Driving time</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/incidents</code><br><span class="muted">Incidents</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/alarms</code><br><span class="muted">Events & alarms</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>06 — Fleet · Assets & commercial <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/vehicles</code><br><span class="muted">Vehicles register</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/service</code><br><span class="muted">Service planning</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/defects</code><br><span class="muted">Defect reports</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/registers</code><br><span class="muted">Fleet registers</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/settlements</code><br><span class="muted">Driver/partner settlements</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/billing</code><br><span class="muted">Client billing</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/drivers/performance</code><br><span class="muted">Driver performance</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/environmental</code><br><span class="muted">Environmental reporting</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/fleet/reports</code><br><span class="muted">Performance reports</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>07 — Operations (Assets & HSE) <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/operations</code><br><span class="muted">Operations hub</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/assets</code><br><span class="muted">Asset register</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/hse</code><br><span class="muted">HSE incidents</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/announcements</code><br><span class="muted">Announcements</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/reports</code><br><span class="muted">All reports</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/analytics</code><br><span class="muted">Analytics (admin)</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>08 — HR Outsourcing <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/outsourcing</code><br><span class="muted">Outsourcing overview</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/outsourcing/clients</code><br><span class="muted">Client register</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/outsourcing/employees</code><br><span class="muted">Outsourced employees</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/outsourcing/departments</code><br><span class="muted">Departments</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/outsourcing/payroll</code><br><span class="muted">Client payroll</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/outsourcing/attendance</code><br><span class="muted">Client attendance</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/outsourcing/leave</code><br><span class="muted">Client leave</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/outsourcing/disciplinary</code><br><span class="muted">Client disciplinary</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>09 — Sales <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sales</code><br><span class="muted">Sales performance</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sales/targets</code><br><span class="muted">Sales targets</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sales/deals</code><br><span class="muted">Pipeline / deals</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sales/attainment</code><br><span class="muted">Attainment</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sales/commissions</code><br><span class="muted">Commissions (if nav visible)</span></td>
+  <td class="ready partial">Partial</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="page-break"></div>
+
+<section class="module-section">
+  <h2>Vertical packs · SACCO <span class="badge planned">Planned</span></h2>
+  <p class="hint">Mostly shell / roadmap — note gaps explicitly</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sacco</code><br><span class="muted">SACCO overview</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sacco/members</code><br><span class="muted">Members</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sacco/accounts</code><br><span class="muted">BOSA & FOSA</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sacco/dividends</code><br><span class="muted">Dividends</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/sacco/reports</code><br><span class="muted">SASRA reports</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>Vertical packs · Healthcare <span class="badge planned">Planned</span></h2>
+  <p class="hint">Mostly shell / roadmap — note gaps explicitly</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/healthcare</code><br><span class="muted">Healthcare overview</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/healthcare/wards</code><br><span class="muted">Wards & rules</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/healthcare/rota</code><br><span class="muted">Clinical rota</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/healthcare/nhif</code><br><span class="muted">NHIF / SHIF</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>Vertical packs · Energy <span class="badge planned">Planned</span></h2>
+  <p class="hint">Mostly shell / roadmap — note gaps explicitly</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/energy</code><br><span class="muted">Energy overview</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/energy/sites</code><br><span class="muted">Sites</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/energy/permits</code><br><span class="muted">Permits</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/energy/hse</code><br><span class="muted">HSE rollup</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>Vertical packs · Construction <span class="badge partial">Partial</span></h2>
+  <p class="hint">UI exists; some flows may be roadmap or limited</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/construction</code><br><span class="muted">Construction overview</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/construction/sites</code><br><span class="muted">Sites</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/construction/plant</code><br><span class="muted">Plant assets</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/construction/subcontractors</code><br><span class="muted">Subcontractors</span></td>
+  <td class="ready planned">Planned</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="module-section">
+  <h2>Platform admin <span class="badge live">Live</span></h2>
+  <p class="hint">Should work end-to-end with demo data</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Page / route</th>
+        <th>Status</th>
+        <th>Pass</th>
+        <th>Fail</th>
+        <th>N/A</th>
+        <th>Issues / notes</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/platform</code><br><span class="muted">Platform admin hub</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/admin/company-setup</code><br><span class="muted">Company setup & branding</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/users/staff</code><br><span class="muted">System users</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/admin/roles-permissions</code><br><span class="muted">Roles & permissions</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/admin/holidays</code><br><span class="muted">Public holidays</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/admin/facilities</code><br><span class="muted">Facilities</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/admin/governance</code><br><span class="muted">Board & governance</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/admin/audit-log</code><br><span class="muted">Audit log</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/dashboard/settings</code><br><span class="muted">User settings</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="page-break"></div>
+
+<section>
+  <h2>Employee Self-Service (ESS) portal</h2>
+  <p>Login at <code>/ess/login</code> as <code>moses.okello@swiftfreight.imara.co.ke</code> (or vertical ESS user).</p>
+  <table>
+    <thead><tr><th>#</th><th>Page</th><th>Status</th><th>Pass</th><th>Fail</th><th>N/A</th><th>Issues</th></tr></thead>
+    <tbody>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess</code><br><span class="muted">ESS home</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/work</code><br><span class="muted">Work hub</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/leave</code><br><span class="muted">Leave request & history</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/attendance</code><br><span class="muted">Attendance</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/rota</code><br><span class="muted">My rota</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/payslips</code><br><span class="muted">Payslips download</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/pay</code><br><span class="muted">Pay summary</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/pay/ytd</code><br><span class="muted">YTD earnings</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/pay/tax-certificates</code><br><span class="muted">Tax certificates</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/pay/bank-details</code><br><span class="muted">Bank details</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/profile</code><br><span class="muted">Profile</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/documents</code><br><span class="muted">Documents</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/credentials</code><br><span class="muted">My credentials</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/onboarding</code><br><span class="muted">My onboarding tasks</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/performance</code><br><span class="muted">Self-review / performance</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/team/leave</code><br><span class="muted">Manager leave approvals</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/disciplinary</code><br><span class="muted">Disciplinary (if assigned)</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+<tr>
+  <td class="num"></td>
+  <td><code>/ess/install</code><br><span class="muted">PWA install prompt</span></td>
+  <td class="ready live">Live</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="tick">☐</td>
+  <td class="notes"></td>
+</tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Cross-cutting checks (all modules)</h2>
+  <table>
+    <thead><tr><th>Done</th><th>Check</th><th>Issues</th></tr></thead>
+    <tbody>
+      <tr><td class="tick">☐</td><td>No JavaScript console errors on primary pages</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>No infinite loading spinners / blank screens</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Dates & currency show Africa/Nairobi + KES correctly</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Role-based access: HR vs Finance vs Admin see appropriate actions</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Search (⌘K) finds people, payroll, departments</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Import/export dropdowns not clipped by headers</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Mobile sidebar opens/closes on narrow viewport</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Logout and re-login works cleanly</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>Dark mode toggle works (if enabled)</td><td class="notes"></td></tr>
+<tr><td class="tick">☐</td><td>PDF downloads open correctly (payslips, invoices)</td><td class="notes"></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="page-break"></div>
+
+<section>
+  <h2>Known platform gaps (expected — not necessarily bugs)</h2>
+  <p>Use this when deciding Pass vs "missing for a full business platform".</p>
+  <table>
+    <thead><tr><th>Area</th><th>Expected limitation / missing capability</th><th>Affects us?</th></tr></thead>
+    <tbody>
+      <tr><td><strong>General ledger & full accounting</strong></td><td>Finance module is AR/AP focused — not a full ERP GL.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Multi-currency consolidation</strong></td><td>Entity switcher supports KE/UG; group consolidation is limited.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Projects module</strong></td><td>Marked planned — expect roadmap UI, not full PM suite.</td><td class="tick">☐</td></tr>
+<tr><td><strong>SACCO / Healthcare / Energy verticals</strong></td><td>Vertical packs are planned/partial — sector pages may be shells.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Procurement GRN & 3-way match</strong></td><td>PR → LPO exists; full procure-to-pay may be incomplete.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Sales CRM depth</strong></td><td>Pipeline KPIs partial — not a full Salesforce replacement.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Native mobile apps</strong></td><td>ESS is PWA/web — no iOS/Android store apps.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Biometric hardware</strong></td><td>Device integration seeded for demo; production device sync varies by vendor.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Control plane (billing)</strong></td><td>Client provisioning, Paystack dunning — separate internal surface.</td><td class="tick">☐</td></tr>
+<tr><td><strong>SSO / Microsoft / Google</strong></td><td>Only shown when configured per org — not default in local demo.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Real M-Pesa / KRA live APIs</strong></td><td>Sandbox/disbursement simulation in demo — not production tax filing.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Workflow builder</strong></td><td>Onboarding uses templates — custom workflow designer is limited.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Document OCR / e-sign</strong></td><td>Document storage exists; advanced e-sign integrations may be missing.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Inventory / warehouse WMS</strong></td><td>Fleet & assets cover logistics ops — not full WMS.</td><td class="tick">☐</td></tr>
+<tr><td><strong>Helpdesk / ITSM</strong></td><td>No dedicated ticketing module — use tasks/onboarding/discipline.</td><td class="tick">☐</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Issue log</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Module / path</th><th>Severity</th><th>Expected</th><th>Actual</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>2</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>3</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>4</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>5</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>6</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>7</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>8</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>9</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>10</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>11</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+<tr>
+        <td>12</td><td></td><td>Blocker / Major / Minor</td><td></td><td></td><td>Open</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Sign-off</h2>
+  <table>
+    <tbody>
+      <tr><td><strong>Overall result</strong></td><td>☐ Pass for demo &nbsp; ☐ Pass with issues &nbsp; ☐ Fail</td></tr>
+      <tr><td><strong>Blockers found</strong></td><td class="notes"></td></tr>
+      <tr><td><strong>Tester signature</strong></td><td>________________________ Date: __________</td></tr>
+      <tr><td><strong>Reviewer signature</strong></td><td>________________________ Date: __________</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</body>
+</html>

@@ -121,7 +121,7 @@ export default function EssPayslipsPage() {
   return (
     <EssPullRefresh onRefresh={load}>
     <div className="space-y-5">
-      <EssPageHeader title="Payslips" subtitle="View monthly pay summaries and download PDFs." backHref="/ess/pay" />
+      <EssPageHeader title="Payslips" subtitle="View monthly pay summaries and download PDFs." />
       <section className="ess-card-flat p-4">
         <div className="grid gap-3">
           <input

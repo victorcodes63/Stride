@@ -37,9 +37,8 @@ const SERVICE_ROWS = [
     href: '/ess/attendance',
     title: 'Attendance',
     description: 'Check in/out at work sites and view monthly records.',
-    icon: CalendarDays,
+    icon: Clock3,
     module: 'time' as const,
-    tone: 'secondary',
   },
   {
     href: '/ess/payslips',
@@ -47,7 +46,6 @@ const SERVICE_ROWS = [
     description: 'View and download monthly payslips.',
     icon: Receipt,
     module: 'payroll' as const,
-    tone: 'primary',
   },
   {
     href: '/ess/leave',
@@ -55,7 +53,6 @@ const SERVICE_ROWS = [
     description: 'View leave balances and submit applications.',
     icon: CalendarDays,
     module: 'leave' as const,
-    tone: 'primary',
   },
   {
     href: '/ess/documents',
@@ -63,7 +60,6 @@ const SERVICE_ROWS = [
     description: 'Access HR documents and employee records.',
     icon: FileText,
     module: 'core' as const,
-    tone: 'secondary',
   },
 ];
 
@@ -72,25 +68,19 @@ function ServiceRow({
   title,
   description,
   icon: Icon,
-  tone,
 }: {
   href: string;
   title: string;
   description: string;
   icon: LucideIcon;
-  tone: string;
 }) {
-  const accent =
-    tone === 'primary'
-      ? 'bg-[var(--ess-accent-soft)] text-[var(--ess-accent)]'
-      : 'bg-[var(--ess-secondary-soft)] text-[var(--ess-secondary)]';
   return (
     <Link
       href={href}
       className="flex min-h-[82px] items-center gap-4 rounded-[1.35rem] border border-[var(--ess-border)] bg-[var(--ess-surface)] px-4 py-3 shadow-sm transition-transform active:scale-[0.99]"
     >
-      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${accent}`}>
-        <Icon className="h-5 w-5" />
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--ess-accent-soft)] text-[var(--ess-accent)]">
+        <Icon className="h-5 w-5" strokeWidth={2} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-base font-black text-[var(--ess-text)]">{title}</span>
@@ -104,7 +94,7 @@ function ServiceRow({
 function StatTile({ label, value, icon: Icon }: { label: string; value: string | number; icon: LucideIcon }) {
   return (
     <div className="rounded-[1.25rem] border border-[var(--ess-border)] bg-[var(--ess-surface)] px-3 py-4 text-center shadow-sm">
-      <Icon className="mx-auto h-5 w-5 text-[var(--ess-secondary)]" strokeWidth={1.8} />
+      <Icon className="mx-auto h-5 w-5 text-[var(--ess-accent)]" strokeWidth={1.8} />
       <p className="mt-2 text-2xl font-black leading-none text-[var(--ess-text)]">{value}</p>
       <p className="mt-2 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--ess-muted)]">{label}</p>
     </div>

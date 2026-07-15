@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Loader2, Upload } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { dashStatusChip } from '@/lib/dashboard-status-chips';
@@ -29,10 +29,14 @@ type WorkflowDetail = {
     description?: string | null;
     assignedRole: string;
     category?: string | null;
+    startDate?: string | null;
     dueDate?: string | null;
     status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED' | 'OVERDUE';
     isRequired: boolean;
     notes?: string | null;
+    documentId?: string | null;
+    assignedTo?: { id: string; name: string; email: string } | null;
+    document?: { id: string; fileName: string; title: string } | null;
   }>;
 };
 
@@ -44,6 +48,7 @@ export default function OnboardingDetailPage() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [taskError, setTaskError] = useState<string | null>(null);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
   async function loadWorkflow() {
@@ -94,6 +99,26 @@ export default function OnboardingDetailPage() {
     }
   }
 
+  async function uploadEvidence(taskId: string, file: File) {
+    setTaskError(null);
+    setUploadingTaskId(taskId);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`/api/onboarding/tasks/${taskId}/attachments`, {
+        method: 'POST',
+        body: form,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || 'Upload failed.');
+      await loadWorkflow();
+    } catch (e) {
+      setTaskError(e instanceof Error ? e.message : 'Upload failed.');
+    } finally {
+      setUploadingTaskId(null);
+    }
+  }
+
   async function cancelWorkflow() {
     if (!data || data.status === 'CANCELLED') return;
     if (!window.confirm('Cancel this workflow? Open tasks will remain but the workflow will be marked cancelled.')) return;
@@ -119,22 +144,29 @@ export default function OnboardingDetailPage() {
   const checkpoints =
     data?.type === 'OFFBOARDING'
       ? deriveOffboardingCheckpointState(
-          data.tasks.map((t) => ({
-            id: t.id,
-            title: t.title,
-            category: t.category ?? null,
-            status: t.status,
-            isRequired: t.isRequired,
-            dueDate: t.dueDate ? new Date(t.dueDate) : null,
+          data.tasks.map((task) => ({
+            id: task.id,
+            title: task.title,
+            category: task.category ?? null,
+            status: task.status,
+            isRequired: task.isRequired,
+            dueDate: task.dueDate ? new Date(task.dueDate) : null,
             order: 0,
           })),
         )
       : null;
 
+  const progress = useMemo(() => {
+    const tasks = data?.tasks ?? [];
+    if (tasks.length === 0) return 0;
+    const done = tasks.filter((t) => t.status === 'COMPLETED' || t.status === 'SKIPPED').length;
+    return Math.round((done / tasks.length) * 100);
+  }, [data?.tasks]);
+
   if (loading) {
     return (
       <DashboardPage>
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-500">
+        <div className="flex items-center gap-2 py-16 text-sm text-neutral-500">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading workflow…
         </div>
@@ -145,40 +177,33 @@ export default function OnboardingDetailPage() {
   if (!data) {
     return (
       <DashboardPage>
-        <div className="dashboard-surface p-6 text-sm text-neutral-600">
-          Workflow not found.{' '}
-          <Link href="/dashboard/onboarding" className="text-primary-700 hover:underline">
-            Back to onboarding
-          </Link>
-        </div>
+        <p className="text-sm text-neutral-600">Workflow not found.</p>
+        <Link href="/dashboard/onboarding" className="mt-3 inline-flex text-sm text-primary-800 hover:underline">
+          Back to workflows
+        </Link>
       </DashboardPage>
     );
   }
 
-  const completed = data.tasks.filter((task) => task.status === 'COMPLETED').length;
-  const overdue = data.tasks.filter(
-    (task) =>
-      task.status === 'OVERDUE' ||
-      (task.status === 'PENDING' && task.dueDate && new Date(task.dueDate) < new Date()),
-  ).length;
-  const progress = data.tasks.length ? Math.round((completed / data.tasks.length) * 100) : 0;
-
   return (
     <DashboardPage>
-      <Link
-        href="/dashboard/onboarding"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-primary-700 hover:underline"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        All workflows
-      </Link>
-
       <DashboardPageHeader
-        title={`${data.employee.firstName} ${data.employee.lastName}`}
-        description={`${data.employee.department?.name ?? 'No department'} · ${data.type.replace('_', ' ')} · ${data.status.replace('_', ' ')}`}
-        meta={`${completed}/${data.tasks.length} complete${overdue > 0 ? ` · ${overdue} overdue` : ''}`}
+        icon={ClipboardList}
+        title={`${data.type === 'ONBOARDING' ? 'Onboarding' : 'Offboarding'} · ${data.employee.firstName} ${data.employee.lastName}`}
+        description={
+          data.employee.department?.name
+            ? `${data.employee.department.name} · started ${data.startedAt.slice(0, 10)}`
+            : `Started ${data.startedAt.slice(0, 10)}`
+        }
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/dashboard/onboarding"
+              className="btn-secondary inline-flex h-10 items-center gap-1.5 px-3 text-sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Workflows
+            </Link>
             <Link href="/dashboard/people/tasks" className="btn-secondary inline-flex h-10 items-center px-3 text-sm">
               My tasks
             </Link>
@@ -189,7 +214,7 @@ export default function OnboardingDetailPage() {
                 onClick={() => void cancelWorkflow()}
                 className="btn-secondary inline-flex h-10 items-center px-3 text-sm text-red-700 disabled:opacity-50"
               >
-                Cancel workflow
+                {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Cancel workflow'}
               </button>
             ) : null}
           </div>
@@ -222,56 +247,86 @@ export default function OnboardingDetailPage() {
           <div key={category} className="dashboard-surface shadow-sm p-4 sm:p-5">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">{category}</h2>
             <div className="space-y-3">
-              {tasks.map((task) => (
-                <div key={task.id} className="rounded-lg border border-neutral-200/80 p-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-neutral-900">{task.title}</p>
-                      {task.description ? (
-                        <p className="mt-0.5 text-xs text-neutral-500">{task.description}</p>
-                      ) : null}
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {task.assignedRole}
-                        {task.dueDate ? ` · due ${task.dueDate.slice(0, 10)}` : ''}
-                        {task.isRequired ? ' · required' : ''}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={dashStatusChip(taskStatusTone(task.status))}>
-                        {task.status.replace('_', ' ')}
-                      </span>
-                      {task.status !== 'COMPLETED' && task.status !== 'SKIPPED' ? (
-                        <>
-                          <button
-                            type="button"
-                            disabled={busyTaskId === task.id}
-                            className="btn-primary px-2 py-1 text-xs disabled:opacity-50"
-                            onClick={() => void updateTask(task.id, 'COMPLETED')}
-                          >
-                            Complete
-                          </button>
-                          {!task.isRequired ? (
+              {tasks.map((task) => {
+                const isDocuments = (task.category ?? '').toLowerCase() === 'documents';
+                const open = task.status !== 'COMPLETED' && task.status !== 'SKIPPED';
+                return (
+                  <div key={task.id} className="rounded-lg border border-neutral-200/80 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-neutral-900">{task.title}</p>
+                        {task.description ? (
+                          <p className="mt-0.5 text-xs text-neutral-500">{task.description}</p>
+                        ) : null}
+                        <p className="mt-1 text-xs text-neutral-500">
+                          {task.assignedTo?.name
+                            ? `${task.assignedTo.name} · ${task.assignedRole}`
+                            : `Role pool · ${task.assignedRole}`}
+                          {task.dueDate ? ` · due ${task.dueDate.slice(0, 10)}` : ''}
+                          {task.isRequired ? ' · required' : ''}
+                        </p>
+                        {task.document ? (
+                          <p className="mt-1 text-xs text-emerald-700">Evidence: {task.document.fileName}</p>
+                        ) : isDocuments && open ? (
+                          <p className="mt-1 text-xs text-amber-700">Evidence required before complete</p>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={dashStatusChip(taskStatusTone(task.status))}>
+                          {task.status.replace('_', ' ')}
+                        </span>
+                        {open ? (
+                          <>
+                            <label className="btn-secondary inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs">
+                              {uploadingTaskId === task.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Upload className="h-3 w-3" />
+                              )}
+                              Upload
+                              <input
+                                type="file"
+                                accept="application/pdf"
+                                className="hidden"
+                                disabled={uploadingTaskId === task.id}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) void uploadEvidence(task.id, file);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
                             <button
                               type="button"
                               disabled={busyTaskId === task.id}
-                              className="btn-secondary px-2 py-1 text-xs disabled:opacity-50"
-                              onClick={() => void updateTask(task.id, 'SKIPPED')}
+                              className="btn-primary px-2 py-1 text-xs disabled:opacity-50"
+                              onClick={() => void updateTask(task.id, 'COMPLETED')}
                             >
-                              Skip
+                              Complete
                             </button>
-                          ) : null}
-                        </>
-                      ) : null}
+                            {!task.isRequired ? (
+                              <button
+                                type="button"
+                                disabled={busyTaskId === task.id}
+                                className="btn-secondary px-2 py-1 text-xs disabled:opacity-50"
+                                onClick={() => void updateTask(task.id, 'SKIPPED')}
+                              >
+                                Skip
+                              </button>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
                     </div>
+                    <textarea
+                      className="mt-2 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                      placeholder="Add notes"
+                      value={notes[task.id] ?? task.notes ?? ''}
+                      onChange={(e) => setNotes((prev) => ({ ...prev, [task.id]: e.target.value }))}
+                    />
                   </div>
-                  <textarea
-                    className="mt-2 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30"
-                    placeholder="Add notes"
-                    value={notes[task.id] ?? task.notes ?? ''}
-                    onChange={(e) => setNotes((prev) => ({ ...prev, [task.id]: e.target.value }))}
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}

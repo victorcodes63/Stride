@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { brand } from '@/lib/brand';
+import { DEFAULT_PRIMARY_COLOR } from '@/lib/brand-theme';
 import { STRIDE_MANIFEST_BACKGROUND } from '@/lib/stride-palette';
-import { DEFAULT_SECONDARY_COLOR } from '@/lib/brand-theme';
 
 export async function GET() {
   const manifest = {
@@ -12,7 +12,7 @@ export async function GET() {
     scope: '/ess',
     display: 'standalone',
     orientation: 'portrait-primary',
-    theme_color: DEFAULT_SECONDARY_COLOR,
+    theme_color: DEFAULT_PRIMARY_COLOR,
     background_color: STRIDE_MANIFEST_BACKGROUND,
     categories: ['business', 'productivity'],
     icons: [

@@ -32,9 +32,8 @@ export function EssBottomSheet({ open, onClose, title, children }: Props) {
       />
       <div
         className="ess-glass relative mx-auto max-h-[90vh] w-full max-w-xl overflow-hidden rounded-t-[2rem] shadow-[var(--ess-shadow-float)] ess-safe-bottom"
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0px)' }}
       >
-        <div className="flex items-center justify-between border-b border-[var(--ess-border)] px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[var(--ess-border)] px-5 py-3.5 sm:px-6">
           <h2 className="text-lg font-black text-[var(--ess-text)]">{title}</h2>
           <button
             type="button"
@@ -45,7 +44,9 @@ export function EssBottomSheet({ open, onClose, title, children }: Props) {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="overflow-y-auto px-4 py-4 max-h-[calc(90vh-56px)]">{children}</div>
+        <div className="max-h-[calc(90vh-56px)] overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-6">
+          {children}
+        </div>
       </div>
     </div>
   );

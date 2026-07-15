@@ -11,8 +11,9 @@ import { PrismaClient } from '@prisma/client';
 import {
   OPERATING_ENTITIES_SETTINGS_KEY,
   buildVerticalShowcaseOperatingEntitiesSettings,
-} from '../src/lib/operating-entities';
+} from '../src/lib/operating-entities-shared';
 import { UNIFIED_DEMO_EMAIL } from './demo-packs/build-from-generic';
+import { VERTICAL_SHOWCASE_PACK_IDS } from './demo-packs/types';
 import { SEED_DEFAULT_ORG_ID, systemSettingUpsert } from './system-setting-seed';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

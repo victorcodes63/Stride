@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { MicrosoftIcon, GoogleIcon } from '@/components/auth/OAuthBrandIcons';
 import { getOAuthStartPath, type OAuthAudience } from '@/lib/oauth-utils';
+import { STRIDE_PALETTE } from '@/lib/stride-palette';
 
 function resolveOAuthError(code: string | null): string {
   if (code === 'domain') return 'Use your organisation work email to sign in.';
@@ -26,18 +27,38 @@ function useOAuthProviders(audience: OAuthAudience) {
     { key: 'google', label: 'Google', configured: false, startPath: getOAuthStartPath(audience, 'google') },
   ]);
 
-  useState(() => {
+  useEffect(() => {
+    let cancelled = false;
     fetch('/api/config/company-setup')
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { oauth?: { ess?: ProviderConfig[] } } | null) => {
-        if (!data?.oauth?.ess?.length) return;
+        if (cancelled || !data?.oauth?.ess?.length) return;
         setProviders(data.oauth.ess);
       })
       .catch(() => {});
-  });
+    return () => {
+      cancelled = true;
+    };
+  }, [audience]);
 
   return providers;
 }
+
+/** Login is always light brand — ignore dashboard/html.dark remaps of --sc-paper. */
+const LOGIN_SURFACE = {
+  colorScheme: 'light' as const,
+  background: STRIDE_PALETTE.paper,
+  ['--ess-login-coral' as string]: STRIDE_PALETTE.coral,
+  ['--ess-login-coral-deep' as string]: STRIDE_PALETTE.coralDeep,
+  ['--ess-login-coral-pressed' as string]: STRIDE_PALETTE.coralPressed,
+  ['--ess-login-coral-subtle' as string]: STRIDE_PALETTE.coralSubtle,
+  ['--ess-login-ink' as string]: STRIDE_PALETTE.ink,
+  ['--ess-login-ink-muted' as string]: STRIDE_PALETTE.inkMuted,
+  ['--ess-login-ink-subtle' as string]: STRIDE_PALETTE.inkSubtle,
+  ['--ess-login-paper' as string]: STRIDE_PALETTE.paper,
+  ['--ess-login-paper-2' as string]: STRIDE_PALETTE.paper2,
+  ['--ess-login-line' as string]: STRIDE_PALETTE.line,
+};
 
 export function EssLoginForm({
   welcomeCopy,
@@ -76,7 +97,10 @@ export function EssLoginForm({
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(data.error || 'Unable to sign in.'); return; }
+      if (!res.ok) {
+        setError(data.error || 'Unable to sign in.');
+        return;
+      }
       router.replace(from);
       router.refresh();
     } catch {
@@ -95,45 +119,56 @@ export function EssLoginForm({
   }
 
   const inputCls =
-    'h-[3.25rem] w-full rounded-[0.875rem] border border-slate-200 bg-white px-4 text-base text-slate-900 shadow-sm transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:outline-none focus:ring-[3px] focus:ring-blue-500/10';
+    'h-[3.25rem] w-full rounded-[0.875rem] border border-[var(--ess-login-line)] bg-[var(--ess-login-paper-2)] px-4 text-base text-[var(--ess-login-ink)] shadow-sm transition-all placeholder:text-[var(--ess-login-ink-subtle)] hover:border-[color-mix(in_srgb,var(--ess-login-coral)_35%,var(--ess-login-line))] focus:border-[var(--ess-login-coral)] focus:outline-none focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--ess-login-coral)_18%,transparent)]';
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#f6f7fb]">
-      {/* ── Hero header ── */}
+    <div className="ess-login flex min-h-[100dvh] flex-col" style={LOGIN_SURFACE}>
       <div
-        className="relative overflow-hidden px-6 pb-10 pt-[max(env(safe-area-inset-top,0px),2.5rem)]"
+        className="relative overflow-hidden px-6 pb-12 pt-[max(env(safe-area-inset-top,0px),2.5rem)]"
         style={{
-          background: 'linear-gradient(145deg, #1A1714 0%, #141210 60%, #0A0908 100%)',
+          background:
+            'linear-gradient(145deg, var(--ess-login-coral) 0%, var(--ess-login-coral-deep) 55%, var(--ess-login-coral-pressed) 100%)',
         }}
       >
-        {/* Decorative orbs */}
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/[0.06]" aria-hidden="true" />
-        <div className="pointer-events-none absolute -bottom-16 left-8 h-36 w-36 rounded-full bg-black/[0.08]" aria-hidden="true" />
-        <div className="pointer-events-none absolute right-16 top-1/2 h-24 w-24 -translate-y-1/2 rounded-full bg-white/[0.04]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/15"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -bottom-14 left-6 h-40 w-40 rounded-full bg-black/10"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute right-14 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full bg-white/10"
+          aria-hidden="true"
+        />
 
         <div className="relative mx-auto flex max-w-sm flex-col items-center text-center">
+          {/* Coral wordmark → white for contrast on brand hero */}
           <BrandLogo
             variant="auth"
             priority
-            className="h-10 object-contain brightness-0 invert"
+            className="h-9 w-auto object-contain brightness-0 invert"
           />
-          <h1 className="mt-5 text-[1.5rem] font-extrabold leading-tight tracking-tight text-white">
-            {welcomeTitle || portalTitle}
+          <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">
+            {portalTitle}
+          </p>
+          <h1 className="mt-2 text-[1.5rem] font-extrabold leading-tight tracking-tight text-white">
+            {welcomeTitle || 'Welcome to Stride'}
           </h1>
-          <p className="mt-2 max-w-[260px] text-[0.875rem] leading-relaxed text-white/55">
+          <p className="mt-2 max-w-[280px] text-[0.875rem] leading-relaxed text-white/85">
             {welcomeSubtitle}
           </p>
         </div>
       </div>
 
-      {/* ── Form card ── */}
-      <div className="relative -mt-4 flex flex-1 flex-col px-4 pb-6">
+      <div className="relative -mt-5 flex flex-1 flex-col px-4 pb-6">
         <div className="mx-auto w-full max-w-sm">
           <div
             className="rounded-[1.5rem] bg-white p-6"
             style={{
-              border: '1px solid rgba(148,163,184,0.2)',
-              boxShadow: '0 8px 30px rgba(15,23,42,0.06), 0 2px 6px rgba(15,23,42,0.03)',
+              border: '1px solid color-mix(in srgb, var(--ess-login-ink-subtle) 18%, transparent)',
+              boxShadow: '0 12px 36px rgba(26, 23, 20, 0.08), 0 2px 8px rgba(26, 23, 20, 0.04)',
             }}
           >
             {error ? (
@@ -146,7 +181,10 @@ export function EssLoginForm({
             {emailLoginEnabled ? (
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
-                  <label htmlFor="ess-email" className="mb-1.5 block text-[0.8125rem] font-bold text-slate-700">
+                  <label
+                    htmlFor="ess-email"
+                    className="mb-1.5 block text-[0.8125rem] font-bold text-[var(--ess-login-ink)]"
+                  >
                     Email
                   </label>
                   <input
@@ -160,7 +198,10 @@ export function EssLoginForm({
                   />
                 </div>
                 <div>
-                  <label htmlFor="ess-password" className="mb-1.5 block text-[0.8125rem] font-bold text-slate-700">
+                  <label
+                    htmlFor="ess-password"
+                    className="mb-1.5 block text-[0.8125rem] font-bold text-[var(--ess-login-ink)]"
+                  >
                     Password
                   </label>
                   <div className="relative">
@@ -176,7 +217,7 @@ export function EssLoginForm({
                     <button
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
-                      className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-400 transition-colors active:bg-slate-100"
+                      className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-[var(--ess-login-ink-subtle)] transition-colors active:bg-[var(--ess-login-coral-subtle)]"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -189,8 +230,9 @@ export function EssLoginForm({
                   disabled={loading}
                   className="relative flex h-[3.25rem] w-full items-center justify-center overflow-hidden rounded-full text-[0.9375rem] font-bold text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
                   style={{
-                    background: 'linear-gradient(135deg, #1A1714, #141210)',
-                    boxShadow: '0 10px 28px rgba(29,36,96,0.28)',
+                    background:
+                      'linear-gradient(135deg, var(--ess-login-coral) 0%, var(--ess-login-coral-deep) 100%)',
+                    boxShadow: '0 12px 28px color-mix(in srgb, var(--ess-login-coral) 38%, transparent)',
                   }}
                 >
                   {loading ? (
@@ -202,21 +244,19 @@ export function EssLoginForm({
               </form>
             ) : null}
 
-            {/* Divider */}
             {emailLoginEnabled && providers.length > 0 ? (
               <div className="relative my-5">
                 <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                  <div className="w-full border-t border-slate-200" />
+                  <div className="w-full border-t border-[var(--ess-login-line)]" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-white px-3 text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-600">
+                  <span className="bg-white px-3 text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-[var(--ess-login-ink-subtle)]">
                     or continue with
                   </span>
                 </div>
               </div>
             ) : null}
 
-            {/* SSO buttons */}
             {providers.length > 0 ? (
               <div className="grid grid-cols-2 gap-2.5">
                 {providers.map((p) => (
@@ -224,7 +264,7 @@ export function EssLoginForm({
                     key={p.key}
                     type="button"
                     onClick={() => handleOAuth(p)}
-                    className="flex h-[3rem] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-[0.97]"
+                    className="flex h-[3rem] items-center justify-center gap-2 rounded-2xl border border-[var(--ess-login-line)] bg-white text-sm font-semibold text-[var(--ess-login-ink)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--ess-login-coral)_40%,var(--ess-login-line))] hover:bg-[var(--ess-login-coral-subtle)] active:scale-[0.97]"
                     aria-label={`Continue with ${p.label}`}
                   >
                     {p.key === 'microsoft' ? <MicrosoftIcon size={18} /> : <GoogleIcon size={18} />}
@@ -236,11 +276,13 @@ export function EssLoginForm({
           </div>
         </div>
 
-        {/* Footer */}
         <div className="mt-auto pt-8 text-center">
-          <p className="text-[0.8125rem] text-slate-600">
+          <p className="text-[0.8125rem] text-[var(--ess-login-ink-muted)]">
             HR staff?{' '}
-            <Link href="/dashboard/login" className="font-semibold text-[#1A1714] underline-offset-2 hover:underline">
+            <Link
+              href="/dashboard/login"
+              className="font-semibold text-[var(--ess-login-coral)] underline-offset-2 hover:underline"
+            >
               Staff dashboard
             </Link>
           </p>

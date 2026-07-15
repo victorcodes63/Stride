@@ -74,6 +74,7 @@ const LOGIN_RLS_HOTFIX_FILES = [
 /** Idempotent schema hotfixes applied when migrate deploy is skipped (P3005 baselined DBs). */
 const SCHEMA_HOTFIX_FILES = [
   '20260715160000_sales_phase2_forecast_leads/migration.sql',
+  '20260715180000_onboarding_task_start_date_document_fk/migration.sql',
 ];
 
 function applySqlHotfix(migrateEnv, relativePaths, label) {

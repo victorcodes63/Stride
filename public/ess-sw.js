@@ -1,9 +1,7 @@
-const CACHE = 'ess-shell-v2';
-const RUNTIME = 'ess-runtime-v2';
+const CACHE = 'ess-shell-v3';
+const RUNTIME = 'ess-runtime-v3';
 const PRECACHE = [
-  '/ess',
   '/ess/offline',
-  '/ess/login',
   '/api/ess/manifest',
   '/icons/ess-192.svg',
   '/icons/ess-512.svg',
@@ -36,12 +34,16 @@ async function putRuntime(request, response) {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
+
+  // Never intercept Next.js bundles — cache-first here breaks HMR and post-deploy chunk swaps.
+  if (url.pathname.startsWith('/_next/')) return;
+
   const isEssPage = url.pathname.startsWith('/ess');
   const isEssAsset =
-    url.pathname.startsWith('/_next/static/') ||
-    url.pathname.startsWith('/icons/ess-') ||
-    url.pathname === '/api/ess/manifest';
+    url.pathname.startsWith('/icons/ess-') || url.pathname === '/api/ess/manifest';
+
   if (!isEssPage && !isEssAsset) return;
 
   if (request.mode === 'navigate') {
@@ -54,7 +56,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isEssAsset) {
-    event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((res) => putRuntime(request, res))));
+    event.respondWith(
+      caches.match(request).then((cached) => cached || fetch(request).then((res) => putRuntime(request, res))),
+    );
     return;
   }
 
