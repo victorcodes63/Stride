@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
+import { requireAccessibleDeal, SalesAccessError } from '@/lib/sales/access';
 import { resolveEmployeeIdForStaff } from '@/lib/sales/api-helpers';
 import { SALES_DEAL_ACTIVITY_TYPES } from '@/lib/sales/schema';
 import { withTenant } from '@/lib/tenant-api';
@@ -34,11 +35,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     try {
       const activity = await ctx.run(async (tx) => {
-        const deal = await tx.salesDeal.findFirst({
-          where: { id: dealId, ...ctx.where() },
-          select: { id: true },
-        });
-        if (!deal) return null;
+        await requireAccessibleDeal(tx, ctx.staff, ctx.organizationId, dealId);
 
         let actorEmployeeId =
           typeof body.actorEmployeeId === 'string' ? body.actorEmployeeId.trim() : '';
@@ -69,9 +66,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         });
       });
 
-      if (!activity) {
-        return NextResponse.json({ error: 'Deal not found.' }, { status: 404 });
-      }
 
       return NextResponse.json(
         {
@@ -96,6 +90,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 201 },
       );
     } catch (error: unknown) {
+      if (error instanceof SalesAccessError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.code === 'FORBIDDEN' ? 403 : 404 },
+        );
+      }
       const err = error as { code?: string };
       if (err.code === 'ACTOR_REQUIRED') {
         return NextResponse.json(

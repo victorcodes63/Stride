@@ -272,6 +272,8 @@ const salesSection: DashboardNavSection = {
     { href: '/dashboard/sales', label: 'Sales performance', icon: TrendingUp },
     { href: '/dashboard/sales/targets', label: 'Sales targets', icon: Target },
     { href: '/dashboard/sales/deals', label: 'Pipeline', icon: Handshake },
+    { href: '/dashboard/sales/leads', label: 'Leads', icon: UserSearch },
+    { href: '/dashboard/sales/forecast', label: 'Forecast', icon: PieChart },
     { href: '/dashboard/sales/attainment', label: 'Attainment', icon: TrendingUp },
     { href: '/dashboard/sales/commissions', label: 'Commissions', icon: Coins },
   ],

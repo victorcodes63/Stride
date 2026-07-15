@@ -6,9 +6,11 @@ import {
   Coins,
   Handshake,
   Loader2,
+  PieChart,
   Target,
   TrendingUp,
   Plus,
+  UserSearch,
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
@@ -78,10 +80,12 @@ export default function SalesOverviewContent() {
         icon={TrendingUp}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {[
           { href: '/dashboard/sales/targets', label: 'Targets & quotas', icon: Target },
           { href: '/dashboard/sales/deals', label: 'Pipeline', icon: Handshake },
+          { href: '/dashboard/sales/leads', label: 'Leads', icon: UserSearch },
+          { href: '/dashboard/sales/forecast', label: 'Forecast', icon: PieChart },
           { href: '/dashboard/sales/attainment', label: 'Attainment', icon: TrendingUp },
           { href: '/dashboard/sales/commissions', label: 'Commissions', icon: Coins },
         ].map(({ href, label, icon: Icon }) => (

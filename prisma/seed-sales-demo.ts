@@ -1,11 +1,14 @@
 /**
- * Seed Sales Phase 1 demo data for SwiftFreight (cargo-logistics).
+ * Seed Sales Phase 1–2 demo data for SwiftFreight (cargo-logistics).
  * Run: set -a && . ./.env.local && set +a && npx tsx prisma/seed-sales-demo.ts
  *
  * Idempotent: wipes prior sales deals/targets/contacts/rules for the org first.
  */
+import bcrypt from 'bcryptjs';
 import {
   PrismaClient,
+  StaffUserType,
+  UserRole,
   SalesCommissionRuleStatus,
   SalesDealStage,
   SalesForecastCategory,
@@ -195,12 +198,75 @@ async function resolveOrganizationId(): Promise<string> {
 async function wipeSales(organizationId: string) {
   await prisma.salesDealActivity.deleteMany({ where: { organizationId } });
   await prisma.salesDealStageHistory.deleteMany({ where: { organizationId } });
+  await prisma.salesDealLineItem.deleteMany({ where: { organizationId } });
+  await prisma.salesLead.deleteMany({ where: { organizationId } });
+  await prisma.salesForecastSnapshot.deleteMany({ where: { organizationId } });
   await prisma.salesActual.deleteMany({ where: { organizationId } });
   await prisma.salesRepPeriodMetric.deleteMany({ where: { organizationId } });
   await prisma.salesDeal.deleteMany({ where: { organizationId } });
   await prisma.salesContact.deleteMany({ where: { organizationId } });
   await prisma.salesTarget.deleteMany({ where: { organizationId } });
   await prisma.salesCommissionRule.deleteMany({ where: { organizationId } });
+}
+
+
+async function ensureSalesStaffUsers(
+  organizationId: string,
+  reps: Array<{ id: string; firstName: string; lastName: string; email: string | null }>,
+) {
+  const password = process.env.DEMO_PASSWORD?.trim() || 'Demo@2026!';
+  const hashed = await bcrypt.hash(password, 10);
+  const specs: Array<{ email: string; name: string; staffUserType: StaffUserType; employeeId: string }> = [];
+  if (reps[0]?.email) {
+    specs.push({
+      email: reps[0].email.toLowerCase(),
+      name: `${reps[0].firstName} ${reps[0].lastName}`.trim(),
+      staffUserType: StaffUserType.sales_manager,
+      employeeId: reps[0].id,
+    });
+  }
+  for (const r of reps.slice(1, 3)) {
+    if (!r.email) continue;
+    specs.push({
+      email: r.email.toLowerCase(),
+      name: `${r.firstName} ${r.lastName}`.trim(),
+      staffUserType: StaffUserType.sales_rep,
+      employeeId: r.id,
+    });
+  }
+  for (const spec of specs) {
+    const user = await prisma.user.upsert({
+      where: { email: spec.email },
+      update: {
+        name: spec.name,
+        passwordHash: hashed,
+        role: UserRole.staff,
+        staffUserType: spec.staffUserType,
+        isActive: true,
+      },
+      create: {
+        email: spec.email,
+        name: spec.name,
+        passwordHash: hashed,
+        role: UserRole.staff,
+        staffUserType: spec.staffUserType,
+        isActive: true,
+      },
+    });
+    await prisma.organizationMembership.upsert({
+      where: { userId_organizationId: { userId: user.id, organizationId } },
+      update: { role: UserRole.staff, updatedAt: new Date() },
+      create: {
+        userId: user.id,
+        organizationId,
+        role: UserRole.staff,
+        updatedAt: new Date(),
+      },
+    });
+  }
+  console.log(
+    `→ Sales staff users: ${specs.map((s) => `${s.email} (${s.staffUserType})`).join(', ') || 'none'} — password ${password}`,
+  );
 }
 
 async function ensureAccountClients(organizationId: string) {
@@ -248,6 +314,8 @@ async function main() {
   console.log(
     `→ Reps: ${reps.map((r) => `${r.firstName} ${r.lastName}`).join(', ')}`,
   );
+
+  await ensureSalesStaffUsers(organizationId, reps);
 
   const accounts = await ensureAccountClients(organizationId);
   const contacts = [];
@@ -421,9 +489,119 @@ async function main() {
     });
   }
 
+  // Phase 2: leads, line items, cargo weights, MSA contracts, forecast snapshot
+  const openDeals = await prisma.salesDeal.findMany({
+    where: {
+      organizationId,
+      stage: { in: ['proposal', 'negotiation', 'qualified'] },
+    },
+    take: 4,
+  });
+  for (let i = 0; i < openDeals.length; i++) {
+    const d = openDeals[i]!;
+    await prisma.salesDealLineItem.create({
+      data: {
+        organizationId,
+        dealId: d.id,
+        description: i % 2 === 0 ? 'Linehaul rate card' : 'Warehousing + handling',
+        quantity: 1,
+        unitPrice: Math.round(Number(d.value) * 0.6),
+        discountPct: 0,
+        sortOrder: 0,
+      },
+    });
+    await prisma.salesDealLineItem.create({
+      data: {
+        organizationId,
+        dealId: d.id,
+        description: 'Fuel surcharge',
+        quantity: 1,
+        unitPrice: Math.round(Number(d.value) * 0.15),
+        discountPct: 5,
+        sortOrder: 1,
+      },
+    });
+    await prisma.salesDeal.update({
+      where: { id: d.id },
+      data: { cargoWeightKg: 8_000 + i * 4_000 },
+    });
+  }
+
+  const leadSpecs = [
+    { name: 'Janet Achieng', company: 'Kisumu Dairy Co-op', source: 'Trade show', ownerIndex: 0 },
+    { name: 'David Mwangi', company: 'Thika Steel Fabricators', source: 'Inbound web', ownerIndex: 1 },
+    { name: 'Halima Yusuf', company: 'Garissa Agro Traders', source: 'Cold call', ownerIndex: 2 },
+  ] as const;
+  for (let i = 0; i < leadSpecs.length; i++) {
+    const spec = leadSpecs[i]!;
+    await prisma.salesLead.create({
+      data: {
+        organizationId,
+        name: spec.name,
+        company: spec.company,
+        email: `${spec.name.split(' ')[0]!.toLowerCase()}@example.co.ke`,
+        source: spec.source,
+        status: i === 0 ? 'qualified' : 'new',
+        ownerEmployeeId: reps[Math.min(spec.ownerIndex, reps.length - 1)]!.id,
+        notes: 'Sales Phase 2 demo lead',
+      },
+    });
+  }
+
+  for (let ai = 0; ai < Math.min(4, accounts.length); ai++) {
+    const account = accounts[ai]!;
+    const existing = await prisma.accountsContract.findFirst({
+      where: { organizationId, clientId: account.id },
+    });
+    if (!existing) {
+      const endOffset = account.name.includes('Pharma') ? 25 : account.name.includes('Tea') ? -10 : 120;
+      await prisma.accountsContract.create({
+        data: {
+          organizationId,
+          clientId: account.id,
+          title: `${account.name} MSA`,
+          reference: `MSA-${String(ai + 1).padStart(2, '0')}-2026`,
+          startDate: daysFromToday(-180),
+          endDate: daysFromToday(endOffset),
+        },
+      });
+    }
+  }
+
+  const allDealsForSnap = await prisma.salesDeal.findMany({ where: { organizationId } });
+  let commitAmt = 0;
+  let bestAmt = 0;
+  let pipeAmt = 0;
+  let closedAmt = 0;
+  for (const d of allDealsForSnap) {
+    const v = Number(d.value);
+    if (d.stage === 'won') closedAmt += v;
+    else if (d.forecastCategory === 'commit') commitAmt += v;
+    else if (d.forecastCategory === 'best_case') bestAmt += v;
+    else if (d.forecastCategory !== 'omitted') pipeAmt += v;
+  }
+  await prisma.salesForecastSnapshot.create({
+    data: {
+      organizationId,
+      periodStart,
+      periodEnd,
+      currency: 'KES',
+      commitAmount: commitAmt,
+      bestCaseAmount: bestAmt,
+      pipelineAmount: pipeAmt,
+      closedAmount: closedAmt,
+      teamTarget: targetAmounts.slice(0, reps.length).reduce((a, b) => a + b, 0),
+      notes: 'Demo baseline snapshot',
+    },
+  });
+
   const dealCount = await prisma.salesDeal.count({ where: { organizationId } });
   const metrics = await prisma.salesRepPeriodMetric.count({ where: { organizationId } });
-  console.log(`→ Seeded ${dealCount} deals, ${contacts.length} contacts, ${metrics} rep metrics.`);
+  const leadCount = await prisma.salesLead.count({ where: { organizationId } });
+  const lineCount = await prisma.salesDealLineItem.count({ where: { organizationId } });
+  console.log(
+    `→ Seeded ${dealCount} deals, ${contacts.length} contacts, ${leadCount} leads, ${lineCount} line items, ${metrics} rep metrics.`,
+  );
 }
 
 main()

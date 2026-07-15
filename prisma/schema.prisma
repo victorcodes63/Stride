@@ -403,6 +403,7 @@ model Employee {
   ownedSalesDeals             SalesDeal[]                  @relation("SalesDealOwner")
   salesActuals                SalesActual[]
   salesDealActivities         SalesDealActivity[]          @relation("SalesDealActivityActor")
+  ownedSalesLeads             SalesLead[]                  @relation("SalesLeadOwner")
   hseIncidentsReported        HseIncident[]
   saccoMemberProfile          SaccoMember?
   healthcareClinicalAssignments HealthcareClinicalAssignment[]
@@ -2492,6 +2493,8 @@ enum StaffUserType {
   business_manager
   finance
   director
+  sales_rep
+  sales_manager
 }
 
 // --- Accounts / finance (dashboard) ---
@@ -4774,6 +4777,8 @@ model SalesDeal {
   lostReason        String?
   competitor        String?
   notes             String?        @db.Text
+  /// Optional planned cargo weight for fleet capacity soft-check on won deals.
+  cargoWeightKg   Int?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -4784,12 +4789,83 @@ model SalesDeal {
   actuals         SalesActual[]
   activities      SalesDealActivity[]
   stageHistory    SalesDealStageHistory[]
+  lineItems       SalesDealLineItem[]
+  convertedFromLead SalesLead?
 
   @@index([organizationId, stage])
   @@index([organizationId, ownerEmployeeId])
   @@index([organizationId, expectedCloseDate])
   @@index([organizationId, accountsClientId])
   @@index([organizationId, forecastCategory])
+}
+
+model SalesDealLineItem {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  dealId      String
+  description String
+  quantity    Decimal  @db.Decimal(12, 2) @default(1)
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  discountPct Decimal  @db.Decimal(5, 2) @default(0)
+  isRecurring Boolean  @default(false)
+  termMonths  Int?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deal SalesDeal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, dealId])
+}
+
+enum SalesLeadStatus {
+  new
+  qualified
+  disqualified
+  converted
+}
+
+model SalesLead {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name             String
+  company          String?
+  email            String?
+  phone            String?
+  source           String?
+  status           SalesLeadStatus @default(new)
+  ownerEmployeeId  String?
+  notes            String?         @db.Text
+  convertedDealId  String?         @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  owner         Employee?  @relation("SalesLeadOwner", fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+  convertedDeal SalesDeal? @relation(fields: [convertedDealId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([organizationId, ownerEmployeeId])
+}
+
+model SalesForecastSnapshot {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  takenAt        DateTime @default(now())
+  periodStart    DateTime @db.Date
+  periodEnd      DateTime @db.Date
+  currency       String   @default("KES")
+  commitAmount   Decimal  @db.Decimal(14, 2) @default(0)
+  bestCaseAmount Decimal  @db.Decimal(14, 2) @default(0)
+  pipelineAmount Decimal  @db.Decimal(14, 2) @default(0)
+  closedAmount   Decimal  @db.Decimal(14, 2) @default(0)
+  teamTarget     Decimal  @db.Decimal(14, 2) @default(0)
+  notes          String?  @db.Text
+
+  @@index([organizationId, takenAt(sort: Desc)])
+  @@index([organizationId, periodStart, periodEnd])
 }
 
 model SalesDealActivity {

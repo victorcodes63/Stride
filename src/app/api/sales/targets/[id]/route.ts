@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
 import { syncRepPeriodMetric } from '@/lib/sales/metrics-sync';
+import { canManageSalesTargets } from '@/lib/staff-permissions';
 import { withTenant } from '@/lib/tenant-api';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const action = typeof body.action === 'string' ? body.action.trim() : '';
+
+    if (action === 'approve' && !canManageSalesTargets(ctx.staff.role, ctx.staff.staffUserType)) {
+      return NextResponse.json(
+        { error: 'Only sales managers and finance can approve targets.' },
+        { status: 403 },
+      );
+    }
 
     try {
       const updated = await ctx.run(async (tx) => {

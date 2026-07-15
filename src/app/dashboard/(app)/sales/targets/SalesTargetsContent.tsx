@@ -31,6 +31,7 @@ export default function SalesTargetsContent() {
   const [attainmentByName, setAttainmentByName] = useState<Record<string, AttainmentRep>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [canManageSalesTargets, setCanManageSalesTargets] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -64,6 +65,21 @@ export default function SalesTargetsContent() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled) setCanManageSalesTargets(data?.canManageSalesTargets === true);
+      })
+      .catch(() => {
+        if (!cancelled) setCanManageSalesTargets(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function approve(id: string) {
     await fetch(`/api/sales/targets/${id}`, {
@@ -149,7 +165,7 @@ export default function SalesTargetsContent() {
                     </td>
                     <td className="px-4 py-3 capitalize">{t.status.replace(/_/g, ' ')}</td>
                     <td className="px-4 py-3 text-right">
-                      {t.status === 'pending_approval' && (
+                      {t.status === 'pending_approval' && canManageSalesTargets ? (
                         <button
                           type="button"
                           onClick={() => approve(t.id)}
@@ -157,7 +173,7 @@ export default function SalesTargetsContent() {
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" /> Approve
                         </button>
-                      )}
+                      ) : null}
                     </td>
                   </tr>
                 );

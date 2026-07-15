@@ -175,8 +175,8 @@ function PanelPageHeader({
   className?: string;
 }) {
   return (
-    <section className={cn('dashboard-surface overflow-hidden shadow-sm', className)}>
-      <header className={cn(DASHBOARD_PAGE_HEADER_CLASS, 'px-5 py-5 sm:px-6')}>
+    <section className={cn('dashboard-surface dashboard-page-header-surface shadow-sm', className)}>
+      <header className={cn(DASHBOARD_PAGE_HEADER_CLASS, 'relative z-10 px-5 py-5 sm:px-6')}>
         <div className="page-header-body min-w-0 space-y-2">
           {eyebrow ? (
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-700 dark:text-[var(--dash-text-subtle)]">

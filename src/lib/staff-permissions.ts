@@ -5,6 +5,8 @@ export const STAFF_USER_TYPE_LABELS: Record<StaffUserType, string> = {
   business_manager: 'Business manager',
   finance: 'Finance / Accounts',
   director: 'Director',
+  sales_rep: 'Sales rep',
+  sales_manager: 'Sales manager',
 };
 
 /** System-wide analytics / executive summary (sidebar + /dashboard/analytics). */
@@ -24,4 +26,25 @@ export function canApproveStaffLeave(role: UserRole, staffUserType: StaffUserTyp
 
 export function canViewTeamLeaveQueue(role: UserRole, staffUserType: StaffUserType): boolean {
   return canApproveStaffLeave(role, staffUserType);
+}
+
+/** Sales managers + leadership see all deals; reps only see their own. */
+export function canViewAllSalesDeals(role: UserRole, staffUserType: StaffUserType): boolean {
+  if (role === 'admin') return true;
+  return (
+    staffUserType === 'sales_manager' ||
+    staffUserType === 'business_manager' ||
+    staffUserType === 'director'
+  );
+}
+
+/** Approve / edit team quotas and commission push to payroll. */
+export function canManageSalesTargets(role: UserRole, staffUserType: StaffUserType): boolean {
+  if (role === 'admin') return true;
+  return (
+    staffUserType === 'sales_manager' ||
+    staffUserType === 'business_manager' ||
+    staffUserType === 'director' ||
+    staffUserType === 'finance'
+  );
 }

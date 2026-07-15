@@ -71,26 +71,39 @@ const LOGIN_RLS_HOTFIX_FILES = [
   '20260707110000_rls_login_system_setting_safe_cast/migration.sql',
 ];
 
-function applyLoginRlsHotfixes(migrateEnv) {
-  const migrationsRoot = path.join(__dirname, '..', 'prisma', 'migrations');
-  console.log('[prisma-migrate-deploy] Applying login/auth RLS hotfix SQL (idempotent)…');
+/** Idempotent schema hotfixes applied when migrate deploy is skipped (P3005 baselined DBs). */
+const SCHEMA_HOTFIX_FILES = [
+  '20260715160000_sales_phase2_forecast_leads/migration.sql',
+];
 
-  for (const relativePath of LOGIN_RLS_HOTFIX_FILES) {
+function applySqlHotfix(migrateEnv, relativePaths, label) {
+  const migrationsRoot = path.join(__dirname, '..', 'prisma', 'migrations');
+  console.log(`[prisma-migrate-deploy] Applying ${label} (idempotent)…`);
+
+  for (const relativePath of relativePaths) {
     const filePath = path.join(migrationsRoot, relativePath);
     if (!fs.existsSync(filePath)) {
-      console.warn(`[prisma-migrate-deploy] Skipping missing RLS hotfix: ${relativePath}`);
+      console.warn(`[prisma-migrate-deploy] Skipping missing ${label}: ${relativePath}`);
       continue;
     }
 
     const result = runPrisma(['db', 'execute', '--file', filePath, '--schema', 'prisma/schema.prisma'], migrateEnv);
     const output = `${result.stdout || ''}\n${result.stderr || ''}`.trim();
     if (result.status !== 0) {
-      console.error(`[prisma-migrate-deploy] RLS hotfix failed: ${relativePath}`);
+      console.error(`[prisma-migrate-deploy] ${label} failed: ${relativePath}`);
       if (output) process.stderr.write(`${output}\n`);
       process.exit(result.status ?? 1);
     }
-    console.log(`[prisma-migrate-deploy] RLS hotfix applied: ${relativePath}`);
+    console.log(`[prisma-migrate-deploy] ${label} applied: ${relativePath}`);
   }
+}
+
+function applyLoginRlsHotfixes(migrateEnv) {
+  applySqlHotfix(migrateEnv, LOGIN_RLS_HOTFIX_FILES, 'login/auth RLS hotfix');
+}
+
+function applyBaselinedSchemaHotfixes(migrateEnv) {
+  applySqlHotfixes(migrateEnv, SCHEMA_HOTFIX_FILES, 'baselined schema hotfix');
 }
 
 /** Avoid advisory-lock contention when schema is already current (common on Vercel rebuilds). */
@@ -151,6 +164,7 @@ function run() {
   if (isDatabaseUpToDate(migrateEnv)) {
     console.log('[prisma-migrate-deploy] Database schema is up to date — skipping migrate deploy.');
     applyLoginRlsHotfixes(migrateEnv);
+    applyBaselinedSchemaHotfixes(migrateEnv);
     return;
   }
 
@@ -173,6 +187,7 @@ function run() {
     if (result.status === 0) {
       process.stdout.write(stdout);
       applyLoginRlsHotfixes(migrateEnv);
+      applyBaselinedSchemaHotfixes(migrateEnv);
       return;
     }
 
@@ -181,9 +196,10 @@ function run() {
       process.stderr.write(stderr);
       console.warn(
         '\n[prisma-migrate-deploy] Detected P3009 (failed migration present). ' +
-          'Applying login RLS hotfixes and continuing build.',
+          'Applying login RLS + schema hotfixes and continuing build.',
       );
       applyLoginRlsHotfixes(migrateEnv);
+      applyBaselinedSchemaHotfixes(migrateEnv);
       return;
     }
 
@@ -192,9 +208,10 @@ function run() {
       process.stderr.write(stderr);
       console.warn(
         '\n[prisma-migrate-deploy] Detected P3005 (schema exists without _prisma_migrations). ' +
-          'Applying login RLS hotfixes via db execute and continuing build.',
+          'Applying login RLS + schema hotfixes via db execute and continuing build.',
       );
       applyLoginRlsHotfixes(migrateEnv);
+      applyBaselinedSchemaHotfixes(migrateEnv);
       return;
     }
 

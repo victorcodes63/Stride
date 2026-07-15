@@ -244,7 +244,14 @@ export interface InterviewScheduleBreak {
 export type UserRole = 'admin' | 'staff' | 'viewer';
 
 /** Internal staff persona (Prisma enum `StaffUserType`). Employer portal logins: `RecruitmentClientPortalUser`. */
-export const STAFF_USER_TYPES = ['operations', 'business_manager', 'finance', 'director'] as const;
+export const STAFF_USER_TYPES = [
+  'operations',
+  'business_manager',
+  'finance',
+  'director',
+  'sales_rep',
+  'sales_manager',
+] as const;
 export type StaffUserType = (typeof STAFF_USER_TYPES)[number];
 
 /** Aggregated Accounts module permissions (admin = all true). */
@@ -270,6 +277,10 @@ export interface UserSummary {
   staffUserType: StaffUserType;
   /** Derived: admin or business_manager (staff leave approvals / team queue). */
   canApproveStaffLeave: boolean;
+  /** Sales managers + leadership see the full pipeline. */
+  canViewAllSalesDeals: boolean;
+  /** Approve quotas and push commissions to payroll. */
+  canManageSalesTargets: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

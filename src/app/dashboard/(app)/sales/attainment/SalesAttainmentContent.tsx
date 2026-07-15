@@ -50,10 +50,11 @@ export default function SalesAttainmentContent() {
       <DashboardPageHeader
         title="Attainment & leaderboard"
         description="Real-time quota attainment per rep with team pacing on Stride coral."
+        icon={Trophy}
       />
 
       {loading ? (
-        <div className="flex items-center gap-2 text-neutral-500">
+        <div className="flex items-center gap-2 text-[var(--dash-text-muted)]">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading…
         </div>
       ) : !report || report.leaderboard.length === 0 ? (
@@ -68,18 +69,31 @@ export default function SalesAttainmentContent() {
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-3">
             {[
-              { label: 'Team target', value: `${report.teamTotals.target.toLocaleString('en-KE')} ${report.currency}` },
-              { label: 'Team actual', value: `${report.teamTotals.actual.toLocaleString('en-KE')} ${report.currency}` },
+              {
+                label: 'Team target',
+                value: `${report.teamTotals.target.toLocaleString('en-KE')} ${report.currency}`,
+              },
+              {
+                label: 'Team actual',
+                value: `${report.teamTotals.actual.toLocaleString('en-KE')} ${report.currency}`,
+              },
               {
                 label: 'Team attainment',
-                value: report.teamTotals.attainmentPct != null ? `${report.teamTotals.attainmentPct}%` : '—',
+                value:
+                  report.teamTotals.attainmentPct != null
+                    ? `${report.teamTotals.attainmentPct}%`
+                    : '—',
                 accent: true,
               },
             ].map(({ label, value, accent }) => (
               <div key={label} className={DASHBOARD_STAT_CARD_CLASS}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dash-text-muted)]">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dash-text-muted)]">
+                  {label}
+                </p>
                 <p
-                  className={`mt-2 text-2xl font-semibold ${accent ? 'text-[var(--stride-coral)]' : 'text-[var(--dash-text-strong)]'}`}
+                  className={`mt-2 text-2xl font-semibold ${
+                    accent ? 'text-[var(--stride-coral)]' : 'text-[var(--dash-text-strong)]'
+                  }`}
                 >
                   {value}
                 </p>
@@ -88,15 +102,15 @@ export default function SalesAttainmentContent() {
           </div>
 
           <div className={`overflow-hidden ${DASHBOARD_SURFACE_CLASS} shadow-sm`}>
-            <div className="flex items-center gap-2 border-b border-neutral-100 px-4 py-3">
+            <div className="flex items-center gap-2 border-b border-[var(--dash-border)] px-4 py-3">
               <Trophy className="h-4 w-4 text-[var(--stride-coral)]" />
-              <h2 className="text-sm font-semibold text-neutral-900">Leaderboard</h2>
-              <span className="text-xs text-neutral-400">
+              <h2 className="text-sm font-semibold text-[var(--dash-text-strong)]">Leaderboard</h2>
+              <span className="text-xs text-[var(--dash-text-muted)]">
                 {report.periodStart} → {report.periodEnd}
               </span>
             </div>
             <table className="min-w-full text-sm">
-              <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
+              <thead className="bg-[var(--dash-surface-muted)] text-left text-xs uppercase tracking-wide text-[var(--dash-text-muted)]">
                 <tr>
                   <th className="px-4 py-3">#</th>
                   <th className="px-4 py-3">Rep</th>
@@ -111,35 +125,35 @@ export default function SalesAttainmentContent() {
                   const pct = r.attainmentPct;
                   const bar = pct != null ? Math.min(100, Math.max(0, pct)) : 0;
                   return (
-                  <tr key={r.employeeName + i} className="border-t border-neutral-100">
-                    <td className="px-4 py-3 font-medium text-neutral-400">{i + 1}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-neutral-900">{r.employeeName}</div>
-                      {r.departmentName && (
-                        <div className="text-xs text-neutral-400">{r.departmentName}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.target.toLocaleString('en-KE')} {r.currency}
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.actual.toLocaleString('en-KE')} {r.currency}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-[var(--stride-coral)]">
-                        {pct != null ? `${pct}%` : '—'}
-                      </div>
-                      <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100">
-                        <div
-                          className="h-full rounded-full bg-[var(--stride-coral)]"
-                          style={{ width: `${bar}%` }}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.pacingPct != null ? `${r.pacingPct}% of pace` : '—'}
-                    </td>
-                  </tr>
+                    <tr key={r.employeeName + i} className="border-t border-[var(--dash-border)]">
+                      <td className="px-4 py-3 font-medium text-[var(--dash-text-muted)]">{i + 1}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-[var(--dash-text-strong)]">{r.employeeName}</div>
+                        {r.departmentName ? (
+                          <div className="text-xs text-[var(--dash-text-muted)]">{r.departmentName}</div>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3">
+                        {r.target.toLocaleString('en-KE')} {r.currency}
+                      </td>
+                      <td className="px-4 py-3">
+                        {r.actual.toLocaleString('en-KE')} {r.currency}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-[var(--stride-coral)]">
+                          {pct != null ? `${pct}%` : '—'}
+                        </div>
+                        <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-[var(--dash-surface-muted)]">
+                          <div
+                            className="h-full rounded-full bg-[var(--stride-coral)]"
+                            style={{ width: `${bar}%` }}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {r.pacingPct != null ? `${r.pacingPct}% of pace` : '—'}
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>

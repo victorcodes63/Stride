@@ -252,6 +252,11 @@ html.dark {
   backdrop-filter: blur(8px);
 }
 
+/* Page header cards expose action menus that must not clip dropdowns. */
+.dashboard-page-header-surface {
+  overflow: visible;
+}
+
 html.dark .dashboard-panel,
 html.dark .dashboard-surface,
 html.dark .data-table-wrap {

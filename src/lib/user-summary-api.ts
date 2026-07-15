@@ -1,5 +1,10 @@
 import { getAccountsAccess } from '@/lib/accounts-access';
-import { canApproveStaffLeave, canViewSystemAnalytics } from '@/lib/staff-permissions';
+import {
+  canApproveStaffLeave,
+  canManageSalesTargets,
+  canViewAllSalesDeals,
+  canViewSystemAnalytics,
+} from '@/lib/staff-permissions';
 import type { OrganizationSummary, StaffUserType, UserRole, UserSummary } from '@/types/dashboard';
 
 type OrgContext = {
@@ -33,6 +38,8 @@ export async function userRowToSummary(
     role,
     staffUserType,
     canApproveStaffLeave: canApproveStaffLeave(role, staffUserType),
+    canViewAllSalesDeals: canViewAllSalesDeals(role, staffUserType),
+    canManageSalesTargets: canManageSalesTargets(role, staffUserType),
     canViewSystemAnalytics: canViewSystemAnalytics(role, staffUserType),
     isActive: user.isActive,
     createdAt: user.createdAt.toISOString(),

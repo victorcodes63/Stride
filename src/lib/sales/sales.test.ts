@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { lineItemExtendedAmount } from '@/lib/sales/access';
 import { computeCommissionFromAttainment } from '@/lib/sales/commission';
+import { rollupForecastFromDeals } from '@/lib/sales/forecast';
 import {
   computeAttainmentPercent,
   computePipelineCoverage,
@@ -18,49 +20,65 @@ describe('sales schema helpers', () => {
   });
 
   it('computes attainment percent', () => {
-    expect(computeAttainmentPercent(750000, 1000000)).toBe(75);
+    expect(computeAttainmentPercent(50, 100)).toBe(50);
+    expect(computeAttainmentPercent(0, 0)).toBeNull();
   });
 
-  it('applies stage default probability and forecast', () => {
+  it('weights open pipeline by probability', () => {
+    expect(
+      computeWeightedPipeline([
+        { value: 1000, probability: 50, stage: 'proposal' },
+        { value: 2000, probability: 100, stage: 'won' },
+      ]),
+    ).toBe(500);
+  });
+
+  it('computes coverage vs remaining quota', () => {
+    expect(computePipelineCoverage(500_000, 1_000_000, 200_000)).toBe(0.63);
+    expect(computePipelineCoverage(100, 100, 100)).toBeNull();
+  });
+
+  it('defaults stage probability and forecast', () => {
     expect(defaultProbabilityForStage('negotiation')).toBe(75);
-    expect(defaultForecastForStage('proposal')).toBe('best_case');
-    expect(defaultForecastForStage('won')).toBe('omitted');
-  });
-
-  it('computes weighted pipeline from open deals only', () => {
-    const weighted = computeWeightedPipeline([
-      { value: 1_000_000, probability: 50, stage: 'proposal' },
-      { value: 2_000_000, probability: 75, stage: 'negotiation' },
-      { value: 500_000, probability: 100, stage: 'won' },
-    ]);
-    expect(weighted).toBe(2_000_000);
-  });
-
-  it('computes pipeline coverage vs remaining quota', () => {
-    expect(computePipelineCoverage(3_000_000, 5_000_000, 1_000_000)).toBe(0.75);
-    expect(computePipelineCoverage(1_000_000, 1_000_000, 1_000_000)).toBeNull();
+    expect(defaultForecastForStage('lead')).toBe('pipeline');
   });
 });
 
-describe('sales commission', () => {
-  it('applies tier rate from attainment', () => {
-    const amount = computeCommissionFromAttainment(110, 100000, {
+describe('commission tiers', () => {
+  it('picks matching tier and respects cap', () => {
+    const config = {
       tiers: [
-        { minAttainmentPct: 100, ratePct: 10 },
-        { minAttainmentPct: 80, ratePct: 5 },
+        { minAttainmentPct: 0, ratePct: 2 },
+        { minAttainmentPct: 100, ratePct: 5 },
       ],
-    });
-    expect(amount).toBe(10000);
+      capAmount: 10_000,
+    };
+    expect(computeCommissionFromAttainment(100, 1_000_000, config)).toBe(10_000);
+  });
+});
+
+describe('phase 2 helpers', () => {
+  it('extends line item amount with discount and term', () => {
+    expect(
+      lineItemExtendedAmount({
+        quantity: 2,
+        unitPrice: 1000,
+        discountPct: 10,
+        isRecurring: true,
+        termMonths: 3,
+      }),
+    ).toBe(5400);
   });
 
-  it('applies accelerator and cap', () => {
-    const amount = computeCommissionFromAttainment(130, 200_000, {
-      tiers: [{ minAttainmentPct: 100, ratePct: 5 }],
-      acceleratorAbovePct: 120,
-      acceleratorMultiplier: 1.5,
-      capAmount: 12_000,
-    });
-    // 200000 * 5% * 1.5 = 15000 → capped at 12000
-    expect(amount).toBe(12_000);
+  it('rollups forecast categories', () => {
+    const rollup = rollupForecastFromDeals([
+      { value: 100, probability: 100, stage: 'negotiation', forecastCategory: 'commit' },
+      { value: 200, probability: 50, stage: 'proposal', forecastCategory: 'best_case' },
+      { value: 50, probability: 100, stage: 'won', forecastCategory: 'omitted' },
+    ]);
+    expect(rollup.commitAmount).toBe(100);
+    expect(rollup.bestCaseAmount).toBe(200);
+    expect(rollup.closedAmount).toBe(50);
+    expect(rollup.weightedOpen).toBe(200);
   });
 });

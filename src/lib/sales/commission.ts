@@ -23,7 +23,7 @@ export type CommissionEstimate = {
   ruleName: string;
 };
 
-/** VICTOR TODO: hand off computed commission to payroll disbursement (SALES-05). */
+/** Estimate commission from attainment tiers. */
 export function computeCommissionFromAttainment(
   attainmentPct: number | null,
   revenue: number,

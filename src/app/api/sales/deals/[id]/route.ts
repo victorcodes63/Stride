@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
+import { requireAccessibleDeal, SalesAccessError } from '@/lib/sales/access';
 import {
   currentMonthPeriod,
   dealInclude,
   mapDealToJson,
 } from '@/lib/sales/api-helpers';
+import { createCloseOpsDrafts } from '@/lib/sales/close-ops';
+import {
+  evaluateFleetCapacityForDeal,
+  evaluateSalesLegalGate,
+} from '@/lib/sales/cross-module-gates';
 import { moveDealStage } from '@/lib/sales/deal-stage';
 import { syncRepPeriodMetric } from '@/lib/sales/metrics-sync';
 import {
@@ -27,8 +33,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     try {
-      const deal = await ctx.run((tx) =>
-        tx.salesDeal.findFirst({
+      const payload = await ctx.run(async (tx) => {
+        await requireAccessibleDeal(tx, ctx.staff, ctx.organizationId, id);
+        const deal = await tx.salesDeal.findFirst({
           where: { id, ...ctx.where() },
           include: {
             ...dealInclude,
@@ -48,12 +55,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               },
             },
           },
-        }),
-      );
+        });
+        if (!deal) return null;
 
-      if (!deal) {
+        const [legal, fleet] = await Promise.all([
+          evaluateSalesLegalGate(tx, {
+            organizationId: ctx.organizationId,
+            accountsClientId: deal.accountsClientId,
+          }),
+          evaluateFleetCapacityForDeal(tx, {
+            organizationId: ctx.organizationId,
+            cargoWeightKg: deal.cargoWeightKg,
+          }),
+        ]);
+
+        return { deal, legal, fleet };
+      });
+
+      if (!payload) {
         return NextResponse.json({ error: 'Deal not found.' }, { status: 404 });
       }
+
+      const { deal, legal, fleet } = payload;
 
       return NextResponse.json({
         deal: {
@@ -80,9 +103,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             changedByUserId: h.changedByUserId,
             changedBy: h.changedBy,
           })),
+          closeWarnings: {
+            legal: legal.warnings,
+            fleet: fleet.warnings,
+          },
         },
       });
     } catch (error) {
+      if (error instanceof SalesAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.code === 'FORBIDDEN' ? 403 : 404 });
+      }
       await reportApiError({
         route: 'GET /api/sales/deals/[id]',
         message: error instanceof Error ? error.message : String(error),
@@ -111,12 +141,42 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Invalid stage.' }, { status: 400 });
     }
 
+    const acknowledgeWarnings = body.acknowledgeWarnings === true;
+
     try {
-      const deal = await ctx.run(async (tx) => {
-        const existing = await tx.salesDeal.findFirst({ where: { id, ...ctx.where() } });
-        if (!existing) return null;
+      const result = await ctx.run(async (tx) => {
+        let existing;
+        try {
+          existing = await requireAccessibleDeal(tx, ctx.staff, ctx.organizationId, id);
+        } catch (e) {
+          if (e instanceof SalesAccessError) {
+            return { accessError: e } as const;
+          }
+          throw e;
+        }
 
         let updated = existing;
+        const warnings: string[] = [];
+
+        if (stage === 'won' && existing.stage !== 'won') {
+          const [legal, fleet] = await Promise.all([
+            evaluateSalesLegalGate(tx, {
+              organizationId: ctx.organizationId,
+              accountsClientId: existing.accountsClientId,
+            }),
+            evaluateFleetCapacityForDeal(tx, {
+              organizationId: ctx.organizationId,
+              cargoWeightKg:
+                body.cargoWeightKg != null
+                  ? Number(body.cargoWeightKg)
+                  : existing.cargoWeightKg,
+            }),
+          ]);
+          warnings.push(...legal.warnings, ...fleet.warnings);
+          if (warnings.length > 0 && !acknowledgeWarnings) {
+            return { blocked: true as const, warnings, deal: existing };
+          }
+        }
 
         if (stage && stage !== existing.stage) {
           const moved = await moveDealStage(tx, {
@@ -171,6 +231,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         if (typeof body.competitor === 'string' && !stage) {
           patchData.competitor = body.competitor.trim() || null;
         }
+        if (body.cargoWeightKg !== undefined) {
+          patchData.cargoWeightKg =
+            body.cargoWeightKg == null || body.cargoWeightKg === ''
+              ? null
+              : Math.max(0, Math.round(Number(body.cargoWeightKg)));
+        }
 
         if (Object.keys(patchData).length > 0) {
           updated = await tx.salesDeal.update({
@@ -180,6 +246,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         }
 
         const finalStage = updated.stage;
+        let closeOps = null as Awaited<ReturnType<typeof createCloseOpsDrafts>> | null;
         if (finalStage === 'won') {
           const { periodStart, periodEnd } = currentMonthPeriod();
           await syncRepPeriodMetric(tx, {
@@ -189,19 +256,54 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             periodEnd,
             currency: updated.currency,
           });
+          if (stage === 'won' && existing.stage !== 'won') {
+            closeOps = await createCloseOpsDrafts(tx, {
+              organizationId: ctx.organizationId,
+              deal: updated,
+              staffUserId: ctx.staff.id,
+              options: {
+                createProject: body.createProject !== false,
+                createFleetOrder: body.createFleetOrder === true,
+                createPurchaseRequest: body.createPurchaseRequest === true,
+                pickupLocation: typeof body.pickupLocation === 'string' ? body.pickupLocation : null,
+                deliveryLocation: typeof body.deliveryLocation === 'string' ? body.deliveryLocation : null,
+              },
+            });
+          }
         }
 
-        return tx.salesDeal.findFirst({
+        const deal = await tx.salesDeal.findFirst({
           where: { id },
           include: dealInclude,
         });
+
+        return { blocked: false as const, warnings, deal, closeOps };
       });
 
-      if (!deal) {
+      if (!result) {
         return NextResponse.json({ error: 'Deal not found.' }, { status: 404 });
       }
+      if ('accessError' in result && result.accessError) {
+        const ae = result.accessError;
+        return NextResponse.json({ error: ae.message }, { status: ae.code === 'FORBIDDEN' ? 403 : 404 });
+      }
 
-      return NextResponse.json({ deal: mapDealToJson(deal) });
+      if (result.blocked) {
+        return NextResponse.json(
+          {
+            error: 'Close warnings require acknowledgement.',
+            warnings: result.warnings,
+            requireAcknowledge: true,
+          },
+          { status: 409 },
+        );
+      }
+
+      return NextResponse.json({
+        deal: mapDealToJson(result.deal!),
+        warnings: result.warnings,
+        closeOps: 'closeOps' in result ? result.closeOps : null,
+      });
     } catch (error) {
       await reportApiError({
         route: 'PATCH /api/sales/deals/[id]',

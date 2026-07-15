@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
+import { applySalesDealOwnerScope, resolveOwnerForCreate, SalesAccessError } from '@/lib/sales/access';
 import {
   currentMonthPeriod,
   dealInclude,
   mapDealToJson,
-  resolveEmployeeIdForStaff,
 } from '@/lib/sales/api-helpers';
 import { syncRepPeriodMetric } from '@/lib/sales/metrics-sync';
 import {
@@ -35,28 +35,27 @@ export async function GET(request: NextRequest) {
         params.get('ownerEmployeeId')?.trim() ||
         undefined;
 
-      const where = ctx.where({
-        ...(stage ? { stage: stage as never } : {}),
-        ...(forecastCategory ? { forecastCategory: forecastCategory as never } : {}),
-        ...(owner ? { ownerEmployeeId: owner } : {}),
-        ...(closeFrom || closeTo
-          ? {
-              expectedCloseDate: {
-                ...(closeFrom ? { gte: new Date(`${closeFrom}T00:00:00.000Z`) } : {}),
-                ...(closeTo ? { lte: new Date(`${closeTo}T00:00:00.000Z`) } : {}),
-              },
-            }
-          : {}),
-      });
-
       const deals = await ctx.run(async (tx) => {
-        if (ctx.staff.role !== 'admin' && !owner) {
-          const linkedEmployeeId = await resolveEmployeeIdForStaff(tx, ctx.staff, ctx.organizationId);
-          if (linkedEmployeeId) {
-            where.ownerEmployeeId = linkedEmployeeId;
-          }
-          // TODO: enforce owner scoping when staff–employee link is unavailable
-        }
+        const baseWhere = ctx.where({
+          ...(stage ? { stage: stage as never } : {}),
+          ...(forecastCategory ? { forecastCategory: forecastCategory as never } : {}),
+          ...(closeFrom || closeTo
+            ? {
+                expectedCloseDate: {
+                  ...(closeFrom ? { gte: new Date(`${closeFrom}T00:00:00.000Z`) } : {}),
+                  ...(closeTo ? { lte: new Date(`${closeTo}T00:00:00.000Z`) } : {}),
+                },
+              }
+            : {}),
+        });
+
+        const where = await applySalesDealOwnerScope(
+          tx,
+          ctx.staff,
+          ctx.organizationId,
+          baseWhere,
+          owner,
+        );
 
         return tx.salesDeal.findMany({
           where,
@@ -115,13 +114,24 @@ export async function POST(request: NextRequest) {
         ? Math.min(100, Math.max(0, Math.round(Number(body.probability))))
         : defaultProbabilityForStage(stage);
 
+    const cargoWeightKg =
+      body.cargoWeightKg != null && Number.isFinite(Number(body.cargoWeightKg))
+        ? Math.max(0, Math.round(Number(body.cargoWeightKg)))
+        : null;
+
     try {
       const deal = await ctx.run(async (tx) => {
+        const resolvedOwner = await resolveOwnerForCreate(
+          tx,
+          ctx.staff,
+          ctx.organizationId,
+          ownerEmployeeId,
+        );
         const created = await tx.salesDeal.create({
           data: {
             organizationId: ctx.organizationId,
             name,
-            ownerEmployeeId,
+            ownerEmployeeId: resolvedOwner,
             value,
             stage,
             probability,
@@ -142,6 +152,7 @@ export async function POST(request: NextRequest) {
                 ? new Date(`${body.nextStepDue}T00:00:00.000Z`)
                 : null,
             notes: typeof body.notes === 'string' ? body.notes.trim() || null : null,
+            cargoWeightKg,
             closedAt: stage === 'won' || stage === 'lost' ? new Date() : null,
           },
           include: dealInclude,
@@ -173,6 +184,9 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ deal: mapDealToJson(deal) }, { status: 201 });
     } catch (error) {
+      if (error instanceof SalesAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.code === 'FORBIDDEN' ? 403 : 404 });
+      }
       await reportApiError({
         route: 'POST /api/sales/deals',
         message: error instanceof Error ? error.message : String(error),

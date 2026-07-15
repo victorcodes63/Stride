@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
+  AlertTriangle,
   Handshake,
   LayoutGrid,
   List,
@@ -33,9 +34,20 @@ type DealRow = {
   nextStepDue: string | null;
   source: string | null;
   notes: string | null;
+  cargoWeightKg?: number | null;
+};
+
+type LineItem = {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  extendedAmount: number;
 };
 
 type DealDetail = DealRow & {
+  lineItems?: LineItem[];
+  closeWarnings?: { legal: string[]; fleet: string[] };
   activities?: Array<{
     id: string;
     type: string;
@@ -75,6 +87,11 @@ export default function SalesDealsContent() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [invoiceMsg, setInvoiceMsg] = useState<string | null>(null);
+  const [opsMsg, setOpsMsg] = useState<string | null>(null);
+  const [lineDesc, setLineDesc] = useState('');
+  const [lineQty, setLineQty] = useState('1');
+  const [linePrice, setLinePrice] = useState('');
+  const [lineSaving, setLineSaving] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -93,6 +110,19 @@ export default function SalesDealsContent() {
       .finally(() => setLoading(false));
   }, []);
 
+  const refreshDetail = useCallback((id: string) => {
+    setDetailLoading(true);
+    return fetch(`/api/sales/deals/${id}`)
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'Failed');
+        return data.deal as DealDetail;
+      })
+      .then(setDetail)
+      .catch(() => setDetail(null))
+      .finally(() => setDetailLoading(false));
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
@@ -102,35 +132,57 @@ export default function SalesDealsContent() {
       setDetail(null);
       return;
     }
-    setDetailLoading(true);
     setInvoiceMsg(null);
-    fetch(`/api/sales/deals/${selectedId}`)
-      .then(async (r) => {
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(data.error || 'Failed');
-        return data.deal as DealDetail;
-      })
-      .then(setDetail)
-      .catch(() => setDetail(null))
-      .finally(() => setDetailLoading(false));
-  }, [selectedId]);
+    setOpsMsg(null);
+    setLineDesc('');
+    setLineQty('1');
+    setLinePrice('');
+    void refreshDetail(selectedId);
+  }, [selectedId, refreshDetail]);
+
+  function surfaceCloseOpsNotes(data: {
+    closeOps?: { notes?: string[] } | null;
+  }) {
+    const notes = data.closeOps?.notes;
+    if (Array.isArray(notes) && notes.length > 0) {
+      setOpsMsg(notes.join(' · '));
+    }
+  }
 
   async function moveDeal(id: string, stage: string) {
     setActing(id);
     setError(null);
+    setOpsMsg(null);
     try {
-      const r = await fetch(`/api/sales/deals/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(data.error || 'Update failed');
-      await load();
-      if (selectedId === id) {
-        setSelectedId(null);
-        setTimeout(() => setSelectedId(id), 0);
+      const patch = (acknowledgeWarnings: boolean) =>
+        fetch(`/api/sales/deals/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stage,
+            acknowledgeWarnings,
+            ...(stage === 'won'
+              ? { createFleetOrder: true, createPurchaseRequest: false }
+              : {}),
+          }),
+        }).then(async (r) => {
+          const data = await r.json().catch(() => ({}));
+          return { r, data };
+        });
+
+      let { r, data } = await patch(false);
+      if (r.status === 409 && data.requireAcknowledge) {
+        const warnings = Array.isArray(data.warnings) ? (data.warnings as string[]) : [];
+        const ok = window.confirm(
+          `Close warnings:\n\n${warnings.join('\n') || 'Warnings require acknowledgement.'}\n\nMark as won anyway?`,
+        );
+        if (!ok) throw new Error(data.error || 'Acknowledgements required');
+        ({ r, data } = await patch(true));
       }
+      if (!r.ok) throw new Error(data.error || 'Update failed');
+      if (stage === 'won') surfaceCloseOpsNotes(data);
+      await load();
+      if (selectedId === id) await refreshDetail(id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     } finally {
@@ -141,18 +193,64 @@ export default function SalesDealsContent() {
   async function createInvoice(id: string) {
     setActing(id);
     setInvoiceMsg(null);
+    setOpsMsg(null);
     try {
-      const r = await fetch(`/api/sales/deals/${id}/create-invoice`, { method: 'POST' });
-      const data = await r.json().catch(() => ({}));
+      const post = (acknowledgeWarnings: boolean) =>
+        fetch(`/api/sales/deals/${id}/create-invoice`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ acknowledgeWarnings }),
+        }).then(async (r) => {
+          const data = await r.json().catch(() => ({}));
+          return { r, data };
+        });
+
+      let { r, data } = await post(false);
+      if (r.status === 409 && data.requireAcknowledge) {
+        const warnings = Array.isArray(data.warnings) ? (data.warnings as string[]) : [];
+        const ok = window.confirm(
+          `Invoice warnings:\n\n${warnings.join('\n') || 'Warnings require acknowledgement.'}\n\nCreate invoice anyway?`,
+        );
+        if (!ok) throw new Error(data.error || 'Acknowledgements required');
+        ({ r, data } = await post(true));
+      }
       if (!r.ok) throw new Error(data.error || 'Invoice failed');
       setInvoiceMsg(`Invoice #${data.result?.invoiceNumber ?? ''} created in Finance.`);
+      surfaceCloseOpsNotes(data);
       load();
-      setSelectedId(null);
-      setTimeout(() => setSelectedId(id), 0);
+      await refreshDetail(id);
     } catch (e) {
       setInvoiceMsg(e instanceof Error ? e.message : 'Invoice failed');
     } finally {
       setActing(null);
+    }
+  }
+
+  async function addLineItem(dealId: string) {
+    setLineSaving(true);
+    setInvoiceMsg(null);
+    try {
+      const r = await fetch(`/api/sales/deals/${dealId}/line-items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: lineDesc,
+          quantity: Number(lineQty) || 1,
+          unitPrice: Number(linePrice),
+          syncDealValue: true,
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Failed to add line item');
+      setLineDesc('');
+      setLineQty('1');
+      setLinePrice('');
+      await load();
+      await refreshDetail(dealId);
+    } catch (e) {
+      setInvoiceMsg(e instanceof Error ? e.message : 'Failed to add line item');
+    } finally {
+      setLineSaving(false);
     }
   }
 
@@ -164,6 +262,11 @@ export default function SalesDealsContent() {
     }
     return map;
   }, [deals]);
+
+  const warningList = useMemo(() => {
+    if (!detail?.closeWarnings) return [];
+    return [...(detail.closeWarnings.legal ?? []), ...(detail.closeWarnings.fleet ?? [])];
+  }, [detail]);
 
   return (
     <DashboardPage>
@@ -212,6 +315,12 @@ export default function SalesDealsContent() {
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
+        </div>
+      ) : null}
+
+      {opsMsg ? (
+        <div className="mb-4 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] px-3 py-2 text-sm text-[var(--dash-text-strong)]">
+          {opsMsg}
         </div>
       ) : null}
 
@@ -291,7 +400,7 @@ export default function SalesDealsContent() {
                                 key={s}
                                 type="button"
                                 disabled={acting === deal.id}
-                                onClick={() => moveDeal(deal.id, s)}
+                                onClick={() => void moveDeal(deal.id, s)}
                                 className="rounded border border-[var(--dash-border)] px-1.5 py-0.5 text-[10px] text-[var(--dash-text-muted)] hover:bg-[var(--dash-hover)]"
                               >
                                 → {STAGE_LABELS[s]}
@@ -387,6 +496,21 @@ export default function SalesDealsContent() {
                   <p className="text-2xl font-semibold text-[var(--stride-coral)]">
                     {formatKes(detail.value, detail.currency)}
                   </p>
+
+                  {warningList.length > 0 ? (
+                    <div className="rounded-lg border border-amber-300/70 bg-amber-50/40 px-3 py-2 dark:bg-amber-950/20">
+                      <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase text-amber-800 dark:text-amber-200">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Close warnings
+                      </div>
+                      <ul className="list-disc space-y-1 pl-4 text-xs text-amber-900 dark:text-amber-100">
+                        {warningList.map((w) => (
+                          <li key={w}>{w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
                   <dl className="grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <dt className="text-[var(--dash-text-muted)]">Owner</dt>
@@ -404,7 +528,90 @@ export default function SalesDealsContent() {
                       <dt className="text-[var(--dash-text-muted)]">Source</dt>
                       <dd>{detail.source ?? '—'}</dd>
                     </div>
+                    {detail.cargoWeightKg != null ? (
+                      <div>
+                        <dt className="text-[var(--dash-text-muted)]">Cargo (kg)</dt>
+                        <dd>{detail.cargoWeightKg.toLocaleString('en-KE')}</dd>
+                      </div>
+                    ) : null}
                   </dl>
+
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase text-[var(--dash-text-muted)]">
+                      Line items
+                    </p>
+                    <ul className="mb-3 space-y-2">
+                      {(detail.lineItems ?? []).length === 0 ? (
+                        <li className="text-xs text-[var(--dash-text-muted)]">No line items yet.</li>
+                      ) : (
+                        (detail.lineItems ?? []).map((li) => (
+                          <li
+                            key={li.id}
+                            className="flex justify-between gap-2 rounded border border-[var(--dash-border)] px-2 py-1.5 text-xs"
+                          >
+                            <span>
+                              {li.description}
+                              <span className="text-[var(--dash-text-muted)]">
+                                {' '}
+                                · {li.quantity} × {formatKes(li.unitPrice, detail.currency)}
+                              </span>
+                            </span>
+                            <span className="shrink-0 font-medium">
+                              {formatKes(li.extendedAmount, detail.currency)}
+                            </span>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                    <form
+                      className="space-y-2 rounded-lg border border-[var(--dash-border)] p-3"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void addLineItem(detail.id);
+                      }}
+                    >
+                      <p className="text-[10px] uppercase tracking-wide text-[var(--dash-text-muted)]">
+                        Add line item
+                      </p>
+                      <input
+                        required
+                        placeholder="Description"
+                        value={lineDesc}
+                        onChange={(e) => setLineDesc(e.target.value)}
+                        className="dash-auth-input w-full text-xs"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          required
+                          type="number"
+                          min={0.01}
+                          step="any"
+                          placeholder="Qty"
+                          value={lineQty}
+                          onChange={(e) => setLineQty(e.target.value)}
+                          className="dash-auth-input w-full text-xs"
+                        />
+                        <input
+                          required
+                          type="number"
+                          min={0}
+                          step="any"
+                          placeholder="Unit price"
+                          value={linePrice}
+                          onChange={(e) => setLinePrice(e.target.value)}
+                          className="dash-auth-input w-full text-xs"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={lineSaving}
+                        className="w-full rounded-lg border border-[var(--dash-border)] px-2 py-1.5 text-xs font-medium hover:bg-[var(--dash-hover)] disabled:opacity-60"
+                      >
+                        {lineSaving ? 'Adding…' : 'Add line (sync deal value)'}
+                      </button>
+                    </form>
+                  </div>
+
                   {detail.nextStep ? (
                     <div className="rounded-lg border border-[var(--dash-border)] p-3">
                       <p className="text-xs uppercase text-[var(--dash-text-muted)]">Next step</p>
@@ -420,7 +627,7 @@ export default function SalesDealsContent() {
                     <button
                       type="button"
                       disabled={acting === detail.id}
-                      onClick={() => createInvoice(detail.id)}
+                      onClick={() => void createInvoice(detail.id)}
                       className="w-full rounded-lg bg-[var(--stride-coral)] px-3 py-2 text-sm font-medium text-white"
                     >
                       Create Finance invoice
@@ -431,6 +638,11 @@ export default function SalesDealsContent() {
                   ) : null}
                   {invoiceMsg ? (
                     <p className="text-xs text-[var(--dash-text-muted)]">{invoiceMsg}</p>
+                  ) : null}
+                  {opsMsg ? (
+                    <p className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] px-3 py-2 text-xs text-[var(--dash-text-strong)]">
+                      {opsMsg}
+                    </p>
                   ) : null}
                   <div>
                     <p className="mb-2 text-xs font-semibold uppercase text-[var(--dash-text-muted)]">
@@ -483,6 +695,7 @@ function CreateDealModal({
 }) {
   const [name, setName] = useState('');
   const [value, setValue] = useState('500000');
+  const [cargoWeightKg, setCargoWeightKg] = useState('');
   const [employees, setEmployees] = useState<Array<{ id: string; name: string }>>([]);
   const [clients, setClients] = useState<Array<{ id: string; name: string }>>([]);
   const [ownerEmployeeId, setOwnerEmployeeId] = useState('');
@@ -531,6 +744,9 @@ function CreateDealModal({
           ownerEmployeeId,
           accountsClientId: accountsClientId || undefined,
           stage: 'lead',
+          ...(cargoWeightKg.trim()
+            ? { cargoWeightKg: Math.round(Number(cargoWeightKg)) }
+            : {}),
         }),
       });
       const data = await r.json().catch(() => ({}));
@@ -567,6 +783,17 @@ function CreateDealModal({
             min={1}
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            className="dash-auth-input mt-1 w-full"
+          />
+        </label>
+        <label className="mt-3 block text-xs text-[var(--dash-text-muted)]">
+          Cargo weight (kg)
+          <input
+            type="number"
+            min={0}
+            value={cargoWeightKg}
+            onChange={(e) => setCargoWeightKg(e.target.value)}
+            placeholder="Optional"
             className="dash-auth-input mt-1 w-full"
           />
         </label>

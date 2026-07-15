@@ -1,5 +1,17 @@
 import type { Prisma, SalesDeal } from '@prisma/client';
 import type { StaffUser } from '@/lib/staff-api-auth';
+import { lineItemExtendedAmount } from '@/lib/sales/access';
+
+type DealLineItem = {
+  id: string;
+  description: string;
+  quantity: unknown;
+  unitPrice: unknown;
+  discountPct: unknown;
+  isRecurring: boolean;
+  termMonths: number | null;
+  sortOrder: number;
+};
 
 type DealWithRelations = SalesDeal & {
   owner?: { id: string; firstName: string; lastName: string } | null;
@@ -11,6 +23,7 @@ type DealWithRelations = SalesDeal & {
     email: string | null;
     phone: string | null;
   } | null;
+  lineItems?: DealLineItem[];
 };
 
 /** Resolve Employee id for a staff user via email match (same pattern as performance manager lookup). */
@@ -36,7 +49,33 @@ export function currentMonthPeriod(now = new Date()): { periodStart: Date; perio
   };
 }
 
+export function mapLineItemToJson(item: DealLineItem) {
+  const quantity = Number(item.quantity);
+  const unitPrice = Number(item.unitPrice);
+  const discountPct = Number(item.discountPct);
+  const extended = lineItemExtendedAmount({
+    quantity,
+    unitPrice,
+    discountPct,
+    isRecurring: item.isRecurring,
+    termMonths: item.termMonths,
+  });
+  return {
+    id: item.id,
+    description: item.description,
+    quantity,
+    unitPrice,
+    discountPct,
+    isRecurring: item.isRecurring,
+    termMonths: item.termMonths,
+    sortOrder: item.sortOrder,
+    extendedAmount: extended,
+  };
+}
+
 export function mapDealToJson(d: DealWithRelations) {
+  const lineItems = (d.lineItems ?? []).map(mapLineItemToJson);
+  const lineTotal = lineItems.reduce((s, i) => s + i.extendedAmount, 0);
   return {
     id: d.id,
     name: d.name,
@@ -62,6 +101,9 @@ export function mapDealToJson(d: DealWithRelations) {
     lostReason: d.lostReason,
     competitor: d.competitor,
     notes: d.notes,
+    cargoWeightKg: d.cargoWeightKg ?? null,
+    lineItems,
+    lineItemsTotal: Math.round(lineTotal * 100) / 100,
     createdAt: d.createdAt.toISOString(),
     updatedAt: d.updatedAt.toISOString(),
   };
@@ -73,4 +115,5 @@ export const dealInclude = {
   primaryContact: {
     select: { id: true, name: true, title: true, email: true, phone: true },
   },
+  lineItems: { orderBy: { sortOrder: 'asc' as const } },
 } as const;
