@@ -1,0 +1,5 @@
+﻿{
+  "Description": "Domain ownership verification file for Microsoft 365 - place in the website root",
+  "Domain": "getstride.co.ke",
+  "Id": "74614e88-3b9b-436d-a646-01b4a285761c"
+}
