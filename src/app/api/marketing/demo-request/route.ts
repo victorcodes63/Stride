@@ -41,20 +41,33 @@ export async function POST(request: Request) {
   }
 
   const result = await notifyDemoRequest(payload);
+  const notified = Boolean(result.sent || result.webhookSent);
 
-  if (!result.sent && !result.webhookSent) {
+  if (!notified) {
     console.warn('[marketing/demo-request] Lead captured but notifications failed:', {
       payload,
       leadId: result.leadId,
       reason: result.reason,
       error: result.error,
     });
+    return NextResponse.json(
+      {
+        ok: false,
+        leadId: result.leadId,
+        notified: false,
+        emailSent: false,
+        error:
+          result.error ||
+          'Unable to notify our team right now. Please try again or email hello@raventechgroup.com.',
+      },
+      { status: 502 },
+    );
   }
 
   return NextResponse.json({
     ok: true,
     leadId: result.leadId,
-    notified: result.sent || result.webhookSent,
+    notified: true,
     emailSent: result.sent,
   });
 }

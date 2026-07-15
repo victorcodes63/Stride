@@ -55,6 +55,17 @@
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
 }
 
+/* Right column (incl. success state) — beat studio-craft dark heading override. */
+.public-app .bd-demo-form :where(h1, h2, h3, h4),
+html.dark .public-app .bd-demo-form :where(h1, h2, h3, h4) {
+  color: #fbf8f4 !important;
+}
+
+.public-app .bd-demo-form p,
+html.dark .public-app .bd-demo-form p {
+  color: rgba(251, 248, 244, 0.75);
+}
+
 .bd-demo-copy p {
   color: rgba(251, 248, 244, 0.82);
 }
