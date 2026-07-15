@@ -15,7 +15,10 @@
 
 /* --- Buttons (shared core) --- */
 
-:is(.stride-btn, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary, .ess-btn-secondary, .ess-btn-ghost) {
+/* Note: do not put .public-app .x and .ess-* in the same :is() —
+   :is() takes the highest specificity in the list, so pub compound
+   selectors were forcing light (#fff) styles onto ESS dark mode. */
+:is(.stride-btn, .btn-primary, .pub-btn-primary, .ess-btn-primary, .ess-btn-secondary, .ess-btn-ghost) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -31,37 +34,37 @@
     transform 80ms ease;
 }
 
-:is(.stride-btn, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary, .ess-btn-secondary, .ess-btn-ghost):focus-visible {
+:is(.stride-btn, .btn-primary, .pub-btn-primary, .ess-btn-primary, .ess-btn-secondary, .ess-btn-ghost):focus-visible {
   outline: 2px solid var(--stride-coral);
   outline-offset: 2px;
 }
 
-:is(.stride-btn, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary, .ess-btn-secondary, .ess-btn-ghost):disabled {
+:is(.stride-btn, .btn-primary, .pub-btn-primary, .ess-btn-primary, .ess-btn-secondary, .ess-btn-ghost):disabled {
   cursor: not-allowed;
   opacity: 0.58;
 }
 
-:is(.stride-btn--primary, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary) {
+:is(.stride-btn--primary, .btn-primary, .pub-btn-primary, .ess-btn-primary) {
   border: 1px solid transparent;
   color: #fff;
   background-color: var(--stride-btn-primary-bg);
 }
 
-:is(.stride-btn--primary, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary):hover:not(:disabled) {
+:is(.stride-btn--primary, .btn-primary, .pub-btn-primary, .ess-btn-primary):hover:not(:disabled) {
   background-color: var(--stride-btn-primary-hover);
 }
 
-:is(.stride-btn--primary, .btn-primary, .public-app .pub-btn-primary, .ess-btn-primary):active:not(:disabled) {
+:is(.stride-btn--primary, .btn-primary, .pub-btn-primary, .ess-btn-primary):active:not(:disabled) {
   background-color: var(--stride-btn-primary-pressed);
 }
 
-:is(.stride-btn--secondary, .btn-secondary, .public-app .pub-btn-secondary, .ess-btn-secondary) {
+:is(.stride-btn--secondary, .btn-secondary, .pub-btn-secondary) {
   color: var(--brand-ink);
   background-color: #fff;
   border: 1px solid var(--neutral-200);
 }
 
-:is(.stride-btn--secondary, .btn-secondary, .public-app .pub-btn-secondary, .ess-btn-secondary):hover:not(:disabled) {
+:is(.stride-btn--secondary, .btn-secondary, .pub-btn-secondary):hover:not(:disabled) {
   background-color: var(--neutral-50);
 }
 
@@ -152,9 +155,14 @@
 }
 
 .ess-btn-secondary {
-  border-color: var(--ess-border);
-  background: var(--ess-surface);
+  border: 1px solid var(--ess-border);
+  background: var(--ess-surface-raised, var(--ess-surface));
   color: var(--ess-text);
+}
+
+.ess-btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ess-primary) 12%, var(--ess-surface-raised, var(--ess-surface)));
+  border-color: var(--ess-border-strong);
 }
 
 /* Standalone stride-btn modifiers (React component) */
@@ -190,7 +198,7 @@
 
 /* --- Inputs (shared core) --- */
 
-:is(.stride-input, .public-app .pub-input, .ess-field) {
+:is(.stride-input, .pub-input) {
   width: 100%;
   font-family: inherit;
   color: var(--brand-ink);
@@ -199,7 +207,7 @@
   transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
 }
 
-:is(.stride-input, .public-app .pub-input, .ess-field):focus {
+:is(.stride-input, .pub-input):focus {
   outline: none;
   border-color: var(--stride-btn-primary-bg);
   box-shadow: 0 0 0 3px var(--stride-focus-ring);
@@ -223,18 +231,27 @@
 }
 
 .ess-field {
+  width: 100%;
   min-height: 2.75rem;
   padding: 0.625rem 0.875rem;
+  font-family: inherit;
   font-size: 1rem;
   border-radius: 0.875rem;
-  border-color: var(--ess-border-strong);
-  background: var(--ess-surface);
+  border: 1px solid var(--ess-border-strong);
+  background: var(--ess-surface-raised, var(--ess-surface));
   color: var(--ess-text);
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+  color-scheme: inherit;
 }
 
 .ess-field:focus {
+  outline: none;
   border-color: var(--ess-primary);
   box-shadow: 0 0 0 4px var(--ess-ring);
+}
+
+.ess-field::placeholder {
+  color: var(--ess-subtle, var(--ess-muted));
 }
 
 /* --- Cards (shared core) --- */

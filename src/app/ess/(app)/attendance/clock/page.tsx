@@ -68,7 +68,6 @@ export default function EssClockPage() {
       <EssPageHeader
         title="Clock in / out"
         subtitle="Capture your attendance with GPS verification when your employer enables geofencing."
-        backHref="/ess/attendance"
       />
       <EssCard className="flex flex-col items-center gap-6 py-8">
         {config?.geofenceEnabled ? (

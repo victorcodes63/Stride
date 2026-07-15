@@ -1,4 +1,5 @@
 import type { SupportTicket, SupportTicketCategory, SupportTicketPriority } from '@prisma/client';
+import { loadOrganizationEntitlements } from '@/lib/org-entitlements-store';
 
 function trimEnv(key: string): string | undefined {
   const v = process.env[key];
@@ -7,8 +8,18 @@ function trimEnv(key: string): string | undefined {
   return t.length > 0 ? t : undefined;
 }
 
+/** Org entitlements slug first (pooled cells), then deployment env fallback. */
+export async function resolveControlPlaneCustomerSlug(
+  organizationId: string,
+): Promise<string | null> {
+  const entitlements = await loadOrganizationEntitlements(organizationId);
+  const fromOrg = entitlements?.slug?.trim();
+  if (fromOrg) return fromOrg;
+  return trimEnv('CONTROL_PLANE_CUSTOMER_SLUG') ?? null;
+}
+
 export function isSupportTicketSyncConfigured(): boolean {
-  return Boolean(trimEnv('CONTROL_PLANE_URL') && trimEnv('CONTROL_PLANE_CUSTOMER_SLUG'));
+  return Boolean(trimEnv('CONTROL_PLANE_URL') && trimEnv('CONTROL_PLANE_INSTANCE_API_KEY'));
 }
 
 type SyncTicketInput = {
@@ -31,7 +42,7 @@ export async function pushSupportTicketToControlPlane(
   input: SyncTicketInput,
 ): Promise<string | null> {
   const baseUrl = trimEnv('CONTROL_PLANE_URL');
-  const slug = trimEnv('CONTROL_PLANE_CUSTOMER_SLUG');
+  const slug = await resolveControlPlaneCustomerSlug(input.ticket.organizationId);
   if (!baseUrl || !slug) return null;
 
   const apiKey = trimEnv('CONTROL_PLANE_INSTANCE_API_KEY');
@@ -68,13 +79,14 @@ export async function pushSupportTicketToControlPlane(
 }
 
 export async function pushSupportMessageToControlPlane(input: {
+  organizationId: string;
   controlPlaneTicketId: string;
   externalId: string;
   authorName: string;
   body: string;
 }): Promise<boolean> {
   const baseUrl = trimEnv('CONTROL_PLANE_URL');
-  const slug = trimEnv('CONTROL_PLANE_CUSTOMER_SLUG');
+  const slug = await resolveControlPlaneCustomerSlug(input.organizationId);
   if (!baseUrl || !slug) return false;
 
   const apiKey = trimEnv('CONTROL_PLANE_INSTANCE_API_KEY');
@@ -108,6 +120,7 @@ const CP_TO_PRODUCT_STATUS: Record<string, string> = {
 };
 
 export async function pullSupportTicketFromControlPlane(input: {
+  organizationId: string;
   controlPlaneTicketId: string;
   ticketNumber: string;
 }): Promise<{
@@ -115,7 +128,7 @@ export async function pullSupportTicketFromControlPlane(input: {
   messages: Array<{ id: string; authorType: string; authorName: string; body: string; createdAt: string }>;
 } | null> {
   const baseUrl = trimEnv('CONTROL_PLANE_URL');
-  const slug = trimEnv('CONTROL_PLANE_CUSTOMER_SLUG');
+  const slug = await resolveControlPlaneCustomerSlug(input.organizationId);
   if (!baseUrl || !slug) return null;
 
   const apiKey = trimEnv('CONTROL_PLANE_INSTANCE_API_KEY');

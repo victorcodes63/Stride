@@ -455,7 +455,11 @@ async function clearFleetData(clientId: string) {
 
 async function main() {
   const clientName = process.env.FLEET_CLIENT_NAME?.trim() || DEFAULT_CLIENT;
-  let client = await prisma.outsourcingClient.findFirst({ where: { name: clientName } });
+  let client =
+    (await prisma.outsourcingClient.findFirst({
+      where: { entityCode: 'cargo-logistics__ke' },
+    })) ??
+    (await prisma.outsourcingClient.findFirst({ where: { name: clientName } }));
   if (!client) {
     client = await prisma.outsourcingClient.findFirst({ orderBy: { createdAt: 'asc' } });
   }
@@ -473,6 +477,7 @@ async function main() {
   if (!billingProfile) {
     await prisma.accountsClient.create({
       data: {
+        organizationId: client.organizationId,
         type: 'outsourcing',
         outsourcingClientId: client.id,
         name: client.name,
@@ -532,7 +537,7 @@ async function main() {
   const customerIds: string[] = [];
   for (const c of CUSTOMERS) {
     const row = await prisma.fleetCustomer.create({
-      data: { outsourcingClientId: client.id, ...c },
+      data: { organizationId: client.organizationId, outsourcingClientId: client.id, ...c },
     });
     customerIds.push(row.id);
   }
@@ -542,6 +547,7 @@ async function main() {
     const customerId = customerIds[t.customerIndex];
     const order = await prisma.fleetOrder.create({
       data: {
+        organizationId: client.organizationId,
         outsourcingClientId: client.id,
         customerId,
         orderNumber: t.orderNumber,
@@ -561,6 +567,7 @@ async function main() {
 
     const trip = await prisma.fleetTrip.create({
       data: {
+        organizationId: client.organizationId,
         outsourcingClientId: client.id,
         tripNumber: t.tripNumber,
         orderId: order.id,
@@ -581,6 +588,7 @@ async function main() {
         notes: t.notes,
         events: {
           create: t.events.map((e, i) => ({
+            organizationId: client.organizationId,
             eventType: e.eventType,
             message: e.message,
             createdAt: new Date(Date.now() - (t.events.length - i) * 3_600_000),
@@ -593,6 +601,7 @@ async function main() {
       const result = complianceResultForTrip(t.status, checkType);
       await prisma.fleetTripComplianceCheck.create({
         data: {
+          organizationId: client.organizationId,
           tripId: trip.id,
           checkType,
           result,
@@ -604,6 +613,7 @@ async function main() {
     if (['delivered', 'settled', 'invoiced', 'closed'].includes(t.status)) {
       await prisma.fleetTripDocument.create({
         data: {
+          organizationId: client.organizationId,
           tripId: trip.id,
           docType: FleetTripDocumentType.pod,
           title: `Signed POD — ${t.destination}`,
@@ -626,6 +636,7 @@ async function main() {
       if (t.isOutsourced && t.partnerIndex != null) {
         await prisma.fleetSettlement.create({
           data: {
+            organizationId: client.organizationId,
             outsourcingClientId: client.id,
             tripId: trip.id,
             settlementType: FleetSettlementType.partner,
@@ -640,6 +651,7 @@ async function main() {
       } else if (t.driverIndex != null) {
         await prisma.fleetSettlement.create({
           data: {
+            organizationId: client.organizationId,
             outsourcingClientId: client.id,
             tripId: trip.id,
             settlementType: FleetSettlementType.driver,
@@ -656,6 +668,7 @@ async function main() {
     if (t.tripNumber === 'TR-2026-010') {
       await prisma.fleetIncident.create({
         data: {
+          organizationId: client.organizationId,
           outsourcingClientId: client.id,
           tripId: trip.id,
           incidentType: FleetIncidentType.breakdown,

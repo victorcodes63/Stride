@@ -402,7 +402,7 @@ function EmployeesPageInner() {
  <ChevronDown className="h-4 w-4 text-[var(--dash-text-faint)]" />
  </button>
  {importMenuOpen ? (
- <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden dashboard-surface rounded-lg py-1 shadow-lg">
+ <div className="absolute right-0 top-full z-50 mt-1 w-52 overflow-hidden dashboard-surface rounded-lg py-1 shadow-lg">
  <button
  type="button"
  onClick={() => {

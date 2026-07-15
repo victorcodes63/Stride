@@ -101,7 +101,7 @@
     "demo:seed:sales": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx prisma/seed-sales-demo.ts",
     "demo:context:all-verticals": "node scripts/apply-demo-context.mjs all-verticals",
     "seed:production": "npx tsx prisma/seed-production.ts",
-    "db:seed-all-demo": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx prisma/seed-all-demo.ts",
+    "db:seed-ess-demo": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx prisma/seed-ess-demo.ts",
     "db:seed-qa-orgs": "node -e \"const fs=require('fs');const e=fs.readFileSync('.env.local','utf8');const pick=(k)=>{const m=e.match(new RegExp('^'+k+'=(.+)$','m'));return m?m[1].trim().replace(/^\\\"|\\\"$/g,''):''};process.env.DATABASE_URL=pick('DIRECT_DATABASE_URL')||pick('DATABASE_URL');\" && npx tsx prisma/seed-qa-orgs.ts",
     "db:reset-demo": "set -a; [ -f .env.local ] && . ./.env.local; set +a; prisma migrate reset --force",
     "db:seed-disciplinary": "node prisma/seed-disciplinary-grievance.js",

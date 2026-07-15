@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { brand } from '@/lib/brand';
-import { DEFAULT_SECONDARY_COLOR } from '@/lib/brand-theme';
+import { DEFAULT_PRIMARY_COLOR } from '@/lib/brand-theme';
 import '@/styles/platform-loader.css';
 
 export const metadata: Metadata = {
@@ -18,10 +18,14 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  icons: {
+    icon: [{ url: '/icons/ess-192.svg', type: 'image/svg+xml', sizes: '192x192' }],
+    apple: [{ url: '/icons/ess-192.svg', type: 'image/svg+xml', sizes: '192x192' }],
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: DEFAULT_SECONDARY_COLOR,
+  themeColor: DEFAULT_PRIMARY_COLOR,
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',

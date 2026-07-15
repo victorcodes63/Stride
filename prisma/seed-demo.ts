@@ -1870,9 +1870,9 @@ async function main() {
   }
 
   const { OPERATING_ENTITIES_SETTINGS_KEY, sanitizeOperatingEntitiesSettings } = await import(
-    '../src/lib/operating-entities'
+    '../src/lib/operating-entities-shared'
   );
-  const { isMultiEntityEnvEnabled } = await import('../src/lib/deployment-config');
+  const { isMultiEntityEnvEnabled } = await import('../src/lib/deployment-config-shared');
   if (!skipOperatingEntitiesSeed) {
     const demoEntitySettings = sanitizeOperatingEntitiesSettings({
       multiEntityEnabled: isMultiEntityEnvEnabled() || true,

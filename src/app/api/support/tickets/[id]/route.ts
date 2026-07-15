@@ -34,6 +34,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
       if (ticket.controlPlaneTicketId) {
         const remote = await pullSupportTicketFromControlPlane({
+          organizationId: ctx.organizationId,
           controlPlaneTicketId: ticket.controlPlaneTicketId,
           ticketNumber: ticket.ticketNumber,
         });
@@ -159,6 +160,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
       if (ticket.controlPlaneTicketId) {
         await pushSupportMessageToControlPlane({
+          organizationId: ctx.organizationId,
           controlPlaneTicketId: ticket.controlPlaneTicketId,
           externalId: message.id,
           authorName: ctx.staff.name,

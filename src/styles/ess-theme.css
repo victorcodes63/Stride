@@ -3,7 +3,8 @@
  */
 
 .ess-app {
-  --ess-tab-height: 76px;
+  /* Floating Check in CTA sits above the glass bar — keep clearance tall enough */
+  --ess-tab-height: 104px;
   --ess-touch-min: 44px;
   --ess-bg: var(--stride-paper);
   --ess-bg-strong: var(--sc-paper-2);
@@ -22,10 +23,10 @@
   --ess-secondary-strong: var(--stride-ink, var(--brand-ink));
   --ess-secondary-soft: color-mix(in srgb, var(--ess-primary) 10%, transparent);
   --ess-hero: linear-gradient(
-    135deg,
-    var(--ess-secondary) 0%,
-    color-mix(in srgb, var(--ess-secondary) 88%, black) 56%,
-    #000000 100%
+    145deg,
+    var(--ess-primary) 0%,
+    var(--ess-primary-strong) 55%,
+    var(--stride-coral-deep, #E63E22) 100%
   );
   --ess-accent: var(--ess-primary);
   --ess-accent-soft: color-mix(in srgb, var(--ess-primary) 12%, transparent);
@@ -57,7 +58,8 @@
 }
 
 .ess-main-pad {
-  padding-bottom: calc(var(--ess-tab-height) + env(safe-area-inset-bottom, 0px) + 1.75rem);
+  /* Must beat Tailwind py-* if both are present — keep bottom padding as the sole source */
+  padding-bottom: calc(var(--ess-tab-height) + env(safe-area-inset-bottom, 0px) + 1.5rem) !important;
 }
 
 /* .ess-card, .ess-card-flat, .ess-field, .ess-btn-* → stride-primitives.css */
@@ -158,10 +160,15 @@
     --ess-primary: var(--stride-coral);
     --ess-primary-strong: var(--stride-coral-deep);
     --ess-primary-soft: color-mix(in srgb, var(--stride-coral) 12%, transparent);
-    --ess-secondary: var(--stride-ink);
-    --ess-secondary-strong: var(--stride-ink);
-    --ess-secondary-soft: color-mix(in srgb, var(--stride-coral) 8%, transparent);
-    --ess-hero: linear-gradient(135deg, #000000 0%, var(--stride-ink) 100%);
+    --ess-secondary: rgba(255, 255, 255, 0.72);
+    --ess-secondary-strong: #ffffff;
+    --ess-secondary-soft: color-mix(in srgb, var(--stride-coral) 12%, transparent);
+    --ess-hero: linear-gradient(
+      145deg,
+      var(--ess-primary) 0%,
+      var(--ess-primary-strong) 55%,
+      var(--stride-coral-deep, #E63E22) 100%
+    );
     --ess-accent: var(--ess-primary);
     --ess-accent-soft: color-mix(in srgb, var(--stride-coral) 12%, transparent);
     --ess-ring: color-mix(in srgb, var(--stride-coral) 35%, transparent);
@@ -188,10 +195,15 @@ html.dark .ess-app {
   --ess-primary: var(--stride-coral);
   --ess-primary-strong: var(--stride-coral-deep);
   --ess-primary-soft: color-mix(in srgb, var(--stride-coral) 12%, transparent);
-  --ess-secondary: var(--stride-ink);
-  --ess-secondary-strong: var(--stride-ink);
-  --ess-secondary-soft: color-mix(in srgb, var(--stride-coral) 8%, transparent);
-  --ess-hero: linear-gradient(135deg, #000000 0%, var(--stride-ink) 100%);
+  --ess-secondary: rgba(255, 255, 255, 0.72);
+  --ess-secondary-strong: #ffffff;
+  --ess-secondary-soft: color-mix(in srgb, var(--stride-coral) 12%, transparent);
+  --ess-hero: linear-gradient(
+    145deg,
+    var(--ess-primary) 0%,
+    var(--ess-primary-strong) 55%,
+    var(--stride-coral-deep, #E63E22) 100%
+  );
   --ess-accent: var(--ess-primary);
   --ess-accent-soft: color-mix(in srgb, var(--stride-coral) 12%, transparent);
   --ess-ring: color-mix(in srgb, var(--stride-coral) 35%, transparent);

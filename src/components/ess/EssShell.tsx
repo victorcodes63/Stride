@@ -163,7 +163,7 @@ function EssShellInner({ children, brand, themeStyle }: { children: ReactNode; b
         </div>
       )}
 
-      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-lg px-4 py-6 ess-main-pad">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-lg px-4 pt-6 ess-main-pad">
         {children}
       </main>
       <EssTabBar />

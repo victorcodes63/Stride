@@ -78,40 +78,42 @@ export default function EssProfilePage() {
   return (
     <div className="space-y-6">
       <EssPageHeader title="Profile" backHref="/ess/more" />
-      <EssCard>
+      <EssCard className="min-w-0 overflow-hidden">
         <EssSectionTitle eyebrow="Employee record" title="Your details" />
-        <dl className="grid sm:grid-cols-2 gap-4 text-sm">
-          <div>
+        <dl className="grid min-w-0 gap-4 text-sm sm:grid-cols-2">
+          <div className="min-w-0">
             <dt className="text-[var(--ess-muted)]">ESS name</dt>
-            <dd className="text-[var(--ess-text)] font-bold">{me?.name || '-'}</dd>
+            <dd className="break-words font-bold text-[var(--ess-text)]">{me?.name || '-'}</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-[var(--ess-muted)]">ESS email</dt>
-            <dd className="text-[var(--ess-text)] font-bold">{me?.email || '-'}</dd>
+            <dd className="break-all font-bold text-[var(--ess-text)]">{me?.email || '-'}</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-[var(--ess-muted)]">Role</dt>
-            <dd className="text-[var(--ess-text)] font-bold capitalize">{me?.role || '-'}</dd>
+            <dd className="break-words font-bold capitalize text-[var(--ess-text)]">{me?.role || '-'}</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-[var(--ess-muted)]">Employee number</dt>
-            <dd className="text-[var(--ess-text)] font-bold">{me?.employee?.employeeNumber || '-'}</dd>
+            <dd className="break-words font-bold text-[var(--ess-text)]">{me?.employee?.employeeNumber || '-'}</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-[var(--ess-muted)]">Job title</dt>
-            <dd className="text-[var(--ess-text)] font-bold">{me?.employee?.jobTitle || '-'}</dd>
+            <dd className="break-words font-bold text-[var(--ess-text)]">{me?.employee?.jobTitle || '-'}</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-[var(--ess-muted)]">Employment status</dt>
-            <dd className="text-[var(--ess-text)] font-bold capitalize">{me?.employee?.employmentStatus || '-'}</dd>
+            <dd className="break-words font-bold capitalize text-[var(--ess-text)]">
+              {me?.employee?.employmentStatus || '-'}
+            </dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-[var(--ess-muted)]">Phone</dt>
-            <dd className="text-[var(--ess-text)] font-bold">{me?.employee?.phone || '-'}</dd>
+            <dd className="break-words font-bold text-[var(--ess-text)]">{me?.employee?.phone || '-'}</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-[var(--ess-muted)]">Date joined</dt>
-            <dd className="text-[var(--ess-text)] font-bold">
+            <dd className="break-words font-bold text-[var(--ess-text)]">
               {me?.employee?.dateOfJoining ? new Date(me.employee.dateOfJoining).toLocaleDateString() : '-'}
             </dd>
           </div>

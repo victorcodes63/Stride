@@ -5,7 +5,7 @@
 
 import { resolve } from 'path';
 import { brandConfig } from '@/lib/brand.config';
-import { DEFAULT_BRAND_LOGO_SRC, normalizeLogoSrc } from '@/lib/brand-constants';
+import { DEFAULT_BRAND_LOGO_SRC, normalizeLogoSrc, STRIDE_MARK_PNG_SRC } from '@/lib/brand-constants';
 export { DEFAULT_BRAND_LOGO_SRC } from '@/lib/brand-constants';
 import {
   DEFAULT_PRIMARY_COLOR,
@@ -22,6 +22,13 @@ function trimEnv(key: string): string | undefined {
 
 const STRIDE_LOGO = normalizeLogoSrc(DEFAULT_BRAND_LOGO_SRC);
 
+/** Prefer a real PNG for PDF/email; ignore SVG env misconfiguration. */
+function resolveLogoPngPath(): string {
+  const fromEnv = normalizeLogoSrc(trimEnv('NEXT_PUBLIC_BRAND_LOGO_PNG') ?? '');
+  if (fromEnv && /\.png$/i.test(fromEnv)) return fromEnv;
+  return STRIDE_MARK_PNG_SRC;
+}
+
 /** Env-level defaults — org/contact only; product identity is fixed in brandConfig. */
 export const brand = {
   appName: brandConfig.productName,
@@ -31,7 +38,7 @@ export const brand = {
   contactPhone: trimEnv('NEXT_PUBLIC_CONTACT_PHONE') ?? '',
   contactAddress: trimEnv('NEXT_PUBLIC_CONTACT_ADDRESS') ?? '',
   logoSrc: STRIDE_LOGO,
-  logoPngPath: STRIDE_LOGO,
+  logoPngPath: resolveLogoPngPath(),
   wordmark: brandConfig.productName,
 } as const;
 
