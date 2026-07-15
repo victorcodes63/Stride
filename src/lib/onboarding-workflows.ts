@@ -250,6 +250,7 @@ export async function startWorkflowForEmployee(params: {
     });
 
     if (template.steps.length > 0) {
+      const startedAt = workflow.startedAt ?? new Date();
       await tx.onboardingTask.createMany({
         data: template.steps.map((step) => ({
           organizationId: employee.organizationId,
@@ -260,6 +261,7 @@ export async function startWorkflowForEmployee(params: {
           category: step.category,
           order: step.order,
           isRequired: step.isRequired,
+          startDate: startedAt,
           dueDate: new Date(Date.now() + step.dueDaysOffset * 86400000),
           status: OnboardingTaskStatus.PENDING,
         })),

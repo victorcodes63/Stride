@@ -1,4 +1,5 @@
 import { PrismaClient, WorkflowType } from '@prisma/client';
+import { SEED_DEFAULT_ORG_ID } from './system-setting-seed';
 
 const prisma = new PrismaClient();
 
@@ -11,16 +12,28 @@ type StepSeed = {
   description?: string;
 };
 
-async function upsertTemplate(name: string, type: WorkflowType, isDefault: boolean, steps: StepSeed[]) {
+function templateId(organizationId: string, name: string): string {
+  return `seed-${organizationId.slice(0, 8)}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+async function upsertTemplate(
+  organizationId: string,
+  name: string,
+  type: WorkflowType,
+  isDefault: boolean,
+  steps: StepSeed[],
+) {
+  const id = templateId(organizationId, name);
   const template = await prisma.onboardingTemplate.upsert({
-    where: { id: `seed-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` },
-    update: { name, type, isDefault },
-    create: { id: `seed-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, name, type, isDefault },
+    where: { id },
+    update: { name, type, isDefault, organizationId },
+    create: { id, organizationId, name, type, isDefault },
   });
 
   await prisma.onboardingTemplateStep.deleteMany({ where: { templateId: template.id } });
   await prisma.onboardingTemplateStep.createMany({
     data: steps.map((step, index) => ({
+      organizationId,
       templateId: template.id,
       title: step.title,
       description: step.description ?? null,
@@ -34,7 +47,11 @@ async function upsertTemplate(name: string, type: WorkflowType, isDefault: boole
 }
 
 async function main() {
-  await upsertTemplate('Clinical staff onboarding', WorkflowType.ONBOARDING, true, [
+  const orgs = await prisma.organization.findMany({ select: { id: true } });
+  const organizationIds = orgs.length > 0 ? orgs.map((org) => org.id) : [SEED_DEFAULT_ORG_ID];
+
+  for (const organizationId of organizationIds) {
+    await upsertTemplate(organizationId, 'Clinical staff onboarding', WorkflowType.ONBOARDING, true, [
     { title: 'Collect signed employment contract', assignedRole: 'hr', dueDaysOffset: 1, category: 'Documents', isRequired: true },
     { title: 'Collect national ID copy', assignedRole: 'hr', dueDaysOffset: 1, category: 'Documents', isRequired: true },
     { title: 'Collect KRA PIN certificate', assignedRole: 'hr', dueDaysOffset: 1, category: 'Documents', isRequired: true },
@@ -55,7 +72,7 @@ async function main() {
     { title: 'Complete pre-employment medical', assignedRole: 'employee', dueDaysOffset: 7, category: 'Compliance', isRequired: true },
   ]);
 
-  await upsertTemplate('Non-clinical staff onboarding', WorkflowType.ONBOARDING, true, [
+    await upsertTemplate(organizationId, 'Non-clinical staff onboarding', WorkflowType.ONBOARDING, true, [
     { title: 'Collect signed employment contract', assignedRole: 'hr', dueDaysOffset: 1, category: 'Documents', isRequired: true },
     { title: 'Collect national ID copy', assignedRole: 'hr', dueDaysOffset: 1, category: 'Documents', isRequired: true },
     { title: 'Collect KRA PIN certificate', assignedRole: 'hr', dueDaysOffset: 1, category: 'Documents', isRequired: true },
@@ -71,7 +88,7 @@ async function main() {
     { title: 'Confirm probation period terms', assignedRole: 'hr', dueDaysOffset: 5, category: 'Documents', isRequired: true },
   ]);
 
-  await upsertTemplate('Staff offboarding', WorkflowType.OFFBOARDING, true, [
+    await upsertTemplate(organizationId, 'Staff offboarding', WorkflowType.OFFBOARDING, true, [
     { title: 'Conduct exit interview', assignedRole: 'hr', dueDaysOffset: 3, category: 'Process', isRequired: false },
     { title: 'Revoke system access', assignedRole: 'it', dueDaysOffset: 1, category: 'Access', isRequired: true, description: 'Disable dashboard/ESS credentials and shared systems to prevent orphaned access.' },
     { title: 'Revoke biometric access', assignedRole: 'it', dueDaysOffset: 1, category: 'Access', isRequired: true, description: 'Disable device access profile and document revocation evidence.' },
@@ -83,8 +100,9 @@ async function main() {
     { title: 'Return signed clearance form', assignedRole: 'employee', dueDaysOffset: 7, category: 'Documents', isRequired: true, description: 'Clearance must be signed before records can be archived.' },
     { title: 'Archive employee records and evidence', assignedRole: 'hr', dueDaysOffset: 7, category: 'Process', isRequired: true, description: 'Store exit evidence (clearance, recovery, revocation, settlement) for audit trail.' },
   ]);
+  }
 
-  console.log('Onboarding/offboarding templates seeded.');
+  console.log(`Onboarding/offboarding templates seeded for ${organizationIds.length} organization(s).`);
 }
 
 main()

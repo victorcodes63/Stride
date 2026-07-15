@@ -26,7 +26,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
         include: {
           employee: { include: { department: true } },
           template: true,
-          tasks: { orderBy: { order: 'asc' } },
+          tasks: {
+            orderBy: { order: 'asc' },
+            include: {
+              assignedTo: { select: { id: true, name: true, email: true } },
+              document: { select: { id: true, fileName: true, title: true } },
+            },
+          },
         },
       }),
     );

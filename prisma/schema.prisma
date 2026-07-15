@@ -703,6 +703,8 @@ model EmployeeDocument {
   uploader   User     @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
   uploadedAt DateTime @default(now())
 
+  onboardingTasks OnboardingTask[]
+
   @@index([employeeId])
   @@index([category])
   @@index([expiresOn])
@@ -798,6 +800,7 @@ model OnboardingTask {
   category      String?
   order         Int
   isRequired    Boolean              @default(true)
+  startDate     DateTime?
   dueDate       DateTime?
   status        OnboardingTaskStatus @default(PENDING)
   completedAt   DateTime?
@@ -805,11 +808,13 @@ model OnboardingTask {
   completedBy   User?                @relation("OnboardingTaskCompletedBy", fields: [completedById], references: [id])
   notes         String?
   documentId    String?
+  document      EmployeeDocument?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
 
   @@index([workflowId, order])
   @@index([organizationId, status])
   @@index([assignedRole, status])
   @@index([assignedToId, status])
+  @@index([documentId])
 }
 
 enum AttendancePolicyMode {

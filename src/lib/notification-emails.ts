@@ -30,6 +30,7 @@ export type NotificationEvent =
   | 'grievance_submitted'
   | 'grievance_status_changed'
   | 'onboarding_task_overdue'
+  | 'onboarding_task_assigned'
   | 'mfa_enabled';
 
 type TemplateResult = { subject: string; html: string };

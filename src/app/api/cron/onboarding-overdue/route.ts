@@ -18,7 +18,10 @@ export async function GET(request: NextRequest) {
   const now = new Date();
 
   const overdueTasks = await prisma.onboardingTask.findMany({
-    where: { status: OnboardingTaskStatus.PENDING, dueDate: { lt: now } },
+    where: {
+      status: { in: [OnboardingTaskStatus.PENDING, OnboardingTaskStatus.IN_PROGRESS] },
+      dueDate: { lt: now },
+    },
     include: {
       workflow: { include: { employee: { select: { firstName: true, lastName: true } } } },
     },
