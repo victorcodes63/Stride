@@ -10,7 +10,12 @@ import {
 } from '@/lib/modules';
 import { parseModuleAdminFlagsCookie } from '@/lib/module-cookie';
 import { parseEntitlementsCookie } from '@/lib/entitlements-cookie';
-import { isDemoMode, isPublicDemoMode } from '@/lib/deployment-flags';
+import { isDemoSandboxCell } from '@/lib/deployment-cell';
+import {
+  isDemoMode,
+  isLocalDevAllModules,
+  isPublicDemoMode,
+} from '@/lib/deployment-flags';
 import { isControlPlaneSyncConfigured } from '@/lib/entitlements-env';
 import { isModuleGuardExempt, resolveModuleForPath } from '@/lib/module-routes';
 
@@ -35,6 +40,21 @@ export function getAdminFlagsFromRequest(request: NextRequest): Record<ModuleKey
   return parseModuleAdminFlagsCookie(cookie) ?? allModulesAdminEnabled();
 }
 
+/**
+ * Mirror {@link subscriptionFromEntitlements}: demo/sandbox cells license every
+ * module in bootstrap UI, so middleware must not fail-closed on a stale control-plane
+ * cookie that predates newer keys (e.g. `sales`). That mismatch redirected
+ * /dashboard/sales → /dashboard and left PlatformNavigationLoader spinning forever.
+ */
+function licensesAllModulesOnCell(): boolean {
+  return (
+    isDemoMode() ||
+    isPublicDemoMode() ||
+    isDemoSandboxCell() ||
+    isLocalDevAllModules()
+  );
+}
+
 export function getSubscriptionFromRequest(
   request: NextRequest,
 ): SubscriptionEntitlements | undefined {
@@ -42,6 +62,12 @@ export function getSubscriptionFromRequest(
     request.cookies.get('hris_entitlements')?.value,
   );
   if (cookie) {
+    if (licensesAllModulesOnCell()) {
+      return {
+        accountStatus: cookie.accountStatus,
+        verticalEnginesAllowed: true,
+      };
+    }
     return {
       subscribedModules: cookie.modules,
       accountStatus: cookie.accountStatus,
@@ -49,7 +75,7 @@ export function getSubscriptionFromRequest(
     };
   }
 
-  if (isControlPlaneSyncConfigured() && !isDemoMode() && !isPublicDemoMode()) {
+  if (isControlPlaneSyncConfigured() && !licensesAllModulesOnCell()) {
     return {
       subscribedModules: foundationalModulesOnly(),
       accountStatus: 'active',

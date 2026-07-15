@@ -30,6 +30,9 @@ function shouldShowNavigationLoader(href: string) {
   return next !== current;
 }
 
+/** Same-path redirects (e.g. module middleware → /dashboard) never change pathname. */
+const NAV_LOADER_TIMEOUT_MS = 8_000;
+
 export function PlatformNavigationLoader() {
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
@@ -37,6 +40,12 @@ export function PlatformNavigationLoader() {
   useEffect(() => {
     setPending(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!pending) return;
+    const timeout = window.setTimeout(() => setPending(false), NAV_LOADER_TIMEOUT_MS);
+    return () => window.clearTimeout(timeout);
+  }, [pending]);
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
