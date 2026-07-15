@@ -9,6 +9,7 @@ import {
   Landmark,
   Route,
   ShoppingCart,
+  TrendingUp,
   UserPlus,
   Users,
   Wallet,
@@ -48,6 +49,11 @@ export type OverviewCrossModuleMetrics = {
   activeFleetTrips: number;
   openFleetIncidents: number;
   pendingPurchaseRequests: number;
+  hasFinanceClient?: boolean;
+  salesStalledDeals: number;
+  salesPastDueCloses: number;
+  salesClosingThisWeek: number;
+  salesWeightedPipelineKes: number;
 };
 
 export type OverviewDomainSnapshot = {
@@ -314,6 +320,26 @@ export function buildAttentionItems(input: {
       domainId: 'fleet-logistics',
     });
   }
+  if (on('sales') && cross && cross.salesPastDueCloses > 0) {
+    items.push({
+      id: 'sales-past-due',
+      label: 'Past-due closes',
+      detail: `${cross.salesPastDueCloses} open deal${cross.salesPastDueCloses === 1 ? '' : 's'} past expected close`,
+      href: '/dashboard/sales/deals',
+      tone: 'rose',
+      domainId: 'sales',
+    });
+  }
+  if (on('sales') && cross && cross.salesStalledDeals > 0) {
+    items.push({
+      id: 'sales-stalled',
+      label: 'Stalled deals',
+      detail: `${cross.salesStalledDeals} with no movement in 14+ days`,
+      href: '/dashboard/sales/deals',
+      tone: 'amber',
+      domainId: 'sales',
+    });
+  }
 
   if (on('leave') && input.pendingLeave > 0 && input.persona !== 'viewer') {
     items.push({
@@ -467,6 +493,21 @@ export function buildDomainSnapshots(input: {
           if (cross.openFleetIncidents > 0) lines.push(`${cross.openFleetIncidents} incidents open`);
         }
         if (!lines.length) lines.push('Fleet workspace');
+        break;
+      case 'sales':
+        if (on('sales')) {
+          lines.push(
+            `Weighted pipeline ${cross.salesWeightedPipelineKes.toLocaleString('en-KE')} KES`,
+          );
+          if (cross.salesClosingThisWeek > 0) {
+            lines.push(`${cross.salesClosingThisWeek} closing this week`);
+          } else if (cross.salesPastDueCloses > 0) {
+            lines.push(`${cross.salesPastDueCloses} past-due closes`);
+          } else if (cross.salesStalledDeals > 0) {
+            lines.push(`${cross.salesStalledDeals} stalled`);
+          }
+        }
+        if (!lines.length) lines.push('Open module');
         break;
       case 'admin-operations':
         if (!lines.length) lines.push('Assets, HSE & comms');
@@ -633,7 +674,45 @@ export function buildCrossModuleKpis(input: {
         },
       ],
     },
-  ].filter((k) => k.show);
+    {
+      domainId: 'sales',
+      label: 'Sales',
+      value:
+        input.crossModule.salesPastDueCloses > 0
+          ? input.crossModule.salesPastDueCloses
+          : input.crossModule.salesWeightedPipelineKes,
+      note:
+        input.crossModule.salesPastDueCloses > 0
+          ? 'Past-due closes'
+          : input.crossModule.salesClosingThisWeek > 0
+            ? `${input.crossModule.salesClosingThisWeek} closing this week`
+            : 'Weighted pipeline (KES)',
+      href: '/dashboard/sales',
+      icon: TrendingUp,
+      variant:
+        input.crossModule.salesPastDueCloses > 0 || input.crossModule.salesStalledDeals > 0
+          ? 'amber'
+          : 'primary',
+      show: on('sales'),
+      chartSegments: [
+        {
+          label: 'Pipeline',
+          value: input.crossModule.salesWeightedPipelineKes,
+          tone: input.crossModule.salesWeightedPipelineKes > 0 ? 'primary' : 'muted',
+        },
+        {
+          label: 'Past due',
+          value: input.crossModule.salesPastDueCloses,
+          tone: input.crossModule.salesPastDueCloses > 0 ? 'rose' : 'muted',
+        },
+        {
+          label: 'Stalled',
+          value: input.crossModule.salesStalledDeals,
+          tone: input.crossModule.salesStalledDeals > 0 ? 'amber' : 'muted',
+        },
+      ],
+    },
+  ].filter((k) => k.show) as CrossModuleKpi[];
 }
 
 export function buildModuleDomainKpi(

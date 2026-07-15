@@ -20,16 +20,30 @@ export async function GET(request: NextRequest) {
     );
 
     try {
-      const estimates = await ctx.run((tx) =>
-        estimateCommissionsForPeriod(tx, {
+      const estimates = await ctx.run(async (tx) => {
+        const rows = await estimateCommissionsForPeriod(tx, {
           organizationId: ctx.organizationId,
           periodStart,
           periodEnd,
-        }),
-      );
+        });
+        const ids = rows.map((r) => r.employeeId);
+        const employees = await tx.employee.findMany({
+          where: { id: { in: ids }, organizationId: ctx.organizationId },
+          select: { id: true, firstName: true, lastName: true },
+        });
+        const nameById = new Map(
+          employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`.trim()] as const),
+        );
+        return rows.map((r) => ({
+          ...r,
+          employeeName: nameById.get(r.employeeId) ?? r.employeeId.slice(0, 8),
+        }));
+      });
 
       return NextResponse.json({
         estimates,
+        periodStart: periodStart.toISOString().slice(0, 10),
+        periodEnd: periodEnd.toISOString().slice(0, 10),
         victorTodo: 'Wire commission payouts to payroll disbursement (SALES-05 enterprise gate).',
       });
     } catch (error) {

@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
+import {
+  currentMonthPeriod,
+  dealInclude,
+  mapDealToJson,
+  resolveEmployeeIdForStaff,
+} from '@/lib/sales/api-helpers';
 import { syncRepPeriodMetric } from '@/lib/sales/metrics-sync';
-import { SALES_DEAL_STAGES } from '@/lib/sales/schema';
+import {
+  defaultForecastForStage,
+  defaultProbabilityForStage,
+  SALES_DEAL_STAGES,
+  SALES_FORECAST_CATEGORIES,
+  type SalesDealStage,
+} from '@/lib/sales/schema';
 import { withTenant } from '@/lib/tenant-api';
 
 export const dynamic = 'force-dynamic';
@@ -13,44 +25,48 @@ export async function GET(request: NextRequest) {
     if (moduleBlock) return moduleBlock;
 
     try {
-      const stage = request.nextUrl.searchParams.get('stage')?.trim() || undefined;
-      const ownerEmployeeId = request.nextUrl.searchParams.get('ownerEmployeeId')?.trim() || undefined;
+      const params = request.nextUrl.searchParams;
+      const stage = params.get('stage')?.trim() || undefined;
+      const forecastCategory = params.get('forecastCategory')?.trim() || undefined;
+      const closeFrom = params.get('closeFrom')?.trim() || undefined;
+      const closeTo = params.get('closeTo')?.trim() || undefined;
+      const owner =
+        params.get('owner')?.trim() ||
+        params.get('ownerEmployeeId')?.trim() ||
+        undefined;
 
-      const deals = await ctx.run((tx) =>
-        tx.salesDeal.findMany({
-          where: {
-            ...ctx.where(),
-            ...(stage ? { stage: stage as never } : {}),
-            ...(ownerEmployeeId ? { ownerEmployeeId } : {}),
-          },
-          include: {
-            owner: { select: { id: true, firstName: true, lastName: true } },
-            accountsClient: { select: { id: true, name: true } },
-          },
+      const where = ctx.where({
+        ...(stage ? { stage: stage as never } : {}),
+        ...(forecastCategory ? { forecastCategory: forecastCategory as never } : {}),
+        ...(owner ? { ownerEmployeeId: owner } : {}),
+        ...(closeFrom || closeTo
+          ? {
+              expectedCloseDate: {
+                ...(closeFrom ? { gte: new Date(`${closeFrom}T00:00:00.000Z`) } : {}),
+                ...(closeTo ? { lte: new Date(`${closeTo}T00:00:00.000Z`) } : {}),
+              },
+            }
+          : {}),
+      });
+
+      const deals = await ctx.run(async (tx) => {
+        if (ctx.staff.role !== 'admin' && !owner) {
+          const linkedEmployeeId = await resolveEmployeeIdForStaff(tx, ctx.staff, ctx.organizationId);
+          if (linkedEmployeeId) {
+            where.ownerEmployeeId = linkedEmployeeId;
+          }
+          // TODO: enforce owner scoping when staff–employee link is unavailable
+        }
+
+        return tx.salesDeal.findMany({
+          where,
+          include: dealInclude,
           orderBy: { updatedAt: 'desc' },
           take: 200,
-        }),
-      );
-
-      return NextResponse.json({
-        deals: deals.map((d) => ({
-          id: d.id,
-          name: d.name,
-          stage: d.stage,
-          value: Number(d.value),
-          currency: d.currency,
-          ownerEmployeeId: d.ownerEmployeeId,
-          owner: d.owner
-            ? { id: d.owner.id, name: `${d.owner.firstName} ${d.owner.lastName}`.trim() }
-            : null,
-          expectedCloseDate: d.expectedCloseDate?.toISOString().slice(0, 10) ?? null,
-          closedAt: d.closedAt?.toISOString() ?? null,
-          accountsInvoiceId: d.accountsInvoiceId,
-          accountsClient: d.accountsClient,
-          notes: d.notes,
-          createdAt: d.createdAt.toISOString(),
-        })),
+        });
       });
+
+      return NextResponse.json({ deals: deals.map(mapDealToJson) });
     } catch (error) {
       await reportApiError({
         route: 'GET /api/sales/deals',
@@ -76,7 +92,7 @@ export async function POST(request: NextRequest) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const ownerEmployeeId = typeof body.ownerEmployeeId === 'string' ? body.ownerEmployeeId.trim() : '';
     const value = typeof body.value === 'number' ? body.value : Number(body.value);
-    const stage = typeof body.stage === 'string' ? body.stage.trim() : 'lead';
+    const stage = (typeof body.stage === 'string' ? body.stage.trim() : 'lead') as SalesDealStage;
 
     if (!name || !ownerEmployeeId) {
       return NextResponse.json({ error: 'name and ownerEmployeeId are required.' }, { status: 400 });
@@ -84,9 +100,20 @@ export async function POST(request: NextRequest) {
     if (!Number.isFinite(value) || value <= 0) {
       return NextResponse.json({ error: 'value must be a positive number.' }, { status: 400 });
     }
-    if (!SALES_DEAL_STAGES.includes(stage as never)) {
+    if (!SALES_DEAL_STAGES.includes(stage)) {
       return NextResponse.json({ error: 'Invalid stage.' }, { status: 400 });
     }
+
+    const forecastCategory =
+      typeof body.forecastCategory === 'string' &&
+      SALES_FORECAST_CATEGORIES.includes(body.forecastCategory as never)
+        ? (body.forecastCategory as never)
+        : defaultForecastForStage(stage);
+
+    const probability =
+      body.probability != null && Number.isFinite(Number(body.probability))
+        ? Math.min(100, Math.max(0, Math.round(Number(body.probability))))
+        : defaultProbabilityForStage(stage);
 
     try {
       const deal = await ctx.run(async (tx) => {
@@ -96,24 +123,42 @@ export async function POST(request: NextRequest) {
             name,
             ownerEmployeeId,
             value,
-            stage: stage as never,
+            stage,
+            probability,
+            forecastCategory,
             currency: typeof body.currency === 'string' ? body.currency.trim() : 'KES',
             expectedCloseDate:
               typeof body.expectedCloseDate === 'string' && body.expectedCloseDate
                 ? new Date(`${body.expectedCloseDate}T00:00:00.000Z`)
                 : null,
-            accountsInvoiceId:
-              typeof body.accountsInvoiceId === 'string' ? body.accountsInvoiceId.trim() || null : null,
+            primaryContactId:
+              typeof body.primaryContactId === 'string' ? body.primaryContactId.trim() || null : null,
             accountsClientId:
               typeof body.accountsClientId === 'string' ? body.accountsClientId.trim() || null : null,
+            source: typeof body.source === 'string' ? body.source.trim() || null : null,
+            nextStep: typeof body.nextStep === 'string' ? body.nextStep.trim() || null : null,
+            nextStepDue:
+              typeof body.nextStepDue === 'string' && body.nextStepDue
+                ? new Date(`${body.nextStepDue}T00:00:00.000Z`)
+                : null,
             notes: typeof body.notes === 'string' ? body.notes.trim() || null : null,
             closedAt: stage === 'won' || stage === 'lost' ? new Date() : null,
+          },
+          include: dealInclude,
+        });
+
+        await tx.salesDealStageHistory.create({
+          data: {
+            organizationId: ctx.organizationId,
+            dealId: created.id,
+            fromStage: null,
+            toStage: stage,
+            changedByUserId: ctx.staff.id,
           },
         });
 
         if (stage === 'won') {
-          const periodStart = new Date(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1);
-          const periodEnd = new Date(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 0);
+          const { periodStart, periodEnd } = currentMonthPeriod();
           await syncRepPeriodMetric(tx, {
             organizationId: ctx.organizationId,
             employeeId: ownerEmployeeId,
@@ -126,7 +171,7 @@ export async function POST(request: NextRequest) {
         return created;
       });
 
-      return NextResponse.json({ deal: { id: deal.id, stage: deal.stage } }, { status: 201 });
+      return NextResponse.json({ deal: mapDealToJson(deal) }, { status: 201 });
     } catch (error) {
       await reportApiError({
         route: 'POST /api/sales/deals',

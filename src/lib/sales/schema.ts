@@ -11,6 +11,12 @@ export const SALES_DEAL_STAGES = [
 
 export type SalesDealStage = (typeof SALES_DEAL_STAGES)[number];
 
+export const SALES_FORECAST_CATEGORIES = ['pipeline', 'best_case', 'commit', 'omitted'] as const;
+export type SalesForecastCategory = (typeof SALES_FORECAST_CATEGORIES)[number];
+
+export const SALES_DEAL_ACTIVITY_TYPES = ['call', 'email', 'meeting', 'note', 'task'] as const;
+export type SalesDealActivityType = (typeof SALES_DEAL_ACTIVITY_TYPES)[number];
+
 export const SALES_TARGET_PERIOD_TYPES = ['month', 'quarter', 'year'] as const;
 export type SalesTargetPeriodType = (typeof SALES_TARGET_PERIOD_TYPES)[number];
 
@@ -19,6 +25,32 @@ export type SalesTargetStatus = (typeof SALES_TARGET_STATUSES)[number];
 
 export const SALES_ACTUAL_SOURCES = ['manual', 'deal', 'finance_invoice'] as const;
 export type SalesActualSource = (typeof SALES_ACTUAL_SOURCES)[number];
+
+/** Default win probability (%) by pipeline stage. */
+export const STAGE_DEFAULT_PROBABILITY: Record<SalesDealStage, number> = {
+  lead: 10,
+  qualified: 25,
+  proposal: 50,
+  negotiation: 75,
+  won: 100,
+  lost: 0,
+};
+
+export const STAGE_DEFAULT_FORECAST: Record<SalesDealStage, SalesForecastCategory> = {
+  lead: 'pipeline',
+  qualified: 'pipeline',
+  proposal: 'best_case',
+  negotiation: 'commit',
+  won: 'omitted',
+  lost: 'omitted',
+};
+
+export const OPEN_PIPELINE_STAGES: SalesDealStage[] = [
+  'lead',
+  'qualified',
+  'proposal',
+  'negotiation',
+];
 
 export function parsePeriodBounds(
   periodType: SalesTargetPeriodType,
@@ -48,4 +80,37 @@ export function parsePeriodBounds(
 export function computeAttainmentPercent(actual: number, target: number): number | null {
   if (!Number.isFinite(target) || target <= 0 || !Number.isFinite(actual)) return null;
   return Math.round((actual / target) * 1000) / 10;
+}
+
+/** Weighted pipeline = Σ (open deal value × probability/100). */
+export function computeWeightedPipeline(
+  deals: Array<{ value: number; probability: number; stage: string }>,
+): number {
+  return deals.reduce((sum, d) => {
+    if (!OPEN_PIPELINE_STAGES.includes(d.stage as SalesDealStage)) return sum;
+    const p = Number.isFinite(d.probability) ? d.probability : 0;
+    const v = Number.isFinite(d.value) ? d.value : 0;
+    return sum + v * (Math.min(100, Math.max(0, p)) / 100);
+  }, 0);
+}
+
+/** Coverage = weighted open pipeline ÷ remaining quota (null if remaining ≤ 0). */
+export function computePipelineCoverage(
+  weightedPipeline: number,
+  teamTarget: number,
+  closedRevenue: number,
+): number | null {
+  if (!Number.isFinite(teamTarget) || !Number.isFinite(closedRevenue)) return null;
+  const remaining = teamTarget - closedRevenue;
+  if (remaining <= 0) return null;
+  if (!Number.isFinite(weightedPipeline)) return null;
+  return Math.round((weightedPipeline / remaining) * 100) / 100;
+}
+
+export function defaultProbabilityForStage(stage: SalesDealStage): number {
+  return STAGE_DEFAULT_PROBABILITY[stage];
+}
+
+export function defaultForecastForStage(stage: SalesDealStage): SalesForecastCategory {
+  return STAGE_DEFAULT_FORECAST[stage];
 }

@@ -13,6 +13,14 @@ export type OverviewCrossModuleMetrics = {
   openFleetIncidents: number;
   pendingPurchaseRequests: number;
   hasFinanceClient?: boolean;
+  /** Open pipeline deals with no activity / update in 14+ days */
+  salesStalledDeals: number;
+  /** Open deals with expected close date in the past */
+  salesPastDueCloses: number;
+  /** Open deals expected to close in the next 7 days */
+  salesClosingThisWeek: number;
+  /** Weighted open pipeline (KES), rounded */
+  salesWeightedPipelineKes: number;
 };
 
 export type OverviewCoreMetrics = {
@@ -120,6 +128,10 @@ export async function loadOverviewCoreMetrics(
     activeFleetTrips,
     openFleetIncidents,
     pendingPurchaseRequests,
+    salesStalledDeals,
+    salesPastDueCloses,
+    salesClosingThisWeek,
+    salesWeightedPipelineKes,
   ] = await Promise.all([
     moduleEnabled(modules, 'core')
       ? tx.employee.count({ where: employeeScope })
@@ -245,6 +257,56 @@ export async function loadOverviewCoreMetrics(
           }),
         )
       : Promise.resolve(0),
+    moduleEnabled(modules, 'sales')
+      ? safeCount(async () => {
+          const stalledBefore = new Date(now.getTime() - 14 * 86400000);
+          return tx.salesDeal.count({
+            where: {
+              organizationId: params.organizationId,
+              stage: { in: ['lead', 'qualified', 'proposal', 'negotiation'] },
+              updatedAt: { lt: stalledBefore },
+            },
+          });
+        })
+      : Promise.resolve(0),
+    moduleEnabled(modules, 'sales')
+      ? safeCount(() =>
+          tx.salesDeal.count({
+            where: {
+              organizationId: params.organizationId,
+              stage: { in: ['lead', 'qualified', 'proposal', 'negotiation'] },
+              expectedCloseDate: { lt: startToday },
+            },
+          }),
+        )
+      : Promise.resolve(0),
+    moduleEnabled(modules, 'sales')
+      ? safeCount(() => {
+          const weekEnd = new Date(startToday.getTime() + 7 * 86400000);
+          return tx.salesDeal.count({
+            where: {
+              organizationId: params.organizationId,
+              stage: { in: ['lead', 'qualified', 'proposal', 'negotiation'] },
+              expectedCloseDate: { gte: startToday, lte: weekEnd },
+            },
+          });
+        })
+      : Promise.resolve(0),
+    moduleEnabled(modules, 'sales')
+      ? tx.salesDeal
+          .findMany({
+            where: {
+              organizationId: params.organizationId,
+              stage: { in: ['lead', 'qualified', 'proposal', 'negotiation'] },
+            },
+            select: { value: true, probability: true },
+          })
+          .then((rows) =>
+            Math.round(
+              rows.reduce((sum, d) => sum + Number(d.value) * (d.probability / 100), 0),
+            ),
+          )
+      : Promise.resolve(0),
   ]);
 
   const grossTotal = Number(payrollAgg?._sum.grossPay ?? 0);
@@ -277,6 +339,10 @@ export async function loadOverviewCoreMetrics(
       openFleetIncidents,
       pendingPurchaseRequests,
       hasFinanceClient: Boolean(accountsClientRow),
+      salesStalledDeals,
+      salesPastDueCloses,
+      salesClosingThisWeek,
+      salesWeightedPipelineKes,
     },
   };
 }

@@ -402,6 +402,7 @@ model Employee {
   salesTargets                SalesTarget[]
   ownedSalesDeals             SalesDeal[]                  @relation("SalesDealOwner")
   salesActuals                SalesActual[]
+  salesDealActivities         SalesDealActivity[]          @relation("SalesDealActivityActor")
   hseIncidentsReported        HseIncident[]
   saccoMemberProfile          SaccoMember?
   healthcareClinicalAssignments HealthcareClinicalAssignment[]
@@ -2113,6 +2114,7 @@ model User {
   salesTargetsSet                  SalesTarget[]               @relation("SalesTargetSetBy")
   salesTargetsApproved             SalesTarget[]               @relation("SalesTargetApprovedBy")
   salesActualsRecorded             SalesActual[]               @relation("SalesActualRecordedBy")
+  salesDealStageChanges            SalesDealStageHistory[]     @relation("SalesDealStageChangedBy")
 
   leaveApprover  User?  @relation("UserLeaveApprover", fields: [leaveApproverId], references: [id], onDelete: SetNull)
   leaveReportees User[] @relation("UserLeaveApprover")
@@ -2534,6 +2536,7 @@ model AccountsClient {
   payrolls       Payroll[]
   fleetCustomers FleetCustomer[]
   salesDeals     SalesDeal[]
+  salesContacts  SalesContact[]
 
   @@index([type])
   @@index([name])
@@ -4663,6 +4666,21 @@ enum SalesDealStage {
   lost
 }
 
+enum SalesForecastCategory {
+  pipeline
+  best_case
+  commit
+  omitted
+}
+
+enum SalesDealActivityType {
+  call
+  email
+  meeting
+  note
+  task
+}
+
 enum SalesActualSource {
   manual
   deal
@@ -4711,6 +4729,29 @@ model SalesTarget {
   @@index([organizationId, status])
 }
 
+model SalesContact {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  accountsClientId String
+  name             String
+  title            String?
+  email            String?
+  phone            String?
+  isDecisionMaker  Boolean   @default(false)
+  lastContactedAt  DateTime?
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  accountsClient AccountsClient       @relation(fields: [accountsClientId], references: [id], onDelete: Cascade)
+  primaryForDeals SalesDeal[]         @relation("SalesDealPrimaryContact")
+  activities      SalesDealActivity[]
+
+  @@index([organizationId, accountsClientId])
+  @@index([organizationId, name])
+}
+
 model SalesDeal {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
@@ -4724,18 +4765,69 @@ model SalesDeal {
   closedAt          DateTime?
   accountsInvoiceId String?
   accountsClientId  String?
+  primaryContactId  String?
+  probability       Int            @default(10)
+  forecastCategory  SalesForecastCategory @default(pipeline)
+  source            String?
+  nextStep          String?
+  nextStepDue       DateTime?      @db.Date
+  lostReason        String?
+  competitor        String?
   notes             String?        @db.Text
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  owner           Employee         @relation("SalesDealOwner", fields: [ownerEmployeeId], references: [id], onDelete: Cascade)
-  accountsInvoice AccountsInvoice? @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
-  accountsClient  AccountsClient?  @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
+  owner           Employee                 @relation("SalesDealOwner", fields: [ownerEmployeeId], references: [id], onDelete: Cascade)
+  accountsInvoice AccountsInvoice?         @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
+  accountsClient  AccountsClient?          @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
+  primaryContact  SalesContact?            @relation("SalesDealPrimaryContact", fields: [primaryContactId], references: [id], onDelete: SetNull)
   actuals         SalesActual[]
+  activities      SalesDealActivity[]
+  stageHistory    SalesDealStageHistory[]
 
   @@index([organizationId, stage])
   @@index([organizationId, ownerEmployeeId])
   @@index([organizationId, expectedCloseDate])
+  @@index([organizationId, accountsClientId])
+  @@index([organizationId, forecastCategory])
+}
+
+model SalesDealActivity {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  dealId           String
+  type             SalesDealActivityType
+  subject          String
+  body             String?               @db.Text
+  outcome          String?
+  actorEmployeeId  String
+  contactId        String?
+  createdAt        DateTime              @default(now())
+
+  deal   SalesDeal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  actor  Employee     @relation("SalesDealActivityActor", fields: [actorEmployeeId], references: [id], onDelete: Cascade)
+  contact SalesContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, dealId, createdAt(sort: Desc)])
+  @@index([organizationId, actorEmployeeId])
+}
+
+model SalesDealStageHistory {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  dealId           String
+  fromStage        SalesDealStage?
+  toStage          SalesDealStage
+  changedByUserId  String?
+  changedAt        DateTime        @default(now())
+
+  deal      SalesDeal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  changedBy User?     @relation("SalesDealStageChangedBy", fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, dealId, changedAt(sort: Desc)])
+  @@index([organizationId, changedAt])
 }
 
 model SalesActual {

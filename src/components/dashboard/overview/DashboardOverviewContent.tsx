@@ -119,6 +119,11 @@ function applyOverviewCoreMetrics(
     activeFleetTrips: data.crossModule.activeFleetTrips,
     openFleetIncidents: data.crossModule.openFleetIncidents,
     pendingPurchaseRequests: data.crossModule.pendingPurchaseRequests,
+    hasFinanceClient: data.crossModule.hasFinanceClient,
+    salesStalledDeals: data.crossModule.salesStalledDeals ?? 0,
+    salesPastDueCloses: data.crossModule.salesPastDueCloses ?? 0,
+    salesClosingThisWeek: data.crossModule.salesClosingThisWeek ?? 0,
+    salesWeightedPipelineKes: data.crossModule.salesWeightedPipelineKes ?? 0,
   });
 }
 
@@ -145,6 +150,10 @@ export default function DashboardOverviewContent() {
     activeFleetTrips: 0,
     openFleetIncidents: 0,
     pendingPurchaseRequests: 0,
+    salesStalledDeals: 0,
+    salesPastDueCloses: 0,
+    salesClosingThisWeek: 0,
+    salesWeightedPipelineKes: 0,
   });
 
   useLayoutEffect(() => {

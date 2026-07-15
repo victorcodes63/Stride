@@ -110,6 +110,23 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         description:
           'End clients, outsourced workforce, and per-client payroll, attendance, leave, and disciplinary.',
       };
+
+    case 'sales':
+      return {
+        domainId,
+        eyebrow: domain.marketingLabel,
+        title: 'Sales performance',
+        description:
+          'Pipeline, quotas, attainment, and commission estimates — linked to Finance customers on close.',
+      };
+
+    default:
+      return {
+        domainId,
+        eyebrow: domain.marketingLabel,
+        title: domain.shortLabel,
+        description: 'Module workspace.',
+      };
   }
 }
 

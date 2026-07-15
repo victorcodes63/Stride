@@ -51,6 +51,7 @@ async function main() {
   run('node prisma/seed-accounts-module.js');
   run('node prisma/seed-staff-leave.js');
   run('npx tsx scripts/seed-performance-cycle.ts');
+  run('npx tsx prisma/seed-sales-demo.ts');
 
   console.log('\nAll demo module seeds finished.\n');
 }

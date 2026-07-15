@@ -28,6 +28,10 @@ type OverviewMetrics = {
     activeFleetTrips?: number;
     openFleetIncidents?: number;
     pendingPurchaseRequests?: number;
+    salesStalledDeals?: number;
+    salesPastDueCloses?: number;
+    salesClosingThisWeek?: number;
+    salesWeightedPipelineKes?: number;
   };
 };
 
@@ -266,6 +270,41 @@ function buildStats(
           warn: ((overview?.credentialsExpiring ?? 0) + (overview?.credentialsExpired ?? 0)) > 0,
         },
       ];
+    case 'sales':
+      return [
+        {
+          label: 'Weighted pipeline',
+          value: (cross?.salesWeightedPipelineKes ?? 0).toLocaleString('en-KE'),
+          hint: 'KES open × probability',
+          href: '/dashboard/sales/deals',
+          tone: 'primary',
+        },
+        {
+          label: 'Closing this week',
+          value: cross?.salesClosingThisWeek ?? 0,
+          hint: 'Expected closes',
+          href: '/dashboard/sales/deals',
+          tone: 'violet',
+        },
+        {
+          label: 'Past-due closes',
+          value: cross?.salesPastDueCloses ?? 0,
+          hint: 'Needs attention',
+          href: '/dashboard/sales/deals',
+          tone: 'warning',
+          warn: (cross?.salesPastDueCloses ?? 0) > 0,
+        },
+        {
+          label: 'Stalled deals',
+          value: cross?.salesStalledDeals ?? 0,
+          hint: '14+ days idle',
+          href: '/dashboard/sales/deals',
+          tone: 'warning',
+          warn: (cross?.salesStalledDeals ?? 0) > 0,
+        },
+      ];
+    default:
+      return [];
   }
 }
 
@@ -340,6 +379,10 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
         activeFleetTrips: overview.crossModule?.activeFleetTrips ?? 0,
         openFleetIncidents: overview.crossModule?.openFleetIncidents ?? 0,
         pendingPurchaseRequests: overview.crossModule?.pendingPurchaseRequests ?? 0,
+        salesStalledDeals: overview.crossModule?.salesStalledDeals ?? 0,
+        salesPastDueCloses: overview.crossModule?.salesPastDueCloses ?? 0,
+        salesClosingThisWeek: overview.crossModule?.salesClosingThisWeek ?? 0,
+        salesWeightedPipelineKes: overview.crossModule?.salesWeightedPipelineKes ?? 0,
       },
       persona,
       modules,

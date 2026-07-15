@@ -56,8 +56,14 @@ export default function SalesAttainmentContent() {
         <div className="flex items-center gap-2 text-neutral-500">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading…
         </div>
-      ) : !report ? (
-        <p className="text-sm text-neutral-500">No attainment data for this period.</p>
+      ) : !report || report.leaderboard.length === 0 ? (
+        <div className={`${DASHBOARD_SURFACE_CLASS} px-6 py-12 text-center`}>
+          <Trophy className="mx-auto h-8 w-8 text-[var(--stride-coral)]" />
+          <p className="mt-3 font-semibold text-[var(--dash-text-strong)]">No attainment yet</p>
+          <p className="mt-1 text-sm text-[var(--dash-text-muted)]">
+            Approve quotas and close deals to populate the leaderboard.
+          </p>
+        </div>
       ) : (
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -101,7 +107,10 @@ export default function SalesAttainmentContent() {
                 </tr>
               </thead>
               <tbody>
-                {report.leaderboard.map((r, i) => (
+                {report.leaderboard.map((r, i) => {
+                  const pct = r.attainmentPct;
+                  const bar = pct != null ? Math.min(100, Math.max(0, pct)) : 0;
+                  return (
                   <tr key={r.employeeName + i} className="border-t border-neutral-100">
                     <td className="px-4 py-3 font-medium text-neutral-400">{i + 1}</td>
                     <td className="px-4 py-3">
@@ -116,14 +125,23 @@ export default function SalesAttainmentContent() {
                     <td className="px-4 py-3">
                       {r.actual.toLocaleString('en-KE')} {r.currency}
                     </td>
-                    <td className="px-4 py-3 font-semibold text-[var(--stride-coral)]">
-                      {r.attainmentPct != null ? `${r.attainmentPct}%` : '—'}
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-[var(--stride-coral)]">
+                        {pct != null ? `${pct}%` : '—'}
+                      </div>
+                      <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100">
+                        <div
+                          className="h-full rounded-full bg-[var(--stride-coral)]"
+                          style={{ width: `${bar}%` }}
+                        />
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {r.pacingPct != null ? `${r.pacingPct}% of pace` : '—'}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

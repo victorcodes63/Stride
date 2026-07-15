@@ -98,6 +98,7 @@
     "demo:reseed:all-verticals": "set -a; [ -f .env.local ] && . ./.env.local; set +a; DEMO_MULTI_CONTEXT=true DEMO_UNIFIED_ADMIN_EMAIL=demo@demo.imara.co.ke npx tsx prisma/seed-demo-multi-vertical.ts",
     "demo:seed:training": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx prisma/seed-training-demo.ts",
     "demo:seed:fleet": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx prisma/seed-fleet-demo.ts",
+    "demo:seed:sales": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx prisma/seed-sales-demo.ts",
     "demo:context:all-verticals": "node scripts/apply-demo-context.mjs all-verticals",
     "seed:production": "npx tsx prisma/seed-production.ts",
     "db:seed-all-demo": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npx tsx prisma/seed-all-demo.ts",
