@@ -104,7 +104,7 @@ function applyLoginRlsHotfixes(migrateEnv) {
 }
 
 function applyBaselinedSchemaHotfixes(migrateEnv) {
-  applySqlHotfixes(migrateEnv, SCHEMA_HOTFIX_FILES, 'baselined schema hotfix');
+  applySqlHotfix(migrateEnv, SCHEMA_HOTFIX_FILES, 'baselined schema hotfix');
 }
 
 /** Avoid advisory-lock contention when schema is already current (common on Vercel rebuilds). */
