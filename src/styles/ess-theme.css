@@ -5,6 +5,8 @@
 .ess-app {
   /* Floating Check in CTA sits above the glass bar — keep clearance tall enough */
   --ess-tab-height: 104px;
+  /* Chrome header: safe-area + glass pill (~3.5rem) + vertical padding */
+  --ess-header-offset: calc(max(env(safe-area-inset-top, 0px), 0.75rem) + 4.25rem);
   --ess-touch-min: 44px;
   --ess-bg: var(--stride-paper);
   --ess-bg-strong: var(--sc-paper-2);
@@ -44,21 +46,44 @@
 }
 
 .ess-safe-top {
-  padding-top: max(env(safe-area-inset-top), 0px);
+  /* Floor pad so content never kisses the status bar when inset reports 0 */
+  padding-top: max(env(safe-area-inset-top, 0px), 0.75rem);
 }
 
 .ess-safe-bottom {
-  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
+}
+
+.ess-chrome-header {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 20;
+  padding-top: max(env(safe-area-inset-top, 0px), 0.75rem);
+  padding-inline: 0.75rem;
+  padding-bottom: 0.5rem;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    var(--ess-bg) 0%,
+    color-mix(in srgb, var(--ess-bg) 92%, transparent) 72%,
+    transparent 100%
+  );
+}
+
+.ess-chrome-header > * {
+  pointer-events: auto;
 }
 
 .ess-tab-bar {
-  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
   min-height: calc(var(--ess-tab-height) + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
 .ess-main-pad {
-  /* Must beat Tailwind py-* if both are present — keep bottom padding as the sole source */
+  /* Clear fixed chrome + tab bar — must beat Tailwind py-* if both are present */
+  padding-top: var(--ess-header-offset) !important;
   padding-bottom: calc(var(--ess-tab-height) + env(safe-area-inset-bottom, 0px) + 1.5rem) !important;
 }
 

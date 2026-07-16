@@ -67,10 +67,12 @@ export async function GET(
     );
 
     const filename = `payslip-${payroll.year}-${String(payroll.month).padStart(2, '0')}.pdf`;
+    // attachment keeps standalone PWA from navigating into an in-app PDF viewer with no back chrome
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'private, no-store',
       },
     });
   });

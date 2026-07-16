@@ -39,7 +39,47 @@ function statusClass(status: string) {
   return 'bg-[var(--ess-secondary-soft)] text-[var(--ess-secondary)]';
 }
 
+async function downloadPayslipPdf(row: PayslipRow) {
+  const res = await fetch(`/api/ess/payslips/${row.id}/pdf`);
+  if (!res.ok) {
+    throw new Error('Could not download payslip.');
+  }
+  const blob = await res.blob();
+  const filename =
+    res.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/i)?.[1] ||
+    `payslip-${row.year}-${String(row.month).padStart(2, '0')}.pdf`;
+  const url = URL.createObjectURL(blob);
+  try {
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.rel = 'noopener';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  } finally {
+    // Defer revoke so Safari can finish the download handoff
+    window.setTimeout(() => URL.revokeObjectURL(url), 2_000);
+  }
+}
+
 function PayslipCard({ row }: { row: PayslipRow }) {
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
+
+  async function onDownload() {
+    if (downloading) return;
+    setDownloading(true);
+    setDownloadError('');
+    try {
+      await downloadPayslipPdf(row);
+    } catch {
+      setDownloadError('Download failed. Try again.');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <article className="ess-card-flat overflow-hidden">
       <div className="flex items-start justify-between gap-3 border-b border-[var(--ess-border)] px-4 py-4">
@@ -74,15 +114,18 @@ function PayslipCard({ row }: { row: PayslipRow }) {
           ))}
         </dl>
 
-        <a
-          href={`/api/ess/payslips/${row.id}/pdf`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--ess-primary)] px-4 py-2 text-sm font-black text-white"
+        <button
+          type="button"
+          onClick={() => void onDownload()}
+          disabled={downloading}
+          className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--ess-primary)] px-4 py-2 text-sm font-black text-white disabled:opacity-60"
         >
           <Download className="h-4 w-4" />
-          Download PDF
-        </a>
+          {downloading ? 'Preparing…' : 'Download PDF'}
+        </button>
+        {downloadError ? (
+          <p className="mt-2 text-center text-xs font-semibold text-red-500">{downloadError}</p>
+        ) : null}
       </div>
     </article>
   );

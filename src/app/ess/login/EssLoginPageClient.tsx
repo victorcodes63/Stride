@@ -75,6 +75,7 @@ export function EssLoginForm({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(() => resolveOAuthError(searchParams.get('error')));
   const emailLoginEnabled = welcomeCopy.emailLoginEnabled;
@@ -94,7 +95,7 @@ export function EssLoginForm({
       const res = await fetch('/api/ess/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -115,7 +116,9 @@ export function EssLoginForm({
       setError(`${provider.label} sign-in is not configured yet. Use email and password, or contact HR.`);
       return;
     }
-    window.location.href = provider.startPath;
+    const url = new URL(provider.startPath, window.location.origin);
+    url.searchParams.set('remember', rememberMe ? '1' : '0');
+    window.location.href = url.pathname + url.search;
   }
 
   const inputCls =
@@ -225,6 +228,18 @@ export function EssLoginForm({
                   </div>
                 </div>
 
+                <label className="flex cursor-pointer select-none items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 shrink-0 rounded border-[var(--ess-login-line)] text-[var(--ess-login-coral)] accent-[var(--ess-login-coral)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--ess-login-coral)_28%,transparent)]"
+                  />
+                  <span className="text-[0.8125rem] font-medium text-[var(--ess-login-ink-muted)]">
+                    Remember me on this device
+                  </span>
+                </label>
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -242,6 +257,20 @@ export function EssLoginForm({
                   )}
                 </button>
               </form>
+            ) : null}
+
+            {!emailLoginEnabled && providers.length > 0 ? (
+              <label className="mb-4 flex cursor-pointer select-none items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 shrink-0 rounded border-[var(--ess-login-line)] text-[var(--ess-login-coral)] accent-[var(--ess-login-coral)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--ess-login-coral)_28%,transparent)]"
+                />
+                <span className="text-[0.8125rem] font-medium text-[var(--ess-login-ink-muted)]">
+                  Remember me on this device
+                </span>
+              </label>
             ) : null}
 
             {emailLoginEnabled && providers.length > 0 ? (

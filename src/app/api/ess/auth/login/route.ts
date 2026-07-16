@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { getEssSessionMaxAgeSeconds } from '@/lib/ess-session';
+import { getEssSessionCookieOptions, parseRememberMeFlag } from '@/lib/ess-session';
 import { logAuditEvent } from '@/lib/audit-events';
 import { assertAccountLoginAllowed } from '@/lib/account-login-guard';
 import { assertCredentialsLoginEnabled } from '@/lib/oauth/assert-credentials-enabled';
 
 const ESS_SESSION_COOKIE = 'ess_session';
-const COOKIE_MAX_AGE = getEssSessionMaxAgeSeconds();
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -20,6 +19,7 @@ export async function POST(request: NextRequest) {
   const b = body as Record<string, unknown>;
   const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
   const password = typeof b.password === 'string' ? b.password : '';
+  const rememberMe = parseRememberMeFlag(b.rememberMe);
 
   const credentialsBlocked = await assertCredentialsLoginEnabled('ess', email);
   if (credentialsBlocked) return credentialsBlocked;
@@ -91,12 +91,10 @@ export async function POST(request: NextRequest) {
   });
 
   const response = NextResponse.json({ success: true });
-  response.cookies.set(ESS_SESSION_COOKIE, `local:${user.id}:${user.role}`, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: COOKIE_MAX_AGE,
-    path: '/',
-  });
+  response.cookies.set(
+    ESS_SESSION_COOKIE,
+    `local:${user.id}:${user.role}`,
+    getEssSessionCookieOptions(rememberMe),
+  );
   return response;
 }

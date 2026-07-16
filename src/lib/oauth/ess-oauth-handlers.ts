@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { isEssAllowedEmail } from '@/lib/ess-allowed-domains';
-import { getEssSessionMaxAgeSeconds, type ParsedEssSession } from '@/lib/ess-session';
+import {
+  ESS_REMEMBER_COOKIE,
+  getEssSessionCookieOptions,
+  parseRememberMeFlag,
+  type ParsedEssSession,
+} from '@/lib/ess-session';
 import { buildGoogleAuthorizeUrl, buildMicrosoftAuthorizeUrl } from '@/lib/auth/platform-oauth';
 import { exchangeGoogleCodeForEmail } from '@/lib/oauth/google-email';
 import { exchangeMicrosoftCodeForEmail } from '@/lib/oauth/microsoft-email';
@@ -14,7 +19,6 @@ import {
 } from '@/lib/oauth-utils';
 
 const ESS_SESSION_COOKIE = 'ess_session';
-const ESS_SESSION_MAX_AGE = getEssSessionMaxAgeSeconds();
 
 export const ESS_OAUTH_STATE_COOKIES = {
   microsoft: 'ess_oauth_state_ms',
@@ -27,6 +31,7 @@ export function createEssOAuthStartResponse(
 ): NextResponse {
   const loginHint = request.nextUrl.searchParams.get('email')?.trim().toLowerCase();
   const hostedDomain = request.nextUrl.searchParams.get('hd')?.trim().toLowerCase();
+  const rememberMe = parseRememberMeFlag(request.nextUrl.searchParams.get('remember'));
   const state = crypto.randomBytes(24).toString('hex');
 
   const authUrl =
@@ -53,6 +58,14 @@ export function createEssOAuthStartResponse(
     path: '/',
     ...(cookieDomain && { domain: cookieDomain }),
   });
+  response.cookies.set(ESS_REMEMBER_COOKIE, rememberMe ? '1' : '0', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 10,
+    path: '/',
+    ...(cookieDomain && { domain: cookieDomain }),
+  });
   return response;
 }
 
@@ -69,6 +82,7 @@ function denyEssLogin(request: NextRequest, reason: string) {
   };
   denied.cookies.set(ESS_OAUTH_STATE_COOKIES.microsoft, '', opts);
   denied.cookies.set(ESS_OAUTH_STATE_COOKIES.google, '', opts);
+  denied.cookies.set(ESS_REMEMBER_COOKIE, '', opts);
   denied.cookies.set(ESS_SESSION_COOKIE, '', opts);
   return denied;
 }
@@ -90,6 +104,7 @@ export async function completeEssOAuthCallback(
   const state = request.nextUrl.searchParams.get('state');
   const oauthError = request.nextUrl.searchParams.get('error');
   const stateCookie = request.cookies.get(ESS_OAUTH_STATE_COOKIES[provider])?.value;
+  const rememberMe = parseRememberMeFlag(request.cookies.get(ESS_REMEMBER_COOKIE)?.value ?? '1');
   const loginUrl = new URL(getOAuthLoginPath('ess'), request.url);
   const successUrl = new URL(getOAuthSuccessPath('ess'), request.url);
 
@@ -139,19 +154,19 @@ export async function completeEssOAuthCallback(
   const sessionProvider = provider === 'microsoft' ? 'ms' : 'google';
   const response = NextResponse.redirect(successUrl);
   const cookieDomain = getOAuthCookieDomain(request.url);
-  response.cookies.set(
-    ESS_SESSION_COOKIE,
-    buildEssSessionValue(sessionProvider, user.id, user.role, email),
-    {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: ESS_SESSION_MAX_AGE,
-      path: '/',
-      ...(cookieDomain && { domain: cookieDomain }),
-    },
-  );
+  response.cookies.set(ESS_SESSION_COOKIE, buildEssSessionValue(sessionProvider, user.id, user.role, email), {
+    ...getEssSessionCookieOptions(rememberMe),
+    ...(cookieDomain && { domain: cookieDomain }),
+  });
   response.cookies.set(ESS_OAUTH_STATE_COOKIES[provider], '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 0,
+    path: '/',
+    ...(cookieDomain && { domain: cookieDomain }),
+  });
+  response.cookies.set(ESS_REMEMBER_COOKIE, '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

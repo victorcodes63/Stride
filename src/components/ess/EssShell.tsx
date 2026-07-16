@@ -64,7 +64,7 @@ function EssShellInner({ children, brand, themeStyle }: { children: ReactNode; b
       {meLoading ? <PlatformLoadingOverlay /> : null}
       <SkipToMain />
       <EssOfflineBanner />
-      <header className="sticky top-0 z-20 px-3 pt-2 ess-safe-top">
+      <header className="ess-chrome-header">
         <div className="ess-glass mx-auto flex w-full max-w-lg items-center justify-between gap-2 rounded-[1.35rem] px-3 py-2 shadow-sm">
           <div className="flex min-h-11 min-w-0 flex-1 items-center">
             <BrandLogo variant="markSm" className="h-9 w-9 object-contain" />
@@ -163,7 +163,7 @@ function EssShellInner({ children, brand, themeStyle }: { children: ReactNode; b
         </div>
       )}
 
-      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-lg px-4 pt-6 ess-main-pad">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-lg px-4 ess-main-pad">
         {children}
       </main>
       <EssTabBar />

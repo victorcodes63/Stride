@@ -12,7 +12,8 @@ export const metadata: Metadata = {
   manifest: '/api/ess/manifest',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    // Translucent so the webview draws under the status bar and safe-area insets apply
+    statusBarStyle: 'black-translucent',
     title: 'Stride ESS',
   },
   formatDetection: {
