@@ -32,7 +32,7 @@ const REQUIRED_PROFILE_FIELDS: Array<keyof EmployeeProfileForCompleteness> = [
   'dateOfJoining',
   'jobTitle',
   'departmentId',
-  'costCenterCode',
+  // costCenterCode is optional — finance/GL tag, not org structure
 ];
 
 function hasValue(value: unknown): boolean {

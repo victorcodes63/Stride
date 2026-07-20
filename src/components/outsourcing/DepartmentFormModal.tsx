@@ -20,13 +20,24 @@ export type DepartmentRecord = {
 type EmployeeOption = { id: string; firstName: string; lastName: string };
 
 type Props = {
-  clientId: string;
+  /** End-client id for outsourcing surface; unused for internal `/api/departments`. */
+  clientId?: string;
+  /** List/create/update base, e.g. `/api/departments` or `/api/outsourcing/clients/:id/departments`. */
+  apiBase: string;
+  /** Employee directory for head picker. */
+  employeesApi: string;
   department?: DepartmentRecord | null;
   onClose: () => void;
   onSaved: (dept: DepartmentRecord) => void;
 };
 
-export function DepartmentFormModal({ clientId, department, onClose, onSaved }: Props) {
+export function DepartmentFormModal({
+  apiBase,
+  employeesApi,
+  department,
+  onClose,
+  onSaved,
+}: Props) {
   const isEdit = !!department;
   const [name, setName] = useState(department?.name ?? '');
   const [code, setCode] = useState(department?.code ?? '');
@@ -42,7 +53,7 @@ export function DepartmentFormModal({ clientId, department, onClose, onSaved }: 
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/outsourcing/employees?clientId=${encodeURIComponent(clientId)}&limit=500`);
+        const res = await fetch(employeesApi);
         const data = await res.json().catch(() => []);
         if (!cancelled && Array.isArray(data)) {
           setEmployees(data.map((e: EmployeeOption) => ({ id: e.id, firstName: e.firstName, lastName: e.lastName })));
@@ -54,7 +65,7 @@ export function DepartmentFormModal({ clientId, department, onClose, onSaved }: 
     return () => {
       cancelled = true;
     };
-  }, [clientId]);
+  }, [employeesApi]);
 
   const headOptions = useMemo(
     () => [
@@ -81,9 +92,7 @@ export function DepartmentFormModal({ clientId, department, onClose, onSaved }: 
         costCenterCode: costCenterCode.trim() || null,
         costCenterName: costCenterName.trim() || null,
       };
-      const url = isEdit
-        ? `/api/outsourcing/clients/${clientId}/departments/${department!.id}`
-        : `/api/outsourcing/clients/${clientId}/departments`;
+      const url = isEdit ? `${apiBase}/${department!.id}` : apiBase;
       const res = await fetch(url, {
         method: isEdit ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,7 +124,7 @@ export function DepartmentFormModal({ clientId, department, onClose, onSaved }: 
               {isEdit ? 'Edit department' : 'New department'}
             </h2>
             <p className="mt-0.5 text-sm text-[var(--dash-text-muted)]">
-              Group employees for payroll, cost-centre allocation, and reporting.
+              Group employees for org structure, payroll filters, and reporting.
             </p>
           </div>
           <button
@@ -186,7 +195,10 @@ export function DepartmentFormModal({ clientId, department, onClose, onSaved }: 
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">Cost centre code</span>
+              <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">
+                Cost centre code{' '}
+                <span className="text-xs font-normal text-[var(--dash-text-muted)]">(optional)</span>
+              </span>
               <input
                 value={costCenterCode}
                 onChange={(e) => setCostCenterCode(e.target.value)}
@@ -194,9 +206,15 @@ export function DepartmentFormModal({ clientId, department, onClose, onSaved }: 
                 maxLength={40}
                 className="w-full rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-2 text-sm"
               />
+              <p className="mt-1 text-xs text-[var(--dash-text-muted)]">
+                Finance/GL tag for budgets — not the department name.
+              </p>
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">Cost centre name</span>
+              <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">
+                Cost centre name{' '}
+                <span className="text-xs font-normal text-[var(--dash-text-muted)]">(optional)</span>
+              </span>
               <input
                 value={costCenterName}
                 onChange={(e) => setCostCenterName(e.target.value)}

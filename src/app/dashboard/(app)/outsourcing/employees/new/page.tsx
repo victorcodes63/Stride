@@ -421,10 +421,10 @@ function NewEmployeeForm() {
  <input id="baseSalary" type="number" min={0} step={1} value={form.baseSalary} onChange={update('baseSalary')} className={inputClass} />
  </Field>
  <div className="hidden sm:block" aria-hidden />
- <Field label="Cost centre code" htmlFor="costCenterCode">
- <input id="costCenterCode" value={form.costCenterCode} onChange={update('costCenterCode')} className={inputClass} />
+ <Field label="Cost centre code" hint="Optional finance/GL budget tag — not the same as department." htmlFor="costCenterCode">
+ <input id="costCenterCode" value={form.costCenterCode} onChange={update('costCenterCode')} className={inputClass} placeholder="e.g. CC-FIN-01" />
  </Field>
- <Field label="Cost centre name" htmlFor="costCenterName">
+ <Field label="Cost centre name" optional htmlFor="costCenterName">
  <input id="costCenterName" value={form.costCenterName} onChange={update('costCenterName')} className={inputClass} />
  </Field>
  </div>

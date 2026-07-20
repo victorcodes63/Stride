@@ -9,6 +9,11 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
 import { DepartmentFormModal, type DepartmentRecord } from '@/components/outsourcing/DepartmentFormModal';
+import {
+  departmentsSurfaceFromPathname,
+  outsourcingDepartmentsApi,
+  outsourcingEmployeesApi,
+} from '@/lib/departments-surface';
 
 type RosterMember = {
   id: string;
@@ -49,9 +54,25 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function DepartmentDetailView({ departmentId, backHref }: { departmentId: string; backHref: string }) {
-  const { clientId: hookClientId, loading: clientsLoading } = useOutsourcingClient();
+  const surface = departmentsSurfaceFromPathname(backHref);
+  const isOutsourcing = surface.mode === 'outsourcing';
+  const { clientId: hookClientId, loading: clientsLoading } = useOutsourcingClient({
+    enabled: isOutsourcing,
+  });
   const searchParams = useSearchParams();
-  const clientId = searchParams.get('clientId') || hookClientId || '';
+  const clientId = isOutsourcing ? searchParams.get('clientId') || hookClientId || '' : '';
+  const deptApi = isOutsourcing
+    ? clientId
+      ? `${outsourcingDepartmentsApi(clientId)}/${departmentId}`
+      : ''
+    : `${surface.apiBase}/${departmentId}`;
+  const listApi = isOutsourcing ? (clientId ? outsourcingDepartmentsApi(clientId) : '') : surface.apiBase;
+  const employeesApi = isOutsourcing
+    ? clientId
+      ? outsourcingEmployeesApi(clientId)
+      : ''
+    : surface.employeesApi;
+  const assignApi = isOutsourcing ? '/api/outsourcing/employees/bulk-assign-department' : '/api/employees/bulk-assign-department';
 
   const [detail, setDetail] = useState<DepartmentDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,14 +82,18 @@ export function DepartmentDetailView({ departmentId, backHref }: { departmentId:
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!clientId) {
+    if (isOutsourcing && !clientId) {
+      setLoading(false);
+      return;
+    }
+    if (!deptApi) {
       setLoading(false);
       return;
     }
     try {
       setError(null);
       setLoading(true);
-      const res = await fetch(`/api/outsourcing/clients/${clientId}/departments/${departmentId}`);
+      const res = await fetch(deptApi);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to load department.');
       setDetail(data as DepartmentDetail);
@@ -77,7 +102,7 @@ export function DepartmentDetailView({ departmentId, backHref }: { departmentId:
     } finally {
       setLoading(false);
     }
-  }, [clientId, departmentId]);
+  }, [clientId, departmentId, deptApi, isOutsourcing]);
 
   useEffect(() => {
     if (clientsLoading) return;
@@ -85,14 +110,18 @@ export function DepartmentDetailView({ departmentId, backHref }: { departmentId:
   }, [clientsLoading, load]);
 
   const handleUnassign = async (memberId: string) => {
-    if (!clientId) return;
+    if (isOutsourcing && !clientId) return;
     setBusyId(memberId);
     setError(null);
     try {
-      const res = await fetch('/api/outsourcing/employees/bulk-assign-department', {
+      const res = await fetch(assignApi, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employeeIds: [memberId], departmentId: null, clientId }),
+        body: JSON.stringify({
+          employeeIds: [memberId],
+          departmentId: null,
+          ...(isOutsourcing ? { clientId } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to unassign employee.');
@@ -285,9 +314,10 @@ export function DepartmentDetailView({ departmentId, backHref }: { departmentId:
         )}
       </div>
 
-      {showEdit ? (
+      {showEdit && listApi ? (
         <DepartmentFormModal
-          clientId={clientId}
+          apiBase={listApi}
+          employeesApi={employeesApi}
           department={editRecord}
           onClose={() => setShowEdit(false)}
           onSaved={() => void load()}
@@ -296,7 +326,9 @@ export function DepartmentDetailView({ departmentId, backHref }: { departmentId:
 
       {showAssign ? (
         <AssignEmployeesModal
-          clientId={clientId}
+          employeesApi={employeesApi}
+          assignApi={assignApi}
+          clientId={clientId || undefined}
           departmentId={detail.id}
           departmentName={detail.name}
           onClose={() => setShowAssign(false)}
@@ -317,13 +349,17 @@ type AssignableEmployee = {
 };
 
 function AssignEmployeesModal({
+  employeesApi,
+  assignApi,
   clientId,
   departmentId,
   departmentName,
   onClose,
   onAssigned,
 }: {
-  clientId: string;
+  employeesApi: string;
+  assignApi: string;
+  clientId?: string;
   departmentId: string;
   departmentName: string;
   onClose: () => void;
@@ -340,7 +376,7 @@ function AssignEmployeesModal({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/outsourcing/employees?clientId=${encodeURIComponent(clientId)}&limit=500`);
+        const res = await fetch(employeesApi);
         const data = await res.json().catch(() => []);
         if (!cancelled) setEmployees(Array.isArray(data) ? data : []);
       } catch {
@@ -352,7 +388,7 @@ function AssignEmployeesModal({
     return () => {
       cancelled = true;
     };
-  }, [clientId]);
+  }, [employeesApi]);
 
   const assignable = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -372,10 +408,14 @@ function AssignEmployeesModal({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch('/api/outsourcing/employees/bulk-assign-department', {
+      const res = await fetch(assignApi, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employeeIds: selected, departmentId, clientId }),
+        body: JSON.stringify({
+          employeeIds: selected,
+          departmentId,
+          ...(clientId ? { clientId } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to assign employees.');

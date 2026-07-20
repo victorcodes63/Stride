@@ -435,8 +435,11 @@ export default function EditEmployeePage() {
  <input id="dateOfJoining" type="date" value={form.dateOfJoining} onChange={update('dateOfJoining')} className={inputClass} />
  </div>
  <div>
- <label htmlFor="costCenterCode" className="block text-sm font-medium text-primary-900 mb-2">Cost centre code</label>
- <input id="costCenterCode" type="text" value={form.costCenterCode} onChange={update('costCenterCode')} className={inputClass} />
+ <label htmlFor="costCenterCode" className="block text-sm font-medium text-primary-900 mb-2">
+ Cost centre code <span className="font-normal text-neutral-500">(optional)</span>
+ </label>
+ <input id="costCenterCode" type="text" value={form.costCenterCode} onChange={update('costCenterCode')} className={inputClass} placeholder="e.g. CC-FIN-01" />
+ <p className="mt-1 text-xs text-neutral-500">Finance/GL budget tag — not the same as department.</p>
  </div>
  <div>
  <label htmlFor="costCenterName" className="block text-sm font-medium text-primary-900 mb-2">Cost centre name</label>

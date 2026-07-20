@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  departmentsSurfaceFromPathname,
+  outsourcingDepartmentsApi,
+  outsourcingEmployeesApi,
+} from '@/lib/departments-surface';
 import { Archive, ArchiveRestore, Pencil, Plus, Search, Trash2, Upload, Users, X } from 'lucide-react';
 import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
 import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
@@ -15,8 +20,21 @@ import { DepartmentFormModal, type DepartmentRecord } from '@/components/outsour
 import { DepartmentImportModal } from '@/components/outsourcing/DepartmentImportModal';
 
 function DepartmentsPageInner() {
-  const { clientId, clients, setClientId, showSwitcher, loading: clientsLoading } = useOutsourcingClient();
   const pathname = usePathname();
+  const surface = departmentsSurfaceFromPathname(pathname);
+  const isOutsourcing = surface.mode === 'outsourcing';
+  const outsourcingClient = useOutsourcingClient({ enabled: isOutsourcing });
+  const clientId = isOutsourcing ? outsourcingClient.clientId : '';
+  const clients = isOutsourcing ? outsourcingClient.clients : [];
+  const setClientId = outsourcingClient.setClientId;
+  const showSwitcher = isOutsourcing && outsourcingClient.showSwitcher;
+  const clientsLoading = isOutsourcing ? outsourcingClient.loading : false;
+  const apiBase = isOutsourcing
+    ? (clientId ? outsourcingDepartmentsApi(clientId) : '')
+    : surface.apiBase;
+  const employeesApi = isOutsourcing
+    ? (clientId ? outsourcingEmployeesApi(clientId) : '')
+    : surface.employeesApi;
   const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -29,7 +47,12 @@ function DepartmentsPageInner() {
   const [confirmBusy, setConfirmBusy] = useState(false);
 
   const loadDepartments = async () => {
-    if (!clientId) {
+    if (isOutsourcing && !clientId) {
+      setDepartments([]);
+      setLoading(false);
+      return;
+    }
+    if (!apiBase) {
       setDepartments([]);
       setLoading(false);
       return;
@@ -37,7 +60,7 @@ function DepartmentsPageInner() {
     try {
       setError(null);
       setLoading(true);
-      const res = await fetch(`/api/outsourcing/clients/${clientId}/departments`);
+      const res = await fetch(apiBase);
       const data = await res.json().catch(() => []);
       setDepartments(Array.isArray(data) ? data : []);
     } catch {
@@ -51,7 +74,7 @@ function DepartmentsPageInner() {
   useEffect(() => {
     if (clientsLoading) return;
     void loadDepartments();
-  }, [clientId, clientsLoading]);
+  }, [clientId, clientsLoading, apiBase, isOutsourcing]);
 
   const filteredDepartments = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -87,7 +110,7 @@ function DepartmentsPageInner() {
   const handleToggleArchive = async (dept: DepartmentRecord) => {
     setError(null);
     try {
-      const res = await fetch(`/api/outsourcing/clients/${clientId}/departments/${dept.id}`, {
+      const res = await fetch(`${apiBase}/${dept.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !dept.isActive }),
@@ -102,11 +125,11 @@ function DepartmentsPageInner() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!confirmTarget || !clientId) return;
+    if (!confirmTarget || (isOutsourcing && !clientId) || !apiBase) return;
     setConfirmBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/outsourcing/clients/${clientId}/departments/${confirmTarget.id}`, {
+      const res = await fetch(`${apiBase}/${confirmTarget.id}`, {
         method: 'DELETE',
       });
       const data = await res.json().catch(() => ({}));
@@ -133,25 +156,27 @@ function DepartmentsPageInner() {
     <DashboardPage>
       <DashboardPageHeader
         title="Departments"
-        description="Group employees by department for payroll, cost-centre allocation, and reporting."
+        description="Group employees by department for org structure, payroll filters, and reporting."
         actions={
           <>
-            <button
-              type="button"
-              onClick={() => setShowImport(true)}
-              disabled={!clientId}
-              className="btn-secondary inline-flex items-center gap-2 disabled:opacity-50"
-            >
-              <Upload className="h-4 w-4" />
-              Import
-            </button>
+            {isOutsourcing ? (
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                disabled={!clientId}
+                className="btn-secondary inline-flex items-center gap-2 disabled:opacity-50"
+              >
+                <Upload className="h-4 w-4" />
+                Import
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => {
                 setEditing(null);
                 setShowForm(true);
               }}
-              disabled={!clientId}
+              disabled={isOutsourcing && !clientId}
               className="btn-primary inline-flex shrink-0 items-center gap-2 disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
@@ -256,7 +281,11 @@ function DepartmentsPageInner() {
               <li key={dept.id} className="group transition-colors hover:bg-[var(--dash-hover)]">
                 <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-5">
                   <Link
-                    href={`${pathname}/${dept.id}?clientId=${encodeURIComponent(clientId ?? '')}`}
+                    href={
+                      isOutsourcing
+                        ? `${surface.basePath}/${dept.id}?clientId=${encodeURIComponent(clientId ?? '')}`
+                        : `${surface.basePath}/${dept.id}`
+                    }
                     className="flex min-w-0 flex-1 items-center gap-3"
                   >
                     <div
@@ -325,9 +354,10 @@ function DepartmentsPageInner() {
         )}
       </div>
 
-      {showForm && clientId ? (
+      {showForm && apiBase ? (
         <DepartmentFormModal
-          clientId={clientId}
+          apiBase={apiBase}
+          employeesApi={employeesApi}
           department={editing}
           onClose={() => {
             setShowForm(false);
@@ -340,7 +370,7 @@ function DepartmentsPageInner() {
         />
       ) : null}
 
-      {showImport && clientId ? (
+      {showImport && isOutsourcing && clientId ? (
         <DepartmentImportModal
           clientId={clientId}
           onClose={() => setShowImport(false)}

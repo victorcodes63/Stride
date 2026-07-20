@@ -15,7 +15,8 @@ describe('hr-core-employee', () => {
 
     expect(result.isComplete).toBe(false);
     expect(result.missingFields).toContain('idNumber');
-    expect(result.missingFields).toContain('costCenterCode');
+    expect(result.missingFields).not.toContain('costCenterCode');
+    expect(result.missingFields).toContain('departmentId');
   });
 
   it('accepts complete employee profiles', () => {
