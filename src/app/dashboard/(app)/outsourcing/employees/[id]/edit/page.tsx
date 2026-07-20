@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, usePathname } from 'next/navigation';
+import { employeesSurfaceFromPathname } from '@/lib/employees-surface';
 import { Download, FileText, Pencil, Plus, Shield, Trash2, X } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
@@ -52,6 +53,9 @@ const CATEGORY_OPTIONS: { value: DocumentCategory; label: string }[] = [
 
 export default function EditEmployeePage() {
  const router = useRouter();
+ const pathname = usePathname();
+ const surface = employeesSurfaceFromPathname(pathname);
+
  const params = useParams();
  const id = params?.id as string | undefined;
  const [form, setForm] = useState({
@@ -114,7 +118,7 @@ export default function EditEmployeePage() {
  if (!id || !canManageLifecycle) return;
  setLifecycleLoading(eventType);
  try {
- const res = await fetch(`/api/outsourcing/employees/${id}/lifecycle`, {
+ const res = await fetch(`${surface.apiBase}/${id}/lifecycle`, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ eventType, effectiveDate: new Date().toISOString().slice(0, 10) }),
@@ -133,7 +137,7 @@ export default function EditEmployeePage() {
  setDocumentsLoading(true);
  setDocumentsError(null);
  try {
- const res = await fetch(`/api/outsourcing/employees/${employeeId}/documents`);
+ const res = await fetch(`${surface.apiBase}/${employeeId}/documents`);
  const data = await res.json().catch(() => []);
  if (!res.ok) throw new Error(data.error || 'Failed to load documents');
  setDocuments(Array.isArray(data) ? data : []);
@@ -171,7 +175,7 @@ export default function EditEmployeePage() {
  setLoading(true);
  setError(null);
  try {
- const res = await fetch(`/api/outsourcing/employees/${id}`);
+ const res = await fetch(`${surface.apiBase}/${id}`);
  if (!res.ok) throw new Error('Failed to load employee');
  const emp = await res.json();
  if (cancelled) return;
@@ -197,7 +201,7 @@ export default function EditEmployeePage() {
  });
  setClientName(emp.clientName ?? '');
  if (emp.clientId) {
- const deptRes = await fetch(`/api/outsourcing/clients/${emp.clientId}/departments`);
+ const deptRes = await fetch(surface.mode === 'outsourcing' ? `/api/outsourcing/clients/${emp.clientId}/departments` : surface.departmentsApi);
  const deptData = await deptRes.json().catch(() => []);
  if (!cancelled && Array.isArray(deptData)) {
  setDepartments(deptData.map((d: { id: string; name: string }) => ({ id: d.id, name: d.name })));
@@ -265,7 +269,7 @@ export default function EditEmployeePage() {
  baseSalary: form.baseSalary.trim() ? parseFloat(form.baseSalary.replace(/,/g, '')) : null,
  };
  try {
- const res = await fetch(`/api/outsourcing/employees/${id}`, {
+ const res = await fetch(`${surface.apiBase}/${id}`, {
  method: 'PATCH',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify(payload),
@@ -276,7 +280,7 @@ export default function EditEmployeePage() {
  setSubmitting(false);
  return;
  }
- router.push('/dashboard/outsourcing/employees');
+ router.push(surface.basePath);
  router.refresh();
  } catch {
  setError('Something went wrong. Please try again.');
@@ -308,7 +312,7 @@ export default function EditEmployeePage() {
  body.append('title', docForm.title.trim());
  body.append('category', docForm.category);
  if (docForm.notes.trim()) body.append('notes', docForm.notes.trim());
- const res = await fetch(`/api/outsourcing/employees/${id}/documents`, { method: 'POST', body });
+ const res = await fetch(`${surface.apiBase}/${id}/documents`, { method: 'POST', body });
  const data = await res.json().catch(() => ({}));
  if (!res.ok) throw new Error(data.error || 'Failed to upload document');
  setShowUploadModal(false);
@@ -327,7 +331,7 @@ export default function EditEmployeePage() {
  setDeletingDocumentId(docId);
  setDocumentsError(null);
  try {
- const res = await fetch(`/api/outsourcing/employees/${id}/documents/${docId}`, { method: 'DELETE' });
+ const res = await fetch(`${surface.apiBase}/${id}/documents/${docId}`, { method: 'DELETE' });
  const data = await res.json().catch(() => ({}));
  if (!res.ok) throw new Error(data.error || 'Failed to delete document');
  await fetchDocuments(id);
@@ -356,7 +360,7 @@ export default function EditEmployeePage() {
  <nav className="mb-4 sm:mb-5" aria-label="Breadcrumb">
  <ol className="flex items-center gap-1.5 text-sm text-neutral-500">
  <li>
- <Link href="/dashboard/outsourcing/employees" className="hover:text-primary-700 transition-colors">
+ <Link href={surface.basePath} className="hover:text-primary-700 transition-colors">
  Employees
  </Link>
  </li>
@@ -562,7 +566,7 @@ export default function EditEmployeePage() {
  body: JSON.stringify(payload),
  });
  const body = await res.json().catch(() => null);
- if (res.ok && body?.id) router.push(`/dashboard/outsourcing/disciplinary/cases/${body.id}`);
+ if (res.ok && body?.id) router.push(`${surface.mode === 'outsourcing' ? '/dashboard/outsourcing/disciplinary' : '/dashboard/disciplinary'}/cases/${body.id}`);
  }}
  className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700"
  >
@@ -574,7 +578,7 @@ export default function EditEmployeePage() {
  ) : (
  <div className="space-y-2">
  {disciplinaryCases.map((item) => (
- <Link key={item.id} href={`/dashboard/outsourcing/disciplinary/cases/${item.id}`} className="block rounded-lg border border-neutral-200 px-3 py-2 hover:bg-neutral-50">
+ <Link key={item.id} href={`${surface.mode === 'outsourcing' ? '/dashboard/outsourcing/disciplinary' : '/dashboard/disciplinary'}/cases/${item.id}`} className="block rounded-lg border border-neutral-200 px-3 py-2 hover:bg-neutral-50">
  <p className="text-sm font-semibold text-primary-900">{item.caseNumber} - {item.subject}</p>
  <p className="text-xs text-neutral-600">Status: {item.status.replaceAll('_', ' ')}</p>
  </Link>
@@ -684,7 +688,7 @@ export default function EditEmployeePage() {
 
  <div className="pt-6 sm:pt-8 mt-6 sm:mt-8 border-t border-neutral-200 flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-3 sm:gap-4">
  <Link
- href="/dashboard/outsourcing/employees"
+ href={surface.basePath}
  className="w-full sm:w-auto order-2 sm:order-1 px-6 py-3 min-h-[44px] sm:min-h-0 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors inline-flex items-center justify-center"
  >
  Cancel

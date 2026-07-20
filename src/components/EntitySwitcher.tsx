@@ -191,10 +191,8 @@ export function EntityProvider({ children, initialConfig = null }: EntityProvide
     localStorage.setItem(STORAGE_KEY, entity.id);
     syncEntityCookie(entity.id);
     setActiveEntityState(entity);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('hris:modules-updated'));
-    }
-    router.refresh();
+    // Full reload so every page re-binds APIs, modules, and entity-scoped data.
+    window.location.reload();
   };
 
   return (

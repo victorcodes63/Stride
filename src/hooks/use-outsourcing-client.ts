@@ -14,21 +14,28 @@ type UseOutsourcingClientOptions = {
   allowAll?: boolean;
   /** When true, the company's own primary workspace client is excluded from the list. */
   excludePrimary?: boolean;
+  /** When false, skip fetching clients (HR & Payroll internal surface). Default true. */
+  enabled?: boolean;
 };
 
 export function useOutsourcingClient(options: UseOutsourcingClientOptions = {}) {
-  const { allowAll = false, excludePrimary = false } = options;
+  const { allowAll = false, excludePrimary = false, enabled = true } = options;
   const { activeEntity } = useEntity();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const [clients, setClients] = useState<OutsourcingClientOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
 
   const urlClientId = searchParams.get('clientId');
 
   useEffect(() => {
+    if (!enabled) {
+      setClients([]);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     void fetch(`/api/outsourcing/clients${excludePrimary ? '?excludePrimary=1' : ''}`)
@@ -52,7 +59,7 @@ export function useOutsourcingClient(options: UseOutsourcingClientOptions = {}) 
     return () => {
       cancelled = true;
     };
-  }, [activeEntity.id, excludePrimary]);
+  }, [activeEntity.id, excludePrimary, enabled]);
 
   const scope = useMemo<'all' | 'single'>(() => {
     if (allowAll && urlClientId === 'all') return 'all';
@@ -90,6 +97,7 @@ export function useOutsourcingClient(options: UseOutsourcingClientOptions = {}) 
   );
 
   useEffect(() => {
+    if (!enabled) return;
     if (loading || clients.length === 0) return;
     if (scope === 'all') return;
     if (urlClientId === 'all') return;
@@ -105,7 +113,7 @@ export function useOutsourcingClient(options: UseOutsourcingClientOptions = {}) 
     } else {
       writeStoredOutsourcingClientId(resolved);
     }
-  }, [clients, loading, pathname, router, scope, searchParams, urlClientId]);
+  }, [clients, loading, pathname, router, scope, searchParams, urlClientId, enabled]);
 
   return {
     clients,

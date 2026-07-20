@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, Suspense } from 'react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
  Banknote,
  ChevronLeft,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
 import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
+import { employeesSurfaceFromPathname } from '@/lib/employees-surface';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StrideSelect } from '@/components/ui/stride-select';
@@ -87,8 +88,13 @@ type ImportResponse = {
 
 function NewEmployeeForm() {
  const router = useRouter();
+ const pathname = usePathname();
+ const surface = employeesSurfaceFromPathname(pathname);
+ const isOutsourcing = surface.mode === 'outsourcing';
  const fileInputRef = useRef<HTMLInputElement>(null);
- const { clients, clientId, setClientId, showSwitcher } = useOutsourcingClient();
+ const { clients, clientId, setClientId, showSwitcher } = useOutsourcingClient({
+  enabled: isOutsourcing,
+ });
 
  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
  const [form, setForm] = useState({
@@ -120,15 +126,15 @@ function NewEmployeeForm() {
  const [departmentPrompt, setDepartmentPrompt] = useState<string[] | null>(null);
 
  useEffect(() => {
- if (!clientId) {
+ if (isOutsourcing && !clientId) {
  setDepartments([]);
  return;
  }
- fetch(`/api/outsourcing/clients/${clientId}/departments`)
+ fetch(isOutsourcing ? `/api/outsourcing/clients/${clientId}/departments` : surface.departmentsApi)
  .then((r) => r.json())
  .then((data) => setDepartments(Array.isArray(data) ? data : []))
  .catch(() => setDepartments([]));
- }, [clientId]);
+ }, [clientId, isOutsourcing, surface.departmentsApi]);
 
  const update =
  (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -140,7 +146,7 @@ function NewEmployeeForm() {
  if (clientId) formData.append('clientId', clientId);
  if (autoCreateDepartments) formData.append('autoCreateDepartments', 'true');
 
- const res = await fetch('/api/outsourcing/employees/import', { method: 'POST', body: formData });
+ const res = await fetch(`${surface.apiBase}/import`, { method: 'POST', body: formData });
  const data = await res.json().catch(() => ({}));
  if (!res.ok) throw new Error(data.error || 'Import failed');
  return data as ImportResponse;
@@ -179,7 +185,7 @@ function NewEmployeeForm() {
  setImportResult(data);
  setDepartmentPrompt(null);
  if (clientId) {
- const deptRes = await fetch(`/api/outsourcing/clients/${clientId}/departments`);
+ const deptRes = await fetch(isOutsourcing ? `/api/outsourcing/clients/${clientId}/departments` : surface.departmentsApi);
  const deptData = await deptRes.json().catch(() => []);
  if (Array.isArray(deptData)) setDepartments(deptData);
  }
@@ -203,13 +209,13 @@ function NewEmployeeForm() {
  return;
  }
 
- if (!clientId) {
+ if (isOutsourcing && !clientId) {
  setError('Select an end-client before adding an employee.');
  return;
  }
  setSubmitting(true);
  try {
- const res = await fetch('/api/outsourcing/employees', {
+ const res = await fetch(surface.apiBase, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
@@ -236,7 +242,7 @@ function NewEmployeeForm() {
  });
  const data = await res.json().catch(() => ({}));
  if (!res.ok) throw new Error(data.error || 'Failed to add employee.');
- router.push('/dashboard/outsourcing/employees');
+ router.push(surface.basePath);
  router.refresh();
  } catch (e) {
  setError(e instanceof Error ? e.message : 'Something went wrong.');
@@ -252,7 +258,7 @@ function NewEmployeeForm() {
  <ol className="flex items-center gap-1.5 text-sm dash-setup-muted">
  <li>
  <Link
- href="/dashboard/outsourcing/employees"
+ href={surface.basePath}
  className="inline-flex items-center gap-1 dash-setup-link"
  >
  <ChevronLeft className="h-4 w-4" />
@@ -288,8 +294,8 @@ function NewEmployeeForm() {
  onClick={() =>
  window.open(
  clientId
- ? `/api/outsourcing/employees/template?clientId=${encodeURIComponent(clientId)}`
- : '/api/outsourcing/employees/template',
+ ? `${surface.apiBase}/template?clientId=${encodeURIComponent(clientId)}`
+ : `${surface.apiBase}/template`,
  '_blank',
  )
  }
@@ -331,7 +337,7 @@ function NewEmployeeForm() {
  </ul>
  ) : null}
  <div className="mt-3">
- <Link href="/dashboard/outsourcing/employees" className="dash-setup-link text-sm font-medium">
+ <Link href={surface.basePath} className="dash-setup-link text-sm font-medium">
  View employees
  </Link>
  </div>
@@ -464,7 +470,7 @@ function NewEmployeeForm() {
  </SectionCard>
 
  <div className="sticky bottom-4 z-10 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
- <Link href="/dashboard/outsourcing/employees" className="btn-secondary inline-flex items-center justify-center">
+ <Link href={surface.basePath} className="btn-secondary inline-flex items-center justify-center">
  Cancel
  </Link>
  <button

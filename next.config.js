@@ -21,41 +21,6 @@ const nextConfig = {
         permanent: true,
       },
       {
-        source: '/dashboard/outsourcing/employees',
-        destination: '/dashboard/employees',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/outsourcing/employees/new',
-        destination: '/dashboard/employees/new',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/outsourcing/employees/:id/edit',
-        destination: '/dashboard/employees/:id/edit',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/outsourcing/departments',
-        destination: '/dashboard/departments',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/outsourcing/attendance',
-        destination: '/dashboard/attendance',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/outsourcing/leave',
-        destination: '/dashboard/leave?audience=employees',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/outsourcing/disciplinary',
-        destination: '/dashboard/disciplinary',
-        permanent: false,
-      },
-      {
         source: '/ess/leave-approvals',
         destination: '/ess/team/leave',
         permanent: false,

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
  ChevronDown,
  Download,
@@ -17,6 +18,7 @@ import { useEntity } from '@/components/EntitySwitcher';
 import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
 import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
 import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
+import { employeesSurfaceFromPathname } from '@/lib/employees-surface';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import {
@@ -74,16 +76,20 @@ function profileScoreForRecord(employee: EmployeeRecord) {
 
 function EmployeesPageInner() {
  const { activeEntity } = useEntity();
- const {
-  clients,
-  clientId,
-  scope,
-  setClientId,
-  showSwitcher,
-  loading: clientsLoading,
- } = useOutsourcingClient({ allowAll: true });
+ const pathname = usePathname();
+ const surface = employeesSurfaceFromPathname(pathname);
+ const isOutsourcing = surface.mode === 'outsourcing';
+ const outsourcingClient = useOutsourcingClient({ allowAll: true, enabled: isOutsourcing });
+ const clients = isOutsourcing ? outsourcingClient.clients : [];
+ const clientId = isOutsourcing ? outsourcingClient.clientId : '';
+ const scope = isOutsourcing ? outsourcingClient.scope : 'single';
+ const setClientId = outsourcingClient.setClientId;
+ const showSwitcher = isOutsourcing && outsourcingClient.showSwitcher;
+ const clientsLoading = isOutsourcing ? outsourcingClient.loading : false;
  const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+ const linkTo = (path: string) =>
+  isOutsourcing ? withOutsourcingClientQuery(path, clientId) : path;
 
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
@@ -114,10 +120,12 @@ function EmployeesPageInner() {
  const params = new URLSearchParams();
  if (departmentFilter.trim()) params.set('departmentId', departmentFilter.trim());
  if (positionFilter.trim()) params.set('jobTitle', positionFilter.trim());
- if (scope === 'all') params.set('clientId', 'all');
- else if (clientId.trim()) params.set('clientId', clientId.trim());
+ if (isOutsourcing) {
+  if (scope === 'all') params.set('clientId', 'all');
+  else if (clientId.trim()) params.set('clientId', clientId.trim());
+ }
  if (presetFilter !== 'all') params.set('preset', presetFilter);
- const res = await fetch(`/api/outsourcing/employees?${params.toString()}`);
+ const res = await fetch(`${surface.apiBase}?${params.toString()}`);
  const data = await res.json().catch(() => []);
  if (!res.ok) throw new Error(data.error || 'Failed to load employees');
  setEmployees(Array.isArray(data) ? data : []);
@@ -132,17 +140,20 @@ function EmployeesPageInner() {
  useEffect(() => {
   if (clientsLoading) return;
   void fetchEmployees();
- }, [departmentFilter, positionFilter, clientId, scope, presetFilter, activeEntity.id, clientsLoading]);
+ }, [departmentFilter, positionFilter, clientId, scope, presetFilter, activeEntity.id, clientsLoading, surface.apiBase]);
 
  useEffect(() => {
   let cancelled = false;
-  if (scope === 'all' || !clientId) {
+  if (isOutsourcing && (scope === 'all' || !clientId)) {
    setDepartments([]);
    return undefined;
   }
   void (async () => {
    try {
-    const deptRes = await fetch(`/api/outsourcing/clients/${clientId}/departments`);
+    const deptUrl = isOutsourcing
+      ? `/api/outsourcing/clients/${clientId}/departments`
+      : surface.departmentsApi;
+    const deptRes = await fetch(deptUrl);
     const deptData = await deptRes.json().catch(() => []);
     if (!cancelled) setDepartments(Array.isArray(deptData) ? deptData : []);
    } catch {
@@ -152,7 +163,7 @@ function EmployeesPageInner() {
   return () => {
    cancelled = true;
   };
- }, [clientId, scope, activeEntity.id]);
+ }, [clientId, scope, activeEntity.id, isOutsourcing, surface.departmentsApi]);
 
  useEffect(() => {
   setSelectedIds(new Set());
@@ -214,15 +225,16 @@ function EmployeesPageInner() {
  }, [filteredEmployees]);
 
  const showClientColumn = useMemo(() => {
+ if (!isOutsourcing) return false;
  const names = new Set(employees.map((e) => e.clientName).filter(Boolean));
  return names.size > 1;
- }, [employees]);
+ }, [employees, isOutsourcing]);
 
  const hasActiveFilters =
  !!searchQuery.trim() ||
  !!departmentFilter.trim() ||
  !!positionFilter.trim() ||
- scope === 'all' ||
+ (isOutsourcing && scope === 'all') ||
  presetFilter !== 'all';
 
  const clearFilters = () => {
@@ -237,7 +249,7 @@ function EmployeesPageInner() {
  };
 
  const handleDownloadTemplate = () => {
- window.open('/api/outsourcing/employees/template', '_blank');
+ window.open(`${surface.apiBase}/template`, '_blank');
  };
 
  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -251,8 +263,8 @@ function EmployeesPageInner() {
  try {
  const formData = new FormData();
  formData.append('file', file);
- if (scope !== 'all' && clientId) formData.append('clientId', clientId);
- const res = await fetch('/api/outsourcing/employees/import', {
+ if (isOutsourcing && scope !== 'all' && clientId) formData.append('clientId', clientId);
+ const res = await fetch(`${surface.apiBase}/import`, {
  method: 'POST',
  body: formData,
  });
@@ -296,13 +308,13 @@ function EmployeesPageInner() {
  setBulkAssigning(true);
  setError(null);
  try {
- const res = await fetch('/api/outsourcing/employees/bulk-assign-department', {
+ const res = await fetch(`${surface.apiBase}/bulk-assign-department`, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
  employeeIds: Array.from(selectedIds),
  departmentId: bulkDepartmentId || null,
- clientId: scope === 'all' ? null : clientId || null,
+ clientId: isOutsourcing ? (scope === 'all' ? null : clientId || null) : null,
  }),
  });
  const data = await res.json().catch(() => ({}));
@@ -323,12 +335,12 @@ function EmployeesPageInner() {
  setBulkDeleting(true);
  setError(null);
  try {
- const res = await fetch('/api/outsourcing/employees/bulk-delete', {
+ const res = await fetch(`${surface.apiBase}/bulk-delete`, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
  employeeIds: Array.from(selectedIds),
- clientId: scope === 'all' ? null : clientId || null,
+ clientId: isOutsourcing ? (scope === 'all' ? null : clientId || null) : null,
  }),
  });
  const data = await res.json().catch(() => ({}));
@@ -348,8 +360,8 @@ function EmployeesPageInner() {
  params.set('month', String(payrollMonth));
  params.set('year', String(payrollYear));
  params.set('employeeIds', Array.from(selectedIds).join(','));
- if (scope !== 'all' && clientId) params.set('clientId', clientId);
- window.open(`/dashboard/outsourcing/payroll/payslips?${params.toString()}`, '_blank');
+ if (isOutsourcing && scope !== 'all' && clientId) params.set('clientId', clientId);
+ window.open(`${surface.payrollBasePath}/payslips?${params.toString()}`, '_blank');
  };
 
  const handleSendSelectedPayslips = async () => {
@@ -357,14 +369,14 @@ function EmployeesPageInner() {
  setBulkSendingPayslips(true);
  setError(null);
  try {
- const res = await fetch('/api/outsourcing/payroll/send-payslips', {
+ const res = await fetch(`${surface.payrollApiBase}/send-payslips`, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
  month: payrollMonth,
  year: payrollYear,
  employeeIds: Array.from(selectedIds),
- ...(scope !== 'all' && clientId ? { clientId } : {}),
+ ...(isOutsourcing && scope !== 'all' && clientId ? { clientId } : {}),
  }),
  });
  const data = await res.json().catch(() => ({}));
@@ -431,7 +443,7 @@ function EmployeesPageInner() {
  ) : null}
  </div>
  <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportFile} />
- <Link href={withOutsourcingClientQuery('/dashboard/outsourcing/employees/new', clientId)} className="btn-primary inline-flex shrink-0 items-center gap-2">
+ <Link href={linkTo(`${surface.basePath}/new`)} className="btn-primary inline-flex shrink-0 items-center gap-2">
  <UserPlus className="h-4 w-4" />
  Add employee
  </Link>
@@ -678,7 +690,7 @@ function EmployeesPageInner() {
  Add your first employee or import a spreadsheet to populate the directory.
  </p>
  <div className="mt-4 flex flex-wrap justify-center gap-2">
- <Link href={withOutsourcingClientQuery('/dashboard/outsourcing/employees/new', clientId)} className="btn-primary inline-flex items-center gap-2">
+ <Link href={linkTo(`${surface.basePath}/new`)} className="btn-primary inline-flex items-center gap-2">
  <UserPlus className="h-4 w-4" />
  Add employee
  </Link>
@@ -706,7 +718,7 @@ function EmployeesPageInner() {
  onToggleSelect={toggleSelect}
  onToggleSelectAll={toggleSelectAll}
  showClientColumn={showClientColumn}
- editBasePath="/dashboard/outsourcing/employees"
+ editBasePath={surface.basePath}
  />
  )}
  </div>
