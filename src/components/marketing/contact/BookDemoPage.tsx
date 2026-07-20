@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, Loader2, Mail } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Calendar, Check, Loader2, Mail } from 'lucide-react';
+import { StrideSelect } from '@/components/ui/stride-select';
 import { StrideLogo } from '@/components/marketing/StrideMark';
 import { MarketingCloseButton } from '@/components/marketing/MarketingCloseButton';
 import {
@@ -452,28 +453,14 @@ export function BookDemoPage() {
                         />
                         <label className="block space-y-2">
                           <span className="text-[13px] font-medium text-[#fbf8f4]/90">Team size</span>
-                          <div className="relative">
-                            <select
-                              name="teamSize"
-                              value={teamSize}
-                              onChange={(event) => setTeamSize(event.target.value)}
-                              className={`${fieldClass} appearance-none`}
-                            >
-                              {TEAM_SIZE_OPTIONS.map((option) => (
-                                <option
-                                  key={option.value || 'empty'}
-                                  value={option.value}
-                                  className="bg-[#1A1714]"
-                                >
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown
-                              className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-                              aria-hidden
-                            />
-                          </div>
+                          <StrideSelect
+                            surface="public"
+                            ariaLabel="Team size"
+                            triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
+                            value={teamSize}
+                            onChange={setTeamSize}
+                            options={TEAM_SIZE_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+                          />
                         </label>
                       </motion.div>
                     ) : null}
@@ -581,24 +568,14 @@ export function BookDemoPage() {
                           <span className="text-[13px] font-medium text-[#fbf8f4]/90">
                             Preferred time (EAT)
                           </span>
-                          <div className="relative">
-                            <select
-                              name="preferredTime"
-                              value={preferredTime}
-                              onChange={(event) => setPreferredTime(event.target.value)}
-                              className={`${fieldClass} appearance-none`}
-                            >
-                              {TIME_OPTIONS.map((option) => (
-                                <option key={option.value || 'any'} value={option.value} className="bg-[#1A1714]">
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown
-                              className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-                              aria-hidden
-                            />
-                          </div>
+                          <StrideSelect
+                            surface="public"
+                            ariaLabel="Preferred time (EAT)"
+                            triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
+                            value={preferredTime}
+                            onChange={setPreferredTime}
+                            options={TIME_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+                          />
                         </label>
                         <label className="block space-y-2">
                           <span className="text-[13px] font-medium text-[#fbf8f4]/90">

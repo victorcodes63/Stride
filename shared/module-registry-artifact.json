@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-06T13:04:36.587Z",
+  "generatedAt": "2026-07-17T09:59:40.091Z",
   "keys": [
     "core",
     "ess",
@@ -99,7 +99,7 @@
       "domainId": "finance",
       "envVar": "MODULE_ACCOUNTS",
       "requires": [],
-      "readiness": "partial"
+      "readiness": "live"
     },
     {
       "key": "reports",
@@ -119,7 +119,7 @@
       "domainId": "legal-documents",
       "envVar": "MODULE_DOCUMENTS",
       "requires": [],
-      "readiness": "partial"
+      "readiness": "live"
     },
     {
       "key": "communications",
@@ -173,7 +173,7 @@
       "domainId": "procurement",
       "envVar": "MODULE_PROCUREMENT",
       "requires": [],
-      "readiness": "partial"
+      "readiness": "live"
     },
     {
       "key": "legal",
@@ -183,7 +183,7 @@
       "domainId": "legal-documents",
       "envVar": "MODULE_LEGAL",
       "requires": [],
-      "readiness": "partial"
+      "readiness": "live"
     },
     {
       "key": "projects",
@@ -193,7 +193,7 @@
       "domainId": "projects",
       "envVar": "MODULE_PROJECTS",
       "requires": [],
-      "readiness": "planned"
+      "readiness": "live"
     },
     {
       "key": "operations",
@@ -203,7 +203,7 @@
       "domainId": "admin-operations",
       "envVar": "MODULE_OPERATIONS",
       "requires": [],
-      "readiness": "partial"
+      "readiness": "live"
     },
     {
       "key": "outsourcing",
@@ -213,7 +213,7 @@
       "domainId": "hr-outsourcing",
       "envVar": "MODULE_OUTSOURCING",
       "requires": [],
-      "readiness": "partial"
+      "readiness": "live"
     },
     {
       "key": "sales",
@@ -225,7 +225,7 @@
       "requires": [
         "performance"
       ],
-      "readiness": "partial"
+      "readiness": "live"
     },
     {
       "key": "assessments",
@@ -257,7 +257,7 @@
       "domainId": "admin-operations",
       "envVar": "MODULE_ASSETS",
       "requires": [],
-      "readiness": "partial"
+      "readiness": "live"
     },
     {
       "key": "hse",

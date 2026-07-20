@@ -77,14 +77,20 @@ function WorkspaceLink({ link }: { link: { href: string; label: string; note?: s
 function WorkspacePanel({
   title,
   links,
+  linkColumns = 1,
 }: {
   title: string;
   links: { href: string; label: string; note?: string; icon: LucideIcon }[];
+  linkColumns?: 1 | 2;
 }) {
   return (
     <div className="dashboard-panel flex h-full flex-col p-4 sm:p-5">
       <h2 className="text-sm font-semibold text-[var(--dash-text-strong)]">{title}</h2>
-      <div className="mt-3 flex flex-1 flex-col gap-2">
+      <div
+        className={`mt-3 flex-1 gap-2 ${
+          linkColumns === 2 ? 'grid grid-cols-1 sm:grid-cols-2' : 'flex flex-col'
+        }`}
+      >
         {links.map((link) => (
           <WorkspaceLink key={link.href + link.label} link={link} />
         ))}
@@ -172,7 +178,12 @@ export function ModuleHomePage({
       >
         <div className={`grid gap-4 ${workspaceGridClass(workspaces.length)}`}>
           {workspaces.map((workspace) => (
-            <WorkspacePanel key={workspace.title} title={workspace.title} links={workspace.links} />
+            <WorkspacePanel
+              key={workspace.title}
+              title={workspace.title}
+              links={workspace.links}
+              linkColumns={workspaces.length === 1 && workspace.links.length > 6 ? 2 : 1}
+            />
           ))}
         </div>
       </DashboardPageSection>

@@ -17,6 +17,7 @@ import {
   CalendarBlank,
 } from '@phosphor-icons/react';
 import { JobListing, JobSearchFilters } from '@/types/ats';
+import { StrideSelect } from '@/components/ui/stride-select';
 import { useATS } from '@/lib/use-ats';
 import { usePublicBrand } from '@/components/BrandProvider';
 
@@ -286,16 +287,19 @@ export default function DynamicJobListings({
                   size={16}
                   weight="bold"
                 />
-                <select
+                <StrideSelect
+                  surface="public"
                   value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  className={`${INPUT_CLASS} appearance-none pl-9 pr-3`}
-                >
-                  <option value="">All locations</option>
-                  <option value="Nairobi">Nairobi</option>
-                  <option value="Parklands">Parklands</option>
-                  <option value="Hybrid">Hybrid</option>
-                </select>
+                  onChange={(value) => setSelectedLocation(value)}
+                  options={[
+                    { value: '', label: 'All locations' },
+                    { value: 'Nairobi', label: 'Nairobi' },
+                    { value: 'Parklands', label: 'Parklands' },
+                    { value: 'Hybrid', label: 'Hybrid' },
+                  ]}
+                  ariaLabel="Location"
+                  triggerClassName="pl-9"
+                />
               </div>
               <div className="relative">
                 <Funnel
@@ -303,18 +307,17 @@ export default function DynamicJobListings({
                   size={16}
                   weight="bold"
                 />
-                <select
+                <StrideSelect
+                  surface="public"
                   value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className={`${INPUT_CLASS} appearance-none pl-9 pr-3`}
-                >
-                  <option value="">All categories</option>
-                  {categoryOptions.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setSelectedCategory(value)}
+                  options={[
+                    { value: '', label: 'All categories' },
+                    ...categoryOptions.map((c) => ({ value: c, label: c })),
+                  ]}
+                  ariaLabel="Category"
+                  triggerClassName="pl-9"
+                />
               </div>
               <div className="relative">
                 <ListBullets
@@ -322,18 +325,17 @@ export default function DynamicJobListings({
                   size={16}
                   weight="bold"
                 />
-                <select
+                <StrideSelect
+                  surface="public"
                   value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className={`${INPUT_CLASS} appearance-none pl-9 pr-3`}
-                >
-                  <option value="">All types</option>
-                  {TYPE_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setSelectedType(value)}
+                  options={[
+                    { value: '', label: 'All types' },
+                    ...TYPE_OPTIONS.map((t) => ({ value: t, label: t })),
+                  ]}
+                  ariaLabel="Type"
+                  triggerClassName="pl-9"
+                />
               </div>
               <div className="relative">
                 <CalendarBlank
@@ -341,17 +343,14 @@ export default function DynamicJobListings({
                   size={16}
                   weight="bold"
                 />
-                <select
+                <StrideSelect
+                  surface="public"
                   value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
-                  className={`${INPUT_CLASS} appearance-none pl-9 pr-3`}
-                >
-                  {TIME_OPTIONS.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setSelectedTime(value)}
+                  options={TIME_OPTIONS.map((t) => ({ value: t.value, label: t.label }))}
+                  ariaLabel="Date posted"
+                  triggerClassName="pl-9"
+                />
               </div>
             </div>
           )}

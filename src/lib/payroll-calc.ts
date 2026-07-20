@@ -5,19 +5,20 @@
  * - paye_only: NSSF, SHIF, AHL on employment gross only; PAYE on gross+leave.
  * - included_in_gross: employment + leave pay as one gross.
  */
+// Import from the Prisma-free constants module so this file (and its client
+// consumers, e.g. PayrollEditModal) never pull the server-only Prisma client
+// into the browser bundle. Prisma-backed loaders must be imported directly
+// from `@/lib/country-config` in server code.
 import {
   DEFAULT_KENYA_STATUTORY_RATES,
   type KenyaStatutoryRates,
-} from '@/lib/country-config';
+} from '@/lib/country-config/constants';
 
 export type { KenyaStatutoryRates };
 export {
   DEFAULT_KENYA_STATUTORY_RATES,
-  getStatutoryRates,
-  getPayrollStatutoryRates,
-  getPayrollStatutoryRatesByClient,
   resolvePayrollCountry,
-} from '@/lib/country-config';
+} from '@/lib/country-config/constants';
 
 /** @deprecated Use rates from getStatutoryRates() — kept for UI default display. */
 export const NITA_LEVY_PER_EMPLOYEE_KES = DEFAULT_KENYA_STATUTORY_RATES.nitaPerEmployee;

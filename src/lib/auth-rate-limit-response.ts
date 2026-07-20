@@ -5,13 +5,17 @@ import {
   checkRateLimit,
 } from '@/lib/rate-limit';
 
-export function enforceAuthRateLimit(route: string, request: Request): NextResponse | null {
+export function enforceAuthRateLimit(
+  route: string,
+  request: Request,
+  options: { limit: number; windowMs: number } = AUTH_RATE_LIMIT,
+): NextResponse | null {
   const key = authRateLimitKey(route, request);
-  const result = checkRateLimit(key, AUTH_RATE_LIMIT);
+  const result = checkRateLimit(key, options);
   if (result.allowed) return null;
 
   return NextResponse.json(
-    { error: 'Too many login attempts. Please wait and try again.' },
+    { error: 'Too many attempts. Please wait and try again.' },
     {
       status: 429,
       headers: {

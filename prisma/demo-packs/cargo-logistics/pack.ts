@@ -2,19 +2,19 @@ import { buildVerticalPackFromGeneric } from '../build-from-generic';
 import { d, daysFromToday } from '../date-helpers';
 import type { DemoEmployeeSeed, DemoPack } from '../types';
 
-const DOMAIN = 'swiftfreight.imara.co.ke';
-const PREFIX = 'SFE';
-const ORG = 'SwiftFreight East Africa Ltd';
+const DOMAIN = 'savannahfreight.co.ke';
+const PREFIX = 'SFL';
+const ORG = 'Savannah Freight & Logistics Ltd';
 
 const base = buildVerticalPackFromGeneric({
   id: 'cargo-logistics',
-  label: 'Cargo & logistics demo',
+  label: 'Cargo & logistics demo — Savannah Freight',
   orgName: ORG,
   emailDomain: DOMAIN,
   prefix: PREFIX,
   tagline: 'Fleet, warehouse, and dispatch operations — payroll and compliance for logistics teams.',
   publicFooterText:
-    'SwiftFreight East Africa Ltd runs on Stride — driver payroll, shift rota, and statutory compliance for cargo operations.',
+    'Savannah Freight & Logistics Ltd runs on Stride — driver payroll, shift rota, and statutory compliance for cargo operations.',
   departments: [
     'Fleet & Drivers',
     'Warehouse',
@@ -47,7 +47,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `moses.okello@${DOMAIN}`,
     phone: '+254 722 410001',
     idNumber: `${PREFIX}-EMP-001`,
-    kraPin: 'A012SFE001K',
+    kraPin: 'A012SFL001K',
     nssfNumber: `${PREFIX}-NSSF-001`,
     nhifNumber: `${PREFIX}-NHIF-001`,
     dateOfJoining: d(2021, 4, 12),
@@ -66,7 +66,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `grace.wanjiku@${DOMAIN}`,
     phone: '+254 722 410002',
     idNumber: `${PREFIX}-EMP-002`,
-    kraPin: 'A012SFE002K',
+    kraPin: 'A012SFL002K',
     nssfNumber: `${PREFIX}-NSSF-002`,
     nhifNumber: `${PREFIX}-NHIF-002`,
     dateOfJoining: d(2020, 8, 3),
@@ -85,7 +85,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `brian.kipchoge@${DOMAIN}`,
     phone: '+254 722 410003',
     idNumber: `${PREFIX}-EMP-003`,
-    kraPin: 'A012SFE003K',
+    kraPin: 'A012SFL003K',
     nssfNumber: `${PREFIX}-NSSF-003`,
     nhifNumber: `${PREFIX}-NHIF-003`,
     dateOfJoining: d(2019, 11, 1),
@@ -104,7 +104,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `patricia.achieng@${DOMAIN}`,
     phone: '+254 722 410004',
     idNumber: `${PREFIX}-EMP-004`,
-    kraPin: 'A012SFE004K',
+    kraPin: 'A012SFL004K',
     nssfNumber: `${PREFIX}-NSSF-004`,
     nhifNumber: `${PREFIX}-NHIF-004`,
     dateOfJoining: d(2022, 2, 14),
@@ -123,7 +123,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `james.mutua@${DOMAIN}`,
     phone: '+254 722 410005',
     idNumber: `${PREFIX}-EMP-005`,
-    kraPin: 'A012SFE005K',
+    kraPin: 'A012SFL005K',
     nssfNumber: `${PREFIX}-NSSF-005`,
     nhifNumber: `${PREFIX}-NHIF-005`,
     dateOfJoining: d(2023, 6, 1),
@@ -142,7 +142,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `sarah.njeri@${DOMAIN}`,
     phone: '+254 722 410006',
     idNumber: `${PREFIX}-EMP-006`,
-    kraPin: 'A012SFE006K',
+    kraPin: 'A012SFL006K',
     nssfNumber: `${PREFIX}-NSSF-006`,
     nhifNumber: `${PREFIX}-NHIF-006`,
     dateOfJoining: d(2021, 9, 20),
@@ -161,7 +161,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `kevin.omondi@${DOMAIN}`,
     phone: '+254 722 410007',
     idNumber: `${PREFIX}-EMP-007`,
-    kraPin: 'A012SFE007K',
+    kraPin: 'A012SFL007K',
     nssfNumber: `${PREFIX}-NSSF-007`,
     nhifNumber: `${PREFIX}-NHIF-007`,
     dateOfJoining: d(2020, 3, 15),
@@ -180,7 +180,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `hr@${DOMAIN}`,
     phone: '+254 722 410008',
     idNumber: `${PREFIX}-EMP-008`,
-    kraPin: 'A012SFE008K',
+    kraPin: 'A012SFL008K',
     nssfNumber: `${PREFIX}-NSSF-008`,
     nhifNumber: `${PREFIX}-NHIF-008`,
     dateOfJoining: d(2018, 1, 10),
@@ -199,7 +199,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `finance@${DOMAIN}`,
     phone: '+254 722 410009',
     idNumber: `${PREFIX}-EMP-009`,
-    kraPin: 'A012SFE009K',
+    kraPin: 'A012SFL009K',
     nssfNumber: `${PREFIX}-NSSF-009`,
     nhifNumber: `${PREFIX}-NHIF-009`,
     dateOfJoining: d(2019, 7, 1),
@@ -218,7 +218,7 @@ const employees: DemoEmployeeSeed[] = [
     email: `admin@imara.co.ke`,
     phone: '+254 722 410010',
     idNumber: `${PREFIX}-EMP-010`,
-    kraPin: 'A012SFE010K',
+    kraPin: 'A012SFL010K',
     nssfNumber: `${PREFIX}-NSSF-010`,
     nhifNumber: `${PREFIX}-NHIF-010`,
     dateOfJoining: d(2017, 5, 1),
@@ -237,7 +237,7 @@ const careersJobs = [
     type: 'Full Time',
     category: 'Fleet & Drivers',
     description:
-      'Join SwiftFreight’s regional fleet moving containerised and break-bulk cargo between Nairobi, Mombasa, and border points. Safety-first culture with telematics and journey management.',
+      'Join Savannah Freight’s regional fleet moving containerised and break-bulk cargo between Nairobi, Mombasa, and border points. Safety-first culture with telematics and journey management.',
     requirements: [
       'Valid CE driving licence with 5+ years articulated vehicle experience',
       'Clean traffic record and medical fitness certificate',

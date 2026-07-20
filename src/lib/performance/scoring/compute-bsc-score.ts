@@ -122,18 +122,22 @@ export async function computeReviewScores(
     where: { id: reviewId, organizationId },
     include: {
       cycle: true,
-      goals: true,
       ratings: true,
     },
   });
   if (!review) return null;
+
+  // Goals are keyed by cycle + employee (no direct relation on PerformanceReview).
+  const goals = await tx.performanceGoal.findMany({
+    where: { organizationId, cycleId: review.cycleId, employeeId: review.employeeId },
+  });
 
   const snapshot = review.frozenScorecardSnapshot as FrozenScorecardSnapshot | null;
   const resultsWeight = snapshot?.resultsWeightPercent ?? review.cycle.resultsWeightPercent;
   const competenciesWeight = snapshot?.competenciesWeightPercent ?? review.cycle.competenciesWeightPercent;
 
   const resultsScore = computeWeightedAverage(
-    review.goals.map((g) => ({ score: g.managerScore ?? g.selfScore, weightPercent: g.weightPercent })),
+    goals.map((g) => ({ score: g.managerScore ?? g.selfScore, weightPercent: g.weightPercent })),
   );
   const competenciesScore = computeWeightedAverage(
     review.ratings.map((r) => ({ score: r.managerScore ?? r.selfScore, weightPercent: 100 / Math.max(review.ratings.length, 1) })),

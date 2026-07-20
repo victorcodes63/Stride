@@ -12,10 +12,12 @@ import {
 type UseOutsourcingClientOptions = {
   /** When true, URL may use clientId=all and hook exposes scope 'all'. */
   allowAll?: boolean;
+  /** When true, the company's own primary workspace client is excluded from the list. */
+  excludePrimary?: boolean;
 };
 
 export function useOutsourcingClient(options: UseOutsourcingClientOptions = {}) {
-  const { allowAll = false } = options;
+  const { allowAll = false, excludePrimary = false } = options;
   const { activeEntity } = useEntity();
   const router = useRouter();
   const pathname = usePathname();
@@ -29,7 +31,7 @@ export function useOutsourcingClient(options: UseOutsourcingClientOptions = {}) 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    void fetch('/api/outsourcing/clients')
+    void fetch(`/api/outsourcing/clients${excludePrimary ? '?excludePrimary=1' : ''}`)
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
@@ -50,7 +52,7 @@ export function useOutsourcingClient(options: UseOutsourcingClientOptions = {}) 
     return () => {
       cancelled = true;
     };
-  }, [activeEntity.id]);
+  }, [activeEntity.id, excludePrimary]);
 
   const scope = useMemo<'all' | 'single'>(() => {
     if (allowAll && urlClientId === 'all') return 'all';

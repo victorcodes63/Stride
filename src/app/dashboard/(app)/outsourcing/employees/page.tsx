@@ -27,6 +27,7 @@ import {
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
 import EmployeeDirectoryTable from '@/components/dashboard/EmployeeDirectoryTable';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 interface EmployeeRecord {
  id: string;
@@ -517,42 +518,40 @@ function EmployeesPageInner() {
   className="lg:col-span-2"
  />
  ) : null}
- <select
+ <StrideSelect
+ className="lg:col-span-2"
+ ariaLabel="Filter by department"
  value={departmentFilter}
- onChange={(e) => setDepartmentFilter(e.target.value)}
- className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2 dark:border-neutral-700 dark:bg-neutral-900/80"
- >
- <option value="">All departments</option>
- {departments.map((dept) => (
- <option key={dept.id} value={dept.id}>
- {dept.name}
- </option>
- ))}
- </select>
- <select
+ onChange={setDepartmentFilter}
+ options={[
+ { value: '', label: 'All departments' },
+ ...departments.map((dept) => ({ value: dept.id, label: dept.name })),
+ ]}
+ />
+ <StrideSelect
+ className="lg:col-span-2"
+ ariaLabel="Filter by position"
  value={positionFilter}
- onChange={(e) => setPositionFilter(e.target.value)}
- className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2 dark:border-neutral-700 dark:bg-neutral-900/80"
- >
- <option value="">All positions</option>
- {uniquePositions.map((position) => (
- <option key={position} value={position}>
- {position}
- </option>
- ))}
- </select>
- <select
+ onChange={setPositionFilter}
+ options={[
+ { value: '', label: 'All positions' },
+ ...uniquePositions.map((position) => ({ value: position, label: position })),
+ ]}
+ />
+ <StrideSelect
+ className="lg:col-span-2"
+ ariaLabel="Filter by record status"
  value={presetFilter}
- onChange={(e) => setPresetFilter(e.target.value)}
- className="h-10 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm lg:col-span-2 dark:border-neutral-700 dark:bg-neutral-900/80"
- >
- <option value="all">All records</option>
- <option value="incomplete_profile">Incomplete profiles</option>
- <option value="without_manager">No manager</option>
- <option value="without_cost_centre">No cost centre</option>
- <option value="on_probation">On probation</option>
- <option value="suspended">Suspended</option>
- </select>
+ onChange={setPresetFilter}
+ options={[
+ { value: 'all', label: 'All records' },
+ { value: 'incomplete_profile', label: 'Incomplete profiles' },
+ { value: 'without_manager', label: 'No manager' },
+ { value: 'without_cost_centre', label: 'No cost centre' },
+ { value: 'on_probation', label: 'On probation' },
+ { value: 'suspended', label: 'Suspended' },
+ ]}
+ />
  </div>
  <div className="flex flex-wrap items-center justify-between gap-3">
  <p className="text-sm text-[var(--dash-text-muted)]">
@@ -594,19 +593,18 @@ function EmployeesPageInner() {
  Assign department
  </p>
  <div className="flex flex-col gap-2 sm:flex-row">
- <select
+ <StrideSelect
+ className="min-w-0 flex-1"
+ size="sm"
+ ariaLabel="Assign department"
  value={bulkDepartmentId}
- onChange={(e) => setBulkDepartmentId(e.target.value)}
+ onChange={setBulkDepartmentId}
  disabled={departments.length === 0}
- className="h-9 min-w-0 flex-1 rounded-lg border border-neutral-200/80 bg-white/90 px-3 text-sm disabled:opacity-60"
- >
- <option value="">Unassigned</option>
- {departments.map((dept) => (
- <option key={dept.id} value={dept.id}>
- {dept.name}
- </option>
- ))}
- </select>
+ options={[
+ { value: '', label: 'Unassigned' },
+ ...departments.map((dept) => ({ value: dept.id, label: dept.name })),
+ ]}
+ />
  <button
  type="button"
  onClick={handleBulkAssignDepartment}
@@ -622,17 +620,17 @@ function EmployeesPageInner() {
  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">Payslips</p>
  <div className="flex flex-col gap-2">
  <div className="flex items-center gap-2">
- <select
- value={payrollMonth}
- onChange={(e) => setPayrollMonth(Number(e.target.value))}
- className="h-9 flex-1 rounded-lg border border-neutral-200/80 bg-white/90 px-2 text-sm"
- >
- {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
- <option key={m} value={m}>
- {new Date(2000, m - 1, 1).toLocaleString(undefined, { month: 'short' })}
- </option>
- ))}
- </select>
+ <StrideSelect
+ size="sm"
+ className="flex-1"
+ ariaLabel="Payslip month"
+ value={String(payrollMonth)}
+ onChange={(value) => setPayrollMonth(Number(value))}
+ options={Array.from({ length: 12 }, (_, i) => i + 1).map((m) => ({
+ value: String(m),
+ label: new Date(2000, m - 1, 1).toLocaleString(undefined, { month: 'short' }),
+ }))}
+ />
  <input
  type="number"
  min={2020}
@@ -708,6 +706,7 @@ function EmployeesPageInner() {
  onToggleSelect={toggleSelect}
  onToggleSelectAll={toggleSelectAll}
  showClientColumn={showClientColumn}
+ editBasePath="/dashboard/outsourcing/employees"
  />
  )}
  </div>

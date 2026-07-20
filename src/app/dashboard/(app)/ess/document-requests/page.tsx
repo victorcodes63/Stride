@@ -17,9 +17,9 @@ import {
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
+import { StrideSelect } from '@/components/ui/stride-select';
 import {
   dashboardFilterInputClass,
-  dashboardFilterSelectClass,
 } from '@/components/dashboard/DashboardFilterBar';
 
 type RequestStatus = 'pending' | 'processing' | 'completed' | 'rejected';
@@ -193,27 +193,27 @@ export default function DocumentRequestsPage() {
  className={`${dashboardFilterInputClass} pl-9`}
  />
  </div>
- <select
+ <StrideSelect
  value={statusFilter}
- onChange={(e) => setStatusFilter(e.target.value as RequestStatus | 'all')}
- className={dashboardFilterSelectClass}
- >
- <option value="all">All statuses</option>
- <option value="pending">Pending</option>
- <option value="processing">Processing</option>
- <option value="completed">Completed</option>
- <option value="rejected">Rejected</option>
- </select>
- <select
+ onChange={(value) => setStatusFilter(value as RequestStatus | 'all')}
+ options={[
+ { value: 'all', label: 'All statuses' },
+ { value: 'pending', label: 'Pending' },
+ { value: 'processing', label: 'Processing' },
+ { value: 'completed', label: 'Completed' },
+ { value: 'rejected', label: 'Rejected' },
+ ]}
+ ariaLabel="Status"
+ />
+ <StrideSelect
  value={typeFilter}
- onChange={(e) => setTypeFilter(e.target.value)}
- className={dashboardFilterSelectClass}
- >
- <option value="">All document types</option>
- {DOCUMENT_TYPES.map((dt) => (
- <option key={dt.value} value={dt.value}>{dt.label}</option>
- ))}
- </select>
+ onChange={(value) => setTypeFilter(value)}
+ options={[
+ { value: '', label: 'All document types' },
+ ...DOCUMENT_TYPES.map((dt) => ({ value: dt.value, label: dt.label })),
+ ]}
+ ariaLabel="Document type"
+ />
  </div>
  <p className="mt-2 text-xs text-neutral-500">
  Showing {filtered.length} of {requests.length} requests

@@ -8,6 +8,7 @@ import { Mail, Loader2, Printer, AlertTriangle } from 'lucide-react';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { useEntity } from '@/components/EntitySwitcher';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 interface PayrollRecord {
  id: string;
@@ -83,7 +84,7 @@ function PayslipsContent() {
  if (clientId) params.set('clientId', clientId);
  if (departmentId) params.set('departmentId', departmentId);
  if (employeeIdsParam.trim()) params.set('employeeIds', employeeIdsParam.trim());
- fetch(`/api/outsourcing/payroll?${params}`)
+ fetch(`/api/payroll?${params}`)
  .then((r) => r.json())
  .then((data) => {
  setPayrolls(Array.isArray(data) ? data : []);
@@ -122,7 +123,7 @@ function PayslipsContent() {
  setSending(true);
  setSendResult(null);
  try {
- const res = await fetch('/api/outsourcing/payroll/send-payslips', {
+ const res = await fetch('/api/payroll/send-payslips', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
@@ -192,14 +193,15 @@ function PayslipsContent() {
  <div className="flex items-center gap-3 flex-wrap">
  <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
  <span>Print format</span>
- <select
+ <StrideSelect
  value={printLayout}
- onChange={(e) => setPrintLayout(e.target.value === 'four' ? 'four' : 'single')}
- className="px-3 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500"
- >
- <option value="single">Single payslip per page</option>
- <option value="four">4 payslips per page</option>
- </select>
+ onChange={(value) => setPrintLayout(value === 'four' ? 'four' : 'single')}
+ ariaLabel="Print format"
+ options={[
+ { value: 'single', label: 'Single payslip per page' },
+ { value: 'four', label: '4 payslips per page' },
+ ]}
+ />
  </label>
  <button
  type="button"

@@ -66,7 +66,7 @@ export function DashboardTableViewport({
   minWidth?: number;
 }) {
   return (
-    <div className="w-full overflow-x-auto [scrollbar-gutter:stable]">
+    <div className="w-full overflow-x-auto overflow-y-hidden">
       <div className="min-w-full" style={{ minWidth: `${minWidth}px` }}>
         {children}
       </div>

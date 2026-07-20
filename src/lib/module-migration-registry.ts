@@ -145,7 +145,7 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'ApplicationAssessmentAttempt',
     'ApplicationAssessmentAnswer',
   ],
-  operations: ['CompanyAsset', 'HseIncident', 'HseAction', 'Announcement'],
+  operations: ['CompanyAsset', 'AssetAssignmentEvent', 'HseIncident', 'HseAction', 'Announcement'],
   hse: ['HseIncident', 'HseAction'],
   accounts: [
     'AccountsClient',
@@ -160,7 +160,7 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
   ],
   disciplinary: ['DisciplinaryCase', 'DisciplinaryAction', 'DisciplinaryDocument', 'Grievance'],
   reports: ['AuditEvent'],
-  assets: ['CompanyAsset'],
+  assets: ['CompanyAsset', 'AssetAssignmentEvent'],
   fleet: [
     'FleetVehicle',
     'FleetDriver',
@@ -197,7 +197,7 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'ApplicationAssessmentAnswer',
   ],
   projects: ['Project', 'ProjectMilestone', 'ProjectTask'],
-  operations: ['CompanyAsset', 'HseIncident', 'Announcement'],
+  operations: ['CompanyAsset', 'AssetAssignmentEvent', 'HseIncident', 'Announcement'],
   outsourcing: ['OutsourcingClient', 'OutsourcingRateCard', 'OutsourcingRateCardLine', 'Employee', 'Department'],
 };
 
@@ -333,6 +333,24 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
         ...base,
         phase: 'tenant-safe',
         notes: 'Announcements API uses withTenant() (ISO-04).',
+      };
+    }
+
+    if (def.key === 'assets') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes:
+          'Asset registry, assignment lifecycle events, and ESS handover acknowledge — all /api/assets/* and /api/ess/assets/* use withTenant/withEssTenant.',
+      };
+    }
+
+    if (def.key === 'operations') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes:
+          'Operations hub composes live assets, HSE, communications, and reports modules with org-scoped overview KPIs.',
       };
     }
 

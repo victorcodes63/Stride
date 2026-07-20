@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseAccountsPermissionsBody } from '@/lib/parse-accounts-permissions-body';
+import { parseStaffProfileBody } from '@/lib/parse-staff-profile-body';
 import {
   deleteGlobalAccountsAccessIfExists,
   setUserGlobalAccountsAccess,
@@ -88,6 +89,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid accountsPermissions.' }, { status: 400 });
   }
 
+  const profile = parseStaffProfileBody(b);
+  if (profile === 'invalid') {
+    return NextResponse.json({ error: 'Monthly salary must be a non-negative number.' }, { status: 400 });
+  }
+
   if (staffUserType !== undefined && !isStaffUserType(staffUserType)) {
     return NextResponse.json({ error: 'Invalid staff user type.' }, { status: 400 });
   }
@@ -99,7 +105,8 @@ export async function PATCH(
     password === undefined &&
     staffUserType === undefined &&
     mfaEnabled === undefined &&
-    accountsPatch === undefined
+    accountsPatch === undefined &&
+    Object.keys(profile).length === 0
   ) {
     return NextResponse.json({ error: 'Provide at least one field to update.' }, { status: 400 });
   }
@@ -144,7 +151,7 @@ export async function PATCH(
       ...(role === 'admin' ? { makeCompanyAdmin: true } : {}),
     });
 
-    if (staffUserType !== undefined || mfaEnabled !== undefined) {
+    if (staffUserType !== undefined || mfaEnabled !== undefined || Object.keys(profile).length > 0) {
       await withOrgContext(organizationId, (tx) =>
         tx.user.update({
           where: { id },
@@ -153,6 +160,7 @@ export async function PATCH(
             ...(mfaEnabled !== undefined
               ? { mfaEnabled, ...(mfaEnabled ? {} : { mfaSecret: null }) }
               : {}),
+            ...profile,
           },
         }),
       );

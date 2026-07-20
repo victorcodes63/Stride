@@ -6,6 +6,7 @@ import { EssBottomSheet } from '@/components/ess/EssBottomSheet';
 import { EssStatusPill } from '@/components/ess/EssStatusPill';
 import { EssPullRefresh } from '@/components/ess/EssPullRefresh';
 import { EssAlert, EssEmptyState, EssListItem, EssMetricCard, EssSectionTitle, essInputClass, essPrimaryButtonClass } from '@/components/ess/EssUi';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type LeaveType = { id: string; name: string; daysPerYear: number };
 type LeaveBalance = {
@@ -144,17 +145,14 @@ export default function EssLeavePage() {
         <form onSubmit={onSubmit} className="space-y-4">
           <label className="block">
             <span className="text-sm font-bold text-[var(--ess-text)]">Leave type</span>
-            <select
+            <StrideSelect
+              surface="ess"
+              className="mt-1"
+              ariaLabel="Leave type"
               value={form.leaveTypeId}
-              onChange={(e) => setForm((f) => ({ ...f, leaveTypeId: e.target.value }))}
-              className={`${essInputClass} mt-1`}
-            >
-              {types.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setForm((f) => ({ ...f, leaveTypeId: value }))}
+              options={types.map((t) => ({ value: t.id, label: t.name }))}
+            />
           </label>
           <label className="block">
             <span className="text-sm font-bold text-[var(--ess-text)]">Start date</span>

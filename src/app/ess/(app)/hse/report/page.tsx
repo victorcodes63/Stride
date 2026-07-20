@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { toast } from '@/components/ui/toast';
 import { EssAlert, EssCard, essInputClass, essPrimaryButtonClass } from '@/components/ess/EssUi';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 export default function EssHseReportPage() {
   const router = useRouter();
@@ -52,22 +53,25 @@ export default function EssHseReportPage() {
     <div className="space-y-5">
       <EssPageHeader
         title="Report incident"
-        subtitle="Submit incidents, near-misses, unsafe conditions, or hazards for HR/HSE follow-up."
+        subtitle="Report incidents, near-misses, and hazards."
         backHref="/ess/hse"
       />
       {error ? <EssAlert tone="danger">{error}</EssAlert> : null}
       <EssCard as="form" onSubmit={onSubmit} className="space-y-4">
         <label className="block">
           <span className="text-sm font-bold text-[var(--ess-text)]">Severity</span>
-          <select
+          <StrideSelect
+            surface="ess"
+            className="mt-1"
             value={severity}
-            onChange={(e) => setSeverity(e.target.value)}
-            className={`${essInputClass} mt-1`}
-          >
-            <option value="low">Low - unsafe condition</option>
-            <option value="medium">Medium - near-miss or minor incident</option>
-            <option value="high">High - injury, spill, fire, or urgent hazard</option>
-          </select>
+            onChange={(value) => setSeverity(value)}
+            options={[
+              { value: 'low', label: 'Low - unsafe condition' },
+              { value: 'medium', label: 'Medium - near-miss or minor incident' },
+              { value: 'high', label: 'High - injury, spill, fire, or urgent hazard' },
+            ]}
+            ariaLabel="Severity"
+          />
         </label>
         <label className="block">
           <span className="text-sm font-bold text-[var(--ess-text)]">When did it happen? (optional)</span>

@@ -66,7 +66,9 @@ export function buildVerticalShowcaseOperatingEntitiesSettings(
 
   return sanitizeOperatingEntitiesSettings({
     multiEntityEnabled: true,
-    defaultEntityId: entities[0]?.id ?? 'generic__ke',
+    // Logistics flagship first for sales demos; switcher still lists every sector.
+    defaultEntityId:
+      entities.find((e) => e.id === 'cargo-logistics__ke')?.id ?? entities[0]?.id ?? 'generic__ke',
     entities,
   });
 }

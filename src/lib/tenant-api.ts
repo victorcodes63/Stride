@@ -67,7 +67,8 @@ export function buildTenantContext(request: NextRequest, staff: StaffUser): Tena
     staff,
     organizationId,
     run: (fn) => withOrgContext(organizationId, fn),
-    where: (extra) => ({ ...(extra ?? {}), organizationId }),
+    where: <T extends Record<string, unknown>>(extra?: T) =>
+      ({ ...(extra ?? ({} as T)), organizationId } as T & { organizationId: string }),
     audit: (input) =>
       withOrgContext(organizationId, async (tx) => {
         await tx.auditEvent.create({

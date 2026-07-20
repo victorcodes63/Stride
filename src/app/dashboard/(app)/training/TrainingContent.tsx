@@ -1,209 +1,465 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { GraduationCap, Loader2, AlertCircle, Plus, Users, Clock, CheckCircle, Globe, MapPin, Calendar } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  Award,
+  CheckCircle2,
+  GraduationCap,
+  LayoutGrid,
+  LayoutList,
+  Layers,
+  Plus,
+  Search,
+  Users,
+} from 'lucide-react';
+import { DashboardAsyncState, DashboardEmptyState } from '@/components/dashboard/DashboardAsyncState';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardMetricCard } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
+import {
+  DashboardTable,
+  DashboardTableActions,
+  DashboardTableActionButton,
+  DashboardTableCard,
+  DashboardTableCell,
+  DashboardTableEmpty,
+  DashboardTableFooter,
+  DashboardTableHead,
+  DashboardTableSearchInput,
+  DashboardTableToolbar,
+  DashboardTableViewport,
+} from '@/components/dashboard/DashboardDataTable';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { toast } from '@/components/ui/toast';
 import { dashStatusChip } from '@/lib/dashboard-status-chips';
+import { useDashboardTabParam } from '@/hooks/useDashboardTabParam';
+import {
+  TRAINING_STATUS_LABEL,
+  trainingStatusTone,
+  type TrainingProgramSummary,
+  type TrainingStatus,
+} from '@/lib/training/types';
+import { TrainingProgramCard } from '@/components/dashboard/training/TrainingProgramCard';
+import { TrainingProgramFormModal } from '@/components/dashboard/training/TrainingProgramFormModal';
+import {
+  collectCategories,
+  completionRate,
+  formatDateRange,
+  formatDuration,
+} from '@/components/dashboard/training/training-format';
 
-type ProgramRow = {
- id: string;
- title: string;
- description: string | null;
- category: string | null;
- provider: string | null;
- location: string | null;
- isOnline: boolean;
- startDate: string | null;
- endDate: string | null;
- durationHours: number | null;
- maxParticipants: number | null;
- cost: number | null;
- currency: string;
- status: string;
- enrollmentCount: number;
- completedCount: number;
- materialCount: number;
- createdAt: string;
-};
+const TAB_VALUES = ['all', 'scheduled', 'in_progress', 'completed', 'cancelled'] as const;
+type TrainingTab = (typeof TAB_VALUES)[number];
 
-function trainingStatusClass(status: string) {
- if (status === 'completed') return dashStatusChip('success');
- if (status === 'in_progress' || status === 'scheduled') return dashStatusChip('info');
- if (status === 'cancelled') return dashStatusChip('neutral');
- return dashStatusChip('neutral');
-}
+type ViewMode = 'grid' | 'table';
+const VIEW_STORAGE_KEY = 'stride:training:view';
 
 export default function TrainingContent() {
- const [programs, setPrograms] = useState<ProgramRow[] | null>(null);
- const [loading, setLoading] = useState(true);
- const [error, setError] = useState<string | null>(null);
- const [showForm, setShowForm] = useState(false);
- const [submitting, setSubmitting] = useState(false);
+  return (
+    <Suspense
+      fallback={<div className="py-16 text-center text-sm text-[var(--dash-text-muted)]">Loading training…</div>}
+    >
+      <TrainingContentInner />
+    </Suspense>
+  );
+}
 
- const [form, setForm] = useState({
- title: '', description: '', category: '', provider: '', location: '',
- isOnline: false, startDate: '', endDate: '', durationHours: '', maxParticipants: '', cost: '',
- });
+function TrainingContentInner() {
+  const router = useRouter();
+  const [programs, setPrograms] = useState<TrainingProgramSummary[] | null>(null);
+  const [status, setStatus] = useState<'loading' | 'error' | 'success'>('loading');
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('all');
+  const [view, setView] = useState<ViewMode>('grid');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<TrainingProgramSummary | null>(null);
+  const [toDelete, setToDelete] = useState<TrainingProgramSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
- const load = useCallback(() => {
- setLoading(true);
- setError(null);
- fetch('/api/training')
- .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Failed'); return d; })
- .then((d) => setPrograms(d.programs ?? []))
- .catch((e) => { setError(e instanceof Error ? e.message : 'Failed'); setPrograms([]); })
- .finally(() => setLoading(false));
- }, []);
+  const { tab, setTab } = useDashboardTabParam<TrainingTab>('tab', TAB_VALUES, 'all');
 
- useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    if (stored === 'grid' || stored === 'table') setView(stored);
+  }, []);
 
- const submit = async () => {
- if (!form.title.trim()) return;
- setSubmitting(true);
- try {
- const res = await fetch('/api/training', {
- method: 'POST', headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({
- ...form,
- durationHours: form.durationHours ? Number(form.durationHours) : null,
- maxParticipants: form.maxParticipants ? Number(form.maxParticipants) : null,
- cost: form.cost ? Number(form.cost) : null,
- }),
- });
- if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed'); }
- setShowForm(false);
- setForm({ title: '', description: '', category: '', provider: '', location: '', isOnline: false, startDate: '', endDate: '', durationHours: '', maxParticipants: '', cost: '' });
- load();
- } catch (e) { setError(e instanceof Error ? e.message : 'Failed'); }
- finally { setSubmitting(false); }
- };
+  const setViewMode = useCallback((mode: ViewMode) => {
+    setView(mode);
+    window.localStorage.setItem(VIEW_STORAGE_KEY, mode);
+  }, []);
 
- const stats = programs ? {
- total: programs.length,
- active: programs.filter((p) => p.status === 'in_progress' || p.status === 'scheduled').length,
- totalEnrolled: programs.reduce((s, p) => s + p.enrollmentCount, 0),
- totalCompleted: programs.reduce((s, p) => s + p.completedCount, 0),
- } : null;
+  const load = useCallback(async () => {
+    setStatus('loading');
+    setError(null);
+    try {
+      const res = await fetch('/api/training', { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load training programs');
+      setPrograms(data.programs ?? []);
+      setStatus('success');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load');
+      setPrograms([]);
+      setStatus('error');
+    }
+  }, []);
 
- return (
- <DashboardPage>
- <DashboardPageHeader
- title="Training & Development"
- icon={GraduationCap}
- description="Manage training programs and enrollments."
- actions={
- <button
- type="button"
- onClick={() => setShowForm(!showForm)}
- className="btn-primary inline-flex shrink-0 items-center gap-2"
- >
- <Plus className="h-4 w-4" /> New program
- </button>
- }
- />
+  useEffect(() => {
+    void load();
+  }, [load]);
 
- {stats ? (
- <DashboardStatGrid>
- <DashboardStatCard label="Total programs" value={stats.total} tone="primary" />
- <DashboardStatCard label="Active" value={stats.active} tone="sky" />
- <DashboardStatCard label="Enrolled" value={stats.totalEnrolled} tone="violet" />
- <DashboardStatCard label="Completed" value={stats.totalCompleted} tone="success" />
- </DashboardStatGrid>
- ) : null}
+  const list = useMemo(() => programs ?? [], [programs]);
 
- {showForm && (
- <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
- className="rounded-xl border border-primary-200 bg-primary-50/30 p-5 mb-6 space-y-4">
- <h3 className="font-bold text-primary-900">New Training Program</h3>
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
- <input placeholder="Program title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
- <input placeholder="Category (e.g. Leadership, Technical)" value={form.category}
- onChange={(e) => setForm({ ...form, category: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
- </div>
- <textarea placeholder="Description" rows={2} value={form.description}
- onChange={(e) => setForm({ ...form, description: e.target.value })}
- className="w-full px-3 py-2 rounded-lg border border-neutral-300 text-sm resize-y" />
- <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
- <input placeholder="Provider" value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
- <input placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
- <label className="flex items-center gap-2 text-sm px-3 py-2">
- <input type="checkbox" checked={form.isOnline} onChange={(e) => setForm({ ...form, isOnline: e.target.checked })} className="rounded border-neutral-300" />
- Online / virtual
- </label>
- </div>
- <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
- <input type="date" placeholder="Start date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
- <input type="date" placeholder="End date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
- <input type="number" placeholder="Duration (hrs)" value={form.durationHours} onChange={(e) => setForm({ ...form, durationHours: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
- <input type="number" placeholder="Max participants" value={form.maxParticipants} onChange={(e) => setForm({ ...form, maxParticipants: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
- </div>
- <div className="flex gap-2">
- <button onClick={submit} disabled={submitting}
- className="px-5 py-2 rounded-lg bg-primary-900 text-white text-sm font-semibold hover:bg-primary-800 disabled:opacity-50">
- {submitting ? 'Creating…' : 'Create program'}
- </button>
- <button onClick={() => setShowForm(false)} className="px-5 py-2 rounded-lg border border-neutral-300 text-sm font-semibold hover:bg-neutral-50">Cancel</button>
- </div>
- </motion.div>
- )}
+  const counts = useMemo(() => {
+    const base: Record<TrainingTab, number> = {
+      all: list.length,
+      scheduled: 0,
+      in_progress: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+    for (const program of list) base[program.status] += 1;
+    return base;
+  }, [list]);
 
- {loading && <div className="flex items-center gap-2 text-neutral-600 py-12 justify-center"><Loader2 className="w-5 h-5 animate-spin" /> Loading…</div>}
- {!loading && error && (
- <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex gap-3 items-start">
- <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" /><p>{error}</p>
- </div>
- )}
+  const stats = useMemo(() => {
+    const totalEnrolled = list.reduce((sum, p) => sum + p.enrollmentCount, 0);
+    const totalCompleted = list.reduce((sum, p) => sum + p.completedCount, 0);
+    return {
+      total: list.length,
+      active: counts.scheduled + counts.in_progress,
+      totalEnrolled,
+      totalCompleted,
+      rate: completionRate(totalEnrolled, totalCompleted),
+    };
+  }, [list, counts]);
 
- {!loading && !error && programs && programs.length === 0 && (
- <div className="dashboard-surface p-8 text-center text-sm text-neutral-500">
- No training programs yet. Create one to start developing your team.
- </div>
- )}
+  const categories = useMemo(() => collectCategories(list), [list]);
 
- {!loading && !error && programs && programs.length > 0 && (
- <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
- {programs.map((p, idx) => (
- <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}
- className="dashboard-surface p-5 hover:border-neutral-300 transition-colors">
- <div className="flex items-start justify-between gap-2 mb-3">
- <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
- <GraduationCap className="w-5 h-5 text-primary-700" />
- </div>
- <span className={trainingStatusClass(p.status)}>
- {p.status.replace('_', ' ')}
- </span>
- </div>
- <h3 className="font-bold text-primary-900 mb-1">{p.title}</h3>
- {p.description && <p className="text-sm text-neutral-600 line-clamp-2 mb-3">{p.description}</p>}
- <div className="space-y-1.5 text-xs text-neutral-500">
- {p.category && <div className="flex items-center gap-1.5"><GraduationCap className="w-3.5 h-3.5" /> {p.category}</div>}
- {p.provider && <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {p.provider}</div>}
- <div className="flex items-center gap-1.5">
- {p.isOnline ? <Globe className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
- {p.isOnline ? 'Online' : p.location || 'TBD'}
- </div>
- {p.startDate && <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {p.startDate}{p.endDate ? ` – ${p.endDate}` : ''}</div>}
- </div>
- <div className="flex items-center gap-3 mt-3 pt-3 border-t border-neutral-100">
- <span className="text-xs text-neutral-500"><Users className="w-3.5 h-3.5 inline mr-1" />{p.enrollmentCount} enrolled</span>
- <span className="text-xs text-emerald-600"><CheckCircle className="w-3.5 h-3.5 inline mr-1" />{p.completedCount} completed</span>
- {p.durationHours && <span className="text-xs text-neutral-500"><Clock className="w-3.5 h-3.5 inline mr-1" />{p.durationHours}h</span>}
- </div>
- </motion.div>
- ))}
- </div>
- )}
- </DashboardPage>
- );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return list.filter((program) => {
+      if (tab !== 'all' && program.status !== tab) return false;
+      if (category !== 'all' && (program.category ?? '') !== category) return false;
+      if (!q) return true;
+      return (
+        program.title.toLowerCase().includes(q) ||
+        (program.provider ?? '').toLowerCase().includes(q) ||
+        (program.category ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [list, tab, category, search]);
+
+  const openCreate = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+
+  const openEdit = (program: TrainingProgramSummary) => {
+    setEditing(program);
+    setFormOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/training/${toDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to delete');
+      toast.success(`“${toDelete.title}” deleted.`);
+      setToDelete(null);
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to delete program.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const tabBadge = (value: TrainingTab) =>
+    counts[value] > 0 ? (
+      <span className="rounded-full bg-[var(--dash-surface-muted)] px-1.5 py-0.5 text-[11px] tabular-nums text-[var(--dash-text-muted)]">
+        {counts[value]}
+      </span>
+    ) : undefined;
+
+  return (
+    <DashboardPage>
+      <DashboardPageHeader
+        title="Training & Development"
+        icon={GraduationCap}
+        description="Plan programs, track enrollments, and measure completion across your team."
+        actions={
+          <button type="button" onClick={openCreate} className="btn-primary inline-flex shrink-0 items-center gap-2">
+            <Plus className="h-4 w-4" /> New program
+          </button>
+        }
+        footer={
+          <DashboardTabs
+            embedded
+            value={tab}
+            onChange={setTab}
+            items={[
+              { value: 'all', label: 'All', icon: Layers, badge: tabBadge('all') },
+              { value: 'scheduled', label: 'Scheduled', badge: tabBadge('scheduled') },
+              { value: 'in_progress', label: 'In progress', badge: tabBadge('in_progress') },
+              { value: 'completed', label: 'Completed', badge: tabBadge('completed') },
+              { value: 'cancelled', label: 'Cancelled', badge: tabBadge('cancelled') },
+            ]}
+          />
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+        <DashboardMetricCard label="Total programs" value={stats.total} icon={GraduationCap} tone="primary" />
+        <DashboardMetricCard label="Active" value={stats.active} icon={Layers} tone="violet" hint="Scheduled + in progress" />
+        <DashboardMetricCard label="Total enrolled" value={stats.totalEnrolled} icon={Users} tone="violet" />
+        <DashboardMetricCard label="Completed" value={stats.totalCompleted} icon={CheckCircle2} tone="emerald" />
+        <DashboardMetricCard
+          label="Completion rate"
+          value={`${stats.rate}%`}
+          icon={Award}
+          tone="amber"
+          hint="Completed of enrolled"
+        />
+      </div>
+
+      <DashboardTableCard>
+        <DashboardTableToolbar>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-xs">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+                aria-hidden
+              />
+              <DashboardTableSearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search title, provider, category…"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <StrideSelect
+                value={category}
+                onChange={setCategory}
+                options={[
+                  { value: 'all', label: 'All categories' },
+                  ...categories.map((c) => ({ value: c, label: c })),
+                ]}
+                ariaLabel="Filter by category"
+                size="sm"
+                className="w-44"
+              />
+              <div className="inline-flex overflow-hidden rounded-lg border border-[var(--dash-border)]">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  aria-label="Card view"
+                  aria-pressed={view === 'grid'}
+                  className={`flex h-9 w-9 items-center justify-center transition-colors ${
+                    view === 'grid'
+                      ? 'bg-primary-100 text-primary-900'
+                      : 'text-[var(--dash-text-muted)] hover:bg-[var(--dash-hover)]'
+                  }`}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  aria-label="Table view"
+                  aria-pressed={view === 'table'}
+                  className={`flex h-9 w-9 items-center justify-center border-l border-[var(--dash-border)] transition-colors ${
+                    view === 'table'
+                      ? 'bg-primary-100 text-primary-900'
+                      : 'text-[var(--dash-text-muted)] hover:bg-[var(--dash-hover)]'
+                  }`}
+                >
+                  <LayoutList className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </DashboardTableToolbar>
+
+        <div className="p-4 sm:p-5">
+          <DashboardAsyncState
+            status={status}
+            error={error}
+            onRetry={load}
+            loading={
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="dashboard-surface h-56 animate-pulse p-5" />
+                ))}
+              </div>
+            }
+          >
+            {filtered.length === 0 ? (
+              list.length === 0 ? (
+                <DashboardEmptyState
+                  icon={GraduationCap}
+                  title="No training programs yet"
+                  description="Create your first program to start developing your team's skills."
+                  action={
+                    <button type="button" onClick={openCreate} className="btn-primary inline-flex items-center gap-2">
+                      <Plus className="h-4 w-4" /> New program
+                    </button>
+                  }
+                />
+              ) : (
+                <DashboardEmptyState
+                  icon={GraduationCap}
+                  title="No programs match your filters"
+                  description="Try adjusting the search, category, or status filters."
+                />
+              )
+            ) : view === 'grid' ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {filtered.map((program, index) => (
+                  <TrainingProgramCard
+                    key={program.id}
+                    program={program}
+                    index={index}
+                    onEdit={openEdit}
+                    onDelete={setToDelete}
+                  />
+                ))}
+              </div>
+            ) : (
+              <TrainingTableView
+                programs={filtered}
+                onEdit={openEdit}
+                onDelete={setToDelete}
+                onView={(id) => router.push(`/dashboard/training/${id}`)}
+              />
+            )}
+          </DashboardAsyncState>
+        </div>
+
+        {status === 'success' && filtered.length > 0 ? (
+          <DashboardTableFooter>
+            <span>
+              {filtered.length} of {list.length} program{list.length === 1 ? '' : 's'}
+            </span>
+          </DashboardTableFooter>
+        ) : null}
+      </DashboardTableCard>
+
+      <TrainingProgramFormModal
+        open={formOpen}
+        program={editing}
+        categoryOptions={categories}
+        onClose={() => setFormOpen(false)}
+        onSaved={({ id, created }) => {
+          void load();
+          if (created) router.push(`/dashboard/training/${id}`);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(toDelete)}
+        title="Delete program"
+        description={
+          toDelete
+            ? `Delete “${toDelete.title}”? Enrollments and materials will be removed. This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        tone="danger"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => (!deleting ? setToDelete(null) : undefined)}
+      />
+    </DashboardPage>
+  );
+}
+
+function TrainingTableView({
+  programs,
+  onEdit,
+  onDelete,
+  onView,
+}: {
+  programs: TrainingProgramSummary[];
+  onEdit: (program: TrainingProgramSummary) => void;
+  onDelete: (program: TrainingProgramSummary) => void;
+  onView: (id: string) => void;
+}) {
+  return (
+    <DashboardTableViewport minWidth={960}>
+      <DashboardTable>
+        <thead>
+          <tr>
+            <DashboardTableHead>Program</DashboardTableHead>
+            <DashboardTableHead>Category</DashboardTableHead>
+            <DashboardTableHead>Status</DashboardTableHead>
+            <DashboardTableHead>Dates</DashboardTableHead>
+            <DashboardTableHead>Enrolled</DashboardTableHead>
+            <DashboardTableHead>Completed</DashboardTableHead>
+            <DashboardTableHead>Duration</DashboardTableHead>
+            <DashboardTableHead>Actions</DashboardTableHead>
+          </tr>
+        </thead>
+        <tbody>
+          {programs.length === 0 ? (
+            <DashboardTableEmpty colSpan={8}>No programs found.</DashboardTableEmpty>
+          ) : (
+            programs.map((program) => (
+              <tr key={program.id} className="border-t border-[var(--dash-border-subtle)]">
+                <DashboardTableCell>
+                  <Link
+                    href={`/dashboard/training/${program.id}`}
+                    className="font-medium text-primary-800 hover:underline"
+                  >
+                    {program.title}
+                  </Link>
+                  {program.provider ? (
+                    <div className="text-xs text-[var(--dash-text-muted)]">{program.provider}</div>
+                  ) : null}
+                </DashboardTableCell>
+                <DashboardTableCell className="text-[var(--dash-text-muted)]">
+                  {program.category ?? '—'}
+                </DashboardTableCell>
+                <DashboardTableCell>
+                  <span className={dashStatusChip(trainingStatusTone(program.status))}>
+                    {TRAINING_STATUS_LABEL[program.status as TrainingStatus]}
+                  </span>
+                </DashboardTableCell>
+                <DashboardTableCell className="text-[var(--dash-text-muted)]">
+                  {formatDateRange(program.startDate, program.endDate)}
+                </DashboardTableCell>
+                <DashboardTableCell numeric>{program.enrollmentCount}</DashboardTableCell>
+                <DashboardTableCell numeric>{program.completedCount}</DashboardTableCell>
+                <DashboardTableCell className="text-[var(--dash-text-muted)]">
+                  {formatDuration(program.durationHours)}
+                </DashboardTableCell>
+                <DashboardTableCell>
+                  <DashboardTableActions>
+                    <DashboardTableActionButton onClick={() => onView(program.id)}>View</DashboardTableActionButton>
+                    <DashboardTableActionButton onClick={() => onEdit(program)}>Edit</DashboardTableActionButton>
+                    <DashboardTableActionButton
+                      onClick={() => onDelete(program)}
+                      className="text-red-600 hover:bg-red-50"
+                    >
+                      Delete
+                    </DashboardTableActionButton>
+                  </DashboardTableActions>
+                </DashboardTableCell>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </DashboardTable>
+    </DashboardTableViewport>
+  );
 }

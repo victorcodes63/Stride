@@ -14,6 +14,7 @@ import {
   DashboardTableMeta,
   DashboardTableViewport,
 } from '@/components/dashboard/DashboardDataTable';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -88,21 +89,15 @@ export default function MpesaReconciliationPage() {
       <DashboardPageHeader
         icon={Smartphone}
         title="M-Pesa reconciliation"
-        description="Match payroll disbursement references with client M-Pesa receipts for the selected period."
+        description="Match payroll disbursements with client M-Pesa receipts."
         actions={
           <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
-            <select
-              value={month}
-              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-              className="dash-auth-input rounded-lg px-3 py-2 text-sm"
-              aria-label="Month"
-            >
-              {MONTHS.map((label, i) => (
-                <option key={label} value={i + 1}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <StrideSelect
+              value={String(month)}
+              onChange={(value) => setMonth(parseInt(value, 10))}
+              ariaLabel="Month"
+              options={MONTHS.map((label, i) => ({ value: String(i + 1), label }))}
+            />
             <input
               type="number"
               min={2020}

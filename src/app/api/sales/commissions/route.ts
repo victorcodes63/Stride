@@ -3,7 +3,10 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
 import { calculateStatutoryForPayroll } from '@/lib/payroll-calc';
-import { estimateCommissionsForPeriod } from '@/lib/sales/commission';
+import {
+  estimateCommissionsForPeriod,
+  parseCommissionRuleConfig,
+} from '@/lib/sales/commission';
 import { parsePeriodBounds } from '@/lib/sales/schema';
 import { canManageSalesTargets } from '@/lib/staff-permissions';
 import { withTenant } from '@/lib/tenant-api';
@@ -29,7 +32,22 @@ export async function GET(request: NextRequest) {
     );
 
     try {
-      const estimates = await ctx.run(async (tx) => {
+      const { estimates, rules } = await ctx.run(async (tx) => {
+        const ruleRows = await tx.salesCommissionRule.findMany({
+          where: { organizationId: ctx.organizationId },
+          orderBy: { updatedAt: 'desc' },
+          take: 20,
+        });
+        const rules = ruleRows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          description: r.description,
+          status: r.status,
+          config: parseCommissionRuleConfig(r.config),
+          createdAt: r.createdAt.toISOString(),
+          updatedAt: r.updatedAt.toISOString(),
+        }));
+
         const rows = await estimateCommissionsForPeriod(tx, {
           organizationId: ctx.organizationId,
           periodStart,
@@ -57,7 +75,7 @@ export async function GET(request: NextRequest) {
         });
         const payrollByEmp = new Map(payrolls.map((p) => [p.employeeId, p] as const));
 
-        return rows.map((r) => {
+        const estimates = rows.map((r) => {
           const pay = payrollByEmp.get(r.employeeId);
           const allowances = (pay?.allowances as { name: string; amount: number }[]) ?? [];
           const alreadyPushed = allowances.some(
@@ -71,13 +89,17 @@ export async function GET(request: NextRequest) {
             alreadyPushed,
           };
         });
+
+        return { estimates, rules };
       });
 
       return NextResponse.json({
         estimates,
+        rules,
         periodStart: periodStart.toISOString().slice(0, 10),
         periodEnd: periodEnd.toISOString().slice(0, 10),
         canPushToPayroll: canManageSalesTargets(ctx.staff.role, ctx.staff.staffUserType),
+        canManageRules: canManageSalesTargets(ctx.staff.role, ctx.staff.staffUserType),
       });
     } catch (error) {
       await reportApiError({
@@ -246,25 +268,40 @@ export async function POST(request: NextRequest) {
     }
 
     const name = typeof body.name === 'string' ? body.name.trim() : '';
-    const config = body.config;
-    if (!name || !config || typeof config !== 'object') {
-      return NextResponse.json({ error: 'name and config are required.' }, { status: 400 });
+    const parsedConfig = parseCommissionRuleConfig(body.config);
+    if (!name || !parsedConfig) {
+      return NextResponse.json(
+        {
+          error:
+            'name and a valid config are required (tiers with minAttainmentPct and ratePct).',
+        },
+        { status: 400 },
+      );
     }
 
     try {
-      const rule = await ctx.run((tx) =>
-        tx.salesCommissionRule.create({
+      const rule = await ctx.run(async (tx) => {
+        if (body.activate === true) {
+          await tx.salesCommissionRule.updateMany({
+            where: { organizationId: ctx.organizationId, status: 'active' },
+            data: { status: 'archived' },
+          });
+        }
+        return tx.salesCommissionRule.create({
           data: {
             organizationId: ctx.organizationId,
             name,
             description: typeof body.description === 'string' ? body.description.trim() || null : null,
             status: body.activate === true ? 'active' : 'draft',
-            config: config as never,
+            config: parsedConfig,
           },
-        }),
-      );
+        });
+      });
 
-      return NextResponse.json({ rule: { id: rule.id, status: rule.status } }, { status: 201 });
+      return NextResponse.json(
+        { rule: { id: rule.id, status: rule.status, config: parsedConfig } },
+        { status: 201 },
+      );
     } catch (error) {
       await reportApiError({
         route: 'POST /api/sales/commissions',

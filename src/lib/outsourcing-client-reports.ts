@@ -207,7 +207,7 @@ export function renderOutsourcingReportHtml(report: OutsourcingMonthlyReport): s
       </div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">${rows}</table>
-    <p style="margin-top:24px;font-size:12px;color:#888;">Generated ${new Date(report.generatedAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })} · Powered by Stride</p>
+    <p style="margin-top:24px;font-size:12px;color:#888;">Generated ${new Date(report.generatedAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}${report.client.whiteLabelReports ? '' : ' · Powered by Stride'}</p>
   </div>
 </body>
 </html>`;

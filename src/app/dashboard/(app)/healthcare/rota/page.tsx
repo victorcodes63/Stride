@@ -5,6 +5,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTable, DashboardTableCard, DashboardTableEmpty, DashboardTableViewport } from '@/components/dashboard/DashboardDataTable';
 import { DashboardAsyncState, DashboardPageSkeleton } from '@/components/dashboard/DashboardAsyncState';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Ward = { id: string; code: string; name: string };
 type Employee = { id: string; firstName: string; lastName: string; employeeNumber: string | null };
@@ -82,22 +83,36 @@ export default function HealthcareRotaPage() {
     <DashboardPage>
       <DashboardPageHeader eyebrow="Healthcare" title="Clinical rota" description="Assign shifts to wards with licence gate and stricter rest rules." />
       <form onSubmit={handleAssign} className="mb-6 grid gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 lg:grid-cols-6">
-        <select required value={form.wardId} onChange={(e) => setForm((f) => ({ ...f, wardId: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm">
-          <option value="">Ward</option>
-          {wards.map((w) => <option key={w.id} value={w.id}>{w.code} — {w.name}</option>)}
-        </select>
-        <select required value={form.employeeId} onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm lg:col-span-2">
-          <option value="">Staff</option>
-          {employees.map((emp) => (
-            <option key={emp.id} value={emp.id}>{emp.employeeNumber} — {emp.firstName} {emp.lastName}</option>
-          ))}
-        </select>
+        <StrideSelect
+          value={form.wardId}
+          onChange={(value) => setForm((f) => ({ ...f, wardId: value }))}
+          options={[
+            { value: '', label: 'Ward' },
+            ...wards.map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` })),
+          ]}
+          ariaLabel="Ward"
+        />
+        <StrideSelect
+          value={form.employeeId}
+          onChange={(value) => setForm((f) => ({ ...f, employeeId: value }))}
+          options={[
+            { value: '', label: 'Staff' },
+            ...employees.map((emp) => ({ value: emp.id, label: `${emp.employeeNumber} — ${emp.firstName} ${emp.lastName}` })),
+          ]}
+          ariaLabel="Staff"
+          className="lg:col-span-2"
+        />
         <input required type="date" value={form.workDate} onChange={(e) => setForm((f) => ({ ...f, workDate: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />
-        <select value={form.clinicalRole} onChange={(e) => setForm((f) => ({ ...f, clinicalRole: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm">
-          <option value="nurse">Nurse</option>
-          <option value="medical_officer">Medical officer</option>
-          <option value="clinical_officer">Clinical officer</option>
-        </select>
+        <StrideSelect
+          value={form.clinicalRole}
+          onChange={(value) => setForm((f) => ({ ...f, clinicalRole: value }))}
+          options={[
+            { value: 'nurse', label: 'Nurse' },
+            { value: 'medical_officer', label: 'Medical officer' },
+            { value: 'clinical_officer', label: 'Clinical officer' },
+          ]}
+          ariaLabel="Clinical role"
+        />
         <button type="submit" className="h-10 rounded-lg bg-primary-500 text-sm font-medium text-white">Assign</button>
       </form>
       {error ? <DashboardAsyncState variant="error" title="Clinical rota" message={error} onRetry={() => void load()} /> : (

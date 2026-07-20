@@ -1,20 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import type { Prisma, PrismaClient } from '@prisma/client';
-import { brand } from '@/lib/brand';
-import { isDemoSandboxCell, GENERIC_ORG_PLACEHOLDER } from '@/lib/deployment-cell';
+import { recruitmentEmployerNameFromEnv } from '@/lib/recruitment-employer-name';
 
-const DEFAULT_ID = 'default' as const;
-
-/** Public employer name when DB is not configured (align with job form default). */
-export function recruitmentEmployerNameFromEnv(): string {
-  if (!isDemoSandboxCell()) {
-    return GENERIC_ORG_PLACEHOLDER;
-  }
-  return (
-    process.env.NEXT_PUBLIC_RECRUITMENT_EMPLOYER_NAME?.trim() ||
-    process.env.RECRUITMENT_EMPLOYER_NAME?.trim() ||
-    brand.orgName
-  );
-}
+export { recruitmentEmployerNameFromEnv };
 
 export type RecruitmentSettingsDTO = {
   id: string;
@@ -47,11 +35,16 @@ export function settingsToDto(row: {
 }
 
 /**
- * Returns recruitment org settings, creating a default `Client` + row when the DB is empty
- * (e.g. new environment before seed).
+ * Returns the recruitment org settings for `organizationId`, lazily creating a `Client` + settings
+ * row for that tenant when none exists yet (e.g. a new organization before seed).
+ *
+ * Recruitment is per-tenant (RAV-62): each organization owns its own careers/hiring settings.
+ * Look up and create are always scoped to the caller's active organization. A DB-level
+ * "one row per org" constraint is a planned follow-up; until then getOrCreate guards duplicates.
  */
 export async function getOrCreateRecruitmentSettings(
-  db: PrismaClient | Prisma.TransactionClient
+  db: PrismaClient | Prisma.TransactionClient,
+  organizationId: string
 ): Promise<{
   id: string;
   employerName: string;
@@ -61,16 +54,21 @@ export async function getOrCreateRecruitmentSettings(
   linkedClientId: string | null;
   updatedAt: Date;
 }> {
-  const existing = await db.recruitmentSettings.findUnique({ where: { id: DEFAULT_ID } });
+  const existing = await db.recruitmentSettings.findFirst({
+    where: { organizationId },
+    orderBy: { createdAt: 'asc' },
+  });
   if (existing) return existing;
 
   const fromEnv = recruitmentEmployerNameFromEnv();
   const createdClient = await db.client.create({
-    data: { name: fromEnv, isAnonymous: false },
+    data: { organizationId, name: fromEnv, isAnonymous: false },
   });
   return db.recruitmentSettings.create({
     data: {
-      id: DEFAULT_ID,
+      // Unique per tenant (schema default 'default' would collide across orgs).
+      id: randomUUID(),
+      organizationId,
       employerName: fromEnv,
       contactName: null,
       contactEmail: null,
@@ -83,9 +81,10 @@ export async function getOrCreateRecruitmentSettings(
 /** Resolve job `company` line and optional `clientId` (linked org client) for persistence. */
 export async function resolveJobCompanyAndClientId(
   db: PrismaClient | Prisma.TransactionClient,
-  companyInput: string | undefined
+  companyInput: string | undefined,
+  organizationId: string
 ): Promise<{ company: string; clientId: string | null }> {
-  const settings = await getOrCreateRecruitmentSettings(db);
+  const settings = await getOrCreateRecruitmentSettings(db, organizationId);
   const raw = (companyInput ?? '').trim();
   if (!raw) {
     return { company: settings.employerName, clientId: settings.linkedClientId };

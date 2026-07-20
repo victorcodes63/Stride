@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { OnboardingTaskStatus } from '@prisma/client';
+import { OnboardingTaskStatus, TaskPriority } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { canManageOnboarding } from '@/lib/hr-onboarding-access';
 import {
@@ -7,6 +7,7 @@ import {
   getTaskDependencyBlocker,
   maybeCompleteWorkflow,
   refreshWorkflowTaskSLAs,
+  spawnRecurrenceFollowUp,
 } from '@/lib/onboarding-workflows';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { sendNotification } from '@/lib/notifications';
@@ -16,6 +17,14 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 function isDocumentsCategory(category: string | null | undefined): boolean {
   return (category ?? '').toLowerCase() === 'documents';
+}
+
+/** A task's workspace client comes from its participant, or the operational bucket. */
+function workflowScopeClientId(workflow: {
+  employee?: { outsourcingClientId?: string | null } | null;
+  outsourcingClientId?: string | null;
+}): string | null {
+  return workflow.employee?.outsourcingClientId ?? workflow.outsourcingClientId ?? null;
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -33,13 +42,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
         where: ctx.where({ id }),
         include: {
           workflow: { include: { employee: true } },
+          employee: { select: { id: true, firstName: true, lastName: true } },
           assignedTo: { select: { id: true, name: true, email: true } },
           completedBy: { select: { id: true, name: true, email: true } },
           document: { select: { id: true, fileName: true, title: true, filePath: true } },
         },
       }),
     );
-    if (!task || task.workflow.employee.outsourcingClientId !== workspaceClientId) {
+    if (!task || workflowScopeClientId(task.workflow) !== workspaceClientId) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
     return NextResponse.json(task);
@@ -62,6 +72,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const claim = body.claim === true;
     const assignedToIdProvided = Object.prototype.hasOwnProperty.call(body, 'assignedToId');
     const documentIdProvided = Object.prototype.hasOwnProperty.call(body, 'documentId');
+    const nextPriority =
+      typeof body.priority === 'string' &&
+      (Object.values(TaskPriority) as string[]).includes(body.priority.toUpperCase())
+        ? (body.priority.toUpperCase() as TaskPriority)
+        : undefined;
 
     const existing = await ctx.run((tx) =>
       tx.onboardingTask.findFirst({
@@ -76,7 +91,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         },
       }),
     );
-    if (!existing || existing.workflow.employee.outsourcingClientId !== workspaceClientId) {
+    if (!existing || workflowScopeClientId(existing.workflow) !== workspaceClientId) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
@@ -125,11 +140,18 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       if (body.documentId === null || body.documentId === '') {
         nextDocumentId = null;
       } else if (typeof body.documentId === 'string') {
+        const targetEmployeeId = existing.workflow.employeeId ?? existing.employeeId;
+        if (!targetEmployeeId) {
+          return NextResponse.json(
+            { error: 'Documents can only be linked to tasks tied to an employee.' },
+            { status: 400 },
+          );
+        }
         const doc = await ctx.run((tx) =>
           tx.employeeDocument.findFirst({
             where: ctx.where({
               id: body.documentId as string,
-              employeeId: existing.workflow.employeeId,
+              employeeId: targetEmployeeId,
             }),
             select: { id: true },
           }),
@@ -177,6 +199,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           ...(typeof body.notes === 'string' ? { notes: body.notes } : {}),
           ...(nextAssignedToId !== undefined ? { assignedToId: nextAssignedToId } : {}),
           ...(nextDocumentId !== undefined ? { documentId: nextDocumentId } : {}),
+          ...(nextPriority ? { priority: nextPriority } : {}),
           completedAt:
             nextStatus === OnboardingTaskStatus.COMPLETED || nextStatus === OnboardingTaskStatus.SKIPPED
               ? new Date()
@@ -200,21 +223,45 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     await refreshWorkflowTaskSLAs(task.workflowId);
     await maybeCompleteWorkflow(task.workflowId);
 
+    // Recurring tasks spawn their next occurrence once completed.
+    if (nextStatus === OnboardingTaskStatus.COMPLETED) {
+      try {
+        await spawnRecurrenceFollowUp(task.id);
+      } catch (error) {
+        console.error('[onboarding] Failed to spawn recurrence follow-up:', error);
+      }
+    }
+
     if (
       nextAssignedToId &&
       nextAssignedToId !== existing.assignedToId &&
       nextAssignedToId !== ctx.staff.id
     ) {
+      const emp = existing.workflow.employee;
+      const participantName = emp ? `${emp.firstName} ${emp.lastName}` : null;
+      const workflowLabel =
+        existing.workflow.type === 'OPERATIONAL'
+          ? 'Operational'
+          : `${existing.workflow.type === 'ONBOARDING' ? 'Onboarding' : 'Offboarding'}${participantName ? ` · ${participantName}` : ''}`;
       try {
         await sendNotification({
           event: 'onboarding_task_assigned',
           recipientUserIds: [nextAssignedToId],
-          title: 'Onboarding task assigned',
-          body: `"${existing.title}" for ${existing.workflow.employee.firstName} ${existing.workflow.employee.lastName} was assigned to you.`,
+          title: 'A task was assigned to you',
+          body: participantName
+            ? `"${existing.title}" for ${participantName} was assigned to you.`
+            : `"${existing.title}" was assigned to you.`,
           href: `/dashboard/people/tasks`,
           priority: 'action_required',
-          channel: 'in_app',
-          metadata: { workflowId: existing.workflowId, taskId: existing.id },
+          channel: 'both',
+          metadata: {
+            workflowId: existing.workflowId,
+            taskId: existing.id,
+            taskTitle: existing.title,
+            participantName: participantName ?? undefined,
+            workflowLabel,
+            dueLabel: existing.dueDate ? existing.dueDate.toISOString().slice(0, 10) : 'No due date',
+          },
         });
       } catch (error) {
         console.error('[onboarding] Failed to notify reassigned user:', error);

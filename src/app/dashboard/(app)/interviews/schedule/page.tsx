@@ -8,8 +8,8 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import {
   dashboardFilterInputClass,
-  dashboardFilterSelectClass,
 } from '@/components/dashboard/DashboardFilterBar';
+import { StrideSelect } from '@/components/ui/stride-select';
 import type { InterviewType, InterviewDurationMinutes } from '@/types/dashboard';
 import { parseDateTimeAsNairobi, dateTimeNairobi, APP_TIMEZONE } from '@/lib/timezone';
 import { computeBulkInterviewStartTimesWithCustom } from '@/lib/bulk-interview-schedule';
@@ -586,7 +586,6 @@ function ScheduleInterviewsPageContent() {
  };
 
  const formInputClass = `${dashboardFilterInputClass} h-auto min-h-10 py-2.5 text-base`;
- const formSelectClass = `${dashboardFilterSelectClass} h-auto min-h-10 py-2.5 text-base`;
  const formLabelClass = 'block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5';
  const formHintClass = 'text-[11px] text-[var(--dash-text-muted)]';
  const sectionLabelClass = 'text-xs font-medium text-[var(--dash-text-muted)] uppercase tracking-wider mb-1';
@@ -616,7 +615,7 @@ function ScheduleInterviewsPageContent() {
 
  <DashboardPageHeader
  title="Schedule interviews"
- description="Bulk schedule up to 10 interviews from a shortlisted job. Add optional breaks (lunch, buffers) on the same day—they are saved together with the interviews. Times are auto-spaced for candidates; breaks use the times you set."
+ description="Bulk schedule up to 10 interviews from a shortlisted job."
  className="mb-6 sm:mb-8"
  />
 
@@ -644,24 +643,21 @@ function ScheduleInterviewsPageContent() {
  />
  </div>
  <div className="flex-1 min-w-0 sm:min-w-[240px]">
- <select
+ <StrideSelect
  id="bulk-job"
  value={bulkJobId}
- onChange={(e) => setBulkJobId(e.target.value)}
- className={formSelectClass}
- aria-label="Select job"
- >
- <option value="">Select job (shortlisted only)</option>
- {jobsWithShortlistedLoading ? (
- <option value="" disabled>Loading…</option>
- ) : (
- bulkJobFilterOptions.map((j) => (
- <option key={j.id} value={j.id}>
- {j.title} {j.company ? `· ${j.company}` : ''} ({j.shortlistedCount} shortlisted)
- </option>
- ))
- )}
- </select>
+ onChange={(value) => setBulkJobId(value)}
+ options={[
+ { value: '', label: 'Select job (shortlisted only)' },
+ ...(jobsWithShortlistedLoading
+ ? [{ value: '', label: 'Loading…', disabled: true }]
+ : bulkJobFilterOptions.map((j) => ({
+ value: j.id,
+ label: `${j.title} ${j.company ? `· ${j.company}` : ''} (${j.shortlistedCount} shortlisted)`,
+ }))),
+ ]}
+ ariaLabel="Select job"
+ />
  </div>
  {(bulkSearch || bulkJobId) && (
  <button
@@ -733,31 +729,27 @@ function ScheduleInterviewsPageContent() {
  <label htmlFor="bulk-duration" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Duration
  </label>
- <select
+ <StrideSelect
  id="bulk-duration"
- value={bulkDuration}
- onChange={(e) => setBulkDuration(Number(e.target.value) as InterviewDurationMinutes)}
- className={formSelectClass}
- >
- {DURATION_OPTIONS.map((opt) => (
- <option key={opt.value} value={opt.value}>{opt.label}</option>
- ))}
- </select>
+ value={String(bulkDuration)}
+ onChange={(value) => setBulkDuration(Number(value) as InterviewDurationMinutes)}
+ options={DURATION_OPTIONS.map((opt) => ({ value: String(opt.value), label: opt.label }))}
+ />
  </div>
  <div>
  <label htmlFor="bulk-type" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Default type
  </label>
- <select
+ <StrideSelect
  id="bulk-type"
  value={bulkType}
- onChange={(e) => setBulkType(e.target.value as InterviewType)}
- className={formSelectClass}
- >
- <option value="onsite">On-site</option>
- <option value="video">Video</option>
- <option value="phone">Phone</option>
- </select>
+ onChange={(value) => setBulkType(value as InterviewType)}
+ options={[
+ { value: 'onsite', label: 'On-site' },
+ { value: 'video', label: 'Video' },
+ { value: 'phone', label: 'Phone' },
+ ]}
+ />
  <p className={`mt-1 ${formHintClass}`}>
  Newly ticked candidates use this. Override per person in the list →
  </p>
@@ -844,25 +836,21 @@ function ScheduleInterviewsPageContent() {
  </div>
  <div className="min-w-[90px]">
  <label className={`block text-[10px] font-medium text-[var(--dash-text-strong)] mb-0.5`}>Minutes</label>
- <select
- value={row.durationMinutes}
- onChange={(e) =>
+ <StrideSelect
+ value={String(row.durationMinutes)}
+ onChange={(value) =>
  setBulkBreakDrafts((prev) =>
  prev.map((r) =>
  r.id === row.id
- ? { ...r, durationMinutes: parseInt(e.target.value, 10) }
+ ? { ...r, durationMinutes: parseInt(value, 10) }
  : r
  )
  )
  }
- className={`${dashboardFilterSelectClass} w-full px-2 py-1.5 text-sm`}
- >
- {[15, 30, 45, 60, 90, 120].map((m) => (
- <option key={m} value={m}>
- {m} min
- </option>
- ))}
- </select>
+ options={[15, 30, 45, 60, 90, 120].map((m) => ({ value: String(m), label: `${m} min` }))}
+ ariaLabel="Minutes"
+ className="w-full"
+ />
  </div>
  <div className="flex-1 min-w-[120px]">
  <label className={`block text-[10px] font-medium text-[var(--dash-text-strong)] mb-0.5`}>Label</label>
@@ -959,16 +947,17 @@ function ScheduleInterviewsPageContent() {
  className="relative z-[1] w-full min-w-[4.25rem] bg-transparent py-1.5 px-2 text-center text-[11px] font-bold tabular-nums text-white outline-none focus:ring-0 cursor-pointer [color-scheme:dark] min-h-[2.25rem] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
  />
  </div>
- <select
- aria-label={`Type for ${app.candidate.firstName}`}
+ <StrideSelect
+ ariaLabel={`Type for ${app.candidate.firstName}`}
  value={bulkTypesByApp[appId] ?? bulkType}
- onChange={(e) => setBulkTypeForApp(appId, e.target.value as InterviewType)}
- className={`${dashboardFilterSelectClass} text-xs max-w-[6.5rem] justify-self-end py-1`}
- >
- <option value="onsite">On-site</option>
- <option value="video">Video</option>
- <option value="phone">Phone</option>
- </select>
+ onChange={(value) => setBulkTypeForApp(appId, value as InterviewType)}
+ options={[
+ { value: 'onsite', label: 'On-site' },
+ { value: 'video', label: 'Video' },
+ { value: 'phone', label: 'Phone' },
+ ]}
+ className="max-w-[6.5rem] justify-self-end"
+ />
  </li>
  );
  })}
@@ -1224,23 +1213,20 @@ function ScheduleInterviewsPageContent() {
  />
  </div>
  <div className="flex-1 min-w-0 sm:min-w-[240px]">
- <select
+ <StrideSelect
  value={singleJobId}
- onChange={(e) => setSingleJobId(e.target.value)}
- className={formSelectClass}
- aria-label="Select job"
- >
- <option value="">Select job (shortlisted only)</option>
- {jobsWithShortlistedLoading ? (
- <option value="" disabled>Loading…</option>
- ) : (
- singleJobFilterOptions.map((j) => (
- <option key={j.id} value={j.id}>
- {j.title} {j.company ? `· ${j.company}` : ''} ({j.shortlistedCount} shortlisted)
- </option>
- ))
- )}
- </select>
+ onChange={(value) => setSingleJobId(value)}
+ options={[
+ { value: '', label: 'Select job (shortlisted only)' },
+ ...(jobsWithShortlistedLoading
+ ? [{ value: '', label: 'Loading…', disabled: true }]
+ : singleJobFilterOptions.map((j) => ({
+ value: j.id,
+ label: `${j.title} ${j.company ? `· ${j.company}` : ''} (${j.shortlistedCount} shortlisted)`,
+ }))),
+ ]}
+ ariaLabel="Select job"
+ />
  </div>
  {(singleSearch || singleJobId) && (
  <button
@@ -1277,23 +1263,22 @@ function ScheduleInterviewsPageContent() {
  <label htmlFor="single-application" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Candidate <span className="text-red-600">*</span>
  </label>
- <select
+ <StrideSelect
  id="single-application"
  value={form.applicationId}
- onChange={(e) => setForm((f) => ({ ...f, applicationId: e.target.value }))}
- className={formSelectClass}
- required
+ onChange={(value) => setForm((f) => ({ ...f, applicationId: value }))}
+ options={[
+ {
+ value: '',
+ label: !singleJobId ? 'Select a job above first' : singleShortlistedLoading ? 'Loading…' : 'Select candidate',
+ },
+ ...singleShortlistedApps.map((a) => ({
+ value: a.id,
+ label: `${a.candidate.firstName} ${a.candidate.lastName}`,
+ })),
+ ]}
  disabled={singleShortlistedLoading}
- >
- <option value="">
- {!singleJobId ? 'Select a job above first' : singleShortlistedLoading ? 'Loading…' : 'Select candidate'}
- </option>
- {singleShortlistedApps.map((a) => (
- <option key={a.id} value={a.id}>
- {a.candidate.firstName} {a.candidate.lastName}
- </option>
- ))}
- </select>
+ />
  </div>
 
  {/* Step 3: Schedule details */}
@@ -1317,31 +1302,27 @@ function ScheduleInterviewsPageContent() {
  <label htmlFor="single-duration" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Duration
  </label>
- <select
+ <StrideSelect
  id="single-duration"
- value={form.durationMinutes}
- onChange={(e) => setForm((f) => ({ ...f, durationMinutes: Number(e.target.value) as InterviewDurationMinutes }))}
- className={formSelectClass}
- >
- {DURATION_OPTIONS.map((opt) => (
- <option key={opt.value} value={opt.value}>{opt.label}</option>
- ))}
- </select>
+ value={String(form.durationMinutes)}
+ onChange={(value) => setForm((f) => ({ ...f, durationMinutes: Number(value) as InterviewDurationMinutes }))}
+ options={DURATION_OPTIONS.map((opt) => ({ value: String(opt.value), label: opt.label }))}
+ />
  </div>
  <div>
  <label htmlFor="single-type" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">
  Type
  </label>
- <select
+ <StrideSelect
  id="single-type"
  value={form.type}
- onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as InterviewType }))}
- className={formSelectClass}
- >
- <option value="onsite">On-site</option>
- <option value="video">Video</option>
- <option value="phone">Phone</option>
- </select>
+ onChange={(value) => setForm((f) => ({ ...f, type: value as InterviewType }))}
+ options={[
+ { value: 'onsite', label: 'On-site' },
+ { value: 'video', label: 'Video' },
+ { value: 'phone', label: 'Phone' },
+ ]}
+ />
  </div>
  <div>
  <label htmlFor="single-location" className="block text-sm font-medium text-[var(--dash-text-strong)] mb-1.5">

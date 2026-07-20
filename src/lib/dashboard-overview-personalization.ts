@@ -54,6 +54,11 @@ export type OverviewCrossModuleMetrics = {
   salesPastDueCloses: number;
   salesClosingThisWeek: number;
   salesWeightedPipelineKes: number;
+  assetsAssigned: number;
+  assetsPendingHandoverAck: number;
+  assetsWarrantyExpiring: number;
+  openHseIncidents: number;
+  openHseActions: number;
 };
 
 export type OverviewDomainSnapshot = {
@@ -510,6 +515,15 @@ export function buildDomainSnapshots(input: {
         if (!lines.length) lines.push('Open module');
         break;
       case 'admin-operations':
+        if (cross.assetsPendingHandoverAck > 0) {
+          lines.push(`${cross.assetsPendingHandoverAck} handover ack pending`);
+        }
+        if (cross.assetsWarrantyExpiring > 0) {
+          lines.push(`${cross.assetsWarrantyExpiring} warranty alerts`);
+        }
+        if (cross.openHseIncidents + cross.openHseActions > 0) {
+          lines.push(`${cross.openHseIncidents + cross.openHseActions} HSE open`);
+        }
         if (!lines.length) lines.push('Assets, HSE & comms');
         break;
       case 'platform-admin':

@@ -11,6 +11,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardTableCard } from '@/components/dashboard/DashboardDataTable';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type PerformanceReport = {
   periodDays: number;
@@ -89,53 +90,47 @@ export default function FleetReportsPage() {
       <DashboardPageHeader
         eyebrow="Fleet & Logistics"
         title="Performance reports"
-        description="Fleet utilisation, trip volumes, delivery performance, fuel usage, and settlement totals."
+        description="Utilisation, trip volumes, delivery performance, and fuel usage."
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <label className="text-sm text-neutral-600">
               <span className="sr-only">Report period</span>
-              <select
-                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-                value={periodDays}
-                onChange={(e) => setPeriodDays(Number(e.target.value))}
-              >
-                {PERIOD_OPTIONS.map((opt) => (
-                  <option key={opt.days} value={opt.days}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <StrideSelect
+                value={String(periodDays)}
+                onChange={(value) => setPeriodDays(Number(value))}
+                options={PERIOD_OPTIONS.map((opt) => ({
+                  value: String(opt.days),
+                  label: opt.label,
+                }))}
+                ariaLabel="Report period"
+              />
             </label>
             <label className="text-sm text-neutral-600">
               <span className="sr-only">Vehicle filter</span>
-              <select
-                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+              <StrideSelect
                 value={vehicleId}
-                onChange={(e) => setVehicleId(e.target.value)}
-              >
-                <option value="">All vehicles</option>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.registration}
-                    {v.label ? ` — ${v.label}` : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setVehicleId(value)}
+                options={[
+                  { value: '', label: 'All vehicles' },
+                  ...vehicles.map((v) => ({
+                    value: v.id,
+                    label: `${v.registration}${v.label ? ` — ${v.label}` : ''}`,
+                  })),
+                ]}
+                ariaLabel="Vehicle filter"
+              />
             </label>
             <label className="text-sm text-neutral-600">
               <span className="sr-only">Partner filter</span>
-              <select
-                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+              <StrideSelect
                 value={partnerId}
-                onChange={(e) => setPartnerId(e.target.value)}
-              >
-                <option value="">All partners</option>
-                {partners.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setPartnerId(value)}
+                options={[
+                  { value: '', label: 'All partners' },
+                  ...partners.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+                ariaLabel="Partner filter"
+              />
             </label>
             <a
               href={`/api/fleet/reports/performance?${exportQuery}&format=csv`}

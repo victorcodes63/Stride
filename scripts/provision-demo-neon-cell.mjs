@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Provision the isolated demo Neon cell: migrate → RLS → stride_app role → SwiftFreight seed.
+ * Provision the isolated demo Neon cell: schema → stride_app role → multi-vertical seed.
  *
  * Requires .env.demo-cell.local with DATABASE_URL + DIRECT_DATABASE_URL (neondb_owner).
  *
@@ -13,15 +13,14 @@ import { spawnSync } from 'node:child_process';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const envPath = path.join(root, '.env.demo-cell.local');
+const profilePath = path.join(root, 'deployments', 'demo-getstride.env');
 
-function loadDemoCellEnv() {
-  if (!existsSync(envPath)) {
-    throw new Error(
-      'Missing .env.demo-cell.local — copy .env.demo-cell.example and add Neon owner URLs.',
-    );
+function loadEnvFile(filePath) {
+  if (!existsSync(filePath)) {
+    throw new Error(`Missing ${path.basename(filePath)}`);
   }
   const map = {};
-  for (const line of readFileSync(envPath, 'utf8').split('\n')) {
+  for (const line of readFileSync(filePath, 'utf8').split('\n')) {
     const t = line.trim();
     if (!t || t.startsWith('#')) continue;
     const eq = t.indexOf('=');
@@ -44,20 +43,43 @@ function run(label, cmd, args, extraEnv = {}) {
   }
 }
 
-const map = loadDemoCellEnv();
+const map = loadEnvFile(envPath);
+const profile = loadEnvFile(profilePath);
 const direct = map.DIRECT_DATABASE_URL || map.DATABASE_URL;
 const pooled = map.DATABASE_URL || direct;
 if (!direct?.includes('neondb_owner')) {
   throw new Error('DIRECT_DATABASE_URL must use neondb_owner for demo cell provisioning');
 }
 
+const unifiedAdmin =
+  profile.DEMO_UNIFIED_ADMIN_EMAIL ||
+  profile.NEXT_PUBLIC_DEMO_ADMIN_EMAIL ||
+  'admin@imara.co.ke';
+const staffDomains =
+  profile.STAFF_ALLOWED_DOMAIN ||
+  'imara.co.ke,savannahfreight.co.ke,heritage.demo.getstride.co.ke,northline.imara.co.ke,amani.imara.co.ke,horizon.imara.co.ke,kilimani.imara.co.ke,example.com';
+
 const baseEnv = {
   DATABASE_URL: pooled,
   DIRECT_DATABASE_URL: direct,
 };
 
-console.log('Provisioning stride-demo Neon cell…');
+const multiVerticalEnv = {
+  ...baseEnv,
+  DATABASE_URL: direct,
+  DEMO_MODE: 'true',
+  DEMO_MULTI_CONTEXT: 'true',
+  MULTI_ENTITY_ENABLED: 'true',
+  DEMO_UNIFIED_ADMIN_EMAIL: unifiedAdmin,
+  NEXT_PUBLIC_DEMO_ADMIN_EMAIL: unifiedAdmin,
+  STAFF_PASSWORD: profile.STAFF_PASSWORD || profile.NEXT_PUBLIC_DEMO_PASSWORD || 'Demo@2026!',
+  NEXT_PUBLIC_DEMO_PASSWORD: profile.NEXT_PUBLIC_DEMO_PASSWORD || 'Demo@2026!',
+  STAFF_ALLOWED_DOMAIN: staffDomains,
+};
+
+console.log('Provisioning stride-demo Neon cell (multi-vertical)…');
 console.log(`  Host: ${(direct.match(/@([^/?]+)/) || [])[1] || 'unknown'}`);
+console.log(`  Unified admin: ${unifiedAdmin}`);
 
 // Fresh Neon projects hit migration-order deps (tenancy before fleet). db push syncs schema.prisma directly.
 run('prisma db push', 'npx', ['prisma', 'db', 'push', '--accept-data-loss'], baseEnv);
@@ -67,20 +89,15 @@ run('stride_app role', 'npx', ['prisma', 'db', 'execute', '--file', 'prisma/migr
 });
 // Demo cell uses neondb_owner at runtime — skip RLS apply (rls_policies.sql expects legacy table names).
 console.log('\n→ RLS policies (skipped on demo cell — isolated DB uses neondb_owner runtime)');
-run('SwiftFreight demo seed', 'npx', ['tsx', 'prisma/seed-demo.ts'], {
-  ...baseEnv,
-  DATABASE_URL: direct,
-  DEMO_MODE: 'true',
-  DEMO_PACK: 'cargo-logistics',
-});
-run('demo email domains', 'npx', ['tsx', 'scripts/seed-demo-email-domains.mjs'], {
-  ...baseEnv,
-  DATABASE_URL: direct,
-  DEMO_MODE: 'true',
-  DEMO_PACK: 'cargo-logistics',
-  STAFF_ALLOWED_DOMAIN: 'swiftfreight.imara.co.ke,imara.co.ke,example.com',
+
+run('multi-vertical demo seed', 'npx', ['tsx', 'prisma/seed-demo-multi-vertical.ts'], multiVerticalEnv);
+
+run('demo email domains (all showcase orgs)', 'npx', ['tsx', 'scripts/seed-demo-email-domains.mjs'], {
+  ...multiVerticalEnv,
+  DEMO_MULTI_CONTEXT: 'true',
 });
 
-console.log('\n✓ Demo cell provisioned.');
-console.log('  Admin: admin@imara.co.ke / Demo@2026!');
+console.log('\n✓ Demo cell provisioned (multi-vertical industry tour).');
+console.log(`  Admin: ${unifiedAdmin} / ${profile.NEXT_PUBLIC_DEMO_PASSWORD || 'Demo@2026!'}`);
+console.log('  Switch company in the top bar to tour SACCO, energy, logistics, healthcare, travel, construction.');
 console.log('  Next: npm run demo:cell:deploy');

@@ -26,6 +26,7 @@ import type { DashboardOverviewLayout } from '@/lib/dashboard-overview-layout';
 import type { DeploymentTier } from '@/lib/deployment-tier';
 import { writeModuleAdminFlagsCookie } from '@/lib/module-cookie';
 import { DashboardSessionProvider } from '@/contexts/dashboard-session';
+import { DashboardQueryProvider } from '@/components/providers/DashboardQueryProvider';
 import { DashboardDomainProvider } from '@/contexts/dashboard-domain';
 import { DashboardOverviewLayoutProvider } from '@/contexts/dashboard-overview-layout';
 import { DashboardModuleOrderProvider } from '@/contexts/dashboard-module-order';
@@ -167,7 +168,7 @@ export default function DashboardAppLayoutClient({
 
  loadBootstrap();
  const onModulesUpdated = () => {
- fetch('/api/config/deployment', { credentials: 'include' })
+ fetch('/api/dashboard/bootstrap', { credentials: 'include' })
  .then((r) => (r.ok ? r.json() : null))
  .then((data: BootstrapPayload | null) => {
  if (!cancelled && data?.modules) {
@@ -246,8 +247,9 @@ export default function DashboardAppLayoutClient({
   [entityBootstrap],
  );
 
- return (
- <DashboardDomainProvider initialPathname={initialPathname}>
+  return (
+    <DashboardQueryProvider>
+      <DashboardDomainProvider initialPathname={initialPathname}>
  <DashboardOverviewLayoutProvider
   initialLayout={overviewLayout}
   initialIsCustom={overviewLayoutIsCustom}
@@ -401,6 +403,7 @@ export default function DashboardAppLayoutClient({
           <DashboardSessionProvider
             user={currentUser}
             modules={enabledModules}
+            deploymentTier={deploymentTier}
             overviewCore={overviewCore}
             overviewLayout={overviewLayout}
             overviewLayoutIsCustom={overviewLayoutIsCustom}
@@ -412,8 +415,9 @@ export default function DashboardAppLayoutClient({
  </div>
  </div>
  </EntityProvider>
- </DashboardModuleOrderProvider>
- </DashboardOverviewLayoutProvider>
- </DashboardDomainProvider>
- );
+      </DashboardModuleOrderProvider>
+      </DashboardOverviewLayoutProvider>
+      </DashboardDomainProvider>
+    </DashboardQueryProvider>
+  );
 }

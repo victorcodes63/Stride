@@ -32,6 +32,7 @@
   --color-secondary-900: #0e0c0a;
 
   --stride-coral: var(--brand-primary);
+  --stride-coral-rgb: 255, 84, 54;
   --stride-coral-deep: #e63e22;
   --stride-ink: var(--brand-ink);
   --stride-paper: #fbf8f4;

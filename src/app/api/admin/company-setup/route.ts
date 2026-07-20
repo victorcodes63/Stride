@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         }
       : undefined;
     const modules = resolveEffectiveModules(setup.moduleAdminFlags, subscription);
-    const capabilities = getCompanySetupCapabilities(tier);
+    const capabilities = getCompanySetupCapabilities({ tier, features: entitlements?.features ?? null });
     const oauthConfigured = {
       microsoft: isMicrosoftOAuthConfigured(),
       google: isGoogleOAuthConfigured(),
@@ -88,7 +88,9 @@ export async function GET(request: NextRequest) {
       storageKey,
       activeContextLabel: companySetupContextLabel(entitySlug),
       public: toPublicCompanySetup(setup),
-      resolvedBrand: resolvePublicBrand(setup),
+      resolvedBrand: resolvePublicBrand(setup, {
+        allowWhiteLabel: capabilities.canConfigureWhiteLabel,
+      }),
       themePreview: buildBrandThemeCssVars(setup.primaryColor, setup.secondaryColor),
       provisioning: buildCompanySetupChecklist(setup),
       setupAudience: isCustomerProductionCell() ? 'customer' : 'ops',
@@ -141,7 +143,7 @@ export async function PATCH(request: NextRequest) {
   const storageKey = companySetupStorageKeyFromRequest(request);
   const organizationId = actor?.organizationId ?? DEFAULT_ORGANIZATION_ID;
   const current = await loadCompanySetupForStorageKey(storageKey, organizationId);
-  const capabilities = getCompanySetupCapabilities(tier);
+  const capabilities = getCompanySetupCapabilities({ tier, features: entitlements?.features ?? null });
   const oauthConfigured = {
     microsoft: isMicrosoftOAuthConfigured(),
     google: isGoogleOAuthConfigured(),

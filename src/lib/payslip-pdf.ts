@@ -463,3 +463,17 @@ export async function generatePayslipPdf(
   const pdfBytes = await doc.save();
   return Buffer.from(pdfBytes);
 }
+
+/**
+ * Merge several single-payslip PDF buffers into one multi-page document
+ * (one payslip per A4 page) for a "print all / download all" batch.
+ */
+export async function mergePdfBuffers(buffers: Buffer[]): Promise<Buffer> {
+  const out = await PDFDocument.create();
+  for (const buf of buffers) {
+    const src = await PDFDocument.load(buf);
+    const pages = await out.copyPages(src, src.getPageIndices());
+    pages.forEach((page) => out.addPage(page));
+  }
+  return Buffer.from(await out.save());
+}

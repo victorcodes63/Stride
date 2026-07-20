@@ -80,7 +80,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         id: task.workflow.id,
         type: task.workflow.type,
         status: task.workflow.status,
-        templateName: task.workflow.template.name,
+        templateName: task.workflow.template?.name ?? null,
       },
     });
   });

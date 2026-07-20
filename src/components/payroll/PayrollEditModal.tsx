@@ -30,6 +30,7 @@ interface PayrollEditModalProps {
   year: number;
   onClose: () => void;
   onSaved: () => void;
+  apiBase?: string;
 }
 
 const MONTHS = [
@@ -55,6 +56,7 @@ export default function PayrollEditModal({
   year,
   onClose,
   onSaved,
+  apiBase = '/api/outsourcing/payroll',
 }: PayrollEditModalProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -96,7 +98,7 @@ export default function PayrollEditModal({
     async function load() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/outsourcing/payroll/${payrollId}`);
+        const res = await fetch(`${apiBase}/${payrollId}`);
         const data = await res.json();
         if (!res.ok || cancelled) return;
         setBasicPay(String(data.basicPay ?? 0));
@@ -135,7 +137,7 @@ export default function PayrollEditModal({
     }
     load();
     return () => { cancelled = true; };
-  }, [payrollId]);
+  }, [payrollId, apiBase]);
 
   const updateAllowance = (key: string, value: number) => {
     setAllowances((a) => setAllowance(a, key, value));
@@ -202,7 +204,7 @@ export default function PayrollEditModal({
       if (biweekly && (payrollFrequency === 'biweekly' || period1Gross || period2Gross)) {
         payload.biweeklyAttendance = biweeklyAttendance;
       }
-      const res = await fetch(`/api/outsourcing/payroll/${payrollId}`, {
+      const res = await fetch(`${apiBase}/${payrollId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -381,7 +383,7 @@ export default function PayrollEditModal({
                         onClick={async () => {
                           setSaving(true);
                           try {
-                            const res = await fetch(`/api/outsourcing/payroll/${payrollId}`, {
+                            const res = await fetch(`${apiBase}/${payrollId}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({

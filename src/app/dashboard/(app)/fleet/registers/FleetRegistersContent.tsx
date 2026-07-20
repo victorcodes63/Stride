@@ -16,6 +16,7 @@ import {
   FLEET_MAINTENANCE_TYPES,
   fleetDriverStatusBadgeClass,
 } from '@/lib/fleet/registers';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Tab = 'drivers' | 'partners' | 'fuel' | 'maintenance';
 
@@ -269,7 +270,7 @@ export default function FleetRegistersContent() {
       <DashboardPageHeader
         eyebrow="Fleet & Logistics"
         title="Registers & logs"
-        description="Driver and transport partner registers, plus fuel and maintenance history per vehicle."
+        description="Driver and partner registers with fuel and maintenance history."
       />
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -424,11 +425,15 @@ export default function FleetRegistersContent() {
           </div>
           {showFuelForm ? (
             <form onSubmit={submitFuel} className="mb-6 grid gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 sm:grid-cols-2">
-              <select className="dash-auth-input" value={fuelVehicleId} onChange={(e) => setFuelVehicleId(e.target.value)} required>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>{v.registration}{v.label ? ` — ${v.label}` : ''}</option>
-                ))}
-              </select>
+              <StrideSelect
+                value={fuelVehicleId}
+                onChange={(value) => setFuelVehicleId(value)}
+                options={vehicles.map((v) => ({
+                  value: v.id,
+                  label: `${v.registration}${v.label ? ` — ${v.label}` : ''}`,
+                }))}
+                ariaLabel="Vehicle"
+              />
               <input className="dash-auth-input" placeholder="Station" value={fuelStation} onChange={(e) => setFuelStation(e.target.value)} />
               <input className="dash-auth-input" type="number" step="0.01" placeholder="Litres" value={fuelLiters} onChange={(e) => setFuelLiters(e.target.value)} required />
               <input className="dash-auth-input" type="number" placeholder="Amount (KES)" value={fuelAmount} onChange={(e) => setFuelAmount(e.target.value)} required />
@@ -479,16 +484,24 @@ export default function FleetRegistersContent() {
           </div>
           {showMaintenanceForm ? (
             <form onSubmit={submitMaintenance} className="mb-6 grid gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 sm:grid-cols-2">
-              <select className="dash-auth-input" value={maintVehicleId} onChange={(e) => setMaintVehicleId(e.target.value)} required>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>{v.registration}{v.label ? ` — ${v.label}` : ''}</option>
-                ))}
-              </select>
-              <select className="dash-auth-input" value={maintType} onChange={(e) => setMaintType(e.target.value)}>
-                {FLEET_MAINTENANCE_TYPES.map((t) => (
-                  <option key={t} value={t}>{FLEET_MAINTENANCE_TYPE_LABELS[t]}</option>
-                ))}
-              </select>
+              <StrideSelect
+                value={maintVehicleId}
+                onChange={(value) => setMaintVehicleId(value)}
+                options={vehicles.map((v) => ({
+                  value: v.id,
+                  label: `${v.registration}${v.label ? ` — ${v.label}` : ''}`,
+                }))}
+                ariaLabel="Vehicle"
+              />
+              <StrideSelect
+                value={maintType}
+                onChange={(value) => setMaintType(value)}
+                options={FLEET_MAINTENANCE_TYPES.map((t) => ({
+                  value: t,
+                  label: FLEET_MAINTENANCE_TYPE_LABELS[t],
+                }))}
+                ariaLabel="Maintenance type"
+              />
               <input className="dash-auth-input sm:col-span-2" placeholder="Description" value={maintDescription} onChange={(e) => setMaintDescription(e.target.value)} required />
               <input className="dash-auth-input" type="number" placeholder="Cost (KES)" value={maintCost} onChange={(e) => setMaintCost(e.target.value)} />
               <input className="dash-auth-input" placeholder="Vendor / workshop" value={maintVendor} onChange={(e) => setMaintVendor(e.target.value)} />

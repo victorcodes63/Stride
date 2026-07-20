@@ -5,7 +5,8 @@ import { BarChart3, Loader2, AlertCircle, ShoppingCart, Building2, Wallet, Trend
 import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { DASHBOARD_FORM_INPUT_CLASS, DASHBOARD_STAT_CARD_CLASS, DASHBOARD_SURFACE_CLASS } from '@/lib/dashboard-layout';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { DASHBOARD_STAT_CARD_CLASS, DASHBOARD_SURFACE_CLASS } from '@/lib/dashboard-layout';
 
 type SpendReport = {
   year: number;
@@ -113,19 +114,14 @@ export default function ProcurementSpendContent() {
       <DashboardPageHeader
         icon={BarChart3}
         title="Procurement spend"
-        description="Committed, ordered, received, and invoiced spend by department, vendor, and budget line."
+        description="Spend by department, vendor, and budget line."
         actions={
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className={`${DASHBOARD_FORM_INPUT_CLASS} font-semibold`}
-          >
-            {[2024, 2025, 2026, 2027].map((y) => (
-              <option key={y} value={y}>
-                FY {y}
-              </option>
-            ))}
-          </select>
+          <StrideSelect
+            value={String(year)}
+            onChange={(value) => setYear(Number(value))}
+            options={[2024, 2025, 2026, 2027].map((y) => ({ value: String(y), label: `FY ${y}` }))}
+            ariaLabel="Fiscal year"
+          />
         }
       />
 

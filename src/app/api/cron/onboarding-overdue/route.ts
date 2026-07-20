@@ -40,16 +40,19 @@ export async function GET(request: NextRequest) {
     const recipients = task.assignedToId ? [task.assignedToId] : roleUsers.map((item) => item.id);
     if (recipients.length === 0) continue;
 
+    const emp = task.workflow.employee;
+    const forWhom = emp ? ` for ${emp.firstName} ${emp.lastName}` : '';
+    const overdueBody = `"${task.title}"${forWhom} was due on ${task.dueDate?.toISOString().slice(0, 10)}.`;
     await sendNotification({
       event: 'onboarding_task_overdue',
       recipientUserIds: recipients,
       title: 'Overdue onboarding task',
-      body: `"${task.title}" for ${task.workflow.employee.firstName} ${task.workflow.employee.lastName} was due on ${task.dueDate?.toISOString().slice(0, 10)}.`,
+      body: overdueBody,
       href: `/dashboard/onboarding/${task.workflowId}`,
       priority: 'urgent',
       channel: 'both',
       metadata: {
-        body: `"${task.title}" for ${task.workflow.employee.firstName} ${task.workflow.employee.lastName} was due on ${task.dueDate?.toISOString().slice(0, 10)}.`,
+        body: overdueBody,
         href: `/dashboard/onboarding/${task.workflowId}`,
       },
     });

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toCSV } from '@/lib/report-export';
 import {
   assertReportsStaffRole,
-  downloadHeaders,
   parseFormat,
   parsePeriod,
+  respondWithReport,
 } from '@/app/api/reports/_shared';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
 
 type StatutoryType = 'p9' | 'p10' | 'nssf' | 'shif';
 
@@ -125,13 +126,15 @@ export async function GET(request: NextRequest) {
       rows,
     };
 
-    if (format === 'csv') {
-      const csv = toCSV(headers, rows);
-      return new NextResponse(csv, {
-        headers: downloadHeaders('text/csv', `statutory-${type}-${periodLabel}.csv`),
-      });
-    }
-
-    return NextResponse.json(payload);
+    return respondWithReport({
+      format,
+      json: payload,
+      title: `Statutory ${type.toUpperCase()} — ${periodLabel}`,
+      sheetName: `${type.toUpperCase()} ${periodLabel}`,
+      baseFilename: `statutory-${type}-${periodLabel}`,
+      headers,
+      rows,
+      summaryLines: [`Type: ${type.toUpperCase()}`, `Period: ${periodLabel}`, `Records: ${rows.length}`],
+    });
   });
 }

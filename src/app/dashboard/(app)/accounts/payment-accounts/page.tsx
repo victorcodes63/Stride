@@ -138,7 +138,7 @@ function PaymentAccountsPageInner() {
  <DashboardPageHeader
  icon={Banknote}
  title="Payment accounts"
- description="Configure the bank accounts that appear on invoice and credit note PDFs. Manage your full invoicing setup in Invoicing setup."
+ description="Bank accounts shown on invoice and credit note PDFs."
  actions={
  <button
  type="button"

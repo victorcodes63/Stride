@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
           serialNumber: true,
           assignedAt: true,
           location: true,
+          handoverAcknowledgedAt: true,
+          warrantyExpiry: true,
         },
       }),
     );
@@ -33,6 +35,9 @@ export async function GET(request: NextRequest) {
         serialNumber: r.serialNumber,
         assignedAt: r.assignedAt?.toISOString() ?? null,
         location: r.location,
+        handoverAcknowledgedAt: r.handoverAcknowledgedAt?.toISOString() ?? null,
+        needsAck: r.handoverAcknowledgedAt == null,
+        warrantyExpiry: r.warrantyExpiry?.toISOString().slice(0, 10) ?? null,
       })),
     });
   });

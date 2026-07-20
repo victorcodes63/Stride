@@ -11,6 +11,7 @@ import {
   type OutsourcingClientStatus,
   type OutsourcingReportSection,
 } from '@/lib/outsourcing-client';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 const inputClass =
   'w-full min-w-0 rounded-lg border border-neutral-300 px-3 py-2.5 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
@@ -36,6 +37,8 @@ export type EndClientFormValues = {
   whiteLabelReports: boolean;
   reportRecipientEmails: string;
   reportSections: OutsourcingReportSection[];
+  payslipFromName: string;
+  payslipReplyTo: string;
 };
 
 export function endClientFormValuesFromJson(client?: Partial<OutsourcingClientJson> | null): EndClientFormValues {
@@ -60,6 +63,8 @@ export function endClientFormValuesFromJson(client?: Partial<OutsourcingClientJs
     whiteLabelReports: client?.whiteLabelReports ?? false,
     reportRecipientEmails: (client?.reportRecipientEmails ?? []).join(', '),
     reportSections: client?.reportSections ?? [...DEFAULT_OUTSOURCING_REPORT_SECTIONS],
+    payslipFromName: client?.payslipFromName ?? '',
+    payslipReplyTo: client?.payslipReplyTo ?? '',
   };
 }
 
@@ -88,6 +93,8 @@ export function endClientFormValuesToPayload(values: EndClientFormValues) {
       .map((email) => email.trim())
       .filter(Boolean),
     reportSections: values.reportSections,
+    payslipFromName: values.payslipFromName.trim() || null,
+    payslipReplyTo: values.payslipReplyTo.trim() || null,
   };
 }
 
@@ -149,13 +156,15 @@ export function EndClientForm({ initial, submitLabel, cancelHref, onSubmit }: En
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-neutral-800">Status</span>
-            <select className={inputClass} value={values.status} onChange={(e) => set('status', e.target.value as OutsourcingClientStatus)}>
-              {OUTSOURCING_CLIENT_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </option>
-              ))}
-            </select>
+            <StrideSelect
+              value={values.status}
+              onChange={(value) => set('status', value as OutsourcingClientStatus)}
+              options={OUTSOURCING_CLIENT_STATUSES.map((status) => ({
+                value: status,
+                label: status.charAt(0).toUpperCase() + status.slice(1),
+              }))}
+              ariaLabel="Status"
+            />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-neutral-800">Currency</span>
@@ -193,11 +202,16 @@ export function EndClientForm({ initial, submitLabel, cancelHref, onSubmit }: En
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-neutral-800">Billing cycle</span>
-            <select className={inputClass} value={values.billingCycle} onChange={(e) => set('billingCycle', e.target.value)}>
-              <option value="monthly">Monthly</option>
-              <option value="bi_weekly">Bi-weekly</option>
-              <option value="weekly">Weekly</option>
-            </select>
+            <StrideSelect
+              value={values.billingCycle}
+              onChange={(value) => set('billingCycle', value)}
+              options={[
+                { value: 'monthly', label: 'Monthly' },
+                { value: 'bi_weekly', label: 'Bi-weekly' },
+                { value: 'weekly', label: 'Weekly' },
+              ]}
+              ariaLabel="Billing cycle"
+            />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-neutral-800">Payment terms</span>
@@ -283,6 +297,45 @@ export function EndClientForm({ initial, submitLabel, cancelHref, onSubmit }: En
               );
             })}
           </div>
+        </div>
+      </section>
+
+      <section className="dashboard-surface p-5 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-primary-900">Payslip delivery</h2>
+          <p className="mt-1 text-sm text-neutral-600">
+            How employee payslips appear in their inbox. By default payslips send from the Stride
+            platform address but are stamped with the details below. To send from the client&apos;s own
+            domain (e.g. <span className="font-mono">payroll@company.co.ke</span>), verify a sending
+            domain from the client&apos;s detail page.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-neutral-800">Sender name (From)</span>
+            <input
+              className={inputClass}
+              value={values.payslipFromName}
+              onChange={(e) => set('payslipFromName', e.target.value)}
+              placeholder={values.name.trim() ? `${values.name.trim()} Payroll` : 'Company Payroll'}
+            />
+            <span className="mt-1 block text-xs text-neutral-500">
+              Shown as the sender. Defaults to the client name if left blank.
+            </span>
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-neutral-800">Reply-to address</span>
+            <input
+              type="email"
+              className={inputClass}
+              value={values.payslipReplyTo}
+              onChange={(e) => set('payslipReplyTo', e.target.value)}
+              placeholder="hr@company.co.ke"
+            />
+            <span className="mt-1 block text-xs text-neutral-500">
+              Where employee payslip replies are routed. Defaults to the Stride support inbox.
+            </span>
+          </label>
         </div>
       </section>
 

@@ -31,12 +31,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
             include: {
               assignedTo: { select: { id: true, name: true, email: true } },
               document: { select: { id: true, fileName: true, title: true } },
+              formTemplate: { select: { id: true, name: true } },
+              formSubmission: { select: { id: true, status: true, submittedAt: true } },
+              signatureRequest: {
+                select: { id: true, status: true, documentTitle: true, signedAt: true },
+              },
             },
           },
         },
       }),
     );
-    if (!workflow || workflow.employee.outsourcingClientId !== workspaceClientId) {
+    if (!workflow || workflow.employee?.outsourcingClientId !== workspaceClientId) {
       return NextResponse.json({ error: 'Workflow not found' }, { status: 404 });
     }
     return NextResponse.json(workflow);
@@ -66,7 +71,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         where: ctx.where({ id }),
         select: { id: true, employee: { select: { outsourcingClientId: true } } },
       });
-      if (!existing || existing.employee.outsourcingClientId !== workspaceClientId) return null;
+      if (!existing || existing.employee?.outsourcingClientId !== workspaceClientId) return null;
 
       return tx.onboardingWorkflow.update({
         where: { id },

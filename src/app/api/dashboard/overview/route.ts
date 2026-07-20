@@ -42,6 +42,10 @@ export async function GET(request: NextRequest) {
         ? getEffectiveModulesFromRequest(request)
         : resolveEffectiveModules(setup!.moduleAdminFlags, subscription);
 
+      // Everything runs in a single tenant transaction (one pooled connection).
+      // Core metrics collapse to one combined SQL round-trip; resolving the
+      // client and loading the user/details reuse the same connection, avoiding
+      // extra connection acquisitions that dominate latency on a remote DB.
       const dbResult = await withOrgContext(
         ctx.organizationId,
         async (tx) => {

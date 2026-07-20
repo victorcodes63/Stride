@@ -7,7 +7,7 @@ export default function CompanySetupPage() {
     <DashboardPage>
       <DashboardPageHeader
         title="Company setup"
-        description="Branding, sign-in, and workspace defaults for your company. Changes apply after you save — no redeploy required."
+        description="Branding, sign-in, and workspace defaults."
       />
 
       <CompanySetupPageClient />

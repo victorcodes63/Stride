@@ -53,6 +53,18 @@ const FALLBACK_ENTITY: Entity = {
   color: STRIDE_BRAND_PRIMARY,
 };
 
+/**
+ * Two selections are "the same" only when their visible fields match — not just
+ * the id. The loading FALLBACK_ENTITY shares id 'ke' with a real KE default
+ * entity, so an id-only guard would keep the "Workspace" placeholder instead of
+ * adopting the resolved company once bootstrap config arrives asynchronously.
+ */
+function sameEntitySelection(a: Entity, b: Entity): boolean {
+  return (
+    a.id === b.id && a.name === b.name && a.currency === b.currency && a.country === b.country
+  );
+}
+
 const EntityContext = createContext<EntityContextType>({
   activeEntity: FALLBACK_ENTITY,
   entities: [FALLBACK_ENTITY],
@@ -140,9 +152,14 @@ export function EntityProvider({ children, initialConfig = null }: EntityProvide
       setEntities(list);
       setShowSwitcher(Boolean(initialConfig?.showSwitcher));
       syncEntityCookie(preferred.id);
-      setActiveEntityState((prev) => (prev.id === preferred.id ? prev : preferred));
+      setActiveEntityState((prev) => (sameEntitySelection(prev, preferred) ? prev : preferred));
       setLoading(false);
       appliedConfigKeyRef.current = configKey;
+      // First paint / bootstrap often has no entity cookie yet, so packs were all-on.
+      // Re-fetch modules now that the preferred company cookie is set.
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hris:modules-updated'));
+      }
       return;
     }
 
@@ -159,8 +176,12 @@ export function EntityProvider({ children, initialConfig = null }: EntityProvide
     const preferred = pickPreferredEntity(entities, defaultId);
     const previousCookie = readCookieEntityId();
     syncEntityCookie(preferred.id);
-    setActiveEntityState((prev) => (prev.id === preferred.id ? prev : preferred));
-    if (previousCookie && previousCookie !== preferred.id) {
+    setActiveEntityState((prev) => (sameEntitySelection(prev, preferred) ? prev : preferred));
+    // Include null → first cookie so industry packs apply on first sign-in.
+    if (previousCookie !== preferred.id) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hris:modules-updated'));
+      }
       router.refresh();
     }
   }, [loading, entities, router]);
@@ -170,6 +191,9 @@ export function EntityProvider({ children, initialConfig = null }: EntityProvide
     localStorage.setItem(STORAGE_KEY, entity.id);
     syncEntityCookie(entity.id);
     setActiveEntityState(entity);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('hris:modules-updated'));
+    }
     router.refresh();
   };
 

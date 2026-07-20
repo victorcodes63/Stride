@@ -3,6 +3,7 @@ import {
   STRIDE_BRAND_SECONDARY,
   buildStrideBrandScaleCssVars,
   sanitizeStrideHexColor,
+  strideHexToRgbTriple,
 } from '@/lib/stride-palette';
 
 /** Default brand theme colors — Stride palette. */
@@ -25,4 +26,26 @@ export function buildBrandThemeCssVars(primaryHex: string, secondaryHex: string)
     sanitizeHexColor(primaryHex, DEFAULT_PRIMARY_COLOR),
     sanitizeHexColor(secondaryHex, DEFAULT_SECONDARY_COLOR),
   );
+}
+
+/**
+ * Per-tenant runtime theme. Extends the brand/primary scale with overrides for the master
+ * accent tokens (`--stride-coral` family + logo) that the dashboard, public, and ESS surfaces
+ * reference directly. Because these are emitted as an inline `style` on `<html>`, they win over
+ * every stylesheet rule — including `html.dark` — so the tenant colour cascades everywhere the
+ * default coral would. Neutral paper/ink tokens are intentionally left untouched.
+ */
+export function buildTenantBrandThemeCssVars(
+  primaryHex: string,
+  secondaryHex: string,
+): Record<string, string> {
+  const primary = sanitizeHexColor(primaryHex, DEFAULT_PRIMARY_COLOR);
+  const base = buildBrandThemeCssVars(primary, secondaryHex);
+  return {
+    ...base,
+    '--stride-coral': primary,
+    '--stride-coral-deep': base['--brand-primary-hover'] ?? primary,
+    '--stride-coral-rgb': strideHexToRgbTriple(primary),
+    '--stride-logo': primary,
+  };
 }

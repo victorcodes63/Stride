@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Tab = 'sites' | 'leases' | 'maintenance';
 
@@ -256,7 +257,7 @@ export default function FacilitiesContent() {
     <DashboardPage>
       <DashboardPageHeader
         title="Facilities"
-        description="Sites and branches, lease renewals, and maintenance requests — scoped to your workspace."
+        description="Sites, branches, lease renewals, and maintenance requests."
         icon={Building2}
       />
 
@@ -336,11 +337,12 @@ export default function FacilitiesContent() {
                 required
               />
               <div className="flex flex-wrap gap-2">
-                <select value={siteType} onChange={(e) => setSiteType(e.target.value)} className="dash-auth-input">
-                  {Object.entries(SITE_TYPE_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
+                <StrideSelect
+                  value={siteType}
+                  onChange={(value) => setSiteType(value)}
+                  options={Object.entries(SITE_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                  ariaLabel="Site type"
+                />
                 <input
                   value={siteCounty}
                   onChange={(e) => setSiteCounty(e.target.value)}
@@ -399,17 +401,16 @@ export default function FacilitiesContent() {
           </div>
           {showLeaseForm ? (
             <form onSubmit={createLease} className="mb-4 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4 space-y-3">
-              <select
+              <StrideSelect
                 value={leaseSiteId}
-                onChange={(e) => setLeaseSiteId(e.target.value)}
-                className="dash-auth-input w-full"
-                required
-              >
-                <option value="">Select site…</option>
-                {sites.map((s) => (
-                  <option key={s.id} value={s.id}>{s.siteCode} — {s.name}</option>
-                ))}
-              </select>
+                onChange={(value) => setLeaseSiteId(value)}
+                options={[
+                  { value: '', label: 'Select site…' },
+                  ...sites.map((s) => ({ value: s.id, label: `${s.siteCode} — ${s.name}` })),
+                ]}
+                ariaLabel="Site"
+                className="w-full"
+              />
               <input
                 value={leaseLandlord}
                 onChange={(e) => setLeaseLandlord(e.target.value)}
@@ -486,17 +487,16 @@ export default function FacilitiesContent() {
           </div>
           {showTicketForm ? (
             <form onSubmit={createTicket} className="mb-4 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4 space-y-3">
-              <select
+              <StrideSelect
                 value={ticketSiteId}
-                onChange={(e) => setTicketSiteId(e.target.value)}
-                className="dash-auth-input w-full"
-                required
-              >
-                <option value="">Select site…</option>
-                {sites.map((s) => (
-                  <option key={s.id} value={s.id}>{s.siteCode} — {s.name}</option>
-                ))}
-              </select>
+                onChange={(value) => setTicketSiteId(value)}
+                options={[
+                  { value: '', label: 'Select site…' },
+                  ...sites.map((s) => ({ value: s.id, label: `${s.siteCode} — ${s.name}` })),
+                ]}
+                ariaLabel="Site"
+                className="w-full"
+              />
               <input
                 value={ticketTitle}
                 onChange={(e) => setTicketTitle(e.target.value)}
@@ -505,20 +505,30 @@ export default function FacilitiesContent() {
                 required
               />
               <div className="flex flex-wrap gap-2">
-                <select value={ticketCategory} onChange={(e) => setTicketCategory(e.target.value)} className="dash-auth-input">
-                  <option value="plumbing">Plumbing</option>
-                  <option value="electrical">Electrical</option>
-                  <option value="hvac">HVAC</option>
-                  <option value="structural">Structural</option>
-                  <option value="cleaning">Cleaning</option>
-                  <option value="other">Other</option>
-                </select>
-                <select value={ticketPriority} onChange={(e) => setTicketPriority(e.target.value)} className="dash-auth-input">
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
+                <StrideSelect
+                  value={ticketCategory}
+                  onChange={(value) => setTicketCategory(value)}
+                  options={[
+                    { value: 'plumbing', label: 'Plumbing' },
+                    { value: 'electrical', label: 'Electrical' },
+                    { value: 'hvac', label: 'HVAC' },
+                    { value: 'structural', label: 'Structural' },
+                    { value: 'cleaning', label: 'Cleaning' },
+                    { value: 'other', label: 'Other' },
+                  ]}
+                  ariaLabel="Category"
+                />
+                <StrideSelect
+                  value={ticketPriority}
+                  onChange={(value) => setTicketPriority(value)}
+                  options={[
+                    { value: 'low', label: 'Low' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'high', label: 'High' },
+                    { value: 'urgent', label: 'Urgent' },
+                  ]}
+                  ariaLabel="Priority"
+                />
               </div>
               <button type="submit" disabled={saving} className="dash-auth-submit max-w-[8rem]">
                 {saving ? 'Saving…' : 'Save'}

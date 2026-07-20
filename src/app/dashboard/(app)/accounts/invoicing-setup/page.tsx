@@ -132,7 +132,7 @@ function InvoicingSetupPageInner() {
       <DashboardPageHeader
         icon={FileSignature}
         title="Invoicing setup"
-        description="Everything you need for client invoices and credit notes — company identity, PDF layout, and payment details. Independent of Admin → Company setup."
+        description="Company identity, PDF layout, and payment details for invoices."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <a

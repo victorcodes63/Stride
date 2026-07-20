@@ -2,9 +2,15 @@
 
 import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { ClipboardList, PlayCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardList,
+  Gauge,
+  PlayCircle,
+  Timer,
+} from 'lucide-react';
 import { DashboardAsyncState } from '@/components/dashboard/DashboardAsyncState';
-import { dashboardFilterSelectClass } from '@/components/dashboard/DashboardFilterBar';
 import {
   DashboardTable,
   DashboardTableCard,
@@ -15,7 +21,12 @@ import {
 } from '@/components/dashboard/DashboardDataTable';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardStatGrid, DashboardMetricCard } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { dashStatusChip, type DashStatusTone } from '@/lib/dashboard-status-chips';
+import { avatarColor } from '@/components/onboarding/task-view';
+import { WorkflowProgressRing, type ProgressRingTone } from '@/components/onboarding/WorkflowProgressRing';
 import { useDashboardTabParam } from '@/hooks/useDashboardTabParam';
 import { useListFilters } from '@/hooks/useListFilters';
 
@@ -32,6 +43,25 @@ const WORKFLOW_TYPES = ['ONBOARDING', 'OFFBOARDING'] as const;
 type WorkflowType = (typeof WORKFLOW_TYPES)[number];
 
 const ONBOARDING_FILTER_DEFAULTS = { status: '', search: '' };
+
+function statusChipTone(status: WorkflowRow['status']): DashStatusTone {
+  if (status === 'COMPLETED') return 'success';
+  if (status === 'CANCELLED') return 'neutral';
+  return 'info';
+}
+
+function DepartmentChip({ name }: { name: string | null | undefined }) {
+  if (!name) return <span className="text-[var(--dash-text-subtle)]">—</span>;
+  const color = avatarColor(name);
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+      style={{ background: color.bg, color: color.fg }}
+    >
+      {name}
+    </span>
+  );
+}
 
 async function readWorkflowsResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
@@ -147,10 +177,23 @@ function OnboardingPageContent() {
             task.status === 'OVERDUE' ||
             (task.status === 'PENDING' && task.dueDate && new Date(task.dueDate) < new Date()),
         ).length;
-        return { ...row, total, complete, overdue };
+        const pct = total > 0 ? Math.round((complete / total) * 100) : 0;
+        return { ...row, total, complete, overdue, pct };
       }),
     [rows],
   );
+
+  const kpis = useMemo(() => {
+    const inProgress = view.filter((r) => r.status === 'IN_PROGRESS').length;
+    const completed = view.filter((r) => r.status === 'COMPLETED').length;
+    const overdueTasks = view.reduce((sum, r) => sum + r.overdue, 0);
+    const withTasks = view.filter((r) => r.total > 0);
+    const avgProgress =
+      withTasks.length > 0
+        ? Math.round(withTasks.reduce((sum, r) => sum + r.pct, 0) / withTasks.length)
+        : 0;
+    return { inProgress, completed, overdueTasks, avgProgress };
+  }, [view]);
 
   const status = useMemo(() => {
     if (loading) return 'loading' as const;
@@ -180,10 +223,17 @@ function OnboardingPageContent() {
     <DashboardPage>
       <DashboardPageHeader
         title="Onboarding & Offboarding"
+        description="Track every joiner and leaver from kickoff to completion."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href="/dashboard/onboarding/templates" className="btn-secondary inline-flex h-10 items-center px-3 text-sm">
               Templates
+            </Link>
+            <Link href="/dashboard/onboarding/forms" className="btn-secondary inline-flex h-10 items-center px-3 text-sm">
+              Forms
+            </Link>
+            <Link href="/dashboard/onboarding/analytics" className="btn-secondary inline-flex h-10 items-center px-3 text-sm">
+              Analytics
             </Link>
             <Link href="/dashboard/people/tasks" className="btn-secondary inline-flex h-10 items-center px-3 text-sm">
               My tasks
@@ -207,29 +257,61 @@ function OnboardingPageContent() {
         }
       />
 
+      <DashboardStatGrid className="mb-6" columns={4}>
+        <DashboardMetricCard
+          label="In progress"
+          value={kpis.inProgress}
+          hint="Active workflows"
+          icon={Timer}
+          tone="primary"
+        />
+        <DashboardMetricCard
+          label="Completed"
+          value={kpis.completed}
+          hint="Fully closed out"
+          icon={CheckCircle2}
+          tone="emerald"
+        />
+        <DashboardMetricCard
+          label="Overdue tasks"
+          value={kpis.overdueTasks}
+          hint="Across all workflows"
+          icon={AlertTriangle}
+          tone={kpis.overdueTasks > 0 ? 'amber' : 'violet'}
+        />
+        <DashboardMetricCard
+          label="Avg progress"
+          value={`${kpis.avgProgress}%`}
+          hint="Mean task completion"
+          icon={Gauge}
+          tone="violet"
+        />
+      </DashboardStatGrid>
+
       {startOpen ? (
         <div className="mb-6 dashboard-surface shadow-sm p-4 sm:p-5 space-y-3">
           <h2 className="text-sm font-semibold">Start {type === 'ONBOARDING' ? 'onboarding' : 'offboarding'} workflow</h2>
-          <select
-            className={`${dashboardFilterSelectClass} w-full`}
+          <StrideSelect
+            className="w-full"
+            ariaLabel="Employee"
+            placeholder="Select employee…"
             value={startForm.employeeId}
-            onChange={(e) => setStartForm((f) => ({ ...f, employeeId: e.target.value }))}
-          >
-            <option value="">Select employee…</option>
-            {employees.map((e) => (
-              <option key={e.id} value={e.id}>{e.name}</option>
-            ))}
-          </select>
-          <select
-            className={`${dashboardFilterSelectClass} w-full`}
+            onChange={(value) => setStartForm((f) => ({ ...f, employeeId: value }))}
+            options={[
+              { value: '', label: 'Select employee…' },
+              ...employees.map((e) => ({ value: e.id, label: e.name })),
+            ]}
+          />
+          <StrideSelect
+            className="w-full"
+            ariaLabel="Template"
             value={startForm.templateId}
-            onChange={(e) => setStartForm((f) => ({ ...f, templateId: e.target.value }))}
-          >
-            <option value="">Default template (auto)</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
+            onChange={(value) => setStartForm((f) => ({ ...f, templateId: value }))}
+            options={[
+              { value: '', label: 'Default template (auto)' },
+              ...templates.map((t) => ({ value: t.id, label: t.name })),
+            ]}
+          />
           <div className="flex gap-2">
             <button type="button" disabled={starting || !startForm.employeeId} className="btn-primary disabled:opacity-50" onClick={() => void startWorkflow()}>
               {starting ? 'Starting…' : 'Start'}
@@ -250,20 +332,18 @@ function OnboardingPageContent() {
                 className="pl-3"
               />
             </div>
-            <label className="sr-only" htmlFor="onboarding-status">
-              Status
-            </label>
-            <select
+            <StrideSelect
               id="onboarding-status"
-              className={dashboardFilterSelectClass}
+              ariaLabel="Status"
               value={filters.status}
-              onChange={(e) => setFilter('status', e.target.value)}
-            >
-              <option value="">All statuses</option>
-              <option value="IN_PROGRESS">In progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
+              onChange={(value) => setFilter('status', value)}
+              options={[
+                { value: '', label: 'All statuses' },
+                { value: 'IN_PROGRESS', label: 'In progress' },
+                { value: 'COMPLETED', label: 'Completed' },
+                { value: 'CANCELLED', label: 'Cancelled' },
+              ]}
+            />
             {hasActiveFilters ? (
               <button type="button" onClick={clearFilters} className="btn-secondary text-xs">
                 Clear filters
@@ -292,32 +372,68 @@ function OnboardingPageContent() {
                   <th className="px-4 py-3">Department</th>
                   <th className="col-center px-4 py-3">Started</th>
                   <th className="col-center px-4 py-3">Progress</th>
-                  <th className="col-center px-4 py-3">Due tasks</th>
+                  <th className="col-center px-4 py-3">Health</th>
                   <th className="col-center px-4 py-3">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {view.map((row) => (
-                  <tr key={row.id} className="border-t">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/dashboard/onboarding/${row.id}`}
-                        className="font-medium text-primary-800 hover:underline"
-                      >
-                        {row.employee.firstName} {row.employee.lastName}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">{row.employee.department?.name ?? '—'}</td>
-                    <td className="col-center px-4 py-3 tabular-nums">{row.startedAt.slice(0, 10)}</td>
-                    <td className="col-center px-4 py-3 tabular-nums">
-                      {row.complete}/{row.total}
-                    </td>
-                    <td className="col-center px-4 py-3 tabular-nums">
-                      {row.overdue > 0 ? row.overdue : '—'}
-                    </td>
-                    <td className="col-center px-4 py-3">{row.status.replace('_', ' ')}</td>
-                  </tr>
-                ))}
+                {view.map((row) => {
+                  const ringTone: ProgressRingTone =
+                    row.total > 0 && row.complete === row.total
+                      ? 'success'
+                      : row.overdue > 0
+                        ? 'warning'
+                        : 'primary';
+                  return (
+                    <tr key={row.id} className="border-t">
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/dashboard/onboarding/${row.id}`}
+                          className="font-medium text-primary-800 hover:underline"
+                        >
+                          {row.employee.firstName} {row.employee.lastName}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <DepartmentChip name={row.employee.department?.name} />
+                      </td>
+                      <td className="col-center px-4 py-3 tabular-nums">{row.startedAt.slice(0, 10)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <WorkflowProgressRing
+                            value={row.complete}
+                            total={row.total}
+                            size={40}
+                            tone={ringTone}
+                          />
+                          <span className="text-xs tabular-nums text-[var(--dash-text-muted)]">
+                            {row.complete}/{row.total}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="col-center px-4 py-3">
+                        {row.overdue > 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--swatch-rose-accent)_16%,transparent)] px-2 py-0.5 text-xs font-semibold text-[var(--swatch-rose-fg)]">
+                            <AlertTriangle className="h-3 w-3" aria-hidden />
+                            {row.overdue} overdue
+                          </span>
+                        ) : row.status === 'IN_PROGRESS' ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--swatch-emerald-fg)]">
+                            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                            On track
+                          </span>
+                        ) : (
+                          <span className="text-xs text-[var(--dash-text-subtle)]">—</span>
+                        )}
+                      </td>
+                      <td className="col-center px-4 py-3">
+                        <span className={dashStatusChip(statusChipTone(row.status))}>
+                          {row.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </DashboardTable>
           </DashboardTableViewport>

@@ -2,10 +2,26 @@
 
 import { usePublicBrand } from '@/components/BrandProvider';
 import {
+  DEFAULT_BRAND_LOGO_SRC,
   STRIDE_MARK_SRC,
   STRIDE_WORDMARK_SRC,
+  isLegacyPlatformLogo,
   normalizeLogoSrc,
 } from '@/lib/brand-constants';
+
+/** A tenant-uploaded logo (not one of the default Stride marks / legacy platform logos). */
+function isCustomTenantLogo(src: string | undefined): boolean {
+  if (!src) return false;
+  const t = normalizeLogoSrc(src);
+  return Boolean(
+    t &&
+      t !== STRIDE_MARK_SRC &&
+      t !== STRIDE_WORDMARK_SRC &&
+      t !== DEFAULT_BRAND_LOGO_SRC &&
+      !isLegacyPlatformLogo(t) &&
+      !t.endsWith('platform-logo.png'),
+  );
+}
 
 type BrandLogoProps = {
   className?: string;
@@ -57,19 +73,22 @@ export default function BrandLogo({
   alt,
   src,
 }: BrandLogoProps) {
-  const { appName, logoSrc: brandLogoSrc } = usePublicBrand();
+  const { appName, logoSrc: brandLogoSrc, tenantLogoSrc } = usePublicBrand();
   const useWordmark = WORDMARK_VARIANTS.has(variant);
   const size = variantSize[variant];
   const cls = className ?? markVariantClass[variant];
+  const tenantLogo = isCustomTenantLogo(tenantLogoSrc) ? normalizeLogoSrc(tenantLogoSrc) : undefined;
 
-  // Wordmarks use fixed Stride assets — stable <img> attrs for SSR/hydration.
+  // Wordmark slots (auth panels, sidebar) show the tenant's own logo when one is uploaded,
+  // otherwise the Stride wordmark. Stable <img> attrs keep SSR/hydration in sync.
   if (useWordmark) {
-    const wordmarkSrc = normalizeLogoSrc(src ?? STRIDE_WORDMARK_SRC);
+    const custom = src ?? tenantLogo;
+    const wordmarkSrc = normalizeLogoSrc(custom ?? STRIDE_WORDMARK_SRC);
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={wordmarkSrc}
-        alt={alt ?? 'Stride'}
+        alt={alt ?? (custom ? appName : 'Stride')}
         width={144}
         height={size}
         className={cls}
@@ -78,7 +97,7 @@ export default function BrandLogo({
     );
   }
 
-  const logoSrc = normalizeLogoSrc(src ?? brandLogoSrc ?? STRIDE_MARK_SRC);
+  const logoSrc = normalizeLogoSrc(src ?? tenantLogo ?? brandLogoSrc ?? STRIDE_MARK_SRC);
   const resolvedSrc = logoSrc.includes('stride-wordmark') ? STRIDE_MARK_SRC : logoSrc;
 
   return (

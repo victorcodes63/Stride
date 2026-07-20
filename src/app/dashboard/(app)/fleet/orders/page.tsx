@@ -19,6 +19,7 @@ import {
 } from '@/components/dashboard/DashboardDataTable';
 import type { FleetOrderListRow } from '@/lib/fleet-orders-api';
 import { fleetOrderStatusBadgeClass } from '@/lib/fleet-order-status';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Customer = { id: string; name: string };
 
@@ -130,7 +131,7 @@ export default function FleetOrdersPage() {
       <DashboardPageHeader
         eyebrow="Fleet & Logistics"
         title="Transport orders"
-        description="Customer order intake — validate shipment details, schedule jobs, and assign to managed fleet or outsourced partners."
+        description="Customer order intake — schedule jobs and assign to fleet."
         actions={[{ href: '/dashboard/fleet/orders?new=1', label: 'New order', icon: Plus }]}
       />
 
@@ -159,19 +160,16 @@ export default function FleetOrdersPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block text-sm">
                     <span className="mb-1 block font-medium text-neutral-700">Customer</span>
-                    <select
-                      required
+                    <StrideSelect
                       value={form.customerId}
-                      onChange={(e) => setForm({ ...form, customerId: e.target.value })}
-                      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-                    >
-                      <option value="">Select customer…</option>
-                      {customers.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => setForm({ ...form, customerId: value })}
+                      options={[
+                        { value: '', label: 'Select customer…' },
+                        ...customers.map((c) => ({ value: c.id, label: c.name })),
+                      ]}
+                      ariaLabel="Customer"
+                      className="w-full"
+                    />
                   </label>
                   <label className="block text-sm">
                     <span className="mb-1 block font-medium text-neutral-700">Cargo type</span>

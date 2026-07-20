@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssStatusPill } from '@/components/ess/EssStatusPill';
+import { ScoreBadge } from '@/components/performance';
 
 type ReviewRow = {
   id: string;
@@ -31,8 +31,11 @@ export default function EssTeamPerformancePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+      <div className="space-y-3">
+        <div className="h-16 animate-pulse rounded-2xl bg-[var(--dash-surface-muted)]" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-20 animate-pulse rounded-2xl bg-[var(--dash-surface-muted)]" />
+        ))}
       </div>
     );
   }
@@ -46,17 +49,24 @@ export default function EssTeamPerformancePage() {
       />
 
       {reviews.length === 0 ? (
-        <p className="text-sm text-zinc-500">No team reviews awaiting manager input.</p>
+        <p className="text-sm text-[var(--dash-text-muted)]">No team reviews awaiting manager input.</p>
       ) : (
         <ul className="space-y-2">
           {reviews.map((r) => (
-            <li key={r.id} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <li
+              key={r.id}
+              className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4 shadow-sm"
+            >
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium text-zinc-900">{r.employeeName}</p>
-                  {r.employeeNumber ? <p className="text-xs text-zinc-500">{r.employeeNumber}</p> : null}
+                <div className="min-w-0">
+                  <p className="font-medium text-[var(--dash-text-strong)]">{r.employeeName}</p>
+                  {r.employeeNumber ? (
+                    <p className="text-xs text-[var(--dash-text-muted)]">{r.employeeNumber}</p>
+                  ) : null}
                   {r.overallSelfRating ? (
-                    <p className="mt-1 text-xs text-zinc-600">Self rating: {r.overallSelfRating}/5</p>
+                    <div className="mt-2">
+                      <ScoreBadge score={r.overallSelfRating} />
+                    </div>
                   ) : null}
                 </div>
                 <EssStatusPill status={r.status} />

@@ -5,6 +5,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTable, DashboardTableCard, DashboardTableEmpty, DashboardTableViewport } from '@/components/dashboard/DashboardDataTable';
 import { DashboardAsyncState, DashboardPageSkeleton } from '@/components/dashboard/DashboardAsyncState';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Site = { id: string; code: string; name: string };
 type Plant = {
@@ -67,12 +68,15 @@ export default function ConstructionPlantPage() {
     <DashboardPage>
       <DashboardPageHeader eyebrow="Construction" title="Plant assets" description="Excavators, cranes, and hired plant assigned to active sites." />
       <form onSubmit={handleCreate} className="mb-6 grid gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 sm:grid-cols-5">
-        <select required value={form.siteId} onChange={(e) => setForm((f) => ({ ...f, siteId: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm">
-          <option value="">Site…</option>
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>{s.code}</option>
-          ))}
-        </select>
+        <StrideSelect
+          value={form.siteId}
+          onChange={(value) => setForm((f) => ({ ...f, siteId: value }))}
+          options={[
+            { value: '', label: 'Site…' },
+            ...sites.map((s) => ({ value: s.id, label: s.code })),
+          ]}
+          ariaLabel="Site"
+        />
         <input required placeholder="Asset tag" value={form.assetTag} onChange={(e) => setForm((f) => ({ ...f, assetTag: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />
         <input required placeholder="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />
         <input placeholder="Category" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />

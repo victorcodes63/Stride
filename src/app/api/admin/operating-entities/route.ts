@@ -73,7 +73,7 @@ export async function PATCH(request: NextRequest) {
       ),
     });
 
-    await syncOperatingEntitiesToOutsourcingClients(prisma, merged);
+    await syncOperatingEntitiesToOutsourcingClients(prisma, merged, organizationId);
 
     await logAuditEvent({
       actor,

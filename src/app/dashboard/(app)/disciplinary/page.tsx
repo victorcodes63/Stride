@@ -24,6 +24,8 @@ import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
 import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
 import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
 import { DISCIPLINARY_STATUSES, GRIEVANCE_STATUSES, JURISDICTION_POLICIES } from '@/lib/east-africa-hr-policy';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { toDisplayLabel } from '@/lib/format-label';
 
 type CaseRow = {
   id: string;
@@ -51,15 +53,28 @@ type GrievanceRow = {
 const TABS = ['cases', 'grievances'] as const;
 type DisciplinaryTab = (typeof TABS)[number];
 
-export default function DisciplinaryPage() {
+export type DisciplinaryPageProps = {
+  /** Base path for case/grievance detail links. Defaults to HR disciplinary hub. */
+  basePath?: string;
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+};
+
+export default function DisciplinaryPage(props: DisciplinaryPageProps = {}) {
   return (
     <Suspense fallback={<div className="py-16 text-center text-sm text-neutral-500">Loading…</div>}>
-      <DisciplinaryPageContent />
+      <DisciplinaryPageContent {...props} />
     </Suspense>
   );
 }
 
-function DisciplinaryPageContent() {
+function DisciplinaryPageContent({
+  basePath = '/dashboard/disciplinary',
+  eyebrow,
+  title = 'Disciplinary & Grievance Management',
+  description = 'Manage disciplinary cases and employee grievances.',
+}: DisciplinaryPageProps) {
   const { tab, setTab } = useDashboardTabParam('tab', TABS, 'cases');
   const { clientId, clients, setClientId, showSwitcher } = useOutsourcingClient();
   const [cases, setCases] = useState<CaseRow[]>([]);
@@ -187,7 +202,7 @@ function DisciplinaryPageContent() {
         incidentDate: new Date().toISOString().slice(0, 10),
         laborJurisdiction: 'KE',
       });
-      window.location.href = withOutsourcingClientQuery(`/dashboard/disciplinary/cases/${data.id}`, clientId);
+      window.location.href = withOutsourcingClientQuery(`${basePath}/cases/${data.id}`, clientId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create case.');
     } finally {
@@ -212,7 +227,7 @@ function DisciplinaryPageContent() {
       if (!res.ok) throw new Error(data.error || 'Failed to create grievance.');
       setGrievanceCreateOpen(false);
       setGrievanceForm({ employeeId: '', subject: '', description: '', category: 'OTHER' });
-      window.location.href = withOutsourcingClientQuery(`/dashboard/disciplinary/grievances/${data.id}`, clientId);
+      window.location.href = withOutsourcingClientQuery(`${basePath}/grievances/${data.id}`, clientId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create grievance.');
     } finally {
@@ -234,8 +249,9 @@ function DisciplinaryPageContent() {
   return (
     <DashboardPage>
       <DashboardPageHeader
-        title="Disciplinary & Grievance Management"
-        description="Manage disciplinary cases and employee grievances."
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
         actions={
           tab === 'cases' ? (
             <button
@@ -306,19 +322,19 @@ function DisciplinaryPageContent() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm sm:col-span-2">
               <span className="text-neutral-600">Employee</span>
-              <select
-                className={`${dashboardFilterSelectClass} mt-1 w-full`}
+              <StrideSelect
                 value={caseForm.employeeId}
-                onChange={(e) => setCaseForm((f) => ({ ...f, employeeId: e.target.value }))}
-              >
-                <option value="">Select employee…</option>
-                {employees.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name}
-                    {e.employeeNumber ? ` (${e.employeeNumber})` : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setCaseForm((f) => ({ ...f, employeeId: value }))}
+                options={[
+                  { value: '', label: 'Select employee…' },
+                  ...employees.map((e) => ({
+                    value: e.id,
+                    label: `${e.name}${e.employeeNumber ? ` (${e.employeeNumber})` : ''}`,
+                  })),
+                ]}
+                ariaLabel="Employee"
+                className="mt-1 w-full"
+              />
             </label>
             <label className="text-sm sm:col-span-2">
               <span className="text-neutral-600">Subject</span>
@@ -341,12 +357,10 @@ function DisciplinaryPageContent() {
             </label>
             <label className="text-sm">
               <span className="text-neutral-600">Type</span>
-              <select
-                className={`${dashboardFilterSelectClass} mt-1 w-full`}
+              <StrideSelect
                 value={caseForm.type}
-                onChange={(e) => setCaseForm((f) => ({ ...f, type: e.target.value }))}
-              >
-                {[
+                onChange={(value) => setCaseForm((f) => ({ ...f, type: value }))}
+                options={[
                   'MISCONDUCT',
                   'POOR_PERFORMANCE',
                   'POLICY_VIOLATION',
@@ -355,26 +369,20 @@ function DisciplinaryPageContent() {
                   'HARASSMENT',
                   'NEGLIGENCE',
                   'OTHER',
-                ].map((t) => (
-                  <option key={t} value={t}>
-                    {t.replaceAll('_', ' ')}
-                  </option>
-                ))}
-              </select>
+                ].map((t) => ({ value: t, label: toDisplayLabel(t) }))}
+                ariaLabel="Type"
+                className="mt-1 w-full"
+              />
             </label>
             <label className="text-sm">
               <span className="text-neutral-600">Severity</span>
-              <select
-                className={`${dashboardFilterSelectClass} mt-1 w-full`}
+              <StrideSelect
                 value={caseForm.severity}
-                onChange={(e) => setCaseForm((f) => ({ ...f, severity: e.target.value }))}
-              >
-                {['MINOR', 'MODERATE', 'SERIOUS', 'GROSS'].map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setCaseForm((f) => ({ ...f, severity: value }))}
+                options={['MINOR', 'MODERATE', 'SERIOUS', 'GROSS'].map((s) => ({ value: s, label: toDisplayLabel(s) }))}
+                ariaLabel="Severity"
+                className="mt-1 w-full"
+              />
             </label>
             <label className="text-sm">
               <span className="text-neutral-600">Incident date</span>
@@ -387,19 +395,15 @@ function DisciplinaryPageContent() {
             </label>
             <label className="text-sm">
               <span className="text-neutral-600">Jurisdiction</span>
-              <select
-                className={`${dashboardFilterSelectClass} mt-1 w-full`}
+              <StrideSelect
                 value={caseForm.laborJurisdiction}
-                onChange={(e) => setCaseForm((f) => ({ ...f, laborJurisdiction: e.target.value }))}
-              >
-                {(Object.keys(JURISDICTION_POLICIES) as Array<keyof typeof JURISDICTION_POLICIES>).map(
-                  (code) => (
-                    <option key={code} value={code}>
-                      {JURISDICTION_POLICIES[code].label}
-                    </option>
-                  ),
+                onChange={(value) => setCaseForm((f) => ({ ...f, laborJurisdiction: value }))}
+                options={(Object.keys(JURISDICTION_POLICIES) as Array<keyof typeof JURISDICTION_POLICIES>).map(
+                  (code) => ({ value: code, label: JURISDICTION_POLICIES[code].label }),
                 )}
-              </select>
+                ariaLabel="Jurisdiction"
+                className="mt-1 w-full"
+              />
             </label>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -424,19 +428,19 @@ function DisciplinaryPageContent() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm sm:col-span-2">
               <span className="text-neutral-600">Employee</span>
-              <select
-                className={`${dashboardFilterSelectClass} mt-1 w-full`}
+              <StrideSelect
                 value={grievanceForm.employeeId}
-                onChange={(e) => setGrievanceForm((f) => ({ ...f, employeeId: e.target.value }))}
-              >
-                <option value="">Select employee…</option>
-                {employees.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name}
-                    {e.employeeNumber ? ` (${e.employeeNumber})` : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setGrievanceForm((f) => ({ ...f, employeeId: value }))}
+                options={[
+                  { value: '', label: 'Select employee…' },
+                  ...employees.map((e) => ({
+                    value: e.id,
+                    label: `${e.name}${e.employeeNumber ? ` (${e.employeeNumber})` : ''}`,
+                  })),
+                ]}
+                ariaLabel="Employee"
+                className="mt-1 w-full"
+              />
             </label>
             <label className="text-sm sm:col-span-2">
               <span className="text-neutral-600">Subject</span>
@@ -457,12 +461,10 @@ function DisciplinaryPageContent() {
             </label>
             <label className="text-sm">
               <span className="text-neutral-600">Category</span>
-              <select
-                className={`${dashboardFilterSelectClass} mt-1 w-full`}
+              <StrideSelect
                 value={grievanceForm.category}
-                onChange={(e) => setGrievanceForm((f) => ({ ...f, category: e.target.value }))}
-              >
-                {[
+                onChange={(value) => setGrievanceForm((f) => ({ ...f, category: value }))}
+                options={[
                   'WORKPLACE_SAFETY',
                   'HARASSMENT',
                   'DISCRIMINATION',
@@ -471,12 +473,10 @@ function DisciplinaryPageContent() {
                   'COMPENSATION',
                   'POLICY',
                   'OTHER',
-                ].map((c) => (
-                  <option key={c} value={c}>
-                    {c.replaceAll('_', ' ')}
-                  </option>
-                ))}
-              </select>
+                ].map((c) => ({ value: c, label: toDisplayLabel(c) }))}
+                ariaLabel="Category"
+                className="mt-1 w-full"
+              />
             </label>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -509,19 +509,15 @@ function DisciplinaryPageContent() {
             <label className="sr-only" htmlFor="case-status-filter">
               Case status
             </label>
-            <select
+            <StrideSelect
               id="case-status-filter"
-              className={dashboardFilterSelectClass}
               value={caseStatusFilter}
-              onChange={(e) => setCaseStatusFilter(e.target.value)}
-            >
-              <option value="">All statuses</option>
-              {DISCIPLINARY_STATUSES.map((item) => (
-                <option key={item} value={item}>
-                  {item.replaceAll('_', ' ')}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setCaseStatusFilter(value)}
+              options={[
+                { value: '', label: 'All statuses' },
+                ...DISCIPLINARY_STATUSES.map((item) => ({ value: item, label: toDisplayLabel(item) })),
+              ]}
+            />
           </DashboardFilterBar>
         ) : (
           <DashboardFilterBar
@@ -531,19 +527,15 @@ function DisciplinaryPageContent() {
             <label className="sr-only" htmlFor="grievance-status-filter">
               Grievance status
             </label>
-            <select
+            <StrideSelect
               id="grievance-status-filter"
-              className={dashboardFilterSelectClass}
               value={grievanceStatusFilter}
-              onChange={(e) => setGrievanceStatusFilter(e.target.value)}
-            >
-              <option value="">All statuses</option>
-              {GRIEVANCE_STATUSES.map((item) => (
-                <option key={item} value={item}>
-                  {item.replaceAll('_', ' ')}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setGrievanceStatusFilter(value)}
+              options={[
+                { value: '', label: 'All statuses' },
+                ...GRIEVANCE_STATUSES.map((item) => ({ value: item, label: toDisplayLabel(item) })),
+              ]}
+            />
           </DashboardFilterBar>
         )}
 
@@ -578,7 +570,7 @@ function DisciplinaryPageContent() {
                       <DashboardTableCell className="py-2">
                         <Link
                           className="font-medium text-primary-800 hover:underline"
-                          href={withOutsourcingClientQuery(`/dashboard/disciplinary/cases/${item.id}`, clientId)}
+                          href={withOutsourcingClientQuery(`${basePath}/cases/${item.id}`, clientId)}
                         >
                           {item.caseNumber}
                         </Link>
@@ -597,7 +589,7 @@ function DisciplinaryPageContent() {
                       <DashboardTableCell className="col-right">
                         <Link
                           className="text-primary-700 hover:underline"
-                          href={withOutsourcingClientQuery(`/dashboard/disciplinary/cases/${item.id}`, clientId)}
+                          href={withOutsourcingClientQuery(`${basePath}/cases/${item.id}`, clientId)}
                         >
                           View
                         </Link>
@@ -640,7 +632,7 @@ function DisciplinaryPageContent() {
                       <DashboardTableCell className="col-right">
                         <Link
                           className="text-primary-700 hover:underline"
-                          href={withOutsourcingClientQuery(`/dashboard/disciplinary/grievances/${item.id}`, clientId)}
+                          href={withOutsourcingClientQuery(`${basePath}/grievances/${item.id}`, clientId)}
                         >
                           View
                         </Link>

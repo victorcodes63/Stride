@@ -1,30 +1,62 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import Link from 'next/link';
+import { useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import {
+  ArrowUpRight,
   BadgeCheck,
-  BarChart3,
+  Boxes,
   Briefcase,
+  Building2,
   CalendarOff,
+  CircleDollarSign,
+  ClipboardList,
   Clock3,
-  Download,
   Eye,
   FileSpreadsheet,
+  FileText,
+  FolderKanban,
+  Gauge,
+  GraduationCap,
+  HardHat,
   Landmark,
+  Layers,
+  Lock,
+  PiggyBank,
+  Receipt,
+  Search,
   Shield,
+  Sparkles,
+  Stethoscope,
+  TrendingUp,
+  Truck,
   Users,
+  Wallet,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { DashboardAsyncState, DashboardInlineLoading } from '@/components/dashboard/DashboardAsyncState';
+import { DashboardModal } from '@/components/dashboard/DashboardModal';
 import { DashboardPage, DashboardPageSection } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import {
   DashboardTable,
-  DashboardTableCard,
   DashboardTableEmpty,
   DashboardTableViewport,
 } from '@/components/dashboard/DashboardDataTable';
+import { ExportButton, type ExportOption } from '@/components/dashboard/ExportButton';
+import { apiFetch, useApiResource } from '@/hooks/useApiResource';
+import { useDashboardSession } from '@/contexts/dashboard-session';
+import {
+  REPORT_CATALOG,
+  REPORT_CATEGORIES,
+  defaultParamValues,
+  reportCategoryLabel,
+  resolveReportAccess,
+  tierLabel,
+  type ReportAccess,
+  type ReportCategoryId,
+  type ReportDefinition,
+} from '@/lib/reports-catalog';
 
 type GenericPayload = Record<string, unknown>;
 
@@ -50,26 +82,59 @@ type ReportsSummary = {
   finance: { invoicesOutstanding: number; vendorBillsOutstanding: number };
 };
 
-function todayYmd() {
-  return new Date().toISOString().slice(0, 10);
+type PreviewView = { key: string; label: string; rows: Array<Record<string, unknown>> };
+
+type PreviewState = {
+  title: string;
+  endpoint: string;
+  metrics: Array<{ label: string; value: string }>;
+  views: PreviewView[];
+};
+
+const ICONS: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  Users,
+  BadgeCheck,
+  CalendarOff,
+  Clock3,
+  Landmark,
+  FileSpreadsheet,
+  Briefcase,
+  Shield,
+  GraduationCap,
+  Receipt,
+  CircleDollarSign,
+  Wallet,
+  ClipboardList,
+  Boxes,
+  HardHat,
+  FolderKanban,
+  Gauge,
+  TrendingUp,
+  Truck,
+  Building2,
+  ScrollText: FileText,
+  FileText,
+  PiggyBank,
+  Stethoscope,
+};
+
+function iconFor(name: string): ComponentType<{ className?: string; strokeWidth?: number }> {
+  return ICONS[name] ?? FileText;
 }
 
-function monthYm() {
-  return new Date().toISOString().slice(0, 7);
-}
-
-const inputClass =
-  'rounded-lg border border-neutral-300/90 bg-white/90 px-3 py-2 text-sm text-ink focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20';
-
-const ROW_KEYS = [
-  'details',
-  'byDepartment',
-  'byEmployee',
-  'byStatus',
-  'byType',
-  'byJob',
-  'rows',
-] as const;
+const ROW_VIEWS: Array<{ key: string; label: string }> = [
+  { key: 'details', label: 'Details' },
+  { key: 'byDepartment', label: 'By department' },
+  { key: 'byEmployee', label: 'By employee' },
+  { key: 'byStatus', label: 'By status' },
+  { key: 'byType', label: 'By type' },
+  { key: 'byCategory', label: 'By category' },
+  { key: 'bySeverity', label: 'By severity' },
+  { key: 'byProgram', label: 'By program' },
+  { key: 'byJob', label: 'By job' },
+  { key: 'byContractType', label: 'By contract' },
+  { key: 'rows', label: 'Rows' },
+];
 
 const SUMMARY_KEYS = [
   'totalEmployees',
@@ -79,6 +144,13 @@ const SUMMARY_KEYS = [
   'totalHours',
   'totalOvertimeHours',
   'totalCredentials',
+  'totalClaims',
+  'totalAmount',
+  'totalAssets',
+  'totalIncidents',
+  'totalPrograms',
+  'totalEnrolments',
+  'completionRate',
   'pending',
   'approved',
   'openDisciplinaryCases',
@@ -86,139 +158,326 @@ const SUMMARY_KEYS = [
   'conversionRate',
 ] as const;
 
-function ActionButton({
-  label,
-  onClick,
-  kind = 'primary',
-}: {
-  label: string;
-  onClick: () => void;
-  kind?: 'primary' | 'secondary';
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        kind === 'primary'
-          ? 'inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-900 transition hover:bg-primary-100'
-          : 'inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white/90 px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50'
-      }
-    >
-      {kind === 'primary' ? <Eye className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
-      {label}
-    </button>
-  );
-}
-
-function ReportCard({
-  title,
-  description,
-  icon: Icon,
-  controls,
-  onView,
-  onCsv,
-}: {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  controls?: ReactNode;
-  onView: () => void;
-  onCsv: () => void;
-}) {
-  return (
-    <section className="dashboard-surface flex flex-col gap-3 p-5 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Icon className="h-5 w-5 text-primary-800" strokeWidth={1.75} />
-        <h3 className="text-sm font-semibold text-ink">{title}</h3>
-      </div>
-      <p className="text-sm text-neutral-500">{description}</p>
-      {controls}
-      <div className="flex flex-wrap gap-2">
-        <ActionButton label="Preview" onClick={onView} />
-        <ActionButton label="CSV" kind="secondary" onClick={onCsv} />
-      </div>
-    </section>
-  );
-}
-
-function formatSummaryLabel(key: string): string {
+function formatLabel(key: string): string {
   return key
     .replace(/([A-Z])/g, ' $1')
     .replace(/^./, (c) => c.toUpperCase())
     .trim();
 }
 
+function formatCell(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value);
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  return String(value);
+}
+
+/** Append a download format to an endpoint that may already carry query params. */
+function exportOptions(endpoint: string): ExportOption[] {
+  const separator = endpoint.includes('?') ? '&' : '?';
+  return [
+    { format: 'csv', label: 'CSV', href: `${endpoint}${separator}format=csv` },
+    { format: 'xlsx', label: 'Excel (.xlsx)', href: `${endpoint}${separator}format=xlsx` },
+    { format: 'pdf', label: 'PDF', href: `${endpoint}${separator}format=pdf` },
+  ];
+}
+
+const inputClass =
+  'rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-2 text-sm text-[var(--dash-text)] focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20';
+
+const ACCESS_BADGE: Record<ReportAccess, { label: string; className: string }> = {
+  available: {
+    label: 'Ready',
+    className: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  },
+  'coming-soon': {
+    label: 'Coming soon',
+    className: 'border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  },
+  upgrade: {
+    label: 'Upgrade',
+    className: 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  },
+  enable: {
+    label: 'Off',
+    className: 'border-[var(--dash-border)] bg-[var(--dash-surface-muted)] text-[var(--dash-text-muted)]',
+  },
+};
+
+function ParamControls({
+  report,
+  values,
+  onChange,
+}: {
+  report: ReportDefinition;
+  values: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+}) {
+  if (!report.params?.length) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {report.params.map((param) => {
+        if (param.kind === 'range') {
+          return (
+            <div key={param.fromKey} className="flex flex-wrap items-center gap-2">
+              <input
+                type="date"
+                value={values[param.fromKey] ?? ''}
+                onChange={(e) => onChange(param.fromKey, e.target.value)}
+                className={inputClass}
+                aria-label={`${report.title} ${param.label} from`}
+              />
+              <span className="text-xs text-[var(--dash-text-muted)]">to</span>
+              <input
+                type="date"
+                value={values[param.toKey] ?? ''}
+                onChange={(e) => onChange(param.toKey, e.target.value)}
+                className={inputClass}
+                aria-label={`${report.title} ${param.label} to`}
+              />
+            </div>
+          );
+        }
+        return (
+          <input
+            key={param.key}
+            type={param.kind === 'month' ? 'month' : 'date'}
+            value={values[param.key] ?? ''}
+            onChange={(e) => onChange(param.key, e.target.value)}
+            className={inputClass}
+            aria-label={`${report.title} ${param.label}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function ReportCard({
+  report,
+  access,
+  requiredTier,
+  values,
+  onParamChange,
+  onPreview,
+}: {
+  report: ReportDefinition;
+  access: ReportAccess;
+  requiredTier: string;
+  values: Record<string, string>;
+  onParamChange: (key: string, value: string) => void;
+  onPreview: () => void;
+}) {
+  const Icon = iconFor(report.icon);
+  const badge = ACCESS_BADGE[access];
+  const locked = access === 'upgrade' || access === 'enable';
+  const endpoint = report.endpoint ? report.endpoint(values) : '';
+
+  return (
+    <section
+      className={`dashboard-surface relative flex flex-col gap-3 p-5 shadow-sm transition-shadow hover:shadow-md ${
+        locked ? 'opacity-95' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+              locked
+                ? 'bg-[var(--dash-surface-muted)] text-[var(--dash-text-muted)]'
+                : 'bg-primary-50 text-primary-800 dark:bg-primary-500/15 dark:text-primary-300'
+            }`}
+          >
+            {locked ? <Lock className="h-4 w-4" strokeWidth={1.75} /> : <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+          </span>
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--dash-text-strong)]">{report.title}</h3>
+            <p className="text-[11px] font-medium text-[var(--dash-text-muted)]">
+              {reportCategoryLabel(report.category)}
+            </p>
+          </div>
+        </div>
+        <span
+          className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
+        >
+          {badge.label}
+        </span>
+      </div>
+
+      <p className="text-sm leading-relaxed text-[var(--dash-text-muted)]">{report.description}</p>
+
+      {access === 'available' ? (
+        <>
+          <ParamControls report={report} values={values} onChange={onParamChange} />
+          {report.variants?.length ? (
+            <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
+              {report.variants.map((variant) => (
+                <ExportButton
+                  key={variant.type}
+                  label={variant.label}
+                  options={exportOptions(report.endpoint!(values, variant.type))}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={onPreview}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-900 transition hover:bg-primary-100 dark:border-primary-500/25 dark:bg-primary-500/10 dark:text-primary-200"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Preview
+              </button>
+              <ExportButton options={exportOptions(endpoint)} label="Export" />
+            </div>
+          )}
+        </>
+      ) : access === 'coming-soon' ? (
+        <div className="mt-auto pt-1">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] px-3 py-2 text-xs font-medium text-[var(--dash-text-muted)]">
+            <Sparkles className="h-3.5 w-3.5" />
+            In development — available soon
+          </span>
+        </div>
+      ) : (
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
+          {access === 'upgrade' ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                <Lock className="h-3.5 w-3.5" />
+                Included in {requiredTier}
+              </span>
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline dark:text-primary-300"
+              >
+                View plans
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </>
+          ) : (
+            <>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] px-3 py-2 text-xs font-medium text-[var(--dash-text-muted)]">
+                <Lock className="h-3.5 w-3.5" />
+                Turned off for this workspace
+              </span>
+              <Link
+                href="/dashboard/admin/company-setup"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline dark:text-primary-300"
+              >
+                Enable in Company Setup
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function ReportsPage() {
-  const [headcountAsOf, setHeadcountAsOf] = useState(todayYmd());
-  const [attendanceFrom, setAttendanceFrom] = useState(
-    new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().slice(0, 10),
-  );
-  const [attendanceTo, setAttendanceTo] = useState(todayYmd());
-  const [leaveFrom, setLeaveFrom] = useState(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10),
-  );
-  const [leaveTo, setLeaveTo] = useState(todayYmd());
-  const [payrollPeriod, setPayrollPeriod] = useState(monthYm());
-  const [previewTitle, setPreviewTitle] = useState<string | null>(null);
-  const [previewRows, setPreviewRows] = useState<Array<Record<string, unknown>>>([]);
-  const [previewSummary, setPreviewSummary] = useState<Array<{ label: string; value: string }>>([]);
+  const { modules, deploymentTier } = useDashboardSession();
+
+  const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState<ReportCategoryId | 'all' | 'featured'>('all');
+  const [hideLocked, setHideLocked] = useState(false);
+  const [paramState, setParamState] = useState<Record<string, Record<string, string>>>(() => {
+    const seed: Record<string, Record<string, string>> = {};
+    for (const report of REPORT_CATALOG) {
+      if (report.params?.length) seed[report.id] = defaultParamValues(report);
+    }
+    return seed;
+  });
+
+  const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [activeView, setActiveView] = useState(0);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [summary, setSummary] = useState<ReportsSummary | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(true);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setSummaryLoading(true);
-    setSummaryError(null);
-    fetch('/api/reports/summary', { cache: 'no-store' })
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Failed to load summary');
-        return data as ReportsSummary;
-      })
-      .then((data) => {
-        if (!cancelled) setSummary(data);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setSummaryError(err instanceof Error ? err.message : 'Failed to load summary');
-      })
-      .finally(() => {
-        if (!cancelled) setSummaryLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const summaryQuery = useApiResource<ReportsSummary>(['reports-summary'], '/api/reports/summary');
+  const summary = summaryQuery.data;
 
-  const statutoryLinks = useMemo(
-    () => [
-      { label: 'P9 CSV', type: 'p9' },
-      { label: 'P10 CSV', type: 'p10' },
-      { label: 'NSSF CSV', type: 'nssf' },
-      { label: 'SHIF CSV', type: 'shif' },
-    ],
-    [],
+  const setParam = (reportId: string, key: string, value: string) => {
+    setParamState((prev) => ({ ...prev, [reportId]: { ...prev[reportId], [key]: value } }));
+  };
+
+  const decorated = useMemo(
+    () =>
+      REPORT_CATALOG.map((report) => {
+        const { access, requiredTier } = resolveReportAccess(report, modules, deploymentTier);
+        return { report, access, requiredTier };
+      }),
+    [modules, deploymentTier],
   );
 
-  async function preview(endpoint: string, title: string) {
+  const coverage = useMemo(() => {
+    let available = 0;
+    let comingSoon = 0;
+    let upgrade = 0;
+    for (const item of decorated) {
+      if (item.access === 'available') available += 1;
+      else if (item.access === 'coming-soon') comingSoon += 1;
+      else if (item.access === 'upgrade') upgrade += 1;
+    }
+    return { total: decorated.length, available, comingSoon, upgrade };
+  }, [decorated]);
+
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return decorated.filter(({ report, access }) => {
+      if (hideLocked && (access === 'upgrade' || access === 'enable')) return false;
+      if (activeCategory === 'featured' && !report.featured) return false;
+      if (activeCategory !== 'all' && activeCategory !== 'featured' && report.category !== activeCategory) {
+        return false;
+      }
+      if (!needle) return true;
+      const haystack = [
+        report.title,
+        report.description,
+        reportCategoryLabel(report.category),
+        ...(report.keywords ?? []),
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [decorated, search, activeCategory, hideLocked]);
+
+  const grouped = useMemo(() => {
+    return REPORT_CATEGORIES.map((category) => ({
+      category,
+      items: filtered.filter(({ report }) => report.category === category.id),
+    })).filter((group) => group.items.length > 0);
+  }, [filtered]);
+
+  const availableCategories = useMemo(() => {
+    const ids = new Set(decorated.map(({ report }) => report.category));
+    return REPORT_CATEGORIES.filter((category) => ids.has(category.id));
+  }, [decorated]);
+
+  async function openPreview(endpoint: string, title: string) {
+    setActiveView(0);
+    setPreviewError(null);
     setPreviewLoading(true);
-    setPreviewTitle(title);
-    setPreviewRows([]);
-    setPreviewSummary([]);
+    setPreview({ title, endpoint, metrics: [], views: [] });
     try {
-      const res = await fetch(endpoint, { cache: 'no-store' });
-      const data = (await res.json()) as GenericPayload;
-      const firstRowKey = ROW_KEYS.find((k) => Array.isArray(data[k]));
-      const tableRows = firstRowKey ? (data[firstRowKey] as Array<Record<string, unknown>>) : [];
-      setPreviewRows(tableRows);
+      const data = await apiFetch<GenericPayload>(endpoint);
+
+      const views: PreviewView[] = [];
+      for (const view of ROW_VIEWS) {
+        const value = data[view.key];
+        if (Array.isArray(value) && value.length > 0) {
+          views.push({ key: view.key, label: view.label, rows: value as Array<Record<string, unknown>> });
+        }
+      }
 
       const metrics: Array<{ label: string; value: string }> = [];
       for (const key of SUMMARY_KEYS) {
         const value = data[key];
         if (value !== undefined && value !== null && typeof value !== 'object') {
-          metrics.push({ label: formatSummaryLabel(key), value: String(value) });
+          metrics.push({ label: formatLabel(key), value: String(value) });
         }
       }
       for (const [key, value] of Object.entries(data)) {
@@ -226,34 +485,44 @@ export default function ReportsPage() {
           typeof value === 'number' &&
           !SUMMARY_KEYS.includes(key as (typeof SUMMARY_KEYS)[number]) &&
           !key.startsWith('total') &&
-          metrics.length < 8
+          metrics.length < 12
         ) {
-          metrics.push({ label: formatSummaryLabel(key), value: String(value) });
+          metrics.push({ label: formatLabel(key), value: String(value) });
         }
       }
-      setPreviewSummary(metrics.slice(0, 8));
-    } catch {
-      setPreviewRows([]);
-      setPreviewSummary([]);
+
+      setPreview({ title, endpoint, metrics: metrics.slice(0, 12), views });
+    } catch (err) {
+      setPreviewError(err instanceof Error ? err.message : 'Failed to build preview.');
     } finally {
       setPreviewLoading(false);
     }
   }
 
-  function download(url: string) {
-    window.open(url, '_blank');
-  }
+  const currentView = preview?.views[activeView];
+  const columns = currentView?.rows[0] ? Object.keys(currentView.rows[0]) : [];
 
   return (
     <DashboardPage>
       <DashboardPageHeader
-        title="Reports"
-        description="Workforce, payroll, compliance, and recruitment exports."
+        eyebrow="Communications & reports"
+        title="Report Center"
+        description="Platform-wide reporting across HR, payroll, finance, operations, and compliance — preview live, then export to CSV, Excel, or PDF."
+        badges={[
+          { label: `${tierLabel(deploymentTier)} plan`, icon: Sparkles },
+          { label: `${coverage.available} reports ready` },
+        ]}
+        actions={
+          coverage.upgrade > 0
+            ? [{ label: `Unlock ${coverage.upgrade} more`, href: '/pricing', icon: ArrowUpRight, variant: 'secondary' }]
+            : undefined
+        }
       />
 
       <DashboardAsyncState
-        status={summaryLoading ? 'loading' : summaryError ? 'error' : 'success'}
-        error={summaryError}
+        status={summaryQuery.isLoading ? 'loading' : summaryQuery.isError ? 'error' : 'success'}
+        error={summaryQuery.error?.message}
+        onRetry={() => void summaryQuery.refetch()}
         loading={<DashboardInlineLoading label="Loading platform snapshot…" />}
       >
         {summary ? (
@@ -310,207 +579,210 @@ export default function ReportsPage() {
         ) : null}
       </DashboardAsyncState>
 
-      <DashboardPageSection title="People & workforce" className="mt-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <ReportCard
-            title="Headcount"
-            description="Active headcount by department, clinical mix, hires and exits."
-            icon={Users}
-            controls={
+      {/* Toolbar: search + category filter + locked toggle */}
+      <div className="dashboard-surface mt-6 flex flex-col gap-3 p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dash-text-muted)]" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search reports (e.g. payroll, expiry, incident)…"
+              className={`${inputClass} w-full pl-9`}
+              aria-label="Search reports"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-[var(--dash-text-muted)]">
+              {filtered.length} of {coverage.total} reports
+            </span>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-[var(--dash-text-body)]">
               <input
-                type="date"
-                value={headcountAsOf}
-                onChange={(e) => setHeadcountAsOf(e.target.value)}
-                className={inputClass}
-                aria-label="Headcount as of date"
+                type="checkbox"
+                checked={hideLocked}
+                onChange={(e) => setHideLocked(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-[var(--dash-border)] text-primary-600 focus:ring-primary-500/30"
               />
-            }
-            onView={() => preview(`/api/reports/headcount?asOf=${headcountAsOf}`, 'Headcount report')}
-            onCsv={() => download(`/api/reports/headcount?asOf=${headcountAsOf}&format=csv`)}
-          />
-          <ReportCard
-            title="Credentials & licences"
-            description="Validity status, 30/90-day expiry watchlist, and issuing bodies."
-            icon={BadgeCheck}
-            onView={() => preview('/api/reports/credentials', 'Credentials report')}
-            onCsv={() => download('/api/reports/credentials?format=csv')}
-          />
-          <ReportCard
-            title="Leave utilisation"
-            description="Applications, days taken, and status breakdown by leave type."
-            icon={CalendarOff}
-            controls={
-              <div className="flex flex-wrap gap-2">
-                <input type="date" value={leaveFrom} onChange={(e) => setLeaveFrom(e.target.value)} className={inputClass} aria-label="Leave from" />
-                <input type="date" value={leaveTo} onChange={(e) => setLeaveTo(e.target.value)} className={inputClass} aria-label="Leave to" />
-              </div>
-            }
-            onView={() => preview(`/api/reports/leave?from=${leaveFrom}&to=${leaveTo}`, 'Leave report')}
-            onCsv={() => download(`/api/reports/leave?from=${leaveFrom}&to=${leaveTo}&format=csv`)}
+              Hide locked
+            </label>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          <FilterChip active={activeCategory === 'all'} onClick={() => setActiveCategory('all')} icon={Layers}>
+            All
+          </FilterChip>
+          <FilterChip
+            active={activeCategory === 'featured'}
+            onClick={() => setActiveCategory('featured')}
+            icon={Sparkles}
+          >
+            Featured
+          </FilterChip>
+          {availableCategories.map((category) => (
+            <FilterChip
+              key={category.id}
+              active={activeCategory === category.id}
+              onClick={() => setActiveCategory(category.id)}
+            >
+              {category.label}
+            </FilterChip>
+          ))}
+        </div>
+      </div>
+
+      {grouped.length === 0 ? (
+        <div className="mt-6">
+          <DashboardTableEmpty
+            title="No reports match your filters"
+            description="Try a different search term, clear the category filter, or show locked reports."
           />
         </div>
-      </DashboardPageSection>
-
-      <DashboardPageSection title="Time & attendance" className="mt-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ReportCard
-            title="Attendance summary"
-            description="Hours worked, overtime, lateness, absences, and missed clock-outs."
-            icon={Clock3}
-            controls={
-              <div className="flex flex-wrap gap-2">
-                <input type="date" value={attendanceFrom} onChange={(e) => setAttendanceFrom(e.target.value)} className={inputClass} aria-label="Attendance from" />
-                <input type="date" value={attendanceTo} onChange={(e) => setAttendanceTo(e.target.value)} className={inputClass} aria-label="Attendance to" />
-              </div>
-            }
-            onView={() => preview(`/api/reports/attendance?from=${attendanceFrom}&to=${attendanceTo}`, 'Attendance report')}
-            onCsv={() => download(`/api/reports/attendance?from=${attendanceFrom}&to=${attendanceTo}&format=csv`)}
-          />
-        </div>
-      </DashboardPageSection>
-
-      <DashboardPageSection title="Payroll & statutory" className="mt-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <ReportCard
-            title="Payroll cost"
-            description="Gross, net, PAYE, NSSF, SHIF, and department totals for a period."
-            icon={Landmark}
-            controls={
-              <input type="month" value={payrollPeriod} onChange={(e) => setPayrollPeriod(e.target.value)} className={inputClass} aria-label="Payroll period" />
-            }
-            onView={() => preview(`/api/reports/payroll-cost?period=${payrollPeriod}`, 'Payroll cost report')}
-            onCsv={() => download(`/api/reports/payroll-cost?period=${payrollPeriod}&format=csv`)}
-          />
-          <section className="dashboard-surface flex flex-col gap-3 p-5 shadow-sm md:col-span-2">
-            <div className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5 text-primary-800" strokeWidth={1.75} />
-              <h3 className="text-sm font-semibold text-ink">Statutory returns</h3>
-            </div>
-            <p className="text-sm text-neutral-500">P9, P10, NSSF, and SHIF CSV files for submission portals.</p>
-            <input type="month" value={payrollPeriod} onChange={(e) => setPayrollPeriod(e.target.value)} className={inputClass} aria-label="Statutory period" />
-            <div className="flex flex-wrap gap-2">
-              {statutoryLinks.map((item) => (
-                <button
-                  key={item.type}
-                  type="button"
-                  onClick={() => download(`/api/reports/statutory?period=${payrollPeriod}&type=${item.type}&format=csv`)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white/90 px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  {item.label}
-                </button>
+      ) : (
+        grouped.map(({ category, items }) => (
+          <DashboardPageSection
+            key={category.id}
+            title={category.label}
+            description={category.description}
+            className="mt-6"
+          >
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {items.map(({ report, access, requiredTier }) => (
+                <ReportCard
+                  key={report.id}
+                  report={report}
+                  access={access}
+                  requiredTier={tierLabel(requiredTier)}
+                  values={paramState[report.id] ?? {}}
+                  onParamChange={(key, value) => setParam(report.id, key, value)}
+                  onPreview={() =>
+                    openPreview(
+                      report.endpoint ? report.endpoint(paramState[report.id] ?? {}) : '',
+                      report.title,
+                    )
+                  }
+                />
               ))}
             </div>
-          </section>
-        </div>
-      </DashboardPageSection>
+          </DashboardPageSection>
+        ))
+      )}
 
-      <DashboardPageSection title="Compliance & risk" className="mt-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ReportCard
-            title="Disciplinary, grievances & onboarding"
-            description="Open cases, grievance queue, and active onboarding workflows."
-            icon={Shield}
-            onView={() => preview('/api/reports/compliance', 'Compliance report')}
-            onCsv={() => download('/api/reports/compliance?format=csv')}
-          />
-        </div>
-      </DashboardPageSection>
-
-      <DashboardPageSection title="Recruitment" className="mt-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ReportCard
-            title="Hiring funnel"
-            description="Applications by status, job pipeline, conversion rate, and upcoming interviews."
-            icon={Briefcase}
-            onView={() => preview('/api/reports/recruitment', 'Recruitment report')}
-            onCsv={() => download('/api/reports/recruitment?format=csv')}
-          />
-        </div>
-      </DashboardPageSection>
-
-      {(summary?.finance.invoicesOutstanding ?? 0) > 0 || (summary?.finance.vendorBillsOutstanding ?? 0) > 0 ? (
-        <DashboardPageSection title="Finance snapshot" className="mt-6">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <DashboardStatCard
-              label="Outstanding invoices"
-              value={summary?.finance.invoicesOutstanding ?? 0}
-              tone="warning"
-            />
-            <DashboardStatCard
-              label="Outstanding vendor bills"
-              value={summary?.finance.vendorBillsOutstanding ?? 0}
-              tone="warning"
-            />
-          </div>
-        </DashboardPageSection>
-      ) : null}
-
-      <DashboardTableCard className="mt-6">
-        <div className="border-b border-neutral-200/80 px-5 py-4 sm:px-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-ink">{previewTitle ?? 'Report preview'}</h3>
-              <p className="mt-0.5 text-xs text-neutral-500">Select a report above and click Preview.</p>
-            </div>
-            {previewLoading ? (
-              <span className="text-xs text-neutral-500">Loading…</span>
-            ) : previewTitle ? (
-              <BarChart3 className="h-4 w-4 text-primary-600" aria-hidden />
-            ) : null}
-          </div>
-          {previewSummary.length > 0 ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {previewSummary.map((item) => (
-                <span
-                  key={item.label}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs text-neutral-700"
-                >
-                  <span className="font-medium text-ink">{item.value}</span>
-                  <span className="text-neutral-500">{item.label}</span>
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-        <DashboardAsyncState
-          status={previewLoading ? 'loading' : previewRows.length === 0 ? 'empty' : 'success'}
-          loading={<DashboardInlineLoading label="Building preview…" />}
-          empty={
-            <DashboardTableEmpty
-              title="No preview yet"
-              description="Choose a report and click Preview to see tabular data here."
-            />
-          }
-        >
-          <DashboardTableViewport>
-            <DashboardTable>
-              <thead>
-                <tr>
-                  {previewRows[0] ? Object.keys(previewRows[0]).map((key) => <th key={key}>{key}</th>) : null}
-                </tr>
-              </thead>
-              <tbody>
-                {previewRows.slice(0, 100).map((row, i) => (
-                  <tr key={`${previewTitle}-${i}`}>
-                    {Object.values(row).map((value, idx) => (
-                      <td key={idx} className="tabular-nums">
-                        {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')}
-                      </td>
-                    ))}
-                  </tr>
+      <DashboardModal
+        open={preview !== null}
+        onClose={() => setPreview(null)}
+        title={preview?.title ?? 'Report preview'}
+        description="Live preview — export for the full dataset."
+        icon={<Eye className="h-4 w-4" />}
+        size="xl"
+        footer={preview ? <ExportButton options={exportOptions(preview.endpoint)} label="Export" /> : null}
+      >
+        {previewLoading ? (
+          <DashboardInlineLoading label="Building preview…" />
+        ) : previewError ? (
+          <DashboardTableEmpty title="Preview failed" description={previewError} />
+        ) : preview ? (
+          <div className="space-y-4">
+            {preview.metrics.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {preview.metrics.map((item) => (
+                  <span
+                    key={item.label}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] px-2.5 py-1 text-xs text-[var(--dash-text-body)]"
+                  >
+                    <span className="font-semibold text-[var(--dash-text-strong)]">{item.value}</span>
+                    <span className="text-[var(--dash-text-muted)]">{item.label}</span>
+                  </span>
                 ))}
-              </tbody>
-            </DashboardTable>
-            {previewRows.length > 100 ? (
-              <DashboardTableEmpty
-                title="Preview truncated"
-                description={`Showing first 100 of ${previewRows.length} rows. Export CSV for the full dataset.`}
-              />
+              </div>
             ) : null}
-          </DashboardTableViewport>
-        </DashboardAsyncState>
-      </DashboardTableCard>
+
+            {preview.views.length > 1 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {preview.views.map((view, index) => (
+                  <button
+                    key={view.key}
+                    type="button"
+                    onClick={() => setActiveView(index)}
+                    className={
+                      index === activeView
+                        ? 'rounded-full bg-primary-900 px-3 py-1.5 text-xs font-semibold text-white'
+                        : 'rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] px-3 py-1.5 text-xs font-medium text-[var(--dash-text-body)] hover:bg-[var(--dash-hover)]'
+                    }
+                  >
+                    {view.label}
+                    <span className="ml-1.5 text-[var(--dash-text-muted)]">{view.rows.length}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {currentView && columns.length > 0 ? (
+              <DashboardTableViewport minWidth={Math.max(640, columns.length * 130)}>
+                <DashboardTable>
+                  <thead>
+                    <tr>
+                      {columns.map((key) => (
+                        <th key={key}>{formatLabel(key)}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentView.rows.slice(0, 200).map((row, i) => (
+                      <tr key={`${currentView.key}-${i}`}>
+                        {columns.map((key) => (
+                          <td key={key} className="tabular-nums">
+                            {formatCell(row[key])}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </DashboardTable>
+                {currentView.rows.length > 200 ? (
+                  <DashboardTableEmpty
+                    title="Preview truncated"
+                    description={`Showing first 200 of ${currentView.rows.length} rows. Export for the full dataset.`}
+                  />
+                ) : null}
+              </DashboardTableViewport>
+            ) : (
+              <DashboardTableEmpty
+                title="No tabular data"
+                description="This report has no row-level breakdown to preview. Export to view its summary."
+              />
+            )}
+          </div>
+        ) : null}
+      </DashboardModal>
     </DashboardPage>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  icon: Icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon?: ComponentType<{ className?: string; strokeWidth?: number }>;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? 'inline-flex items-center gap-1.5 rounded-full bg-primary-900 px-3 py-1.5 text-xs font-semibold text-white'
+          : 'inline-flex items-center gap-1.5 rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-1.5 text-xs font-medium text-[var(--dash-text-body)] transition hover:bg-[var(--dash-hover)]'
+      }
+    >
+      {Icon ? <Icon className="h-3.5 w-3.5" strokeWidth={1.75} /> : null}
+      {children}
+    </button>
   );
 }

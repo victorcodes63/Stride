@@ -5,6 +5,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTable, DashboardTableCard, DashboardTableEmpty, DashboardTableViewport } from '@/components/dashboard/DashboardDataTable';
 import { DashboardAsyncState, DashboardPageSkeleton } from '@/components/dashboard/DashboardAsyncState';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Site = { id: string; code: string; name: string };
 type Permit = {
@@ -81,12 +82,15 @@ export default function EnergyPermitsPage() {
     <DashboardPage>
       <DashboardPageHeader eyebrow="Energy" title="Permits" description="Environmental, operating, and safety permits with expiry tracking." />
       <form onSubmit={handleCreate} className="mb-6 grid gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 sm:grid-cols-3 lg:grid-cols-6">
-        <select required value={form.siteId} onChange={(e) => setForm((f) => ({ ...f, siteId: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm">
-          <option value="">Site…</option>
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>{s.code} — {s.name}</option>
-          ))}
-        </select>
+        <StrideSelect
+          value={form.siteId}
+          onChange={(value) => setForm((f) => ({ ...f, siteId: value }))}
+          options={[
+            { value: '', label: 'Site…' },
+            ...sites.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` })),
+          ]}
+          ariaLabel="Site"
+        />
         <input required placeholder="Permit #" value={form.permitNumber} onChange={(e) => setForm((f) => ({ ...f, permitNumber: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />
         <input required placeholder="Authority" value={form.issuingAuthority} onChange={(e) => setForm((f) => ({ ...f, issuingAuthority: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />
         <input required type="date" value={form.issuedAt} onChange={(e) => setForm((f) => ({ ...f, issuedAt: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />

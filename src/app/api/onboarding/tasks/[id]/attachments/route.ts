@@ -33,10 +33,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       tx.onboardingTask.findFirst({
         where: ctx.where({ id }),
         include: {
+          employee: { select: { id: true, outsourcingClientId: true } },
           workflow: {
             select: {
               id: true,
               employeeId: true,
+              outsourcingClientId: true,
               employee: {
                 select: { id: true, outsourcingClientId: true, firstName: true, lastName: true },
               },
@@ -45,8 +47,22 @@ export async function POST(request: NextRequest, context: RouteContext) {
         },
       }),
     );
-    if (!task || task.workflow.employee.outsourcingClientId !== workspaceClientId) {
+    const scopeClientId =
+      task?.workflow.employee?.outsourcingClientId ??
+      task?.employee?.outsourcingClientId ??
+      task?.workflow.outsourcingClientId ??
+      null;
+    if (!task || scopeClientId !== workspaceClientId) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    // Evidence is stored as an employee document, so the task must relate to one.
+    const targetEmployeeId = task.workflow.employee?.id ?? task.employee?.id ?? null;
+    if (!targetEmployeeId) {
+      return NextResponse.json(
+        { error: 'Evidence can only be attached to tasks linked to an employee.' },
+        { status: 400 },
+      );
     }
 
     const canAction = canUserActionTask(
@@ -79,7 +95,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const document = await tx.employeeDocument.create({
         data: {
           organizationId: ctx.organizationId,
-          employeeId: task.workflow.employee.id,
+          employeeId: targetEmployeeId,
           title: task.title,
           category: docCategory,
           filePath: uploaded.path,
@@ -109,7 +125,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       metadata: {
         documentId: updated.documentId,
         workflowId: task.workflowId,
-        employeeId: task.workflow.employee.id,
+        employeeId: targetEmployeeId,
       },
     });
 

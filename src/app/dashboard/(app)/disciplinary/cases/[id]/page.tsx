@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DISCIPLINARY_STATUSES, JURISDICTION_POLICIES, getJurisdictionPolicy } from '@/lib/east-africa-hr-policy';
+import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { toDisplayLabel } from '@/lib/format-label';
 
 type CaseDetail = {
  id: string;
@@ -38,8 +41,15 @@ function toLocalInput(iso: string | null) {
  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export default function DisciplinaryCasePage() {
+export type DisciplinaryCasePageProps = {
+ /** Base path for back-links. Defaults to core HR; BPO passes its own hub. */
+ basePath?: string;
+};
+
+export default function DisciplinaryCasePage({ basePath = '/dashboard/disciplinary' }: DisciplinaryCasePageProps = {}) {
  const params = useParams<{ id: string }>();
+ const searchParams = useSearchParams();
+ const clientId = searchParams.get('clientId');
  const [data, setData] = useState<CaseDetail | null>(null);
  const [actionType, setActionType] = useState('VERBAL_WARNING');
  const [description, setDescription] = useState('');
@@ -189,7 +199,7 @@ export default function DisciplinaryCasePage() {
  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
  <div className="dashboard-stat-card lg:col-span-2">
  <div className="flex flex-wrap items-center gap-2 text-sm">
- <Link href="/dashboard/disciplinary" className="text-primary-700 hover:underline">
+ <Link href={withOutsourcingClientQuery(basePath, clientId)} className="text-primary-700 hover:underline">
  ← All cases
  </Link>
  </div>
@@ -232,8 +242,10 @@ export default function DisciplinaryCasePage() {
  <div className="mt-4 rounded-lg border border-neutral-100 p-3">
  <p className="text-sm font-semibold">Add action</p>
  <div className="mt-2 flex flex-wrap gap-2">
- <select value={actionType} onChange={(e) => setActionType(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm">
- {[
+ <StrideSelect
+ value={actionType}
+ onChange={(value) => setActionType(value)}
+ options={[
  'VERBAL_WARNING',
  'WRITTEN_WARNING',
  'FINAL_WARNING',
@@ -243,12 +255,10 @@ export default function DisciplinaryCasePage() {
  'DEMOTION',
  'TERMINATION',
  'CASE_DISMISSED',
- ].map((t) => (
- <option key={t} value={t}>
- {t.replaceAll('_', ' ')}
- </option>
- ))}
- </select>
+ ].map((t) => ({ value: t, label: toDisplayLabel(t) }))}
+ ariaLabel="Action type"
+ />
+
  <input
  value={description}
  onChange={(e) => setDescription(e.target.value)}
@@ -319,21 +329,24 @@ export default function DisciplinaryCasePage() {
  <p className="mt-1 text-xs text-neutral-500">Align with your registered HR policy; dates appear on the employee portal.</p>
  <div className="mt-3 space-y-2 text-sm">
  <label className="block text-xs font-medium text-neutral-600">Status</label>
- <select className="w-full rounded border border-neutral-300 px-2 py-1.5" value={status} onChange={(e) => setStatus(e.target.value)}>
- {DISCIPLINARY_STATUSES.map((s) => (
- <option key={s} value={s}>
- {s.replaceAll('_', ' ')}
- </option>
- ))}
- </select>
+ <StrideSelect
+ value={status}
+ onChange={(value) => setStatus(value)}
+ options={DISCIPLINARY_STATUSES.map((s) => ({ value: s, label: toDisplayLabel(s) }))}
+ ariaLabel="Status"
+ className="w-full"
+ />
  <label className="block text-xs font-medium text-neutral-600">Labour jurisdiction (letter text & SLAs)</label>
- <select className="w-full rounded border border-neutral-300 px-2 py-1.5" value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)}>
- {(Object.keys(JURISDICTION_POLICIES) as Array<keyof typeof JURISDICTION_POLICIES>).map((code) => (
- <option key={code} value={code}>
- {JURISDICTION_POLICIES[code].label}
- </option>
- ))}
- </select>
+ <StrideSelect
+ value={jurisdiction}
+ onChange={(value) => setJurisdiction(value)}
+ options={(Object.keys(JURISDICTION_POLICIES) as Array<keyof typeof JURISDICTION_POLICIES>).map((code) => ({
+ value: code,
+ label: JURISDICTION_POLICIES[code].label,
+ }))}
+ ariaLabel="Labour jurisdiction"
+ className="w-full"
+ />
  <label className="block text-xs font-medium text-neutral-600">Show-cause response due</label>
  <input
  type="datetime-local"

@@ -279,16 +279,16 @@ export async function PATCH(
   }
   if (company !== undefined) {
     if (company === '') {
-      const settings = await ctx.run((tx) => getOrCreateRecruitmentSettings(tx));
+      const settings = await ctx.run((tx) => getOrCreateRecruitmentSettings(tx, ctx.organizationId));
       resolvedCompany = settings.employerName;
       resolvedClientId = settings.linkedClientId;
     } else {
-      const r = await ctx.run((tx) => resolveJobCompanyAndClientId(tx, company));
+      const r = await ctx.run((tx) => resolveJobCompanyAndClientId(tx, company, ctx.organizationId));
       resolvedCompany = r.company;
       resolvedClientId = r.clientId;
     }
   } else {
-    const settings = await ctx.run((tx) => getOrCreateRecruitmentSettings(tx));
+    const settings = await ctx.run((tx) => getOrCreateRecruitmentSettings(tx, ctx.organizationId));
     resolvedClientId = settings.linkedClientId;
   }
 

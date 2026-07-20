@@ -13,6 +13,7 @@ import type {
 import { STAFF_USER_TYPES } from '@/types/dashboard';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 const ROLE_LABELS: Record<UserRole, string> = {
  admin: 'Admin',
@@ -63,6 +64,10 @@ export default function DashboardStaffPage() {
  password: '',
  role: 'staff' as UserRole,
  staffUserType: 'operations' as StaffUserType,
+ department: '',
+ costCenterName: '',
+ costCenterCode: '',
+ monthlySalary: '',
  accountsPermissions: emptyAccounts(),
  });
 
@@ -70,6 +75,10 @@ export default function DashboardStaffPage() {
  name: '',
  role: 'staff' as UserRole,
  staffUserType: 'operations' as StaffUserType,
+ department: '',
+ costCenterName: '',
+ costCenterCode: '',
+ monthlySalary: '',
  accountsPermissions: emptyAccounts(),
  isActive: true,
  newPassword: '',
@@ -123,6 +132,10 @@ export default function DashboardStaffPage() {
  password: '',
  role: 'staff',
  staffUserType: 'operations',
+ department: '',
+ costCenterName: '',
+ costCenterCode: '',
+ monthlySalary: '',
  accountsPermissions: emptyAccounts(),
  });
  setAddOpen(true);
@@ -154,6 +167,10 @@ export default function DashboardStaffPage() {
  password,
  role: addForm.role,
  staffUserType: addForm.staffUserType,
+ department: addForm.department,
+ costCenterName: addForm.costCenterName,
+ costCenterCode: addForm.costCenterCode,
+ monthlySalary: addForm.monthlySalary,
  };
  if (addForm.role !== 'admin') {
  body.accountsPermissions = addForm.accountsPermissions;
@@ -183,6 +200,10 @@ export default function DashboardStaffPage() {
  name: user.name,
  role: user.role,
  staffUserType: user.staffUserType,
+ department: user.department ?? '',
+ costCenterName: user.costCenterName ?? '',
+ costCenterCode: user.costCenterCode ?? '',
+ monthlySalary: user.monthlySalary != null ? String(user.monthlySalary) : '',
  accountsPermissions: { ...user.accountsPermissions },
  isActive: user.isActive,
  newPassword: '',
@@ -210,6 +231,10 @@ export default function DashboardStaffPage() {
  role: editForm.role,
  isActive: editForm.isActive,
  staffUserType: editForm.staffUserType,
+ department: editForm.department,
+ costCenterName: editForm.costCenterName,
+ costCenterCode: editForm.costCenterCode,
+ monthlySalary: editForm.monthlySalary,
  };
  if (editForm.role !== 'admin') {
  body.accountsPermissions = editForm.accountsPermissions;
@@ -312,22 +337,82 @@ export default function DashboardStaffPage() {
  return (
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">User type</label>
- <select
+ <StrideSelect
  value={value}
- onChange={(e) => onChange(e.target.value as StaffUserType)}
- className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
- >
- {STAFF_USER_TYPES.map((t) => (
- <option key={t} value={t}>
- {STAFF_USER_TYPE_LABELS[t]}
- </option>
- ))}
- </select>
+ onChange={(next) => onChange(next as StaffUserType)}
+ options={STAFF_USER_TYPES.map((t) => ({ value: t, label: STAFF_USER_TYPE_LABELS[t] }))}
+ ariaLabel="User type"
+ className="w-full"
+ />
  <p className="text-xs text-neutral-500 mt-1">
  <strong>Business manager</strong> can approve staff leave. <strong>Director</strong> is reserved for a
  future read-only executive dashboard.
  </p>
  </div>
+ );
+ };
+
+ const profileFields = (prefix: 'add' | 'edit') => {
+ const form = prefix === 'add' ? addForm : editForm;
+ const set = (patch: Partial<{ department: string; costCenterName: string; costCenterCode: string; monthlySalary: string }>) => {
+ if (prefix === 'add') setAddForm((f) => ({ ...f, ...patch }));
+ else setEditForm((f) => ({ ...f, ...patch }));
+ };
+ const inputClass =
+ 'w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm';
+
+ return (
+ <fieldset className="space-y-3 rounded-lg border border-neutral-200 p-3">
+ <legend className="text-sm font-medium text-neutral-800 px-1">Department &amp; cost centre</legend>
+ <p className="text-xs text-neutral-500 -mt-1">
+ Used to group and roll up leave reports. Set a monthly salary to value leave liability in money
+ instead of days.
+ </p>
+ <div>
+ <label className="block text-sm font-medium text-neutral-700 mb-1">Department</label>
+ <input
+ type="text"
+ value={form.department}
+ onChange={(e) => set({ department: e.target.value })}
+ className={inputClass}
+ placeholder="e.g. Operations, Finance"
+ />
+ </div>
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+ <div>
+ <label className="block text-sm font-medium text-neutral-700 mb-1">Cost centre name</label>
+ <input
+ type="text"
+ value={form.costCenterName}
+ onChange={(e) => set({ costCenterName: e.target.value })}
+ className={inputClass}
+ placeholder="e.g. Head Office"
+ />
+ </div>
+ <div>
+ <label className="block text-sm font-medium text-neutral-700 mb-1">Cost centre code</label>
+ <input
+ type="text"
+ value={form.costCenterCode}
+ onChange={(e) => set({ costCenterCode: e.target.value })}
+ className={inputClass}
+ placeholder="e.g. CC-001"
+ />
+ </div>
+ </div>
+ <div>
+ <label className="block text-sm font-medium text-neutral-700 mb-1">Monthly salary (KES, optional)</label>
+ <input
+ type="number"
+ min={0}
+ step="0.01"
+ value={form.monthlySalary}
+ onChange={(e) => set({ monthlySalary: e.target.value })}
+ className={inputClass}
+ placeholder="Leave blank to report liability in days"
+ />
+ </div>
+ </fieldset>
  );
  };
 
@@ -528,17 +613,20 @@ export default function DashboardStaffPage() {
  </div>
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Role</label>
- <select
+ <StrideSelect
  value={addForm.role}
- onChange={(e) => setAddForm((f) => ({ ...f, role: e.target.value as UserRole }))}
- className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
- >
- <option value="admin">Admin (owner / IT — full access)</option>
- <option value="staff">Staff</option>
- <option value="viewer">Viewer</option>
- </select>
+ onChange={(value) => setAddForm((f) => ({ ...f, role: value as UserRole }))}
+ options={[
+ { value: 'admin', label: 'Admin (owner / IT — full access)' },
+ { value: 'staff', label: 'Staff' },
+ { value: 'viewer', label: 'Viewer' },
+ ]}
+ ariaLabel="Role"
+ className="w-full"
+ />
  </div>
  {userTypeSelect('add')}
+ {profileFields('add')}
  {accountsFields('add')}
  <div className="flex gap-3 pt-2">
  <button
@@ -617,17 +705,20 @@ export default function DashboardStaffPage() {
  </div>
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Role</label>
- <select
+ <StrideSelect
  value={editForm.role}
- onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value as UserRole }))}
- className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
- >
- <option value="admin">Admin (owner / IT — full access)</option>
- <option value="staff">Staff</option>
- <option value="viewer">Viewer</option>
- </select>
+ onChange={(value) => setEditForm((f) => ({ ...f, role: value as UserRole }))}
+ options={[
+ { value: 'admin', label: 'Admin (owner / IT — full access)' },
+ { value: 'staff', label: 'Staff' },
+ { value: 'viewer', label: 'Viewer' },
+ ]}
+ ariaLabel="Role"
+ className="w-full"
+ />
  </div>
  {userTypeSelect('edit')}
+ {profileFields('edit')}
  {accountsFields('edit')}
  <div className="flex items-center gap-2">
  <input

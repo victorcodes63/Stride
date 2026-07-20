@@ -10,6 +10,7 @@ import { enforceAccountAccess } from '@/lib/account-access-middleware';
 import { enforcePastDueReadOnly } from '@/lib/account-readonly-middleware';
 import { applySecurityHeaders } from '@/lib/security-headers';
 import { enforceAuthRateLimit } from '@/lib/auth-rate-limit-response';
+import { PASSWORD_RESET_RATE_LIMIT, RESOLVE_EMAIL_RATE_LIMIT } from '@/lib/rate-limit';
 import {
   buildCrossOriginUrl,
   getAppOrigin,
@@ -104,6 +105,17 @@ export function middleware(request: NextRequest) {
 
   if (pathname === '/api/auth/login' || pathname === '/api/ess/auth/login') {
     const rateLimited = enforceAuthRateLimit(pathname, request);
+    if (rateLimited) return applySecurityHeaders(rateLimited);
+  }
+
+  // Throttle pre-auth endpoints so bots can't enumerate tenant domains or abuse
+  // password reset as an email-flooding / oracle vector.
+  if (pathname === '/api/auth/resolve-email') {
+    const rateLimited = enforceAuthRateLimit(pathname, request, RESOLVE_EMAIL_RATE_LIMIT);
+    if (rateLimited) return applySecurityHeaders(rateLimited);
+  }
+  if (pathname === '/api/auth/forgot-password') {
+    const rateLimited = enforceAuthRateLimit(pathname, request, PASSWORD_RESET_RATE_LIMIT);
     if (rateLimited) return applySecurityHeaders(rateLimited);
   }
 

@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toCSV } from '@/lib/report-export';
 import {
   assertReportsStaffRole,
-  downloadHeaders,
-  jsonOrPdf,
   parseDateParam,
   parseFormat,
+  respondWithReport,
   startOfDayUtc,
   ymd,
 } from '@/app/api/reports/_shared';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
 
 type GroupCount = { [key: string]: number };
 
@@ -113,22 +113,15 @@ export async function GET(request: NextRequest) {
       terminations,
     };
 
-    if (format === 'csv') {
-      const csv = toCSV(
-        ['Department', 'Total', 'Clinical', 'Non-Clinical'],
-        report.byDepartment.map((row) => [row.department, row.count, row.clinical, row.nonClinical]),
-      );
-      return new NextResponse(csv, {
-        headers: downloadHeaders('text/csv', `headcount-${ymd(asOfDay)}.csv`),
-      });
-    }
-
-    return jsonOrPdf(
+    return respondWithReport({
       format,
-      report,
-      'Headcount Report',
-      `headcount-${ymd(asOfDay)}.pdf`,
-      [
+      json: report,
+      title: 'Headcount Report',
+      sheetName: 'Headcount',
+      baseFilename: `headcount-${ymd(asOfDay)}`,
+      headers: ['Department', 'Total', 'Clinical', 'Non-Clinical'],
+      rows: report.byDepartment.map((row) => [row.department, row.count, row.clinical, row.nonClinical]),
+      summaryLines: [
         `As of: ${ymd(asOfDay)}`,
         `Total employees: ${report.totalEmployees}`,
         `Clinical: ${report.clinical}`,
@@ -136,6 +129,6 @@ export async function GET(request: NextRequest) {
         `New hires (30d): ${report.newHires}`,
         `Terminations (30d): ${report.terminations}`,
       ],
-    );
+    });
   });
 }

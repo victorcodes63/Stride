@@ -1,51 +1,35 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { LayoutGrid, Loader2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Briefcase, LayoutGrid, Loader2, AlertCircle, Plus } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-
-type TaskRow = {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  dueDate: string | null;
-  project?: { id: string; projectCode: string; name: string };
-  assignee: { id: string; name: string } | null;
-};
-
-const COLUMNS = [
-  { key: 'backlog', label: 'Backlog' },
-  { key: 'todo', label: 'To do' },
-  { key: 'in_progress', label: 'In progress' },
-  { key: 'blocked', label: 'Blocked' },
-  { key: 'done', label: 'Done' },
-] as const;
-
-const PRIORITY_DOT: Record<string, string> = {
-  high: 'bg-red-500',
-  medium: 'bg-amber-500',
-  low: 'bg-neutral-300',
-};
+import { ProjectBoard } from '@/components/dashboard/projects/ProjectBoard';
+import { TaskDrawer } from '@/components/dashboard/projects/TaskDrawer';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { toast } from '@/components/ui/toast';
+import type { ProjectTaskStatus, TaskDTO } from '@/types/projects';
+import {
+  createTask,
+  fetchProjectTasks,
+  patchTask,
+} from '@/app/dashboard/(app)/projects/_lib/api';
 
 export default function ProjectBoardContent() {
-  const [tasks, setTasks] = useState<TaskRow[] | null>(null);
+  const [tasks, setTasks] = useState<TaskDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [acting, setActing] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState('');
+  const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    const q = projectFilter ? `?projectId=${encodeURIComponent(projectFilter)}` : '';
-    fetch(`/api/projects/tasks${q}`)
-      .then(async (r) => {
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(data.error || 'Failed to load');
-        return data;
-      })
+    fetchProjectTasks({
+      projectId: projectFilter || undefined,
+      include: 'subtasks',
+    })
       .then((data) => setTasks(data.tasks ?? []))
       .catch((e) => {
         setError(e instanceof Error ? e.message : 'Failed');
@@ -60,54 +44,87 @@ export default function ProjectBoardContent() {
 
   const projects = useMemo(() => {
     const map = new Map<string, { id: string; label: string }>();
-    for (const t of tasks ?? []) {
-      if (t.project) map.set(t.project.id, { id: t.project.id, label: `${t.project.projectCode} — ${t.project.name}` });
+    for (const t of tasks) {
+      if (t.project) {
+        map.set(t.project.id, {
+          id: t.project.id,
+          label: `${t.project.projectCode} — ${t.project.name}`,
+        });
+      }
     }
     return [...map.values()];
   }, [tasks]);
 
-  async function moveTask(id: string, status: string) {
-    setActing(id);
+  const seedTask = useMemo(
+    () => (drawerTaskId ? tasks.find((t) => t.id === drawerTaskId) ?? null : null),
+    [drawerTaskId, tasks],
+  );
+
+  const activeProjectId = projectFilter || seedTask?.projectId || tasks[0]?.projectId || '';
+
+  async function onStatusChange(taskId: string, status: ProjectTaskStatus) {
+    const prev = tasks;
+    setTasks((cur) => cur.map((t) => (t.id === taskId ? { ...t, status } : t)));
     try {
-      const r = await fetch(`/api/projects/tasks/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(data.error || 'Update failed');
-      load();
+      const { task } = await patchTask(taskId, { status });
+      setTasks((cur) => cur.map((t) => (t.id === taskId ? task : t)));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Update failed');
-    } finally {
-      setActing(null);
+      setTasks(prev);
+      toast.error(e instanceof Error ? e.message : 'Move failed');
     }
+  }
+
+  async function onQuickAdd(status: ProjectTaskStatus, title: string) {
+    const pid = projectFilter || tasks.find((t) => t.project)?.project?.id;
+    if (!pid) {
+      toast.error('Select a project first, or create one.');
+      return;
+    }
+    const { task } = await createTask({ projectId: pid, title, status });
+    setTasks((cur) => [...cur, task]);
+    toast.success('Task created');
   }
 
   return (
     <DashboardPage>
       <DashboardPageHeader
         title="Project board"
-        description="Kanban view across active projects — drag status via the column actions."
+        description="Drag tasks across columns. Click a card for details."
         icon={LayoutGrid}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/dashboard/projects/tasks"
+              className="btn-primary dash-panel-cta inline-flex items-center gap-2 px-3 py-2 text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              New task
+            </Link>
+            <Link
+              href="/dashboard/projects/all?new=1"
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] px-3 py-2 text-sm font-medium text-[var(--dash-text-strong)] hover:bg-[var(--dash-hover)]"
+            >
+              <Briefcase className="h-4 w-4" />
+              New project
+            </Link>
+          </div>
+        }
       />
 
-      {projects.length > 0 ? (
+      {projects.length > 0 || projectFilter ? (
         <div className="mb-4">
           <label className="text-sm text-[var(--dash-text-muted)]">
             Filter by project{' '}
-            <select
+            <StrideSelect
               value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
-              className="dash-auth-input ml-2 inline-block w-auto min-w-[14rem]"
-            >
-              <option value="">All projects</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
+              onChange={setProjectFilter}
+              options={[
+                { value: '', label: 'All projects' },
+                ...projects.map((p) => ({ value: p.id, label: p.label })),
+              ]}
+              ariaLabel="Filter by project"
+              className="ml-2 inline-block w-auto min-w-[14rem]"
+            />
           </label>
         </div>
       ) : null}
@@ -124,64 +141,46 @@ export default function ProjectBoardContent() {
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           Loading board…
         </div>
-      ) : (
-        <div className="grid gap-3 lg:grid-cols-5">
-          {COLUMNS.map((col) => {
-            const colTasks = (tasks ?? []).filter((t) => t.status === col.key);
-            return (
-              <section
-                key={col.key}
-                className="flex min-h-[20rem] flex-col rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-muted)]"
-              >
-                <header className="border-b border-[var(--dash-border)] px-3 py-2 text-sm font-semibold text-[var(--dash-text-strong)]">
-                  {col.label}
-                  <span className="ml-2 text-xs font-normal text-[var(--dash-text-muted)]">({colTasks.length})</span>
-                </header>
-                <ul className="flex flex-1 flex-col gap-2 p-2">
-                  {colTasks.length === 0 ? (
-                    <li className="py-6 text-center text-xs text-[var(--dash-text-muted)]">No tasks</li>
-                  ) : (
-                    colTasks.map((task) => (
-                      <li
-                        key={task.id}
-                        className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-3 shadow-sm"
-                      >
-                        <div className="mb-1 flex items-start gap-2">
-                          <span
-                            className={`mt-1 h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[task.priority] ?? PRIORITY_DOT.medium}`}
-                            aria-hidden
-                          />
-                          <p className="text-sm font-medium text-[var(--dash-text-strong)]">{task.title}</p>
-                        </div>
-                        {task.project ? (
-                          <p className="mb-2 text-xs text-[var(--dash-text-muted)]">{task.project.projectCode}</p>
-                        ) : null}
-                        <p className="mb-2 text-xs text-[var(--dash-text-muted)]">
-                          {task.assignee?.name ?? 'Unassigned'}
-                          {task.dueDate ? ` · due ${task.dueDate}` : ''}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {COLUMNS.filter((c) => c.key !== task.status).map((c) => (
-                            <button
-                              key={c.key}
-                              type="button"
-                              disabled={acting === task.id}
-                              onClick={() => moveTask(task.id, c.key)}
-                              className="rounded border border-[var(--dash-border)] px-1.5 py-0.5 text-[10px] text-[var(--dash-text-muted)] hover:bg-[var(--dash-hover)]"
-                            >
-                              → {c.label}
-                            </button>
-                          ))}
-                        </div>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </section>
-            );
-          })}
+      ) : !tasks.length ? (
+        <div className="rounded-xl border border-dashed border-[var(--dash-border)] px-6 py-16 text-center">
+          <p className="text-sm font-medium text-[var(--dash-text-strong)]">No tasks on the board</p>
+          <p className="mt-1 text-sm text-[var(--dash-text-muted)]">
+            Create a project, then add tasks — or use Quick-add on a column once a project exists.
+          </p>
+          <Link
+            href="/dashboard/projects/all?new=1"
+            className="btn-primary mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            <Briefcase className="h-4 w-4" />
+            New project
+          </Link>
         </div>
+      ) : (
+        <ProjectBoard
+          tasks={tasks}
+          onCardClick={setDrawerTaskId}
+          onStatusChange={onStatusChange}
+          onQuickAdd={onQuickAdd}
+        />
       )}
+
+      {activeProjectId ? (
+        <TaskDrawer
+          open={!!drawerTaskId}
+          taskId={drawerTaskId}
+          seedTask={seedTask}
+          projectId={activeProjectId}
+          projectTasks={tasks.filter((t) => t.projectId === activeProjectId)}
+          onClose={() => setDrawerTaskId(null)}
+          onTaskUpdated={(updated) =>
+            setTasks((cur) => cur.map((t) => (t.id === updated.id ? { ...t, ...updated } : t)))
+          }
+          onTaskDeleted={(id) => {
+            setTasks((cur) => cur.filter((t) => t.id !== id));
+            setDrawerTaskId(null);
+          }}
+        />
+      ) : null}
     </DashboardPage>
   );
 }

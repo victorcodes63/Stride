@@ -411,6 +411,57 @@ CREATE POLICY "OnboardingTask_insert_bootstrap" ON "OnboardingTask"
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "OnboardingFormTemplate" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "OnboardingFormTemplate" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "OnboardingFormTemplate_tenant_rw" ON "OnboardingFormTemplate";
+CREATE POLICY "OnboardingFormTemplate_tenant_rw" ON "OnboardingFormTemplate"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "OnboardingFormTemplate_insert_bootstrap" ON "OnboardingFormTemplate";
+CREATE POLICY "OnboardingFormTemplate_insert_bootstrap" ON "OnboardingFormTemplate"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "OnboardingFormSubmission" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "OnboardingFormSubmission" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "OnboardingFormSubmission_tenant_rw" ON "OnboardingFormSubmission";
+CREATE POLICY "OnboardingFormSubmission_tenant_rw" ON "OnboardingFormSubmission"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "OnboardingFormSubmission_insert_bootstrap" ON "OnboardingFormSubmission";
+CREATE POLICY "OnboardingFormSubmission_insert_bootstrap" ON "OnboardingFormSubmission"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "OnboardingSignatureRequest" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "OnboardingSignatureRequest" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "OnboardingSignatureRequest_tenant_rw" ON "OnboardingSignatureRequest";
+CREATE POLICY "OnboardingSignatureRequest_tenant_rw" ON "OnboardingSignatureRequest"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "OnboardingSignatureRequest_insert_bootstrap" ON "OnboardingSignatureRequest";
+CREATE POLICY "OnboardingSignatureRequest_insert_bootstrap" ON "OnboardingSignatureRequest"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "AttendancePolicy" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "AttendancePolicy" FORCE ROW LEVEL SECURITY;
 
@@ -609,6 +660,57 @@ CREATE POLICY "CompanyAsset_tenant_rw" ON "CompanyAsset"
 
 DROP POLICY IF EXISTS "CompanyAsset_insert_bootstrap" ON "CompanyAsset";
 CREATE POLICY "CompanyAsset_insert_bootstrap" ON "CompanyAsset"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "AssetMaintenance" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AssetMaintenance" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AssetMaintenance_tenant_rw" ON "AssetMaintenance";
+CREATE POLICY "AssetMaintenance_tenant_rw" ON "AssetMaintenance"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "AssetMaintenance_insert_bootstrap" ON "AssetMaintenance";
+CREATE POLICY "AssetMaintenance_insert_bootstrap" ON "AssetMaintenance"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "AssetAttachment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AssetAttachment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AssetAttachment_tenant_rw" ON "AssetAttachment";
+CREATE POLICY "AssetAttachment_tenant_rw" ON "AssetAttachment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "AssetAttachment_insert_bootstrap" ON "AssetAttachment";
+CREATE POLICY "AssetAttachment_insert_bootstrap" ON "AssetAttachment"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "AssetAssignmentEvent" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AssetAssignmentEvent" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AssetAssignmentEvent_tenant_rw" ON "AssetAssignmentEvent";
+CREATE POLICY "AssetAssignmentEvent_tenant_rw" ON "AssetAssignmentEvent"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "AssetAssignmentEvent_insert_bootstrap" ON "AssetAssignmentEvent";
+CREATE POLICY "AssetAssignmentEvent_insert_bootstrap" ON "AssetAssignmentEvent"
   FOR INSERT
   WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
@@ -819,6 +921,193 @@ CREATE POLICY "BiometricPunch_insert_bootstrap" ON "BiometricPunch"
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "StaffShiftTemplate" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffShiftTemplate" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffShiftTemplate_tenant_rw" ON "StaffShiftTemplate";
+CREATE POLICY "StaffShiftTemplate_tenant_rw" ON "StaffShiftTemplate"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffShiftTemplate_insert_bootstrap" ON "StaffShiftTemplate";
+CREATE POLICY "StaffShiftTemplate_insert_bootstrap" ON "StaffShiftTemplate"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffRotaPeriod" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffRotaPeriod" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffRotaPeriod_tenant_rw" ON "StaffRotaPeriod";
+CREATE POLICY "StaffRotaPeriod_tenant_rw" ON "StaffRotaPeriod"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffRotaPeriod_insert_bootstrap" ON "StaffRotaPeriod";
+CREATE POLICY "StaffRotaPeriod_insert_bootstrap" ON "StaffRotaPeriod"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffShiftAssignment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffShiftAssignment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffShiftAssignment_tenant_rw" ON "StaffShiftAssignment";
+CREATE POLICY "StaffShiftAssignment_tenant_rw" ON "StaffShiftAssignment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffShiftAssignment_insert_bootstrap" ON "StaffShiftAssignment";
+CREATE POLICY "StaffShiftAssignment_insert_bootstrap" ON "StaffShiftAssignment"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffAttendancePolicy" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffAttendancePolicy" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffAttendancePolicy_tenant_rw" ON "StaffAttendancePolicy";
+CREATE POLICY "StaffAttendancePolicy_tenant_rw" ON "StaffAttendancePolicy"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffAttendancePolicy_insert_bootstrap" ON "StaffAttendancePolicy";
+CREATE POLICY "StaffAttendancePolicy_insert_bootstrap" ON "StaffAttendancePolicy"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffAttendancePolicyAssignment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffAttendancePolicyAssignment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffAttendancePolicyAssignment_tenant_rw" ON "StaffAttendancePolicyAssignment";
+CREATE POLICY "StaffAttendancePolicyAssignment_tenant_rw" ON "StaffAttendancePolicyAssignment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffAttendancePolicyAssignment_insert_bootstrap" ON "StaffAttendancePolicyAssignment";
+CREATE POLICY "StaffAttendancePolicyAssignment_insert_bootstrap" ON "StaffAttendancePolicyAssignment"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffAttendanceWorkSite" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffAttendanceWorkSite" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffAttendanceWorkSite_tenant_rw" ON "StaffAttendanceWorkSite";
+CREATE POLICY "StaffAttendanceWorkSite_tenant_rw" ON "StaffAttendanceWorkSite"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffAttendanceWorkSite_insert_bootstrap" ON "StaffAttendanceWorkSite";
+CREATE POLICY "StaffAttendanceWorkSite_insert_bootstrap" ON "StaffAttendanceWorkSite"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffAttendanceEvent" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffAttendanceEvent" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffAttendanceEvent_tenant_rw" ON "StaffAttendanceEvent";
+CREATE POLICY "StaffAttendanceEvent_tenant_rw" ON "StaffAttendanceEvent"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffAttendanceEvent_insert_bootstrap" ON "StaffAttendanceEvent";
+CREATE POLICY "StaffAttendanceEvent_insert_bootstrap" ON "StaffAttendanceEvent"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffAttendanceDaySummary" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffAttendanceDaySummary" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffAttendanceDaySummary_tenant_rw" ON "StaffAttendanceDaySummary";
+CREATE POLICY "StaffAttendanceDaySummary_tenant_rw" ON "StaffAttendanceDaySummary"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffAttendanceDaySummary_insert_bootstrap" ON "StaffAttendanceDaySummary";
+CREATE POLICY "StaffAttendanceDaySummary_insert_bootstrap" ON "StaffAttendanceDaySummary"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffAttendanceException" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffAttendanceException" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffAttendanceException_tenant_rw" ON "StaffAttendanceException";
+CREATE POLICY "StaffAttendanceException_tenant_rw" ON "StaffAttendanceException"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffAttendanceException_insert_bootstrap" ON "StaffAttendanceException";
+CREATE POLICY "StaffAttendanceException_insert_bootstrap" ON "StaffAttendanceException"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffBiometricDevice" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffBiometricDevice" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffBiometricDevice_tenant_rw" ON "StaffBiometricDevice";
+CREATE POLICY "StaffBiometricDevice_tenant_rw" ON "StaffBiometricDevice"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffBiometricDevice_insert_bootstrap" ON "StaffBiometricDevice";
+CREATE POLICY "StaffBiometricDevice_insert_bootstrap" ON "StaffBiometricDevice"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "StaffBiometricPunch" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StaffBiometricPunch" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "StaffBiometricPunch_tenant_rw" ON "StaffBiometricPunch";
+CREATE POLICY "StaffBiometricPunch_tenant_rw" ON "StaffBiometricPunch"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "StaffBiometricPunch_insert_bootstrap" ON "StaffBiometricPunch";
+CREATE POLICY "StaffBiometricPunch_insert_bootstrap" ON "StaffBiometricPunch"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "Attendance" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Attendance" FORCE ROW LEVEL SECURITY;
 
@@ -898,6 +1187,23 @@ CREATE POLICY "ApplicationView_tenant_rw" ON "ApplicationView"
 
 DROP POLICY IF EXISTS "ApplicationView_insert_bootstrap" ON "ApplicationView";
 CREATE POLICY "ApplicationView_insert_bootstrap" ON "ApplicationView"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ApplicationComment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ApplicationComment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ApplicationComment_tenant_rw" ON "ApplicationComment";
+CREATE POLICY "ApplicationComment_tenant_rw" ON "ApplicationComment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ApplicationComment_insert_bootstrap" ON "ApplicationComment";
+CREATE POLICY "ApplicationComment_insert_bootstrap" ON "ApplicationComment"
   FOR INSERT
   WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
@@ -1023,6 +1329,23 @@ CREATE POLICY "AssessmentTemplate_insert_bootstrap" ON "AssessmentTemplate"
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "AssessmentSection" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AssessmentSection" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AssessmentSection_tenant_rw" ON "AssessmentSection";
+CREATE POLICY "AssessmentSection_tenant_rw" ON "AssessmentSection"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "AssessmentSection_insert_bootstrap" ON "AssessmentSection";
+CREATE POLICY "AssessmentSection_insert_bootstrap" ON "AssessmentSection"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "AssessmentQuestion" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "AssessmentQuestion" FORCE ROW LEVEL SECURITY;
 
@@ -1034,6 +1357,23 @@ CREATE POLICY "AssessmentQuestion_tenant_rw" ON "AssessmentQuestion"
 
 DROP POLICY IF EXISTS "AssessmentQuestion_insert_bootstrap" ON "AssessmentQuestion";
 CREATE POLICY "AssessmentQuestion_insert_bootstrap" ON "AssessmentQuestion"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "QuestionBankItem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "QuestionBankItem" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "QuestionBankItem_tenant_rw" ON "QuestionBankItem";
+CREATE POLICY "QuestionBankItem_tenant_rw" ON "QuestionBankItem"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "QuestionBankItem_insert_bootstrap" ON "QuestionBankItem";
+CREATE POLICY "QuestionBankItem_insert_bootstrap" ON "QuestionBankItem"
   FOR INSERT
   WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
@@ -1085,6 +1425,125 @@ CREATE POLICY "ApplicationAssessmentAnswer_tenant_rw" ON "ApplicationAssessmentA
 
 DROP POLICY IF EXISTS "ApplicationAssessmentAnswer_insert_bootstrap" ON "ApplicationAssessmentAnswer";
 CREATE POLICY "ApplicationAssessmentAnswer_insert_bootstrap" ON "ApplicationAssessmentAnswer"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "AttemptIntegrityEvent" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AttemptIntegrityEvent" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AttemptIntegrityEvent_tenant_rw" ON "AttemptIntegrityEvent";
+CREATE POLICY "AttemptIntegrityEvent_tenant_rw" ON "AttemptIntegrityEvent"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "AttemptIntegrityEvent_insert_bootstrap" ON "AttemptIntegrityEvent";
+CREATE POLICY "AttemptIntegrityEvent_insert_bootstrap" ON "AttemptIntegrityEvent"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "AssessmentProviderConnection" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AssessmentProviderConnection" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AssessmentProviderConnection_tenant_rw" ON "AssessmentProviderConnection";
+CREATE POLICY "AssessmentProviderConnection_tenant_rw" ON "AssessmentProviderConnection"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "AssessmentProviderConnection_insert_bootstrap" ON "AssessmentProviderConnection";
+CREATE POLICY "AssessmentProviderConnection_insert_bootstrap" ON "AssessmentProviderConnection"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ExternalAssessment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ExternalAssessment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ExternalAssessment_tenant_rw" ON "ExternalAssessment";
+CREATE POLICY "ExternalAssessment_tenant_rw" ON "ExternalAssessment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ExternalAssessment_insert_bootstrap" ON "ExternalAssessment";
+CREATE POLICY "ExternalAssessment_insert_bootstrap" ON "ExternalAssessment"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "JobExternalAssessmentAssignment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "JobExternalAssessmentAssignment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "JobExternalAssessmentAssignment_tenant_rw" ON "JobExternalAssessmentAssignment";
+CREATE POLICY "JobExternalAssessmentAssignment_tenant_rw" ON "JobExternalAssessmentAssignment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "JobExternalAssessmentAssignment_insert_bootstrap" ON "JobExternalAssessmentAssignment";
+CREATE POLICY "JobExternalAssessmentAssignment_insert_bootstrap" ON "JobExternalAssessmentAssignment"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ExternalAssessmentInvite" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ExternalAssessmentInvite" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ExternalAssessmentInvite_tenant_rw" ON "ExternalAssessmentInvite";
+CREATE POLICY "ExternalAssessmentInvite_tenant_rw" ON "ExternalAssessmentInvite"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ExternalAssessmentInvite_insert_bootstrap" ON "ExternalAssessmentInvite";
+CREATE POLICY "ExternalAssessmentInvite_insert_bootstrap" ON "ExternalAssessmentInvite"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "JobCompetencyProfile" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "JobCompetencyProfile" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "JobCompetencyProfile_tenant_rw" ON "JobCompetencyProfile";
+CREATE POLICY "JobCompetencyProfile_tenant_rw" ON "JobCompetencyProfile"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "JobCompetencyProfile_insert_bootstrap" ON "JobCompetencyProfile";
+CREATE POLICY "JobCompetencyProfile_insert_bootstrap" ON "JobCompetencyProfile"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "AssessmentUsageEvent" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AssessmentUsageEvent" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AssessmentUsageEvent_tenant_rw" ON "AssessmentUsageEvent";
+CREATE POLICY "AssessmentUsageEvent_tenant_rw" ON "AssessmentUsageEvent"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "AssessmentUsageEvent_insert_bootstrap" ON "AssessmentUsageEvent";
+CREATE POLICY "AssessmentUsageEvent_insert_bootstrap" ON "AssessmentUsageEvent"
   FOR INSERT
   WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
@@ -1839,6 +2298,40 @@ CREATE POLICY "Announcement_insert_bootstrap" ON "Announcement"
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "AnnouncementRead" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AnnouncementRead" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AnnouncementRead_tenant_rw" ON "AnnouncementRead";
+CREATE POLICY "AnnouncementRead_tenant_rw" ON "AnnouncementRead"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "AnnouncementRead_insert_bootstrap" ON "AnnouncementRead";
+CREATE POLICY "AnnouncementRead_insert_bootstrap" ON "AnnouncementRead"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "AnnouncementAttachment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AnnouncementAttachment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AnnouncementAttachment_tenant_rw" ON "AnnouncementAttachment";
+CREATE POLICY "AnnouncementAttachment_tenant_rw" ON "AnnouncementAttachment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "AnnouncementAttachment_insert_bootstrap" ON "AnnouncementAttachment";
+CREATE POLICY "AnnouncementAttachment_insert_bootstrap" ON "AnnouncementAttachment"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "TrainingProgram" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "TrainingProgram" FORCE ROW LEVEL SECURITY;
 
@@ -1901,6 +2394,57 @@ CREATE POLICY "CompanyDocument_tenant_rw" ON "CompanyDocument"
 
 DROP POLICY IF EXISTS "CompanyDocument_insert_bootstrap" ON "CompanyDocument";
 CREATE POLICY "CompanyDocument_insert_bootstrap" ON "CompanyDocument"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "LegalObligation" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "LegalObligation" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "LegalObligation_tenant_rw" ON "LegalObligation";
+CREATE POLICY "LegalObligation_tenant_rw" ON "LegalObligation"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "LegalObligation_insert_bootstrap" ON "LegalObligation";
+CREATE POLICY "LegalObligation_insert_bootstrap" ON "LegalObligation"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "LegalObligationReminderSent" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "LegalObligationReminderSent" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "LegalObligationReminderSent_tenant_rw" ON "LegalObligationReminderSent";
+CREATE POLICY "LegalObligationReminderSent_tenant_rw" ON "LegalObligationReminderSent"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "LegalObligationReminderSent_insert_bootstrap" ON "LegalObligationReminderSent";
+CREATE POLICY "LegalObligationReminderSent_insert_bootstrap" ON "LegalObligationReminderSent"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "LegalObligationEvent" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "LegalObligationEvent" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "LegalObligationEvent_tenant_rw" ON "LegalObligationEvent";
+CREATE POLICY "LegalObligationEvent_tenant_rw" ON "LegalObligationEvent"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "LegalObligationEvent_insert_bootstrap" ON "LegalObligationEvent";
+CREATE POLICY "LegalObligationEvent_insert_bootstrap" ON "LegalObligationEvent"
   FOR INSERT
   WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
@@ -2383,6 +2927,57 @@ CREATE POLICY "GoodsReceiptLine_insert_bootstrap" ON "GoodsReceiptLine"
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "ProcurementSequence" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProcurementSequence" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProcurementSequence_tenant_rw" ON "ProcurementSequence";
+CREATE POLICY "ProcurementSequence_tenant_rw" ON "ProcurementSequence"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProcurementSequence_insert_bootstrap" ON "ProcurementSequence";
+CREATE POLICY "ProcurementSequence_insert_bootstrap" ON "ProcurementSequence"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "PurchaseRequestApprovalStep" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PurchaseRequestApprovalStep" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "PurchaseRequestApprovalStep_tenant_rw" ON "PurchaseRequestApprovalStep";
+CREATE POLICY "PurchaseRequestApprovalStep_tenant_rw" ON "PurchaseRequestApprovalStep"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "PurchaseRequestApprovalStep_insert_bootstrap" ON "PurchaseRequestApprovalStep";
+CREATE POLICY "PurchaseRequestApprovalStep_insert_bootstrap" ON "PurchaseRequestApprovalStep"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ProcurementApprovalPolicy" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProcurementApprovalPolicy" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProcurementApprovalPolicy_tenant_rw" ON "ProcurementApprovalPolicy";
+CREATE POLICY "ProcurementApprovalPolicy_tenant_rw" ON "ProcurementApprovalPolicy"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProcurementApprovalPolicy_insert_bootstrap" ON "ProcurementApprovalPolicy";
+CREATE POLICY "ProcurementApprovalPolicy_insert_bootstrap" ON "ProcurementApprovalPolicy"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "JdDivision" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "JdDivision" FORCE ROW LEVEL SECURITY;
 
@@ -2587,6 +3182,23 @@ CREATE POLICY "SalesTarget_insert_bootstrap" ON "SalesTarget"
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "SalesContact" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesContact" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesContact_tenant_rw" ON "SalesContact";
+CREATE POLICY "SalesContact_tenant_rw" ON "SalesContact"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesContact_insert_bootstrap" ON "SalesContact";
+CREATE POLICY "SalesContact_insert_bootstrap" ON "SalesContact"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "SalesDeal" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "SalesDeal" FORCE ROW LEVEL SECURITY;
 
@@ -2598,6 +3210,91 @@ CREATE POLICY "SalesDeal_tenant_rw" ON "SalesDeal"
 
 DROP POLICY IF EXISTS "SalesDeal_insert_bootstrap" ON "SalesDeal";
 CREATE POLICY "SalesDeal_insert_bootstrap" ON "SalesDeal"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesDealLineItem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesDealLineItem" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesDealLineItem_tenant_rw" ON "SalesDealLineItem";
+CREATE POLICY "SalesDealLineItem_tenant_rw" ON "SalesDealLineItem"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesDealLineItem_insert_bootstrap" ON "SalesDealLineItem";
+CREATE POLICY "SalesDealLineItem_insert_bootstrap" ON "SalesDealLineItem"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesLead" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesLead" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesLead_tenant_rw" ON "SalesLead";
+CREATE POLICY "SalesLead_tenant_rw" ON "SalesLead"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesLead_insert_bootstrap" ON "SalesLead";
+CREATE POLICY "SalesLead_insert_bootstrap" ON "SalesLead"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesForecastSnapshot" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesForecastSnapshot" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesForecastSnapshot_tenant_rw" ON "SalesForecastSnapshot";
+CREATE POLICY "SalesForecastSnapshot_tenant_rw" ON "SalesForecastSnapshot"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesForecastSnapshot_insert_bootstrap" ON "SalesForecastSnapshot";
+CREATE POLICY "SalesForecastSnapshot_insert_bootstrap" ON "SalesForecastSnapshot"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesDealActivity" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesDealActivity" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesDealActivity_tenant_rw" ON "SalesDealActivity";
+CREATE POLICY "SalesDealActivity_tenant_rw" ON "SalesDealActivity"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesDealActivity_insert_bootstrap" ON "SalesDealActivity";
+CREATE POLICY "SalesDealActivity_insert_bootstrap" ON "SalesDealActivity"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesDealStageHistory" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesDealStageHistory" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesDealStageHistory_tenant_rw" ON "SalesDealStageHistory";
+CREATE POLICY "SalesDealStageHistory_tenant_rw" ON "SalesDealStageHistory"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesDealStageHistory_insert_bootstrap" ON "SalesDealStageHistory";
+CREATE POLICY "SalesDealStageHistory_insert_bootstrap" ON "SalesDealStageHistory"
   FOR INSERT
   WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
@@ -2649,6 +3346,74 @@ CREATE POLICY "SalesRepPeriodMetric_tenant_rw" ON "SalesRepPeriodMetric"
 
 DROP POLICY IF EXISTS "SalesRepPeriodMetric_insert_bootstrap" ON "SalesRepPeriodMetric";
 CREATE POLICY "SalesRepPeriodMetric_insert_bootstrap" ON "SalesRepPeriodMetric"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesProduct" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesProduct" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesProduct_tenant_rw" ON "SalesProduct";
+CREATE POLICY "SalesProduct_tenant_rw" ON "SalesProduct"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesProduct_insert_bootstrap" ON "SalesProduct";
+CREATE POLICY "SalesProduct_insert_bootstrap" ON "SalesProduct"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesTask" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesTask" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesTask_tenant_rw" ON "SalesTask";
+CREATE POLICY "SalesTask_tenant_rw" ON "SalesTask"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesTask_insert_bootstrap" ON "SalesTask";
+CREATE POLICY "SalesTask_insert_bootstrap" ON "SalesTask"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesQuote" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesQuote" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesQuote_tenant_rw" ON "SalesQuote";
+CREATE POLICY "SalesQuote_tenant_rw" ON "SalesQuote"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesQuote_insert_bootstrap" ON "SalesQuote";
+CREATE POLICY "SalesQuote_insert_bootstrap" ON "SalesQuote"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesQuoteLineItem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesQuoteLineItem" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesQuoteLineItem_tenant_rw" ON "SalesQuoteLineItem";
+CREATE POLICY "SalesQuoteLineItem_tenant_rw" ON "SalesQuoteLineItem"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesQuoteLineItem_insert_bootstrap" ON "SalesQuoteLineItem";
+CREATE POLICY "SalesQuoteLineItem_insert_bootstrap" ON "SalesQuoteLineItem"
   FOR INSERT
   WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''
@@ -2876,6 +3641,142 @@ CREATE POLICY "ProjectTask_insert_bootstrap" ON "ProjectTask"
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "ProjectMember" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProjectMember" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProjectMember_tenant_rw" ON "ProjectMember";
+CREATE POLICY "ProjectMember_tenant_rw" ON "ProjectMember"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProjectMember_insert_bootstrap" ON "ProjectMember";
+CREATE POLICY "ProjectMember_insert_bootstrap" ON "ProjectMember"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ProjectLabel" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProjectLabel" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProjectLabel_tenant_rw" ON "ProjectLabel";
+CREATE POLICY "ProjectLabel_tenant_rw" ON "ProjectLabel"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProjectLabel_insert_bootstrap" ON "ProjectLabel";
+CREATE POLICY "ProjectLabel_insert_bootstrap" ON "ProjectLabel"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ProjectTaskLabel" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProjectTaskLabel" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProjectTaskLabel_tenant_rw" ON "ProjectTaskLabel";
+CREATE POLICY "ProjectTaskLabel_tenant_rw" ON "ProjectTaskLabel"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProjectTaskLabel_insert_bootstrap" ON "ProjectTaskLabel";
+CREATE POLICY "ProjectTaskLabel_insert_bootstrap" ON "ProjectTaskLabel"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ProjectTaskDependency" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProjectTaskDependency" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProjectTaskDependency_tenant_rw" ON "ProjectTaskDependency";
+CREATE POLICY "ProjectTaskDependency_tenant_rw" ON "ProjectTaskDependency"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProjectTaskDependency_insert_bootstrap" ON "ProjectTaskDependency";
+CREATE POLICY "ProjectTaskDependency_insert_bootstrap" ON "ProjectTaskDependency"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ProjectComment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProjectComment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProjectComment_tenant_rw" ON "ProjectComment";
+CREATE POLICY "ProjectComment_tenant_rw" ON "ProjectComment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProjectComment_insert_bootstrap" ON "ProjectComment";
+CREATE POLICY "ProjectComment_insert_bootstrap" ON "ProjectComment"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ProjectAttachment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProjectAttachment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProjectAttachment_tenant_rw" ON "ProjectAttachment";
+CREATE POLICY "ProjectAttachment_tenant_rw" ON "ProjectAttachment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProjectAttachment_insert_bootstrap" ON "ProjectAttachment";
+CREATE POLICY "ProjectAttachment_insert_bootstrap" ON "ProjectAttachment"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ProjectActivity" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProjectActivity" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProjectActivity_tenant_rw" ON "ProjectActivity";
+CREATE POLICY "ProjectActivity_tenant_rw" ON "ProjectActivity"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProjectActivity_insert_bootstrap" ON "ProjectActivity";
+CREATE POLICY "ProjectActivity_insert_bootstrap" ON "ProjectActivity"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ProjectTemplate" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProjectTemplate" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProjectTemplate_tenant_rw" ON "ProjectTemplate";
+CREATE POLICY "ProjectTemplate_tenant_rw" ON "ProjectTemplate"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProjectTemplate_insert_bootstrap" ON "ProjectTemplate";
+CREATE POLICY "ProjectTemplate_insert_bootstrap" ON "ProjectTemplate"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "FacilitySite" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FacilitySite" FORCE ROW LEVEL SECURITY;
 
@@ -2989,6 +3890,23 @@ CREATE POLICY "HseIncident_tenant_rw" ON "HseIncident"
 
 DROP POLICY IF EXISTS "HseIncident_insert_bootstrap" ON "HseIncident";
 CREATE POLICY "HseIncident_insert_bootstrap" ON "HseIncident"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "HseAttachment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "HseAttachment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "HseAttachment_tenant_rw" ON "HseAttachment";
+CREATE POLICY "HseAttachment_tenant_rw" ON "HseAttachment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "HseAttachment_insert_bootstrap" ON "HseAttachment";
+CREATE POLICY "HseAttachment_insert_bootstrap" ON "HseAttachment"
   FOR INSERT
   WITH CHECK (
     coalesce(current_setting('app.current_org', true), '') = ''

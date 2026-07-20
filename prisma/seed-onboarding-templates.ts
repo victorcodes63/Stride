@@ -1,4 +1,4 @@
-import { PrismaClient, WorkflowType } from '@prisma/client';
+import { OnboardingTaskType, Prisma, PrismaClient, WorkflowType } from '@prisma/client';
 import { SEED_DEFAULT_ORG_ID } from './system-setting-seed';
 
 const prisma = new PrismaClient();
@@ -10,10 +10,54 @@ type StepSeed = {
   category: string;
   isRequired: boolean;
   description?: string;
+  taskType?: OnboardingTaskType;
+  formTemplateId?: string | null;
+  signatureDocumentTitle?: string | null;
 };
 
 function templateId(organizationId: string, name: string): string {
   return `seed-${organizationId.slice(0, 8)}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+function formTemplateId(organizationId: string, name: string): string {
+  return `seed-form-${organizationId.slice(0, 8)}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+/** Sample structured data-collection form used by the FORM onboarding step. */
+async function upsertNewHireForm(organizationId: string): Promise<string> {
+  const id = formTemplateId(organizationId, 'New hire data form');
+  const fields: Prisma.InputJsonValue = [
+    { key: 'bankName', label: 'Bank name', type: 'text', required: true, section: 'Payroll' },
+    { key: 'bankBranch', label: 'Bank branch', type: 'text', required: false, section: 'Payroll' },
+    { key: 'accountNumber', label: 'Account number', type: 'text', required: true, section: 'Payroll' },
+    { key: 'kraPin', label: 'KRA PIN', type: 'text', required: true, section: 'Statutory' },
+    { key: 'nssfNumber', label: 'NSSF number', type: 'text', required: false, section: 'Statutory' },
+    { key: 'nhifNumber', label: 'SHIF/NHIF number', type: 'text', required: false, section: 'Statutory' },
+    { key: 'kinName', label: 'Next of kin name', type: 'text', required: true, section: 'Next of kin' },
+    {
+      key: 'kinRelationship',
+      label: 'Relationship',
+      type: 'select',
+      required: true,
+      options: ['Spouse', 'Parent', 'Sibling', 'Child', 'Other'],
+      section: 'Next of kin',
+    },
+    { key: 'kinPhone', label: 'Next of kin phone', type: 'phone', required: true, section: 'Next of kin' },
+  ];
+
+  const form = await prisma.onboardingFormTemplate.upsert({
+    where: { id },
+    update: { name: 'New hire data form', fields, isActive: true, organizationId },
+    create: {
+      id,
+      organizationId,
+      name: 'New hire data form',
+      description: 'Payroll, statutory, and next-of-kin details collected from new hires.',
+      fields,
+      isActive: true,
+    },
+  });
+  return form.id;
 }
 
 async function upsertTemplate(
@@ -42,6 +86,10 @@ async function upsertTemplate(
       dueDaysOffset: step.dueDaysOffset,
       isRequired: step.isRequired,
       category: step.category,
+      taskType: step.taskType ?? OnboardingTaskType.CHECKLIST,
+      formTemplateId: step.taskType === OnboardingTaskType.FORM ? step.formTemplateId ?? null : null,
+      signatureDocumentTitle:
+        step.taskType === OnboardingTaskType.SIGNATURE ? step.signatureDocumentTitle ?? null : null,
     })),
   });
 }
@@ -51,6 +99,8 @@ async function main() {
   const organizationIds = orgs.length > 0 ? orgs.map((org) => org.id) : [SEED_DEFAULT_ORG_ID];
 
   for (const organizationId of organizationIds) {
+    const newHireFormId = await upsertNewHireForm(organizationId);
+
     await upsertTemplate(organizationId, 'Clinical staff onboarding', WorkflowType.ONBOARDING, true, [
     { title: 'Collect signed employment contract', assignedRole: 'hr', dueDaysOffset: 1, category: 'Documents', isRequired: true },
     { title: 'Collect national ID copy', assignedRole: 'hr', dueDaysOffset: 1, category: 'Documents', isRequired: true },
@@ -86,6 +136,26 @@ async function main() {
     { title: 'Customer service orientation', assignedRole: 'department_head', dueDaysOffset: 5, category: 'Orientation', isRequired: true },
     { title: 'Data protection and confidentiality sign-off', assignedRole: 'hr', dueDaysOffset: 2, category: 'Compliance', isRequired: true },
     { title: 'Confirm probation period terms', assignedRole: 'hr', dueDaysOffset: 5, category: 'Documents', isRequired: true },
+    {
+      title: 'Complete new hire data form',
+      assignedRole: 'employee',
+      dueDaysOffset: 3,
+      category: 'Documents',
+      isRequired: true,
+      description: 'Provide your payroll, statutory, and next-of-kin details.',
+      taskType: OnboardingTaskType.FORM,
+      formTemplateId: newHireFormId,
+    },
+    {
+      title: 'Sign code of conduct',
+      assignedRole: 'employee',
+      dueDaysOffset: 3,
+      category: 'Compliance',
+      isRequired: true,
+      description: 'Read and electronically sign the staff code of conduct.',
+      taskType: OnboardingTaskType.SIGNATURE,
+      signatureDocumentTitle: 'Employee Code of Conduct',
+    },
   ]);
 
     await upsertTemplate(organizationId, 'Staff offboarding', WorkflowType.OFFBOARDING, true, [

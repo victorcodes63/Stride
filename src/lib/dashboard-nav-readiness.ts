@@ -41,18 +41,21 @@ export const NAV_ITEM_READINESS: Record<string, NavReadiness> = {
 
   // Finance
   '/dashboard/accounts/statements': 'live',
-  '/dashboard/accounts/budgets': 'partial',
 
   // Procurement
   '/dashboard/procurement': 'live',
   '/dashboard/procurement/purchase-requests': 'live',
   '/dashboard/procurement/lpos': 'live',
+  '/dashboard/procurement/receiving': 'planned',
+  '/dashboard/procurement/vendors': 'planned',
   '/dashboard/procurement/spend': 'live',
 
   // Legal
   '/dashboard/legal': 'live',
-  '/dashboard/people/contracts': 'partial',
+  '/dashboard/people/contracts': 'live',
   '/dashboard/legal/obligations': 'live',
+  '/dashboard/credentials': 'live',
+  '/dashboard/company-documents': 'live',
   '/dashboard/accounts/mpesa-reconciliation': 'live',
 
   // Projects

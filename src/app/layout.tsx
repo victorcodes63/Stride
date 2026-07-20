@@ -33,6 +33,8 @@ import { brand, getSiteUrl } from '@/lib/brand';
 import { MARKETING_OG_IMAGE } from '@/lib/marketing-metadata';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
 import { brandThemeStyle } from '@/lib/brand-theme-style';
+import { getCompanySetupCapabilities } from '@/lib/company-setup-tier-features';
+import { getDeploymentTier, getDeploymentFeatureOverrides } from '@/lib/deployment-tier';
 
 const siteUrl = getSiteUrl();
 const defaultDescription = `${brand.orgName} — ${brand.tagline}`;
@@ -150,7 +152,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const publicBrand = await getResolvedPublicBrand();
-  const themeStyle = brandThemeStyle();
+  const capabilities = getCompanySetupCapabilities({
+    tier: getDeploymentTier(),
+    features: getDeploymentFeatureOverrides(),
+  });
+  const themeStyle = brandThemeStyle({
+    primaryColor: publicBrand.primaryColor,
+    secondaryColor: publicBrand.secondaryColor,
+    allowColorScheme: capabilities.canConfigureColorScheme,
+  });
   const favicon = '/favicon.ico';
 
   return (

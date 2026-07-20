@@ -273,6 +273,7 @@ async function main() {
 
   const vendor = await prisma.accountsVendor.create({
     data: {
+      organizationId,
       name: `${PREFIX} Stationery & IT Supplies`,
       contactName: 'Vendor AP',
       contactEmail: 'ap-vendor@example.test',
@@ -283,6 +284,7 @@ async function main() {
 
   const bill = await prisma.accountsVendorBill.create({
     data: {
+      organizationId,
       vendorId: vendor.id,
       billRef: 'BILL-SEED-01',
       issueDate: utcDayFromToday(-8),
@@ -291,8 +293,8 @@ async function main() {
       notes: `${PREFIX} vendor bill`,
       lines: {
         create: [
-          { item: 'Laptops (ex-VAT subtotal demo)', amountExVat: dec('120000.00'), sortOrder: 0 },
-          { item: 'Office supplies', amountExVat: dec('15000.00'), sortOrder: 1 },
+          { organizationId, item: 'Laptops (ex-VAT subtotal demo)', amountExVat: dec('120000.00'), sortOrder: 0 },
+          { organizationId, item: 'Office supplies', amountExVat: dec('15000.00'), sortOrder: 1 },
         ],
       },
     },
@@ -300,6 +302,7 @@ async function main() {
 
   const vp = await prisma.accountsVendorPayment.create({
     data: {
+      organizationId,
       vendorId: vendor.id,
       paidAt: utcDayFromToday(-2),
       amount: dec('50000.00'),

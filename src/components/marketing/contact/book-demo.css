@@ -131,6 +131,16 @@ html.dark .public-app .bd-demo-form p {
 }
 
 /* Staff / auth login — dark panel matching contact form */
+/*
+ * The panel is always dark, but --dash-text-strong follows the html light/dark
+ * theme (near-black in light mode). Pin it to the panel's cream so any element
+ * using the dashboard "strong text" token (e.g. the resolved org name / email
+ * on the credentials step) stays legible on the dark surface.
+ */
+.auth-studio-form {
+  --dash-text-strong: #fbf8f4;
+}
+
 .auth-studio-form .dash-auth-title {
   color: #fbf8f4;
   font-size: clamp(1.5rem, 3.5vw, 2rem);

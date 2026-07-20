@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { AssetCategory, AssetStatus } from '@prisma/client';
+import type { AssetCategory, AssetStatus, Prisma } from '@prisma/client';
 import {
   canAccessAssets,
   forbiddenResponse,
@@ -11,75 +11,120 @@ import {
   ASSET_STATUSES,
   asDate,
   asOptionalDecimal,
+  asOptionalInt,
   asOptionalString,
   assetInclude,
   assetToResponse,
+  buildAssetOrderBy,
+  generateAssetQrToken,
   parseAssetCategory,
   parseAssetStatus,
 } from '@/lib/assets-api';
+import { parseDepreciationMethod } from '@/lib/asset-depreciation';
+import { recordAssetAssignmentEvent } from '@/lib/asset-lifecycle';
 
 export const dynamic = 'force-dynamic';
+
+const DEFAULT_PAGE_SIZE = 25;
+const MAX_PAGE_SIZE = 100;
 
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
     if (!canAccessAssets(ctx.staff)) {
       return forbiddenResponse('Asset manager access is restricted to HR and operations.');
     }
-    if (!process.env.DATABASE_URL) return NextResponse.json([], { status: 200 });
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ items: [], total: 0, page: 1, pageSize: DEFAULT_PAGE_SIZE });
+    }
 
     const workspaceClientId = await ctx.run((tx) =>
       resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId),
     );
-    const categoryRaw = request.nextUrl.searchParams.get('category');
-    const statusRaw = request.nextUrl.searchParams.get('status');
-    const assignedOnly = request.nextUrl.searchParams.get('assigned') === '1';
-    const employeeId = request.nextUrl.searchParams.get('employeeId') || undefined;
-    const search = request.nextUrl.searchParams.get('q')?.trim().toLowerCase();
+
+    const params = request.nextUrl.searchParams;
+    const categoryRaw = params.get('category');
+    const statusRaw = params.get('status');
+    const assignedOnly = params.get('assigned') === '1';
+    const handoverPending = params.get('handover') === 'pending';
+    const employeeId = params.get('employeeId') || undefined;
+    const search = params.get('q')?.trim();
 
     const category =
       categoryRaw && ASSET_CATEGORIES.has(categoryRaw) ? (categoryRaw as AssetCategory) : undefined;
     const status =
       statusRaw && ASSET_STATUSES.has(statusRaw) ? (statusRaw as AssetStatus) : undefined;
 
-    const records = await ctx.run((tx) =>
-      tx.companyAsset.findMany({
-        where: {
-          outsourcingClientId: workspaceClientId,
-          client: { organizationId: ctx.organizationId },
-          ...(category ? { category } : {}),
-          ...(status ? { status } : {}),
-          ...(assignedOnly ? { assignedEmployeeId: { not: null } } : {}),
-          ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
-        },
-        include: assetInclude,
-        orderBy: [{ status: 'asc' }, { assetTag: 'asc' }],
-      }),
-    );
+    const pageRaw = Number.parseInt(params.get('page') ?? '1', 10);
+    const pageSizeRaw = Number.parseInt(params.get('pageSize') ?? String(DEFAULT_PAGE_SIZE), 10);
+    const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+    const pageSize = Number.isFinite(pageSizeRaw)
+      ? Math.min(Math.max(pageSizeRaw, 1), MAX_PAGE_SIZE)
+      : DEFAULT_PAGE_SIZE;
 
-    const mapped = records.map(assetToResponse);
-    const filtered = search
-      ? mapped.filter((item) => {
-          const haystack = [
-            item.assetTag,
-            item.name,
-            item.serialNumber ?? '',
-            item.assignedEmployeeName ?? '',
-            item.location ?? '',
-          ]
-            .join(' ')
-            .toLowerCase();
-          return haystack.includes(search);
-        })
-      : mapped;
+    const orderBy = buildAssetOrderBy(params.get('sortKey'), params.get('sortDir'));
+
+    const searchFilter: Prisma.CompanyAssetWhereInput | undefined = search
+      ? {
+          OR: [
+            { assetTag: { contains: search, mode: 'insensitive' } },
+            { name: { contains: search, mode: 'insensitive' } },
+            { serialNumber: { contains: search, mode: 'insensitive' } },
+            { location: { contains: search, mode: 'insensitive' } },
+            { manufacturer: { contains: search, mode: 'insensitive' } },
+            { model: { contains: search, mode: 'insensitive' } },
+            {
+              assignedEmployee: {
+                is: {
+                  OR: [
+                    { firstName: { contains: search, mode: 'insensitive' } },
+                    { lastName: { contains: search, mode: 'insensitive' } },
+                    { employeeNumber: { contains: search, mode: 'insensitive' } },
+                  ],
+                },
+              },
+            },
+          ],
+        }
+      : undefined;
+
+    const where: Prisma.CompanyAssetWhereInput = {
+      outsourcingClientId: workspaceClientId,
+      client: { organizationId: ctx.organizationId },
+      ...(category ? { category } : {}),
+      ...(status ? { status } : {}),
+      ...(assignedOnly ? { assignedEmployeeId: { not: null } } : {}),
+      ...(handoverPending
+        ? { status: 'assigned', assignedEmployeeId: { not: null }, handoverAcknowledgedAt: null }
+        : {}),
+      ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
+      ...(searchFilter ?? {}),
+    };
+
+    const { total, records } = await ctx.run(async (tx) => {
+      const count = await tx.companyAsset.count({ where });
+      const rows = await tx.companyAsset.findMany({
+        where,
+        include: assetInclude,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+      return { total: count, records: rows };
+    });
 
     await ctx.audit({
       action: 'asset.records.view',
       entityType: 'CompanyAsset',
       route: 'GET /api/assets',
-      metadata: { count: filtered.length },
+      metadata: { count: records.length, total, page, pageSize },
     });
 
-    return NextResponse.json(filtered);
+    return NextResponse.json({
+      items: records.map(assetToResponse),
+      total,
+      page,
+      pageSize,
+    });
   });
 }
 
@@ -129,8 +174,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const created = await ctx.run((tx) =>
-        tx.companyAsset.create({
+      const created = await ctx.run(async (tx) => {
+        const asset = await tx.companyAsset.create({
           data: {
             organizationId: ctx.organizationId,
             outsourcingClientId: workspaceClientId,
@@ -147,13 +192,43 @@ export async function POST(request: NextRequest) {
             warrantyExpiry: asDate(body.warrantyExpiry) ?? undefined,
             location: asOptionalString(body.location) ?? undefined,
             notes: asOptionalString(body.notes) ?? undefined,
+            depreciationMethod:
+              body.depreciationMethod !== undefined
+                ? parseDepreciationMethod(body.depreciationMethod)
+                : undefined,
+            usefulLifeMonths: asOptionalInt(body.usefulLifeMonths) ?? undefined,
+            salvageValue: asOptionalDecimal(body.salvageValue) ?? undefined,
+            handoverNotes: asOptionalString(body.handoverNotes) ?? undefined,
+            nextMaintenanceAt: asDate(body.nextMaintenanceAt) ?? undefined,
+            qrToken: generateAssetQrToken(),
             assignedEmployeeId: assignEmployeeId ?? undefined,
             assignedAt: assignEmployeeId ? new Date() : undefined,
             assignedByUserId: assignEmployeeId ? ctx.staff.id : undefined,
           },
           include: assetInclude,
-        }),
-      );
+        });
+
+        await recordAssetAssignmentEvent(tx, {
+          organizationId: ctx.organizationId,
+          companyAssetId: asset.id,
+          eventType: 'created',
+          toStatus: status,
+          performedByUserId: ctx.staff.id,
+        });
+
+        if (assignEmployeeId) {
+          await recordAssetAssignmentEvent(tx, {
+            organizationId: ctx.organizationId,
+            companyAssetId: asset.id,
+            eventType: 'assigned',
+            employeeId: assignEmployeeId,
+            toStatus: 'assigned',
+            performedByUserId: ctx.staff.id,
+          });
+        }
+
+        return asset;
+      });
 
       await ctx.audit({
         action: 'asset.created',

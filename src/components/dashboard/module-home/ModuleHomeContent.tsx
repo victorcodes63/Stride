@@ -32,6 +32,11 @@ type OverviewMetrics = {
     salesPastDueCloses?: number;
     salesClosingThisWeek?: number;
     salesWeightedPipelineKes?: number;
+    assetsAssigned?: number;
+    assetsPendingHandoverAck?: number;
+    assetsWarrantyExpiring?: number;
+    openHseIncidents?: number;
+    openHseActions?: number;
   };
 };
 
@@ -48,11 +53,44 @@ type ProjectsSummary = {
   openTasks?: number;
 };
 
+type AssetsSummary = {
+  total?: number;
+  assigned?: number;
+  available?: number;
+  maintenance?: number;
+  warrantyExpiring?: number;
+  handoverPending?: number;
+  maintenanceDue?: number;
+};
+
+type HseSummary = {
+  openCount?: number;
+  followUpCount?: number;
+};
+
+type OpsSummary = {
+  assets: AssetsSummary | null;
+  hse: HseSummary | null;
+};
+
+type OutsourcingSummary = {
+  endClients?: { total?: number; active?: number };
+  workforce?: { total?: number; active?: number };
+  leave?: { pendingApprovals?: number; onLeaveToday?: number };
+  payroll?: { runsThisMonth?: number; month?: number; year?: number };
+  attendance?: { openExceptions?: number };
+  disciplinary?: { openCases?: number };
+  billing?: { invoicesThisMonth?: number };
+  rpo?: { openJobs?: number };
+};
+
 function buildStats(
   domainId: DashboardModuleDomainId,
   overview: OverviewMetrics | null,
   fleet: FleetOverview | null,
   projectsSummary: ProjectsSummary | null,
+  opsSummary: OpsSummary | null,
+  outsourcing: OutsourcingSummary | null,
 ): ModuleHomeStat[] {
   const cross = overview?.crossModule;
 
@@ -234,24 +272,67 @@ function buildStats(
           warn: (fleet?.incidents?.open ?? cross?.openFleetIncidents ?? 0) > 0,
         },
       ];
-    case 'admin-operations':
+    case 'admin-operations': {
+      const assets = opsSummary?.assets;
+      const totalAssets = assets?.total ?? 0;
+      const assignedAssets = assets?.assigned ?? cross?.assetsAssigned ?? 0;
+      const warrantyAlerts = assets?.warrantyExpiring ?? cross?.assetsWarrantyExpiring ?? 0;
+      const pendingAck = assets?.handoverPending ?? cross?.assetsPendingHandoverAck ?? 0;
+      const maintenanceDue = assets?.maintenanceDue ?? 0;
+      const hseOpen =
+        opsSummary?.hse != null
+          ? (opsSummary.hse.openCount ?? 0)
+          : (cross?.openHseIncidents ?? 0) + (cross?.openHseActions ?? 0);
+      const hseFollowUp = opsSummary?.hse?.followUpCount ?? cross?.openHseActions ?? 0;
       return [
         {
-          label: 'Pending approvals',
-          value: overview?.pendingApprovals ?? 0,
-          hint: 'Across workflows',
-          href: '/dashboard/reports',
-          tone: 'warning',
-          warn: (overview?.pendingApprovals ?? 0) > 0,
-        },
-        {
-          label: 'Staff on duty',
-          value: overview?.onDuty ?? 0,
-          hint: `${overview?.totalStaff ?? 0} total staff`,
-          href: '/dashboard/employees',
+          label: 'Total assets',
+          value: totalAssets,
+          hint: `${assets?.available ?? 0} available`,
+          href: '/dashboard/assets',
           tone: 'primary',
         },
+        {
+          label: 'Assets assigned',
+          value: assignedAssets,
+          hint: pendingAck > 0 ? `${pendingAck} awaiting handover ack` : 'Currently issued',
+          href: '/dashboard/assets?assigned=1',
+          tone: 'sky',
+        },
+        {
+          label: 'Handover pending',
+          value: pendingAck,
+          hint: pendingAck > 0 ? 'Awaiting acknowledgement' : 'All acknowledged',
+          href: '/dashboard/assets?assigned=1',
+          tone: 'warning',
+          warn: pendingAck > 0,
+        },
+        {
+          label: 'Maintenance due',
+          value: maintenanceDue,
+          hint: 'Due in 30 days',
+          href: '/dashboard/assets',
+          tone: 'violet',
+          warn: maintenanceDue > 0,
+        },
+        {
+          label: 'Warranty alerts',
+          value: warrantyAlerts,
+          hint: 'Expiring in 30 days',
+          href: '/dashboard/assets',
+          tone: 'warning',
+          warn: warrantyAlerts > 0,
+        },
+        {
+          label: 'Open HSE incidents',
+          value: hseOpen,
+          hint: hseFollowUp > 0 ? `${hseFollowUp} follow-up actions` : 'Incidents & safety',
+          href: '/dashboard/hse',
+          tone: 'warning',
+          warn: hseOpen > 0,
+        },
       ];
+    }
     case 'platform-admin':
       return [
         {
@@ -303,6 +384,56 @@ function buildStats(
           warn: (cross?.salesStalledDeals ?? 0) > 0,
         },
       ];
+    case 'hr-outsourcing': {
+      const pendingLeave = outsourcing?.leave?.pendingApprovals ?? 0;
+      const attendanceExceptions = outsourcing?.attendance?.openExceptions ?? 0;
+      return [
+        {
+          label: 'End clients',
+          value: outsourcing?.endClients?.total ?? 0,
+          hint: `${outsourcing?.endClients?.active ?? 0} active`,
+          href: '/dashboard/outsourcing/clients',
+          tone: 'primary',
+        },
+        {
+          label: 'Outsourced workforce',
+          value: outsourcing?.workforce?.total ?? 0,
+          hint: `${outsourcing?.workforce?.active ?? 0} active`,
+          href: '/dashboard/outsourcing/employees',
+          tone: 'sky',
+        },
+        {
+          label: 'On leave today',
+          value: outsourcing?.leave?.onLeaveToday ?? 0,
+          hint: 'Away today',
+          href: '/dashboard/outsourcing/leave',
+          tone: 'violet',
+        },
+        {
+          label: 'Leave pending',
+          value: pendingLeave,
+          hint: pendingLeave > 0 ? 'Needs approval' : 'Queue clear',
+          href: '/dashboard/outsourcing/leave',
+          tone: 'warning',
+          warn: pendingLeave > 0,
+        },
+        {
+          label: 'Attendance exceptions',
+          value: attendanceExceptions,
+          hint: 'Open today',
+          href: '/dashboard/outsourcing/attendance',
+          tone: 'warning',
+          warn: attendanceExceptions > 0,
+        },
+        {
+          label: 'Invoices this month',
+          value: outsourcing?.billing?.invoicesThisMonth ?? 0,
+          hint: 'Client billing',
+          href: '/dashboard/outsourcing/billing',
+          tone: 'success',
+        },
+      ];
+    }
     default:
       return [];
   }
@@ -321,6 +452,8 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
   const [overview, setOverview] = useState<OverviewMetrics | null>(null);
   const [fleet, setFleet] = useState<FleetOverview | null>(null);
   const [projectsSummary, setProjectsSummary] = useState<ProjectsSummary | null>(null);
+  const [opsSummary, setOpsSummary] = useState<OpsSummary | null>(null);
+  const [outsourcing, setOutsourcing] = useState<OutsourcingSummary | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -328,6 +461,8 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
 
     const needsFleet = domainId === 'fleet-logistics';
     const needsProjects = domainId === 'projects';
+    const needsOps = domainId === 'admin-operations';
+    const needsOutsourcing = domainId === 'hr-outsourcing';
 
     Promise.all([
       fetch('/api/dashboard/overview?metricsOnly=1&slice=core', { credentials: 'include' }).then(async (r) =>
@@ -343,12 +478,33 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
             r.ok ? ((await r.json()) as { summary?: ProjectsSummary }) : null,
           )
         : Promise.resolve(null),
+      needsOps
+        ? fetch('/api/assets/summary', { credentials: 'include' }).then(async (r) =>
+            r.ok ? ((await r.json()) as AssetsSummary) : null,
+          )
+        : Promise.resolve(null),
+      needsOps
+        ? fetch('/api/hse/incidents?page=1&pageSize=1', { credentials: 'include' }).then(async (r) =>
+            r.ok ? ((await r.json()) as { summary?: HseSummary }) : null,
+          )
+        : Promise.resolve(null),
+      needsOutsourcing
+        ? fetch('/api/outsourcing/overview', { credentials: 'include' }).then(async (r) =>
+            r.ok ? ((await r.json()) as OutsourcingSummary) : null,
+          )
+        : Promise.resolve(null),
     ])
-      .then(([overviewData, fleetData, projectsData]) => {
+      .then(([overviewData, fleetData, projectsData, assetsData, hseData, outsourcingData]) => {
         if (cancelled) return;
         setOverview(overviewData);
         setFleet(fleetData);
         setProjectsSummary(projectsData?.summary ?? null);
+        setOpsSummary(
+          needsOps
+            ? { assets: assetsData ?? null, hse: hseData?.summary ?? null }
+            : null,
+        );
+        setOutsourcing(outsourcingData);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -360,8 +516,8 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
   }, [domainId]);
 
   const stats = useMemo(
-    () => buildStats(domainId, overview, fleet, projectsSummary),
-    [domainId, overview, fleet, projectsSummary],
+    () => buildStats(domainId, overview, fleet, projectsSummary, opsSummary, outsourcing),
+    [domainId, overview, fleet, projectsSummary, opsSummary, outsourcing],
   );
 
   const snapshotKpi = useMemo((): CrossModuleKpi | null => {
@@ -383,6 +539,11 @@ export function ModuleHomeContent({ domainId }: { domainId: DashboardModuleDomai
         salesPastDueCloses: overview.crossModule?.salesPastDueCloses ?? 0,
         salesClosingThisWeek: overview.crossModule?.salesClosingThisWeek ?? 0,
         salesWeightedPipelineKes: overview.crossModule?.salesWeightedPipelineKes ?? 0,
+        assetsAssigned: overview.crossModule?.assetsAssigned ?? 0,
+        assetsPendingHandoverAck: overview.crossModule?.assetsPendingHandoverAck ?? 0,
+        assetsWarrantyExpiring: overview.crossModule?.assetsWarrantyExpiring ?? 0,
+        openHseIncidents: overview.crossModule?.openHseIncidents ?? 0,
+        openHseActions: overview.crossModule?.openHseActions ?? 0,
       },
       persona,
       modules,

@@ -6,14 +6,47 @@ import { PrismaClient, TrainingStatus, EnrollmentStatus, AnnouncementStatus, Ann
 
 const prisma = new PrismaClient();
 
-const PROGRAMS = [
+type MaterialSpec = { title: string; externalUrl?: string; filePath?: string; sortOrder: number };
+type EnrollmentSpec = {
+  status: EnrollmentStatus;
+  score?: number;
+  feedback?: string;
+  completed?: boolean;
+};
+type ProgramSpec = {
+  title: string;
+  category: string;
+  provider: string;
+  location?: string;
+  isOnline?: boolean;
+  durationHours: number;
+  maxParticipants?: number;
+  cost?: number;
+  status: TrainingStatus;
+  materials: MaterialSpec[];
+  enrollments: EnrollmentSpec[];
+};
+
+const PROGRAMS: ProgramSpec[] = [
   {
     title: 'Workplace Health & Safety induction',
     category: 'Compliance',
     provider: 'Stride Academy',
     isOnline: true,
     durationHours: 4,
+    maxParticipants: 40,
+    cost: 0,
     status: TrainingStatus.in_progress,
+    materials: [
+      { title: 'Participant handbook (PDF)', filePath: 'training/hse-handbook.pdf', sortOrder: 0 },
+      { title: 'OSHA workplace safety overview', externalUrl: 'https://www.osha.gov/workers', sortOrder: 1 },
+    ],
+    enrollments: [
+      { status: EnrollmentStatus.in_progress },
+      { status: EnrollmentStatus.enrolled },
+      { status: EnrollmentStatus.completed, score: 92, feedback: 'Clear and practical.', completed: true },
+      { status: EnrollmentStatus.withdrawn, feedback: 'Reassigned to a later cohort.' },
+    ],
   },
   {
     title: 'Leadership fundamentals for supervisors',
@@ -21,7 +54,19 @@ const PROGRAMS = [
     provider: 'Kenya Institute of Management',
     location: 'Nairobi',
     durationHours: 16,
+    maxParticipants: 25,
+    cost: 45000,
     status: TrainingStatus.scheduled,
+    materials: [
+      { title: 'Pre-reading: Situational leadership', externalUrl: 'https://hbr.org/topic/leadership', sortOrder: 0 },
+      { title: 'Course syllabus', filePath: 'training/leadership-syllabus.pdf', sortOrder: 1 },
+      { title: 'Reflection worksheet', filePath: 'training/leadership-worksheet.docx', sortOrder: 2 },
+    ],
+    enrollments: [
+      { status: EnrollmentStatus.enrolled },
+      { status: EnrollmentStatus.enrolled },
+      { status: EnrollmentStatus.in_progress },
+    ],
   },
   {
     title: 'Data protection & confidentiality (GDPR-style)',
@@ -29,9 +74,38 @@ const PROGRAMS = [
     provider: 'Internal HR',
     isOnline: true,
     durationHours: 2,
+    maxParticipants: 100,
+    cost: 0,
     status: TrainingStatus.completed,
+    materials: [
+      { title: 'Data Protection Act (Kenya) reference', externalUrl: 'https://www.odpc.go.ke/', sortOrder: 0 },
+      { title: 'Confidentiality policy', filePath: 'training/confidentiality-policy.pdf', sortOrder: 1 },
+    ],
+    enrollments: [
+      { status: EnrollmentStatus.completed, score: 88, feedback: 'Very relevant to daily work.', completed: true },
+      { status: EnrollmentStatus.completed, score: 95, feedback: 'Excellent refresher.', completed: true },
+      { status: EnrollmentStatus.failed, score: 41, feedback: 'Needs to retake the assessment.', completed: true },
+    ],
   },
-] as const;
+  {
+    title: 'Advanced Excel for finance teams',
+    category: 'Technical',
+    provider: 'Stride Academy',
+    isOnline: true,
+    durationHours: 8,
+    maxParticipants: 20,
+    cost: 12000,
+    status: TrainingStatus.cancelled,
+    materials: [
+      { title: 'Sample workbook', filePath: 'training/excel-sample.xlsx', sortOrder: 0 },
+      { title: 'Microsoft Excel functions reference', externalUrl: 'https://support.microsoft.com/excel', sortOrder: 1 },
+    ],
+    enrollments: [
+      { status: EnrollmentStatus.withdrawn, feedback: 'Cohort cancelled — low sign-up.' },
+      { status: EnrollmentStatus.enrolled },
+    ],
+  },
+];
 
 async function main() {
   const admin = await prisma.user.findFirst({
@@ -45,38 +119,60 @@ async function main() {
 
   const existing = await prisma.trainingProgram.count();
   if (existing === 0) {
+    const employees = await prisma.employee.findMany({ take: 12, orderBy: { createdAt: 'asc' } });
+    let enrollmentCount = 0;
+    let materialCount = 0;
+
     for (const p of PROGRAMS) {
       const program = await prisma.trainingProgram.create({
         data: {
-          ...p,
+          title: p.title,
           description: `${p.title} — demo program for the Stride vertical showcase.`,
+          category: p.category,
+          provider: p.provider,
+          location: p.location ?? null,
+          isOnline: p.isOnline ?? false,
+          durationHours: p.durationHours,
+          maxParticipants: p.maxParticipants ?? null,
+          cost: p.cost ?? null,
           currency: 'KES',
+          status: p.status,
           createdByUserId: admin.id,
           materials: {
-            create: [{ title: 'Participant handbook (PDF)', sortOrder: 0 }],
+            create: p.materials.map((m) => ({
+              title: m.title,
+              externalUrl: m.externalUrl ?? null,
+              filePath: m.filePath ?? null,
+              sortOrder: m.sortOrder,
+            })),
           },
         },
       });
+      materialCount += p.materials.length;
 
-      const employees = await prisma.employee.findMany({ take: 3, orderBy: { createdAt: 'asc' } });
-      for (const [i, emp] of employees.entries()) {
+      for (const [i, spec] of p.enrollments.entries()) {
+        // Pair each enrollment with a distinct employee when available so the
+        // @@unique([programId, employeeId]) constraint is respected; fall back
+        // to a name-only enrollment (null employeeId, which NULLs treat as
+        // distinct) once we run out of demo employees.
+        const emp = employees[i];
         await prisma.trainingEnrollment.create({
           data: {
             programId: program.id,
-            employeeId: emp.id,
-            enrolleeName: `${emp.firstName} ${emp.lastName}`,
-            status:
-              p.status === TrainingStatus.completed
-                ? EnrollmentStatus.completed
-                : i === 0
-                  ? EnrollmentStatus.in_progress
-                  : EnrollmentStatus.enrolled,
-            completedAt: p.status === TrainingStatus.completed ? new Date() : null,
+            employeeId: emp?.id ?? null,
+            enrolleeName: emp ? `${emp.firstName} ${emp.lastName}` : `Demo Enrollee ${i + 1}`,
+            status: spec.status,
+            score: spec.score ?? null,
+            feedback: spec.feedback ?? null,
+            completedAt: spec.completed ? new Date() : null,
           },
         });
+        enrollmentCount += 1;
       }
     }
-    console.log(`→ Training: ${PROGRAMS.length} programs seeded with enrollments.`);
+    console.log(
+      `→ Training: ${PROGRAMS.length} programs seeded with ${enrollmentCount} enrollments and ${materialCount} materials.`,
+    );
   } else {
     console.log(`→ Training: ${existing} program(s) already present — skip.`);
   }

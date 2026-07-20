@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Briefcase, Banknote, FileText, Filter } from 'lucide-react';
 import { RichTextListEditor } from '@/components/jobs/RichTextListEditor';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 import { toDateTimeLocalNairobi } from '@/lib/timezone';
 
 const JOB_TYPES = ['Full Time', 'Part Time', 'Contract', 'Remote'] as const;
@@ -165,7 +166,7 @@ export default function PostJobPage() {
 
  <DashboardPageHeader
  title="Post a job"
- description="Add a new role to the careers page. Title, description, requirements, and key responsibilities are required."
+ description="Add a new role to the careers page."
  className="mb-6 sm:mb-8"
  />
 
@@ -246,38 +247,29 @@ export default function PostJobPage() {
  <label htmlFor="type" className="block text-sm font-medium text-primary-900 mb-2">
  Job type
  </label>
- <select
+ <StrideSelect
  id="type"
  value={type}
- onChange={(e) => setType(e.target.value)}
- className="w-full min-w-0 px-4 py-2.5 sm:py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-base"
- >
- {JOB_TYPES.map((t) => (
- <option key={t} value={t}>
- {t}
- </option>
- ))}
- </select>
+ onChange={(value) => setType(value)}
+ options={JOB_TYPES.map((t) => ({ value: t, label: t }))}
+ className="w-full min-w-0"
+ />
  </div>
  <div className="min-w-0">
  <label htmlFor="category" className="block text-sm font-medium text-primary-900 mb-2">
  Category <span className="text-red-600">*</span>
  </label>
- <select
+ <StrideSelect
  id="category"
  value={categorySelect}
- onChange={(e) => setCategorySelect(e.target.value)}
- required={categorySelect !== '__other__' ? true : undefined}
- className="w-full min-w-0 px-4 py-2.5 sm:py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-base"
- >
- <option value="">— Select category —</option>
- {categorySuggestions.map((c) => (
- <option key={c} value={c}>
- {c}
- </option>
- ))}
- <option value="__other__">— Other (type below) —</option>
- </select>
+ onChange={(value) => setCategorySelect(value)}
+ options={[
+ { value: '', label: '— Select category —' },
+ ...categorySuggestions.map((c) => ({ value: c, label: c })),
+ { value: '__other__', label: '— Other (type below) —' },
+ ]}
+ className="w-full min-w-0"
+ />
  {categorySelect === '__other__' && (
  <input
  type="text"
@@ -405,15 +397,16 @@ export default function PostJobPage() {
  <label htmlFor="salaryCurrency" className="block text-sm font-medium text-neutral-700 mb-1.5">
  Currency
  </label>
- <select
+ <StrideSelect
  id="salaryCurrency"
  value={salaryCurrency}
- onChange={(e) => setSalaryCurrency(e.target.value)}
- className="w-full min-w-0 px-4 py-2.5 sm:py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-base"
- >
- <option value="KES">KES</option>
- <option value="USD">USD</option>
- </select>
+ onChange={(value) => setSalaryCurrency(value)}
+ options={[
+ { value: 'KES', label: 'KES' },
+ { value: 'USD', label: 'USD' },
+ ]}
+ className="w-full min-w-0"
+ />
  </div>
  </div>
  <div className="flex items-start gap-3">
@@ -489,19 +482,20 @@ export default function PostJobPage() {
  <label htmlFor="educationLevel" className="block text-sm font-medium text-primary-900 mb-2">
  Minimum education level (for filtering candidates)
  </label>
- <select
+ <StrideSelect
  id="educationLevel"
  value={educationLevel}
- onChange={(e) => setEducationLevel(e.target.value)}
- className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-base"
- >
- <option value="">Any</option>
- <option value="High School">High School</option>
- <option value="Certificate">Certificate</option>
- <option value="Bachelor">Bachelor</option>
- <option value="Master">Master</option>
- <option value="PhD">PhD</option>
- </select>
+ onChange={(value) => setEducationLevel(value)}
+ options={[
+ { value: '', label: 'Any' },
+ { value: 'High School', label: 'High School' },
+ { value: 'Certificate', label: 'Certificate' },
+ { value: 'Bachelor', label: 'Bachelor' },
+ { value: 'Master', label: 'Master' },
+ { value: 'PhD', label: 'PhD' },
+ ]}
+ className="w-full"
+ />
  </div>
  </div>
 

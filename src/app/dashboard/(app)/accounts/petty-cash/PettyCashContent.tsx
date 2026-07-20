@@ -5,6 +5,7 @@ import { Coins, Loader2, AlertCircle, Plus, ArrowUpCircle, ArrowDownCircle, Refr
 import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type PettyCashTx = {
  id: string;
@@ -192,12 +193,14 @@ export default function PettyCashContent() {
  {showTx === fund.id && (
  <div className="border-t border-neutral-200 p-4 bg-neutral-50/50 space-y-3">
  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
- <select value={txForm.transactionType} onChange={(e) => setTxForm({ ...txForm, transactionType: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm bg-white">
- <option value="disbursement">Disbursement</option>
- <option value="replenishment">Replenishment</option>
- <option value="refund">Refund</option>
- </select>
+ <StrideSelect value={txForm.transactionType} onChange={(value) => setTxForm({ ...txForm, transactionType: value })}
+ ariaLabel="Transaction type"
+ options={[
+ { value: 'disbursement', label: 'Disbursement' },
+ { value: 'replenishment', label: 'Replenishment' },
+ { value: 'refund', label: 'Refund' },
+ ]}
+ />
  <input type="number" placeholder="Amount" value={txForm.amount}
  onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
  className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />

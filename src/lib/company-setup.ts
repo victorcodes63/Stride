@@ -102,6 +102,11 @@ export type CompanySetupSettings = {
   /** Short about blurb on public site footer (careers, marketing pages). */
   publicFooterText: string;
   hidePoweredBy: boolean;
+  /**
+   * White-label / custom-domain add-on — the vanity domain the tenant wants for their workspace.
+   * Stored as a request; DNS + certificate provisioning is a Raven ops action (never self-served).
+   */
+  customDomain: string;
   /** AUTH-09 — enterprise SAML (activation via Raven ops). */
   samlIdpMetadataUrl: string;
   samlEnabledStaff: boolean;
@@ -155,6 +160,7 @@ export const DEFAULT_COMPANY_SETUP: CompanySetupSettings = {
   documentFooterText: '',
   publicFooterText: '',
   hidePoweredBy: false,
+  customDomain: '',
   samlIdpMetadataUrl: '',
   samlEnabledStaff: false,
   samlEnabledEss: false,
@@ -270,6 +276,7 @@ export function sanitizeCompanySetup(value: unknown): CompanySetupSettings {
     documentFooterText: str(raw, 'documentFooterText'),
     publicFooterText: str(raw, 'publicFooterText'),
     hidePoweredBy: bool(raw, 'hidePoweredBy', d.hidePoweredBy),
+    customDomain: str(raw, 'customDomain'),
     samlIdpMetadataUrl: str(raw, 'samlIdpMetadataUrl'),
     samlEnabledStaff: bool(raw, 'samlEnabledStaff', d.samlEnabledStaff),
     samlEnabledEss: bool(raw, 'samlEnabledEss', d.samlEnabledEss),
@@ -351,9 +358,10 @@ export function companySetupContextLabel(entitySlug: string | null | undefined):
     generic: 'Demo Corporation (generic)',
     'petroleum-retail': 'Northline Petroleum — fuel retail',
     'imara-sacco': 'Heritage Members SACCO',
-    'cargo-logistics': 'SwiftFreight — cargo & logistics',
+    'cargo-logistics': 'Savannah Freight — cargo & logistics',
     'hospital-healthcare': 'Amani Medical Centre',
     'travel-agency': 'Horizon Travels',
+    construction: 'Kilimani Builders',
   };
   return labels[contextId] ?? contextId;
 }

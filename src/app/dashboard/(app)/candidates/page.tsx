@@ -40,6 +40,7 @@ import {
 import type { CandidateListItem } from '@/types/dashboard';
 import type { CandidateWithDetails } from '@/app/api/candidates/[id]/route';
 import { WorkExperienceTab, EducationTab, CertificationsTab } from '@/components/dashboard/CandidateDetailTabs';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 const filterInputClass = dashboardFilterSelectClass;
 
@@ -237,7 +238,7 @@ export default function DashboardCandidatesPage() {
  <DashboardPage>
  <DashboardPageHeader
  title="Candidates"
- description="Applicant database: totals below are for everyone stored; the table respects your filters."
+ description="Applicant database — the table respects your filters."
  />
 
  {dbStats && (
@@ -278,19 +279,16 @@ export default function DashboardCandidatesPage() {
  aria-label="Search candidates"
  />
  </div>
- <select
+ <StrideSelect
  value={jobFilter}
- onChange={(e) => setJobFilter(e.target.value)}
- className={`${filterInputClass} lg:min-w-[200px] lg:max-w-xs truncate`}
- aria-label="Filter by job"
- >
- <option value="">All jobs</option>
- {jobOptions.map((j) => (
- <option key={j.id} value={j.id}>
- {j.title}
- </option>
- ))}
- </select>
+ onChange={(value) => setJobFilter(value)}
+ options={[
+ { value: '', label: 'All jobs' },
+ ...jobOptions.map((j) => ({ value: j.id, label: j.title })),
+ ]}
+ ariaLabel="Filter by job"
+ className="lg:min-w-[200px] lg:max-w-xs"
+ />
  {hasActiveFilters ? (
  <button
  type="button"

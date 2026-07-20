@@ -27,6 +27,7 @@ import {
   DashboardTableViewport,
 } from '@/components/dashboard/DashboardDataTable';
 import { JobListing } from '@/types/ats';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 export default function DashboardJobsPage() {
  const [jobs, setJobs] = useState<JobListing[]>([]);
@@ -188,16 +189,16 @@ export default function DashboardJobsPage() {
  <SlidersHorizontal className="w-3.5 h-3.5" />
  Filter
  </span>
- <select
+ <StrideSelect
  value={filterStatus}
- onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
- className="px-3 py-2.5 border border-neutral-200 rounded-xl text-sm bg-white text-neutral-800 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-300"
- title="Filter by status"
- >
- <option value="all">All statuses</option>
- <option value="active">Active only</option>
- <option value="inactive">Not accepting</option>
- </select>
+ onChange={(value) => setFilterStatus(value as 'all' | 'active' | 'inactive')}
+ options={[
+ { value: 'all', label: 'All statuses' },
+ { value: 'active', label: 'Active only' },
+ { value: 'inactive', label: 'Not accepting' },
+ ]}
+ ariaLabel="Filter by status"
+ />
  </div>
  </div>
  </DashboardTableToolbar>

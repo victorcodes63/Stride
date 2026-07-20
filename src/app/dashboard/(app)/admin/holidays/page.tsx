@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Holiday = {
  id: string;
@@ -241,9 +242,13 @@ export default function AdminHolidaysPage() {
  {form.recurring ? (
  <div className="grid grid-cols-2 gap-2">
  <input type="number" min={1} max={31} value={form.recurDay} onChange={(e) => setForm((f) => ({ ...f, recurDay: Number(e.target.value) }))} className="h-9 rounded border border-neutral-300 px-2" />
- <select value={form.recurMonth} onChange={(e) => setForm((f) => ({ ...f, recurMonth: Number(e.target.value) }))} className="h-9 rounded border border-neutral-300 px-2">
- {MONTH_NAMES.map((m, idx) => <option key={m} value={idx + 1}>{m}</option>)}
- </select>
+ <StrideSelect
+ value={String(form.recurMonth)}
+ onChange={(value) => setForm((f) => ({ ...f, recurMonth: Number(value) }))}
+ options={MONTH_NAMES.map((m, idx) => ({ value: String(idx + 1), label: m }))}
+ ariaLabel="Month"
+ size="sm"
+ />
  </div>
  ) : (
  <input type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} className="h-9 w-full rounded border border-neutral-300 px-2" />

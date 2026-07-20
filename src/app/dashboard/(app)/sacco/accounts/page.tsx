@@ -10,6 +10,7 @@ import {
   DashboardTableViewport,
 } from '@/components/dashboard/DashboardDataTable';
 import { DashboardAsyncState, DashboardPageSkeleton } from '@/components/dashboard/DashboardAsyncState';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Account = {
   id: string;
@@ -85,29 +86,30 @@ export default function SaccoAccountsPage() {
       />
 
       <form onSubmit={handlePost} className="mb-6 grid gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 lg:grid-cols-6">
-        <select
-          required
+        <StrideSelect
           value={form.accountId}
-          onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value }))}
-          className="h-10 rounded-lg border border-neutral-200 px-3 text-sm lg:col-span-2"
-        >
-          <option value="">Select account</option>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.memberNumber} · {a.accountType.toUpperCase()} · {a.balance.toLocaleString()}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={(value) => setForm((f) => ({ ...f, accountId: value }))}
+          options={[
+            { value: '', label: 'Select account' },
+            ...accounts.map((a) => ({
+              value: a.id,
+              label: `${a.memberNumber} · ${a.accountType.toUpperCase()} · ${a.balance.toLocaleString()}`,
+            })),
+          ]}
+          ariaLabel="Account"
+          className="lg:col-span-2"
+        />
+        <StrideSelect
           value={form.entryType}
-          onChange={(e) => setForm((f) => ({ ...f, entryType: e.target.value }))}
-          className="h-10 rounded-lg border border-neutral-200 px-3 text-sm"
-        >
-          <option value="contribution">Contribution</option>
-          <option value="withdrawal">Withdrawal</option>
-          <option value="interest">Interest</option>
-          <option value="adjustment">Adjustment</option>
-        </select>
+          onChange={(value) => setForm((f) => ({ ...f, entryType: value }))}
+          options={[
+            { value: 'contribution', label: 'Contribution' },
+            { value: 'withdrawal', label: 'Withdrawal' },
+            { value: 'interest', label: 'Interest' },
+            { value: 'adjustment', label: 'Adjustment' },
+          ]}
+          ariaLabel="Entry type"
+        />
         <input
           required
           type="number"

@@ -29,6 +29,11 @@ export async function GET(request: NextRequest) {
             orderBy: { order: 'asc' },
             include: {
               document: { select: { id: true, fileName: true, title: true } },
+              formTemplate: { select: { id: true, name: true } },
+              formSubmission: { select: { id: true, status: true, submittedAt: true } },
+              signatureRequest: {
+                select: { id: true, status: true, documentTitle: true, signedAt: true },
+              },
             },
           },
           template: { select: { name: true } },
@@ -55,6 +60,10 @@ export async function GET(request: NextRequest) {
         category: t.category,
         documentId: t.documentId,
         document: t.document,
+        taskType: t.taskType,
+        formTemplate: t.formTemplate,
+        formSubmission: t.formSubmission,
+        signatureRequest: t.signatureRequest,
         overdue,
         needsEvidence:
           (t.category ?? '').toLowerCase() === 'documents' &&
@@ -77,7 +86,7 @@ export async function GET(request: NextRequest) {
       workflowId: workflow.id,
       workflowStatus: workflow.status,
       workflowType: workflow.type,
-      templateName: workflow.template.name,
+      templateName: workflow.template?.name ?? null,
       summary,
       items,
     });

@@ -93,11 +93,12 @@ export async function loadOperatingEntitiesSettingsForOrg(
 export async function syncOperatingEntitiesToOutsourcingClients(
   db: PrismaClient,
   settings: OperatingEntitiesSettings,
+  organizationId: string,
 ): Promise<void> {
   for (const entity of settings.entities) {
     const entityCode = entity.id;
     const profile = COUNTRY_PROFILES[entity.countryCode];
-    const existing = await db.outsourcingClient.findFirst({ where: { entityCode } });
+    const existing = await db.outsourcingClient.findFirst({ where: { entityCode, organizationId } });
 
     const data = {
       name: entity.legalName,
@@ -115,7 +116,7 @@ export async function syncOperatingEntitiesToOutsourcingClients(
     if (existing) {
       await db.outsourcingClient.update({ where: { id: existing.id }, data });
     } else if (entity.isActive) {
-      await db.outsourcingClient.create({ data });
+      await db.outsourcingClient.create({ data: { ...data, organizationId } });
     }
   }
 }

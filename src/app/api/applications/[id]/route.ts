@@ -9,6 +9,7 @@ import { reportApiError } from '@/lib/monitoring';
 import { withTenant } from '@/lib/tenant-api';
 import type { ApplicationWithDetails, ApplicationStatus } from '@/types/dashboard';
 import { createAssessmentAttemptsForApplication } from '@/lib/assessment-attempts';
+import { sendApplicationRejectedEmail } from '@/lib/email';
 
 function jobToSummary(job: {
   id: string;
@@ -143,6 +144,8 @@ export async function PATCH(
   const b = body as Record<string, unknown>;
   const status = typeof b.status === 'string' ? b.status : undefined;
   const notes = typeof b.notes === 'string' ? b.notes : undefined;
+  const reason = typeof b.reason === 'string' ? b.reason.trim() : undefined;
+  const sendRejectionEmail = b.sendRejectionEmail === true;
 
   const validStatuses: ApplicationStatus[] = ['pending', 'reviewed', 'shortlisted', 'rejected', 'hired'];
   if (status && !validStatuses.includes(status as ApplicationStatus)) {
@@ -151,6 +154,13 @@ export async function PATCH(
 
   try {
     if (process.env.DATABASE_URL) {
+      const existing = await ctx.run((tx) =>
+        tx.application.findFirst({ where: ctx.where({ id }), select: { status: true } }),
+      );
+      if (!existing) {
+        return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
+      }
+      const previousStatus = existing.status;
       const application = await ctx.run((tx) =>
         tx.application.update({
           where: { id },
@@ -205,6 +215,22 @@ export async function PATCH(
           requiredCertifications: application.job.requiredCertifications ?? null,
         }),
       };
+      const statusChanged = !!status && status !== previousStatus;
+      if (statusChanged) {
+        await ctx.audit({
+          action: 'application.status_changed',
+          entityType: 'application',
+          entityId: application.id,
+          route: 'PATCH /api/applications/[id]',
+          metadata: {
+            from: previousStatus,
+            to: application.status,
+            reason: reason || null,
+            candidateName: `${application.candidate.firstName} ${application.candidate.lastName}`.trim(),
+            jobTitle: application.job.title,
+          },
+        });
+      }
       if (status) {
         await createAssessmentAttemptsForApplication(prisma, {
           applicationId: application.id,
@@ -213,7 +239,22 @@ export async function PATCH(
           applicationStatus: application.status,
         });
       }
-      return NextResponse.json(result);
+
+      let rejectionEmail: { sent: boolean; error?: string } | undefined;
+      if (statusChanged && status === 'rejected' && sendRejectionEmail) {
+        const emailResult = await sendApplicationRejectedEmail({
+          to: application.candidate.email,
+          applicantFirstName: application.candidate.firstName,
+          jobTitle: application.job.title,
+          companyName: application.job.company,
+        });
+        rejectionEmail = {
+          sent: emailResult.sent,
+          error: emailResult.sent ? undefined : (emailResult.error ?? emailResult.reason),
+        };
+      }
+
+      return NextResponse.json({ ...result, ...(rejectionEmail && { rejectionEmail }) });
     }
   } catch (e) {
     if ((e as { code?: string })?.code === 'P2025') {

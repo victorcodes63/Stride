@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { getAccountsAccess } from '@/lib/accounts-access';
 import {
   canApproveStaffLeave,
@@ -23,6 +24,10 @@ export async function userRowToSummary(
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
+    department?: string | null;
+    costCenterCode?: string | null;
+    costCenterName?: string | null;
+    monthlySalary?: Prisma.Decimal | number | null;
   },
   orgContext?: OrgContext,
 ): Promise<UserSummary> {
@@ -44,6 +49,10 @@ export async function userRowToSummary(
     isActive: user.isActive,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
+    department: user.department ?? null,
+    costCenterCode: user.costCenterCode ?? null,
+    costCenterName: user.costCenterName ?? null,
+    monthlySalary: user.monthlySalary != null ? Number(user.monthlySalary) : null,
     hasAccountsAccess: acc.hasAccountsAccess,
     accountsPermissions: {
       canManageContracts: acc.canManageContracts,

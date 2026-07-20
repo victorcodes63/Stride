@@ -14,6 +14,23 @@ import { resolveOrgByEmail } from '@/lib/auth/resolve-org-by-email';
 const STAFF_SESSION_COOKIE = 'staff_session';
 const COOKIE_MAX_AGE = getStaffSessionMaxAgeSeconds();
 
+// Single message for every "bad credentials" outcome (unknown email, no
+// password set, wrong password) so the response can't be used to enumerate
+// which emails map to real accounts.
+const GENERIC_LOGIN_ERROR = 'Incorrect email or password.';
+
+// Lazily-computed bcrypt hash (cost 10, matching how staff passwords are
+// stored) used only to equalize response timing on failed logins — without it,
+// the missing-account path would skip bcrypt.compare and return noticeably
+// faster, leaking account existence via latency.
+let dummyPasswordHashPromise: Promise<string> | null = null;
+function getDummyPasswordHash(): Promise<string> {
+  if (!dummyPasswordHashPromise) {
+    dummyPasswordHashPromise = bcrypt.hash('stride-timing-equalizer', 10);
+  }
+  return dummyPasswordHashPromise;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -81,19 +98,30 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
-    if (!user) {
+
+    // Always run a bcrypt comparison — against a dummy hash when the account or
+    // its password is missing — so the timing of every failure path matches and
+    // can't be used to tell whether an email belongs to a real account.
+    const comparisonHash = user?.passwordHash || (await getDummyPasswordHash());
+    const passwordMatches = await bcrypt.compare(normalizedPassword, comparisonHash);
+    const passwordOk = Boolean(user?.passwordHash) && passwordMatches;
+
+    if (!user || !passwordOk) {
       await logAuditEvent({
-        actor: { userId: null, email: normalizedEmail, name: null },
+        actor: { userId: user?.id ?? null, email: normalizedEmail, name: user?.name ?? null },
         action: 'auth.login.failed',
         entityType: 'User',
+        entityId: user?.id,
         route: 'POST /api/auth/login',
-        metadata: { reason: 'user_not_found' },
+        metadata: {
+          reason: !user ? 'user_not_found' : user.passwordHash ? 'wrong_password' : 'no_password_set',
+        },
       });
-      return NextResponse.json(
-        { error: 'No staff account found for this email. Ask an admin to add you.' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: GENERIC_LOGIN_ERROR }, { status: 401 });
     }
+
+    // Credentials are valid — only now is it safe to disclose an inactive
+    // account, since a bare attacker without the password never reaches here.
     if (!user.isActive) {
       await logAuditEvent({
         actor: { userId: user.id, email: user.email, name: user.name },
@@ -106,21 +134,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Your account is inactive. Contact an administrator.' },
         { status: 403 }
-      );
-    }
-    const passwordOk = await bcrypt.compare(normalizedPassword, user.passwordHash);
-    if (!passwordOk) {
-      await logAuditEvent({
-        actor: { userId: user.id, email: user.email, name: user.name },
-        action: 'auth.login.failed',
-        entityType: 'User',
-        entityId: user.id,
-        route: 'POST /api/auth/login',
-        metadata: { reason: 'wrong_password' },
-      });
-      return NextResponse.json(
-        { error: 'Incorrect password. Please try again.' },
-        { status: 401 }
       );
     }
     const mfaEnabled = Boolean((user as { mfaEnabled?: boolean }).mfaEnabled);

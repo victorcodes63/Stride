@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toCSV } from '@/lib/report-export';
 import {
   assertReportsStaffRole,
-  downloadHeaders,
-  jsonOrPdf,
   parseFormat,
+  respondWithReport,
   ymd,
 } from '@/app/api/reports/_shared';
 import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
@@ -92,22 +92,28 @@ export async function GET(request: NextRequest) {
       details,
     };
 
-    if (format === 'csv') {
-      const csv = toCSV(
-        ['Candidate', 'Email', 'Job', 'Company', 'Status', 'Applied'],
-        report.details.map((row) => [row.candidate, row.email, row.jobTitle, row.company, row.status, row.appliedDate]),
-      );
-      return new NextResponse(csv, {
-        headers: downloadHeaders('text/csv', `recruitment-${ymd(now)}.csv`),
-      });
-    }
-
-    return jsonOrPdf(format, report, 'Recruitment Report', `recruitment-${ymd(now)}.pdf`, [
-      `Active jobs: ${report.activeJobs}`,
-      `Applications: ${report.totalApplications}`,
-      `Upcoming interviews: ${report.upcomingInterviews}`,
-      `Hired: ${report.hired}`,
-      `Conversion rate: ${report.conversionRate}%`,
-    ]);
+    return respondWithReport({
+      format,
+      json: report,
+      title: 'Recruitment Report',
+      sheetName: 'Recruitment',
+      baseFilename: `recruitment-${ymd(now)}`,
+      headers: ['Candidate', 'Email', 'Job', 'Company', 'Status', 'Applied'],
+      rows: report.details.map((row) => [
+        row.candidate,
+        row.email,
+        row.jobTitle,
+        row.company,
+        row.status,
+        row.appliedDate,
+      ]),
+      summaryLines: [
+        `Active jobs: ${report.activeJobs}`,
+        `Applications: ${report.totalApplications}`,
+        `Upcoming interviews: ${report.upcomingInterviews}`,
+        `Hired: ${report.hired}`,
+        `Conversion rate: ${report.conversionRate}%`,
+      ],
+    });
   });
 }

@@ -6,6 +6,7 @@ import { Loader2, Save, Settings } from 'lucide-react';
 import type { SystemSettingsPayload } from '@/types/dashboard';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 import { ModuleOrderSettings } from '@/components/dashboard/settings/ModuleOrderSettings';
 import { DashboardOverviewSettings } from '@/components/dashboard/settings/DashboardOverviewSettings';
 import { AppearanceSettings } from '@/components/dashboard/settings/AppearanceSettings';
@@ -129,10 +130,16 @@ export default function SettingsPage() {
 
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Leave approval mode</label>
- <select value={form.leaveApprovalMode} onChange={(e) => setForm((f) => ({ ...f, leaveApprovalMode: e.target.value as 'single' | 'multi' }))} className="w-full sm:w-80 px-3 py-2 border border-neutral-300 rounded-lg text-sm">
- <option value="single">Single approver</option>
- <option value="multi">Multi-step approval</option>
- </select>
+ <StrideSelect
+ value={form.leaveApprovalMode}
+ onChange={(value) => setForm((f) => ({ ...f, leaveApprovalMode: value as 'single' | 'multi' }))}
+ options={[
+ { value: 'single', label: 'Single approver' },
+ { value: 'multi', label: 'Multi-step approval' },
+ ]}
+ ariaLabel="Leave approval mode"
+ className="w-full sm:w-80"
+ />
  </div>
 
  <label className="inline-flex items-center gap-2 text-sm text-neutral-700">

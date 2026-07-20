@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type ShiftPattern = {
  id: string;
@@ -568,16 +569,18 @@ export default function EssShiftsPage() {
  </div>
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Shift type</label>
- <select
+ <StrideSelect
  value={shiftForm.type}
- onChange={(e) => setShiftForm((f) => ({ ...f, type: e.target.value as ShiftPattern['type'] }))}
- className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm"
- >
- <option value="day">Day</option>
- <option value="night">Night</option>
- <option value="split">Split</option>
- <option value="flexible">Flexible</option>
- </select>
+ onChange={(value) => setShiftForm((f) => ({ ...f, type: value as ShiftPattern['type'] }))}
+ options={[
+ { value: 'day', label: 'Day' },
+ { value: 'night', label: 'Night' },
+ { value: 'split', label: 'Split' },
+ { value: 'flexible', label: 'Flexible' },
+ ]}
+ ariaLabel="Shift type"
+ className="w-full"
+ />
  </div>
  </div>
  <div className="flex justify-end gap-2 pt-3 border-t border-neutral-100">

@@ -12,8 +12,16 @@
       "schedule": "10 6 * * *"
     },
     {
+      "path": "/api/cron/legal-obligation-reminders",
+      "schedule": "20 6 * * *"
+    },
+    {
       "path": "/api/cron/onboarding-overdue",
       "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/onboarding-preboarding",
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/outsourcing-billing",

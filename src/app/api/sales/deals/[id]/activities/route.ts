@@ -47,7 +47,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           actorEmployeeId = linked;
         }
 
-        return tx.salesDealActivity.create({
+        const created = await tx.salesDealActivity.create({
           data: {
             organizationId: ctx.organizationId,
             dealId,
@@ -64,6 +64,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             contact: { select: { id: true, name: true } },
           },
         });
+
+        // Logging an activity keeps the deal "fresh" for rotting/idle analytics.
+        await tx.salesDeal.update({
+          where: { id: dealId },
+          data: { lastActivityAt: new Date() },
+        });
+
+        return created;
       });
 
 

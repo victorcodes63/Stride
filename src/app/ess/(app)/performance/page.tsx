@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssEmptyState } from '@/components/ess/EssUi';
 import { ratingLabel } from '@/lib/performance/rating-label';
+import { RatingInput, ScoreBadge } from '@/components/performance';
 
 type EssPerformancePayload = {
   cycle: { id: string; name: string; periodStart: string; periodEnd: string } | null;
@@ -24,7 +24,6 @@ export default function EssPerformancePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selfSummary, setSelfSummary] = useState('');
-  const [overallRating, setOverallRating] = useState(3);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [message, setMessage] = useState<string | null>(null);
 
@@ -35,16 +34,19 @@ export default function EssPerformancePage() {
       setData(json);
       if (json.review) {
         setSelfSummary(json.review.selfSummary ?? '');
-        setOverallRating(json.review.overallSelfRating ?? 3);
         setRatings(
-          Object.fromEntries(
-            (json.review.ratings ?? []).map((r) => [r.dimension, r.selfScore ?? 3]),
-          ),
+          Object.fromEntries((json.review.ratings ?? []).map((r) => [r.dimension, r.selfScore ?? 3])),
         );
       }
       setLoading(false);
     })();
   }, []);
+
+  const derivedOverall = useMemo(() => {
+    const values = data?.review?.ratings.map((r) => ratings[r.dimension] ?? 3) ?? [];
+    if (values.length === 0) return data?.review?.overallSelfRating ?? 3;
+    return Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+  }, [data?.review, ratings]);
 
   async function save(submit: boolean) {
     if (!data?.review) return;
@@ -58,7 +60,7 @@ export default function EssPerformancePage() {
         body: JSON.stringify({
           reviewId: data.review.id,
           selfSummary,
-          overallSelfRating: overallRating,
+          overallSelfRating: Math.round(derivedOverall),
           ratings: Object.entries(ratings).map(([dimension, selfScore]) => ({ dimension, selfScore })),
           submit,
         }),
@@ -76,8 +78,10 @@ export default function EssPerformancePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+      <div className="space-y-4">
+        <div className="h-16 animate-pulse rounded-2xl bg-[var(--dash-surface-muted)]" />
+        <div className="h-40 animate-pulse rounded-2xl bg-[var(--dash-surface-muted)]" />
+        <div className="h-64 animate-pulse rounded-2xl bg-[var(--dash-surface-muted)]" />
       </div>
     );
   }
@@ -104,59 +108,53 @@ export default function EssPerformancePage() {
         backHref="/ess/more"
       />
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-900">Goals</h2>
+      <section className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[var(--dash-text-strong)]">Goals</h2>
         <ul className="mt-3 space-y-2">
           {data.goals.map((goal) => (
-            <li key={goal.id} className="rounded-lg bg-zinc-50 px-3 py-2 text-sm">
+            <li
+              key={goal.id}
+              className="rounded-lg bg-[var(--dash-surface-muted)] px-3 py-2 text-sm text-[var(--dash-text-body)]"
+            >
               {goal.title}
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-900">Self-assessment</h2>
+      <section className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4 shadow-sm space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-[var(--dash-text-strong)]">Self-assessment</h2>
+          <ScoreBadge score={derivedOverall} />
+        </div>
+
         {data.review.ratings.map((rating) => (
-          <label key={rating.id} className="block text-sm">
-            <span className="text-zinc-600">{rating.dimension}</span>
-            <select
-              className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2"
-              disabled={readOnly}
-              value={ratings[rating.dimension] ?? 3}
-              onChange={(e) =>
-                setRatings((prev) => ({ ...prev, [rating.dimension]: parseInt(e.target.value, 10) }))
-              }
-            >
-              {[1, 2, 3, 4, 5].map((n) => (
-                <option key={n} value={n}>
-                  {n} — {ratingLabel(n)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div key={rating.id} className="text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[var(--dash-text-body)]">{rating.dimension}</span>
+            </div>
+            <div className="mt-1.5">
+              <RatingInput
+                value={ratings[rating.dimension] ?? 3}
+                onChange={(v) => setRatings((prev) => ({ ...prev, [rating.dimension]: v }))}
+                disabled={readOnly}
+                ariaLabel={rating.dimension}
+              />
+            </div>
+          </div>
         ))}
 
-        <label className="block text-sm">
-          <span className="text-zinc-600">Overall rating</span>
-          <select
-            className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2"
-            disabled={readOnly}
-            value={overallRating}
-            onChange={(e) => setOverallRating(parseInt(e.target.value, 10))}
-          >
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                {n} — {ratingLabel(n)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="rounded-lg bg-[var(--dash-surface-muted)] px-3 py-2 text-xs text-[var(--dash-text-muted)]">
+          Overall rating is calculated from your dimension scores:{' '}
+          <strong className="text-[var(--dash-text-strong)]">
+            {derivedOverall}/5 · {ratingLabel(derivedOverall)}
+          </strong>
+        </div>
 
         <label className="block text-sm">
-          <span className="text-zinc-600">Summary</span>
+          <span className="text-[var(--dash-text-body)]">Summary</span>
           <textarea
-            className="mt-1 min-h-[100px] w-full rounded-lg border border-zinc-200 px-3 py-2"
+            className="mt-1 min-h-[100px] w-full rounded-lg border border-[var(--dash-input-border)] bg-[var(--dash-input-bg)] px-3 py-2 text-[var(--dash-text-body)] disabled:opacity-60"
             disabled={readOnly}
             value={selfSummary}
             onChange={(e) => setSelfSummary(e.target.value)}
@@ -171,7 +169,7 @@ export default function EssPerformancePage() {
             <button
               type="button"
               disabled={saving}
-              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm"
+              className="rounded-lg border border-[var(--dash-border)] px-4 py-2 text-sm text-[var(--dash-text-body)] disabled:opacity-50"
               onClick={() => void save(false)}
             >
               Save draft
@@ -179,14 +177,16 @@ export default function EssPerformancePage() {
             <button
               type="button"
               disabled={saving}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded-lg bg-primary-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               onClick={() => void save(true)}
             >
               Submit to manager
             </button>
           </div>
         ) : (
-          <p className="text-sm text-zinc-500">Status: {data.review.status.replace(/_/g, ' ')}</p>
+          <p className="text-sm text-[var(--dash-text-muted)]">
+            Status: {data.review.status.replace(/_/g, ' ')}
+          </p>
         )}
       </section>
     </div>

@@ -4,10 +4,15 @@ import { reportApiError } from '@/lib/monitoring';
 import { serializeAction } from '@/lib/hse/serialize';
 import { withTenant } from '@/lib/tenant-api';
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  }
   return withTenant(request, async (ctx) => {
     const { id } = await params;
 

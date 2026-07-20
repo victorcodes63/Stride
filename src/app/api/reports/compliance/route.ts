@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toCSV } from '@/lib/report-export';
 import {
   assertReportsStaffRole,
-  downloadHeaders,
-  jsonOrPdf,
   parseFormat,
+  respondWithReport,
   ymd,
 } from '@/app/api/reports/_shared';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
@@ -91,8 +91,8 @@ export async function GET(request: NextRequest) {
       ...onboardingWorkflows.map((row) => ({
         category: row.type === 'OFFBOARDING' ? 'Offboarding' : 'Onboarding',
         reference: row.id.slice(0, 8),
-        employeeName: `${row.employee.firstName} ${row.employee.lastName}`.trim(),
-        department: row.employee.department?.name ?? 'Unassigned',
+        employeeName: `${row.employee?.firstName ?? ''} ${row.employee?.lastName ?? ''}`.trim(),
+        department: row.employee?.department?.name ?? 'Unassigned',
         status: row.status,
         severity: '—',
         date: ymd(row.startedAt),
@@ -110,29 +110,28 @@ export async function GET(request: NextRequest) {
       details,
     };
 
-    if (format === 'csv') {
-      const csv = toCSV(
-        ['Category', 'Reference', 'Employee', 'Department', 'Status', 'Priority/Severity', 'Date'],
-        report.details.map((row) => [
-          row.category,
-          row.reference,
-          row.employeeName,
-          row.department,
-          row.status,
-          row.severity,
-          row.date,
-        ]),
-      );
-      return new NextResponse(csv, {
-        headers: downloadHeaders('text/csv', `compliance-${ymd(now)}.csv`),
-      });
-    }
-
-    return jsonOrPdf(format, report, 'Compliance Report', `compliance-${ymd(now)}.pdf`, [
-      `Generated: ${report.generatedAt}`,
-      `Open disciplinary cases: ${report.openDisciplinaryCases}`,
-      `Open grievances: ${report.openGrievances}`,
-      `Active onboarding/offboarding: ${report.activeOnboarding}`,
-    ]);
+    return respondWithReport({
+      format,
+      json: report,
+      title: 'Compliance Report',
+      sheetName: 'Compliance',
+      baseFilename: `compliance-${ymd(now)}`,
+      headers: ['Category', 'Reference', 'Employee', 'Department', 'Status', 'Priority/Severity', 'Date'],
+      rows: report.details.map((row) => [
+        row.category,
+        row.reference,
+        row.employeeName,
+        row.department,
+        row.status,
+        row.severity,
+        row.date,
+      ]),
+      summaryLines: [
+        `Generated: ${report.generatedAt}`,
+        `Open disciplinary cases: ${report.openDisciplinaryCases}`,
+        `Open grievances: ${report.openGrievances}`,
+        `Active onboarding/offboarding: ${report.activeOnboarding}`,
+      ],
+    });
   });
 }

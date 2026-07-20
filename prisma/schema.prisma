@@ -76,7 +76,7 @@ model OutsourcingClient {
 
   name         String
   /// active | suspended | churned
-  status       String   @default("active")
+  status       String  @default("active")
   contactName  String?
   contactEmail String?
   contactPhone String?
@@ -112,11 +112,11 @@ model OutsourcingClient {
   contractNotes     String?   @db.Text
 
   // Client-facing reports (OUT-08 / white-label)
-  clientLogoUrl          String?
-  reportAccentColor      String?
-  whiteLabelReports      Boolean @default(false)
-  reportRecipientEmails  Json?
-  reportSections         Json?
+  clientLogoUrl         String?
+  reportAccentColor     String?
+  whiteLabelReports     Boolean @default(false)
+  reportRecipientEmails Json?
+  reportSections        Json?
 
   // Employee IDs: auto {prefix}-001 per client; override prefix e.g. BW for "Blue Wave"
   employeeNumberPrefix String?
@@ -125,66 +125,99 @@ model OutsourcingClient {
   /// none | paye_only (NSSF/SHIF/AHL on employment gross only; PAYE on gross+leave; net + leave) | included_in_gross (leave in gross before all stat)
   leavePayMode         String? @default("none")
 
+  // Payslip email sender identity (per-client). Phased white-label delivery:
+  // - Option B (default): send from the platform domain but stamped with the
+  //   client's From name + Reply-To. Works instantly, no DNS.
+  // - Option C: once a client verifies their own sending domain, payslips send
+  //   from payslipSenderLocalPart@payslipSenderDomain. Falls back to B until verified.
+  /// Display name shown as the email From (defaults to the client name).
+  payslipFromName         String?
+  /// Reply-To address for payslip emails (defaults to the platform reply-to).
+  payslipReplyTo          String?
+  /// platform | custom_domain. custom_domain only takes effect once the domain is verified.
+  payslipSenderMode       String    @default("platform")
+  /// Local part of the custom sender address, e.g. "payroll" -> payroll@domain. Defaults to "payroll".
+  payslipSenderLocalPart  String?
+  /// The client's verified sending domain (e.g. payroll.acme.co.ke).
+  payslipSenderDomain     String?
+  /// Resend domain id backing the sending domain.
+  payslipResendDomainId   String?
+  /// Cached verification status: not_started | pending | verified | failed | temporary_failure | partially_verified | partially_failed.
+  payslipDomainStatus     String?
+  /// DNS records returned by Resend for the client to add, cached for display.
+  payslipDomainRecords    Json?
+  /// When the sending domain last reached a verified state.
+  payslipDomainVerifiedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  departments             Department[]
-  employees               Employee[]
-  accountsClient          AccountsClient?
-  shiftTemplates          ShiftTemplate[]
-  rotaPeriods             RotaPeriod[]
-  biometricDevices        BiometricDevice[]
-  statutoryReturns        StatutoryReturn[]
-  attendancePolicies      AttendancePolicy[]
-  attendanceWorkSites     AttendanceWorkSite[]
-  leavePolicies           LeavePolicy[]
-  attendanceEvents        AttendanceEvent[]
-  attendanceDaySummaries  AttendanceDaySummary[]
-  employeeTransfersOut    EmployeeEntityTransfer[] @relation("EmployeeEntityTransferSourceClient")
-  employeeTransfersIn     EmployeeEntityTransfer[] @relation("EmployeeEntityTransferTargetClient")
-  employeeLifecycleEvents EmployeeLifecycleEvent[]
-  companyAssets           CompanyAsset[]
-  fleetVehicles           FleetVehicle[]
-  fleetDrivers            FleetDriver[]
-  fleetTransportPartners  FleetTransportPartner[]
-  fleetCustomers          FleetCustomer[]
-  fleetOrders             FleetOrder[]
-  fleetTrips              FleetTrip[]
-  fleetSettlements        FleetSettlement[]
-  fleetIncidents          FleetIncident[]
-  fleetFuelLogs           FleetFuelLog[]
-  fleetMaintenanceLogs    FleetMaintenanceLog[]
-  fleetGeofences          FleetGeofence[]
-  fleetServicePlans       FleetServicePlan[]
-  fleetDefectReports      FleetDefectReport[]
-  fleetAlarmRules         FleetAlarmRule[]
-  fleetEnvironmentalSnapshots FleetEnvironmentalSnapshot[]
-  fleetDriverEvaluations  FleetDriverEvaluation[]
-  fleetDrivingTimeLogs    FleetDrivingTimeLog[]
-  purchaseRequests        PurchaseRequest[]
-  purchaseOrders          PurchaseOrder[]
-  goodsReceipts           GoodsReceipt[]
-  payrollDisbursementBatches PayrollDisbursementBatch[]
-  performanceCycles          PerformanceCycle[]
-  projects                   Project[]
-  facilitySites              FacilitySite[]
-  facilityMaintenanceTickets FacilityMaintenanceTicket[]
-  governanceMeetings         GovernanceMeeting[]
-  governanceResolutions      GovernanceResolution[]
-  governanceActionItems      GovernanceActionItem[]
-  hseIncidents               HseIncident[]
-  hseActions                 HseAction[]
-  saccoMembers               SaccoMember[]
-  saccoDividendRuns          SaccoDividendRun[]
-  healthcareWards            HealthcareWard[]
+  departments                   Department[]
+  employees                     Employee[]
+  accountsClient                AccountsClient?
+  shiftTemplates                ShiftTemplate[]
+  rotaPeriods                   RotaPeriod[]
+  biometricDevices              BiometricDevice[]
+  statutoryReturns              StatutoryReturn[]
+  attendancePolicies            AttendancePolicy[]
+  attendanceWorkSites           AttendanceWorkSite[]
+  leavePolicies                 LeavePolicy[]
+  attendanceEvents              AttendanceEvent[]
+  attendanceDaySummaries        AttendanceDaySummary[]
+  employeeTransfersOut          EmployeeEntityTransfer[]       @relation("EmployeeEntityTransferSourceClient")
+  employeeTransfersIn           EmployeeEntityTransfer[]       @relation("EmployeeEntityTransferTargetClient")
+  employeeLifecycleEvents       EmployeeLifecycleEvent[]
+  companyAssets                 CompanyAsset[]
+  fleetVehicles                 FleetVehicle[]
+  fleetDrivers                  FleetDriver[]
+  fleetTransportPartners        FleetTransportPartner[]
+  fleetCustomers                FleetCustomer[]
+  fleetOrders                   FleetOrder[]
+  fleetTrips                    FleetTrip[]
+  fleetSettlements              FleetSettlement[]
+  fleetIncidents                FleetIncident[]
+  fleetFuelLogs                 FleetFuelLog[]
+  fleetMaintenanceLogs          FleetMaintenanceLog[]
+  fleetGeofences                FleetGeofence[]
+  fleetServicePlans             FleetServicePlan[]
+  fleetDefectReports            FleetDefectReport[]
+  fleetAlarmRules               FleetAlarmRule[]
+  fleetEnvironmentalSnapshots   FleetEnvironmentalSnapshot[]
+  fleetDriverEvaluations        FleetDriverEvaluation[]
+  fleetDrivingTimeLogs          FleetDrivingTimeLog[]
+  purchaseRequests              PurchaseRequest[]
+  purchaseOrders                PurchaseOrder[]
+  goodsReceipts                 GoodsReceipt[]
+  procurementSequences          ProcurementSequence[]
+  purchaseRequestApprovalSteps  PurchaseRequestApprovalStep[]
+  procurementApprovalPolicies   ProcurementApprovalPolicy[]
+  rfqs                          Rfq[]
+  rfqInvitations                RfqInvitation[]
+  rfqQuotes                     RfqQuote[]
+  procurementVendorProfiles     ProcurementVendorProfile[]
+  vendorScorecards              VendorScorecard[]
+  budgetCommitments             BudgetCommitment[]
+  payrollDisbursementBatches    PayrollDisbursementBatch[]
+  performanceCycles             PerformanceCycle[]
+  projects                      Project[]
+  facilitySites                 FacilitySite[]
+  facilityMaintenanceTickets    FacilityMaintenanceTicket[]
+  governanceMeetings            GovernanceMeeting[]
+  governanceResolutions         GovernanceResolution[]
+  governanceActionItems         GovernanceActionItem[]
+  hseIncidents                  HseIncident[]
+  hseActions                    HseAction[]
+  saccoMembers                  SaccoMember[]
+  saccoDividendRuns             SaccoDividendRun[]
+  healthcareWards               HealthcareWard[]
   healthcareClinicalAssignments HealthcareClinicalAssignment[]
-  energySites                EnergySite[]
-  energyPermits              EnergyPermit[]
-  constructionSites          ConstructionSite[]
-  constructionPlantAssets    ConstructionPlantAsset[]
-  constructionSubcontractors ConstructionSubcontractor[]
-  rateCards                  OutsourcingRateCard[]
-  jobs                       Job[]
+  energySites                   EnergySite[]
+  energyPermits                 EnergyPermit[]
+  constructionSites             ConstructionSite[]
+  constructionPlantAssets       ConstructionPlantAsset[]
+  constructionSubcontractors    ConstructionSubcontractor[]
+  rateCards                     OutsourcingRateCard[]
+  jobs                          Job[]
 
   @@unique([organizationId, entityCode])
   @@index([name])
@@ -193,21 +226,21 @@ model OutsourcingClient {
 
 /// Per-end-client commercial rate card (OUT-02 / OUT-07 billing).
 model OutsourcingRateCard {
-  id                  String   @id @default(cuid())
-  organizationId      String   @db.Uuid
+  id                  String @id @default(cuid())
+  organizationId      String @db.Uuid
   outsourcingClientId String
 
   name          String?
-  effectiveFrom DateTime @db.Date
+  effectiveFrom DateTime  @db.Date
   effectiveTo   DateTime? @db.Date
-  currency      String   @default("KES")
-  notes         String?  @db.Text
-  isActive      Boolean  @default(true)
+  currency      String    @default("KES")
+  notes         String?   @db.Text
+  isActive      Boolean   @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  client OutsourcingClient           @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  client OutsourcingClient         @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
   lines  OutsourcingRateCardLine[]
 
   @@index([outsourcingClientId, isActive])
@@ -222,9 +255,9 @@ model OutsourcingRateCardLine {
   serviceKey    String
   label         String
   pricingModel  String
-  unitAmount    Decimal  @db.Decimal(12, 2)
+  unitAmount    Decimal @db.Decimal(12, 2)
   percentageBps Int?
-  sortOrder     Int      @default(0)
+  sortOrder     Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -301,9 +334,9 @@ model ShiftAssignment {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  rotaPeriod       RotaPeriod        @relation(fields: [rotaPeriodId], references: [id], onDelete: Cascade)
-  employee         Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  shiftTemplate    ShiftTemplate?    @relation(fields: [shiftTemplateId], references: [id], onDelete: SetNull)
+  rotaPeriod       RotaPeriod                    @relation(fields: [rotaPeriodId], references: [id], onDelete: Cascade)
+  employee         Employee                      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shiftTemplate    ShiftTemplate?                @relation(fields: [shiftTemplateId], references: [id], onDelete: SetNull)
   attendanceEvents AttendanceEvent[]
   clinicalLink     HealthcareClinicalAssignment?
 
@@ -319,14 +352,27 @@ model Department {
 
   outsourcingClientId String
   name                String
+  /// Short department code used in payroll/cost-centre exports and reporting (e.g. FIN, OPS).
+  code                String?
+  description         String?
+  /// Employee who leads this department (must belong to the same client).
+  headEmployeeId      String?
+  costCenterCode      String?
+  costCenterName      String?
+  /// Archived departments are hidden from active pickers but retained for history.
+  isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   client       OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  employees    Employee[]
+  employees    Employee[]        @relation("DepartmentMembers")
+  head         Employee?         @relation("DepartmentHead", fields: [headEmployeeId], references: [id], onDelete: SetNull)
   salesTargets SalesTarget[]
 
+  @@unique([outsourcingClientId, name])
+  @@unique([outsourcingClientId, code])
   @@index([outsourcingClientId])
+  @@index([headEmployeeId])
 }
 
 // Employees of outsourcing clients (tied to client and optionally department)
@@ -364,48 +410,55 @@ model Employee {
   createdAt                     DateTime                 @default(now())
   updatedAt                     DateTime                 @updatedAt
 
-  client                      OutsourcingClient            @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  department                  Department?                  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  manager                     Employee?                    @relation("EmployeeManager", fields: [managerEmployeeId], references: [id], onDelete: SetNull)
-  subordinates                Employee[]                   @relation("EmployeeManager")
-  payrolls                    Payroll[]
-  payrollDisbursementLines    PayrollDisbursementLine[]
-  leaveBalances               LeaveBalance[]
-  leaveApplications           LeaveApplication[]
-  attendances                 Attendance[]
-  shiftAssignments            ShiftAssignment[]
-  biometricPunches            BiometricPunch[]
-  credentials                 EmployeeCredential[]
-  essPortalUsers              EssPortalUser[]
-  attendancePolicyAssignments AttendancePolicyAssignment[]
-  leavePolicyAssignments      LeavePolicyAssignment[]
-  attendanceEvents            AttendanceEvent[]
-  attendanceSummaries         AttendanceDaySummary[]
-  attendanceExceptions        AttendanceException[]
-  leaveBalanceLedgers         LeaveBalanceLedger[]
-  documents                   EmployeeDocument[]
-  lifecycleEvents             EmployeeLifecycleEvent[]
-  onboardingWorkflows         OnboardingWorkflow[]
-  disciplinaryCases           DisciplinaryCase[]
-  grievancesFiled             Grievance[]
-  grievancesAgainst           Grievance[]                  @relation("GrievanceAgainst")
-  entityTransfersOut          EmployeeEntityTransfer[]     @relation("EmployeeEntityTransferSourceEmployee")
-  entityTransfersIn           EmployeeEntityTransfer[]     @relation("EmployeeEntityTransferTargetEmployee")
-  assignedAssets              CompanyAsset[]
-  fleetDriverProfile          FleetDriver?
-  performanceGoals            PerformanceGoal[]
-  performanceReviews          PerformanceReview[]
-  performanceObjectives       PerformanceObjective[]
-  performancePips             PerformancePip[]
-  performanceRaterAssignments PerformanceRater[] @relation("PerformanceRaterEmployee")
-  salesRepPeriodMetrics       SalesRepPeriodMetric[]
-  salesTargets                SalesTarget[]
-  ownedSalesDeals             SalesDeal[]                  @relation("SalesDealOwner")
-  salesActuals                SalesActual[]
-  salesDealActivities         SalesDealActivity[]          @relation("SalesDealActivityActor")
-  ownedSalesLeads             SalesLead[]                  @relation("SalesLeadOwner")
-  hseIncidentsReported        HseIncident[]
-  saccoMemberProfile          SaccoMember?
+  client                        OutsourcingClient              @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  department                    Department?                    @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
+  headedDepartments             Department[]                   @relation("DepartmentHead")
+  manager                       Employee?                      @relation("EmployeeManager", fields: [managerEmployeeId], references: [id], onDelete: SetNull)
+  subordinates                  Employee[]                     @relation("EmployeeManager")
+  payrolls                      Payroll[]
+  payrollDisbursementLines      PayrollDisbursementLine[]
+  leaveBalances                 LeaveBalance[]
+  leaveApplications             LeaveApplication[]
+  attendances                   Attendance[]
+  shiftAssignments              ShiftAssignment[]
+  biometricPunches              BiometricPunch[]
+  credentials                   EmployeeCredential[]
+  essPortalUsers                EssPortalUser[]
+  attendancePolicyAssignments   AttendancePolicyAssignment[]
+  leavePolicyAssignments        LeavePolicyAssignment[]
+  attendanceEvents              AttendanceEvent[]
+  attendanceSummaries           AttendanceDaySummary[]
+  attendanceExceptions          AttendanceException[]
+  leaveBalanceLedgers           LeaveBalanceLedger[]
+  documents                     EmployeeDocument[]
+  lifecycleEvents               EmployeeLifecycleEvent[]
+  onboardingWorkflows           OnboardingWorkflow[]
+  operationalTasks              OnboardingTask[]               @relation("OperationalTaskEmployee")
+  onboardingFormSubmissions     OnboardingFormSubmission[]     @relation("OnboardingFormEmployee")
+  onboardingSignatureRequests   OnboardingSignatureRequest[]   @relation("OnboardingSignatureEmployee")
+  disciplinaryCases             DisciplinaryCase[]
+  grievancesFiled               Grievance[]
+  grievancesAgainst             Grievance[]                    @relation("GrievanceAgainst")
+  entityTransfersOut            EmployeeEntityTransfer[]       @relation("EmployeeEntityTransferSourceEmployee")
+  entityTransfersIn             EmployeeEntityTransfer[]       @relation("EmployeeEntityTransferTargetEmployee")
+  assignedAssets                CompanyAsset[]
+  assetAssignmentEvents         AssetAssignmentEvent[]         @relation("AssetEventEmployee")
+  assetEventsFrom               AssetAssignmentEvent[]         @relation("AssetEventFromEmployee")
+  fleetDriverProfile            FleetDriver?
+  performanceGoals              PerformanceGoal[]
+  performanceReviews            PerformanceReview[]
+  performanceObjectives         PerformanceObjective[]
+  performancePips               PerformancePip[]
+  performanceRaterAssignments   PerformanceRater[]             @relation("PerformanceRaterEmployee")
+  salesRepPeriodMetrics         SalesRepPeriodMetric[]
+  salesTargets                  SalesTarget[]
+  ownedSalesDeals               SalesDeal[]                    @relation("SalesDealOwner")
+  salesActuals                  SalesActual[]
+  salesDealActivities           SalesDealActivity[]            @relation("SalesDealActivityActor")
+  ownedSalesLeads               SalesLead[]                    @relation("SalesLeadOwner")
+  salesTasks                    SalesTask[]                    @relation("SalesTaskAssignee")
+  hseIncidentsReported          HseIncident[]
+  saccoMemberProfile            SaccoMember?
   healthcareClinicalAssignments HealthcareClinicalAssignment[]
 
   /// One national ID maps to at most one employee record system-wide (multiple NULL allowed).
@@ -570,21 +623,21 @@ model Grievance {
   organizationId String @db.Uuid
 
   employeeId         String
-  employee           Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  grievanceNumber    String            @unique
-  status             GrievanceStatus   @default(SUBMITTED)
+  employee           Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  grievanceNumber    String              @unique
+  status             GrievanceStatus     @default(SUBMITTED)
   subject            String
-  description        String            @db.Text
+  description        String              @db.Text
   category           GrievanceCategory
   againstId          String?
-  against            Employee?         @relation("GrievanceAgainst", fields: [againstId], references: [id])
-  investigationNotes String?           @db.Text
-  resolution         String?           @db.Text
+  against            Employee?           @relation("GrievanceAgainst", fields: [againstId], references: [id])
+  investigationNotes String?             @db.Text
+  resolution         String?             @db.Text
   resolvedAt         DateTime?
   resolvedById       String?
-  resolvedBy         User?             @relation("GrievanceResolver", fields: [resolvedById], references: [id])
-  submittedAt        DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  resolvedBy         User?               @relation("GrievanceResolver", fields: [resolvedById], references: [id])
+  submittedAt        DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
   documents          GrievanceDocument[]
 
   @@index([employeeId])
@@ -722,6 +775,21 @@ enum EmployeeEmploymentStatus {
 enum WorkflowType {
   ONBOARDING
   OFFBOARDING
+  OPERATIONAL
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskRecurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
 }
 
 enum WorkflowStatus {
@@ -736,6 +804,27 @@ enum OnboardingTaskStatus {
   COMPLETED
   SKIPPED
   OVERDUE
+}
+
+enum OnboardingTaskType {
+  CHECKLIST
+  FORM
+  SIGNATURE
+  DOCUMENT
+}
+
+enum OnboardingFormSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum OnboardingSignatureStatus {
+  PENDING
+  SIGNED
+  DECLINED
+  VOIDED
 }
 
 model OnboardingTemplate {
@@ -765,56 +854,174 @@ model OnboardingTemplateStep {
   isRequired    Boolean            @default(true)
   category      String?
 
+  // Rich step kinds: CHECKLIST (default), FORM (data collection), SIGNATURE (e-sign), DOCUMENT (evidence upload).
+  taskType               OnboardingTaskType      @default(CHECKLIST)
+  formTemplateId         String?
+  formTemplate           OnboardingFormTemplate? @relation(fields: [formTemplateId], references: [id], onDelete: SetNull)
+  signatureDocumentTitle String?
+  signatureDocumentPath  String?
+
   @@index([templateId, order])
+  @@index([formTemplateId])
 }
 
 model OnboardingWorkflow {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  employeeId  String
-  employee    Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  templateId  String
-  template    OnboardingTemplate @relation(fields: [templateId], references: [id])
-  type        WorkflowType
-  status      WorkflowStatus     @default(IN_PROGRESS)
-  startedAt   DateTime           @default(now())
-  completedAt DateTime?
-  tasks       OnboardingTask[]
+  // Onboarding/offboarding workflows target an employee; operational buckets do not.
+  employeeId          String?
+  employee            Employee?           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  templateId          String?
+  template            OnboardingTemplate? @relation(fields: [templateId], references: [id])
+  // Workspace client used to scope operational workflows that have no employee.
+  outsourcingClientId String?
+  title               String?
+  type                WorkflowType
+  status              WorkflowStatus      @default(IN_PROGRESS)
+  startedAt           DateTime            @default(now())
+  completedAt         DateTime?
+  tasks               OnboardingTask[]
 
   @@index([employeeId])
   @@index([status])
+  @@index([organizationId, type, status])
+  @@index([outsourcingClientId])
 }
 
 model OnboardingTask {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  workflowId    String
-  workflow      OnboardingWorkflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  title         String
-  description   String?
-  assignedRole  String
-  assignedToId  String?
-  assignedTo    User?                @relation("OnboardingTaskAssignee", fields: [assignedToId], references: [id])
-  category      String?
-  order         Int
-  isRequired    Boolean              @default(true)
-  startDate     DateTime?
-  dueDate       DateTime?
-  status        OnboardingTaskStatus @default(PENDING)
-  completedAt   DateTime?
-  completedById String?
-  completedBy   User?                @relation("OnboardingTaskCompletedBy", fields: [completedById], references: [id])
-  notes         String?
-  documentId    String?
-  document      EmployeeDocument?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  workflowId       String
+  workflow         OnboardingWorkflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  assignedRole     String
+  assignedToId     String?
+  assignedTo       User?                @relation("OnboardingTaskAssignee", fields: [assignedToId], references: [id])
+  category         String?
+  order            Int
+  isRequired       Boolean              @default(true)
+  priority         TaskPriority         @default(MEDIUM)
+  recurrence       TaskRecurrence       @default(NONE)
+  recurrenceEndsAt DateTime?
+  // Operational tasks may optionally reference an employee they concern.
+  employeeId       String?
+  employee         Employee?            @relation("OperationalTaskEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  startDate        DateTime?
+  dueDate          DateTime?
+  status           OnboardingTaskStatus @default(PENDING)
+  completedAt      DateTime?
+  completedById    String?
+  completedBy      User?                @relation("OnboardingTaskCompletedBy", fields: [completedById], references: [id])
+  notes            String?
+  documentId       String?
+  document         EmployeeDocument?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  // Rich task kinds: CHECKLIST (default), FORM, SIGNATURE, DOCUMENT.
+  taskType           OnboardingTaskType          @default(CHECKLIST)
+  formTemplateId     String?
+  formTemplate       OnboardingFormTemplate?     @relation(fields: [formTemplateId], references: [id], onDelete: SetNull)
+  formSubmissionId   String?                     @unique
+  formSubmission     OnboardingFormSubmission?   @relation("OnboardingTaskFormSubmission", fields: [formSubmissionId], references: [id], onDelete: SetNull)
+  signatureRequestId String?                     @unique
+  signatureRequest   OnboardingSignatureRequest? @relation("OnboardingTaskSignatureRequest", fields: [signatureRequestId], references: [id], onDelete: SetNull)
 
   @@index([workflowId, order])
   @@index([organizationId, status])
   @@index([assignedRole, status])
   @@index([assignedToId, status])
   @@index([documentId])
+  @@index([employeeId])
+  @@index([formTemplateId])
+}
+
+/// Reusable structured data-collection form (bank details, statutory numbers, next of kin, etc.).
+model OnboardingFormTemplate {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name        String
+  description String?
+  /// JSON array of field definitions: [{ key, label, type, required, options?, placeholder?, section?, helpText? }]
+  fields      Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  steps       OnboardingTemplateStep[]
+  tasks       OnboardingTask[]
+  submissions OnboardingFormSubmission[]
+
+  @@index([organizationId, isActive])
+}
+
+/// A completed (or in-progress) instance of a form filled by an employee / ESS user.
+model OnboardingFormSubmission {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  formTemplateId String
+  formTemplate   OnboardingFormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+
+  employeeId      String?
+  employee        Employee?      @relation("OnboardingFormEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  essPortalUserId String?
+  essPortalUser   EssPortalUser? @relation("OnboardingFormEss", fields: [essPortalUserId], references: [id], onDelete: SetNull)
+
+  /// JSON object of { fieldKey: value } captured from the form.
+  data             Json
+  status           OnboardingFormSubmissionStatus @default(DRAFT)
+  submittedAt      DateTime?
+  reviewedByUserId String?
+  reviewedBy       User?                          @relation("OnboardingFormReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewNotes      String?
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+
+  task OnboardingTask? @relation("OnboardingTaskFormSubmission")
+
+  @@index([organizationId, status])
+  @@index([formTemplateId])
+  @@index([employeeId])
+  @@index([essPortalUserId])
+}
+
+/// An e-signature request (policy acknowledgment, contract, code of conduct) and its captured signature.
+model OnboardingSignatureRequest {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  documentTitle String
+  /// Blob path to the source document to be signed (optional; text acknowledgments have none).
+  documentPath  String?
+
+  employeeId      String?
+  employee        Employee?      @relation("OnboardingSignatureEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  essPortalUserId String?
+  essPortalUser   EssPortalUser? @relation("OnboardingSignatureEss", fields: [essPortalUserId], references: [id], onDelete: SetNull)
+
+  status             OnboardingSignatureStatus @default(PENDING)
+  signerName         String?
+  /// Blob path to the drawn signature image (PNG), when drawn rather than typed.
+  signatureImagePath String?
+  /// Blob path to the generated, signed PDF (with signature block + audit trail).
+  signedDocumentPath String?
+  declineReason      String?
+  ipAddress          String?
+  userAgent          String?
+  signedAt           DateTime?
+  createdByUserId    String?
+  createdBy          User?                     @relation("OnboardingSignatureCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  task OnboardingTask? @relation("OnboardingTaskSignatureRequest")
+
+  @@index([organizationId, status])
+  @@index([employeeId])
+  @@index([essPortalUserId])
 }
 
 enum AttendancePolicyMode {
@@ -952,10 +1159,10 @@ model AttendanceWorkSite {
   outsourcingClientId String
   name                String
   code                String?
-  latitude            Decimal @db.Decimal(10, 7)
-  longitude           Decimal @db.Decimal(10, 7)
-  radiusMeters        Int     @default(150)
-  isActive            Boolean @default(true)
+  latitude            Decimal  @db.Decimal(10, 7)
+  longitude           Decimal  @db.Decimal(10, 7)
+  radiusMeters        Int      @default(150)
+  isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -1169,39 +1376,153 @@ enum AssetStatus {
   lost
 }
 
+enum AssetAssignmentEventType {
+  created
+  assigned
+  returned
+  transferred
+  status_changed
+  acknowledged
+}
+
 model CompanyAsset {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  outsourcingClientId String
-  assetTag            String
-  name                String
-  description         String?       @db.Text
-  category            AssetCategory @default(it_equipment)
-  status              AssetStatus   @default(available)
-  serialNumber        String?
-  manufacturer        String?
-  model               String?
-  purchaseDate        DateTime?     @db.Date
-  purchaseCost        Decimal?      @db.Decimal(12, 2)
-  warrantyExpiry      DateTime?     @db.Date
-  location            String?
-  notes               String?       @db.Text
-  assignedEmployeeId  String?
-  assignedAt          DateTime?
-  assignedByUserId    String?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  outsourcingClientId    String
+  assetTag               String
+  name                   String
+  description            String?       @db.Text
+  category               AssetCategory @default(it_equipment)
+  status                 AssetStatus   @default(available)
+  serialNumber           String?
+  manufacturer           String?
+  model                  String?
+  purchaseDate           DateTime?     @db.Date
+  purchaseCost           Decimal?      @db.Decimal(12, 2)
+  warrantyExpiry         DateTime?     @db.Date
+  location               String?
+  notes                  String?       @db.Text
+  assignedEmployeeId     String?
+  assignedAt             DateTime?
+  assignedByUserId       String?
+  handoverAcknowledgedAt DateTime?
+  handoverNotes          String?       @db.Text
+  handoverSignaturePath  String?
 
-  client           OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  assignedEmployee Employee?         @relation(fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
-  assignedByUser   User?             @relation("AssetAssignedByUser", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+  // Depreciation (straight-line by default)
+  depreciationMethod String? // straight_line | declining_balance | none
+  usefulLifeMonths   Int?
+  salvageValue       Decimal? @db.Decimal(12, 2)
+
+  // Maintenance rollups (denormalised for fast list rendering + sorting)
+  lastMaintenanceAt DateTime?
+  nextMaintenanceAt DateTime? @db.Date
+
+  // Label / QR — stable token encoded into printable asset labels
+  qrToken String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client                 OutsourcingClient        @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  assignedEmployee       Employee?                @relation(fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+  assignedByUser         User?                    @relation("AssetAssignedByUser", fields: [assignedByUserId], references: [id], onDelete: SetNull)
   constructionPlantLinks ConstructionPlantAsset[]
+  assignmentEvents       AssetAssignmentEvent[]
+  maintenanceRecords     AssetMaintenance[]
+  attachments            AssetAttachment[]
 
   @@unique([outsourcingClientId, assetTag])
   @@index([outsourcingClientId, status])
   @@index([assignedEmployeeId])
   @@index([category])
+  @@index([warrantyExpiry])
+  @@index([nextMaintenanceAt])
+}
+
+enum AssetMaintenanceType {
+  preventive
+  corrective
+  inspection
+  calibration
+  repair
+  other
+}
+
+enum AssetMaintenanceStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+model AssetMaintenance {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  companyAssetId    String
+  type              AssetMaintenanceType   @default(preventive)
+  status            AssetMaintenanceStatus @default(scheduled)
+  title             String
+  description       String?                @db.Text
+  vendor            String?
+  cost              Decimal?               @db.Decimal(12, 2)
+  scheduledFor      DateTime?              @db.Date
+  completedAt       DateTime?
+  nextDueAt         DateTime?              @db.Date
+  performedByUserId String?
+  createdByUserId   String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  companyAsset CompanyAsset @relation(fields: [companyAssetId], references: [id], onDelete: Cascade)
+
+  @@index([companyAssetId, scheduledFor])
+  @@index([organizationId, status])
+  @@index([nextDueAt])
+}
+
+model AssetAttachment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  companyAssetId   String
+  fileName         String
+  fileUrl          String
+  contentType      String?
+  fileSize         Int?
+  kind             String? // photo | invoice | warranty | handover | other
+  uploadedByUserId String?
+  createdAt        DateTime @default(now())
+
+  companyAsset CompanyAsset @relation(fields: [companyAssetId], references: [id], onDelete: Cascade)
+
+  @@index([companyAssetId, createdAt])
+}
+
+model AssetAssignmentEvent {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  companyAssetId    String
+  eventType         AssetAssignmentEventType
+  employeeId        String?
+  fromEmployeeId    String?
+  performedByUserId String?
+  fromStatus        AssetStatus?
+  toStatus          AssetStatus?
+  notes             String?                  @db.Text
+  createdAt         DateTime                 @default(now())
+
+  companyAsset    CompanyAsset @relation(fields: [companyAssetId], references: [id], onDelete: Cascade)
+  employee        Employee?    @relation("AssetEventEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  fromEmployee    Employee?    @relation("AssetEventFromEmployee", fields: [fromEmployeeId], references: [id], onDelete: SetNull)
+  performedByUser User?        @relation("AssetEventPerformedByUser", fields: [performedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyAssetId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([employeeId])
 }
 
 model EmployeeCredential {
@@ -1289,8 +1610,8 @@ model Payroll {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  employee       Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  accountsClient AccountsClient? @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
+  employee          Employee                  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  accountsClient    AccountsClient?           @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
   disbursementLines PayrollDisbursementLine[]
 
   @@unique([employeeId, month, year])
@@ -1597,6 +1918,267 @@ model BiometricPunch {
   @@index([employeeId])
 }
 
+// ============================================================================
+// Internal staff (tenant-own) Time & Attendance
+// ----------------------------------------------------------------------------
+// Mirrors the outsourcing T&A models (which are keyed on Employee +
+// OutsourcingClient / an end client) but scoped to the tenant organization and
+// keyed on internal staff Users. Follows the same Staff*-prefix convention
+// already used by StaffLeaveType / StaffLeaveApplication / StaffLeaveBalance.
+// ============================================================================
+
+/// A reusable internal-staff shift definition (org-scoped, no end client).
+model StaffShiftTemplate {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name         String
+  /// Minutes from midnight (0–1439). If endMinutes <= startMinutes, the shift crosses midnight.
+  startMinutes Int
+  endMinutes   Int
+  /// Unpaid break within the shift (excluded from weekly hours totals).
+  breakMinutes Int      @default(0)
+  color        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignments StaffShiftAssignment[]
+
+  @@index([organizationId, isActive])
+}
+
+/// A dated planning window (e.g. a week) for the tenant's own staff.
+model StaffRotaPeriod {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name      String?
+  startDate DateTime         @db.Date
+  endDate   DateTime         @db.Date
+  status    RotaPeriodStatus @default(draft)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  assignments StaffShiftAssignment[]
+
+  @@index([organizationId, startDate])
+  @@index([endDate])
+}
+
+/// A concrete shift instance for an internal staff User in a staff rota period.
+model StaffShiftAssignment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  staffRotaPeriodId    String
+  userId               String
+  staffShiftTemplateId String?
+  workDate             DateTime @db.Date
+  startsAt             DateTime
+  endsAt               DateTime
+  breakMinutes         Int      @default(0)
+  notes                String?  @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  rotaPeriod       StaffRotaPeriod        @relation(fields: [staffRotaPeriodId], references: [id], onDelete: Cascade)
+  user             User                   @relation("StaffShiftAssignmentUser", fields: [userId], references: [id], onDelete: Cascade)
+  shiftTemplate    StaffShiftTemplate?    @relation(fields: [staffShiftTemplateId], references: [id], onDelete: SetNull)
+  attendanceEvents StaffAttendanceEvent[]
+
+  @@index([staffRotaPeriodId])
+  @@index([userId, workDate])
+  @@index([userId, startsAt])
+}
+
+model StaffAttendancePolicy {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name                  String
+  description           String?              @db.Text
+  mode                  AttendancePolicyMode @default(hybrid_override)
+  graceInMinutes        Int                  @default(0)
+  graceOutMinutes       Int                  @default(0)
+  minHalfDayMinutes     Int                  @default(240)
+  fullDayMinutes        Int                  @default(480)
+  requireManualApproval Boolean              @default(true)
+  mobileGeofenceEnabled Boolean              @default(false)
+  rejectOutsideGeofence Boolean              @default(true)
+  isDefault             Boolean              @default(false)
+  isActive              Boolean              @default(true)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  assignments    StaffAttendancePolicyAssignment[]
+  dailySummaries StaffAttendanceDaySummary[]
+
+  @@index([organizationId, isActive])
+  @@index([organizationId, isDefault])
+}
+
+model StaffAttendancePolicyAssignment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  userId                  String
+  staffAttendancePolicyId String
+  effectiveFrom           DateTime  @db.Date
+  effectiveTo             DateTime? @db.Date
+  isPrimary               Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  user             User                  @relation("StaffAttendancePolicyAssignmentUser", fields: [userId], references: [id], onDelete: Cascade)
+  attendancePolicy StaffAttendancePolicy @relation(fields: [staffAttendancePolicyId], references: [id], onDelete: Cascade)
+
+  @@index([userId, effectiveFrom])
+  @@index([staffAttendancePolicyId, effectiveFrom])
+}
+
+/// Geofenced work site for internal-staff mobile clock-in (lat/lng + radius in metres).
+model StaffAttendanceWorkSite {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name         String
+  code         String?
+  latitude     Decimal  @db.Decimal(10, 7)
+  longitude    Decimal  @db.Decimal(10, 7)
+  radiusMeters Int      @default(150)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([organizationId, isActive])
+}
+
+model StaffAttendanceEvent {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  userId                 String
+  observedAt             DateTime
+  workDate               DateTime              @db.Date
+  source                 AttendanceEventSource
+  kind                   AttendanceEventKind
+  staffBiometricPunchId  String?
+  staffShiftAssignmentId String?
+  createdByUserId        String?
+  isApprovedOverride     Boolean               @default(false)
+  notes                  String?               @db.Text
+  metadata               Json?
+  createdAt              DateTime              @default(now())
+
+  user            User                  @relation("StaffAttendanceEventSubject", fields: [userId], references: [id], onDelete: Cascade)
+  biometricPunch  StaffBiometricPunch?  @relation(fields: [staffBiometricPunchId], references: [id], onDelete: SetNull)
+  shiftAssignment StaffShiftAssignment? @relation(fields: [staffShiftAssignmentId], references: [id], onDelete: SetNull)
+  createdByUser   User?                 @relation("StaffAttendanceEventCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, workDate])
+  @@index([organizationId, workDate])
+  @@index([source, workDate])
+}
+
+model StaffAttendanceDaySummary {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  userId                  String
+  workDate                DateTime                @db.Date
+  staffAttendancePolicyId String?
+  firstInAt               DateTime?
+  lastOutAt               DateTime?
+  minutesWorked           Int                     @default(0)
+  lateMinutes             Int                     @default(0)
+  undertimeMinutes        Int                     @default(0)
+  overtimeMinutes         Int                     @default(0)
+  holidayOvertimeMinutes  Int                     @default(0)
+  publicHolidayName       String?
+  status                  AttendanceSummaryStatus @default(draft)
+  sourceBreakdown         Json?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  user             User                       @relation("StaffAttendanceDaySummaryUser", fields: [userId], references: [id], onDelete: Cascade)
+  attendancePolicy StaffAttendancePolicy?     @relation(fields: [staffAttendancePolicyId], references: [id], onDelete: SetNull)
+  exceptions       StaffAttendanceException[]
+
+  @@unique([userId, workDate])
+  @@index([organizationId, workDate])
+  @@index([status])
+}
+
+model StaffAttendanceException {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  userId                      String
+  staffAttendanceDaySummaryId String?
+  workDate                    DateTime                  @db.Date
+  type                        AttendanceExceptionType
+  status                      AttendanceExceptionStatus @default(open)
+  description                 String                    @db.Text
+  resolvedByUserId            String?
+  resolvedAt                  DateTime?
+  resolutionNotes             String?                   @db.Text
+  createdAt                   DateTime                  @default(now())
+  updatedAt                   DateTime                  @updatedAt
+
+  user           User                       @relation("StaffAttendanceExceptionSubject", fields: [userId], references: [id], onDelete: Cascade)
+  summary        StaffAttendanceDaySummary? @relation(fields: [staffAttendanceDaySummaryId], references: [id], onDelete: SetNull)
+  resolvedByUser User?                      @relation("StaffAttendanceExceptionResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, workDate])
+  @@index([status, workDate])
+}
+
+/// Registered biometric device / time terminal for internal staff (org-scoped).
+model StaffBiometricDevice {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name        String
+  /// e.g. hikvision_isapi
+  adapterKind String
+  config      Json?
+  lastPollAt  DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  punches StaffBiometricPunch[]
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([lastPollAt])
+}
+
+/// Raw punch line for internal staff — append-only; corrections are new rows.
+model StaffBiometricPunch {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  staffBiometricDeviceId String
+  externalEventId        String
+  observedAt             DateTime
+  rawSubjectId           String
+  userId                 String?
+  rawPayload             Json?
+  source                 BiometricPunchSource
+  direction              BiometricPunchDirection @default(unknown)
+  createdAt              DateTime                @default(now())
+
+  device           StaffBiometricDevice   @relation(fields: [staffBiometricDeviceId], references: [id], onDelete: Cascade)
+  user             User?                  @relation("StaffBiometricPunchUser", fields: [userId], references: [id], onDelete: SetNull)
+  attendanceEvents StaffAttendanceEvent[]
+
+  @@unique([staffBiometricDeviceId, externalEventId])
+  @@index([staffBiometricDeviceId, observedAt])
+  @@index([userId])
+}
+
 // Attendance records (check-in/check-out)
 model Attendance {
   id             String @id @default(cuid())
@@ -1655,12 +2237,14 @@ model Job {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  client               Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  outsourcingClient    OutsourcingClient?       @relation(fields: [outsourcingClientId], references: [id], onDelete: SetNull)
-  applications         Application[]
-  scheduleBreaks       InterviewScheduleBreak[]
-  requisitionApprovals JobRequisitionApproval[]
-  assessmentAssignments JobAssessmentAssignment[]
+  client                        Client?                           @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  outsourcingClient             OutsourcingClient?                @relation(fields: [outsourcingClientId], references: [id], onDelete: SetNull)
+  applications                  Application[]
+  scheduleBreaks                InterviewScheduleBreak[]
+  requisitionApprovals          JobRequisitionApproval[]
+  assessmentAssignments         JobAssessmentAssignment[]
+  externalAssessmentAssignments JobExternalAssessmentAssignment[]
+  competencyProfile             JobCompetencyProfile?
 
   @@index([isActive, postedDate(sort: Desc)])
   @@index([category])
@@ -1713,13 +2297,15 @@ model Application {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
-  job            Job                        @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  candidate      Candidate                  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  interviews     Interview[]
-  views          ApplicationView[]
-  offerApprovals JobOfferApproval[]
-  hireConversion ApplicationHireConversion?
-  assessmentAttempts ApplicationAssessmentAttempt[]
+  job                       Job                            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidate                 Candidate                      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  interviews                Interview[]
+  views                     ApplicationView[]
+  offerApprovals            JobOfferApproval[]
+  hireConversion            ApplicationHireConversion?
+  assessmentAttempts        ApplicationAssessmentAttempt[]
+  externalAssessmentInvites ExternalAssessmentInvite[]
+  comments                  ApplicationComment[]
 
   @@index([jobId])
   @@index([status])
@@ -1739,6 +2325,26 @@ model ApplicationView {
   @@id([applicationId, userId])
   @@index([userId])
   @@index([applicationId])
+}
+
+/// Threaded internal collaboration comments on an application, with @mentions.
+model ApplicationComment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  applicationId String
+  authorUserId  String
+  body          String   @db.Text
+  /// User ids @mentioned in the comment body (drives StaffNotification).
+  mentions      String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  author      User        @relation("ApplicationCommentAuthor", fields: [authorUserId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt(sort: Desc)])
+  @@index([authorUserId])
 }
 
 model Interview {
@@ -1906,6 +2512,15 @@ enum AssessmentQuestionType {
   mcq
   numeric
   file
+  multi_select
+  short_text
+  long_text
+  code
+  likert
+  rating
+  ranking
+  situational
+  video_response
 }
 
 enum AssessmentAttemptStatus {
@@ -1913,25 +2528,77 @@ enum AssessmentAttemptStatus {
   in_progress
   submitted
   expired
+  awaiting_review
 }
 
-/// Reusable assessment template (MCQ, numeric, file upload questions).
+enum AssessmentDifficulty {
+  easy
+  medium
+  hard
+}
+
+/// How a template is scored/categorised. `skills` = right/wrong; `psychometric` = dimension-based.
+enum AssessmentKind {
+  skills
+  personality
+  cognitive
+  situational
+  mixed
+}
+
+/// Reusable assessment template (multi-section, many question types).
 model AssessmentTemplate {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  name             String
-  description      String? @db.Text
-  timeLimitMinutes Int     @default(30)
-  isActive         Boolean @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  name                   String
+  description            String?        @db.Text
+  kind                   AssessmentKind @default(skills)
+  category               String?
+  timeLimitMinutes       Int            @default(30)
+  passingScorePercent    Int? // when set, attempts below this are flagged as failed
+  shuffleSections        Boolean        @default(false)
+  shuffleQuestions       Boolean        @default(false)
+  negativeMarking        Boolean        @default(false)
+  showResultsToCandidate Boolean        @default(false)
+  requireConsent         Boolean        @default(true)
+  requireWebcam          Boolean        @default(false)
+  lockdown               Boolean        @default(false) // enforce fullscreen + block copy/paste
+  retentionDays          Int? // auto-purge attempt PII after N days (governance)
+  /// Localised copy: { [locale]: { name, description } }
+  translations           Json?
+  isActive               Boolean        @default(true)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
 
-  questions          AssessmentQuestion[]
-  jobAssignments     JobAssessmentAssignment[]
+  sections            AssessmentSection[]
+  questions           AssessmentQuestion[]
+  jobAssignments      JobAssessmentAssignment[]
   applicationAttempts ApplicationAssessmentAttempt[]
 
   @@index([organizationId, isActive])
+  @@index([organizationId, kind])
+}
+
+/// A group of questions within a template, with optional per-section timing and pooling.
+model AssessmentSection {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  templateId       String
+  title            String
+  description      String?  @db.Text
+  orderIndex       Int      @default(0)
+  timeLimitMinutes Int? // optional per-section timer
+  shuffleQuestions Boolean  @default(false)
+  pickCount        Int? // pick N of M questions at random (question pool)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  template  AssessmentTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  questions AssessmentQuestion[]
+
+  @@index([templateId, orderIndex])
 }
 
 model AssessmentQuestion {
@@ -1939,19 +2606,57 @@ model AssessmentQuestion {
   organizationId String @db.Uuid
 
   templateId    String
+  sectionId     String?
+  bankItemId    String?
   type          AssessmentQuestionType
   prompt        String                 @db.Text
   options       Json?
   correctAnswer Json?
+  /// For psychometric items: { dimension: string, reverse?: boolean }
+  scoring       Json?
+  explanation   String?                @db.Text
+  mediaUrl      String?
+  difficulty    AssessmentDifficulty   @default(medium)
+  weight        Int                    @default(1)
   maxPoints     Int                    @default(1)
+  required      Boolean                @default(true)
+  translations  Json?
   orderIndex    Int                    @default(0)
   createdAt     DateTime               @default(now())
   updatedAt     DateTime               @updatedAt
 
-  template AssessmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template AssessmentTemplate            @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  section  AssessmentSection?            @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  bankItem QuestionBankItem?             @relation(fields: [bankItemId], references: [id], onDelete: SetNull)
   answers  ApplicationAssessmentAnswer[]
 
   @@index([templateId, orderIndex])
+  @@index([sectionId, orderIndex])
+  @@index([bankItemId])
+}
+
+/// Reusable question authored once and dropped into many templates.
+model QuestionBankItem {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  type          AssessmentQuestionType
+  prompt        String                 @db.Text
+  options       Json?
+  correctAnswer Json?
+  scoring       Json?
+  explanation   String?                @db.Text
+  mediaUrl      String?
+  difficulty    AssessmentDifficulty   @default(medium)
+  defaultPoints Int                    @default(1)
+  category      String?
+  tags          String[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  questions AssessmentQuestion[]
+
+  @@index([organizationId, category])
 }
 
 /// Links an assessment template to a job; optional gate on application status.
@@ -1959,11 +2664,11 @@ model JobAssessmentAssignment {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  jobId          String
-  templateId     String
+  jobId         String
+  templateId    String
   /// When set, attempt is created when application reaches this status; otherwise on apply.
-  triggerStatus  ApplicationStatus?
-  createdAt      DateTime @default(now())
+  triggerStatus ApplicationStatus?
+  createdAt     DateTime           @default(now())
 
   job      Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
   template AssessmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
@@ -1976,23 +2681,40 @@ model ApplicationAssessmentAttempt {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  applicationId  String
-  templateId     String
-  accessToken    String                  @unique
-  status         AssessmentAttemptStatus @default(pending)
-  startedAt      DateTime?
-  submittedAt    DateTime?
-  expiresAt      DateTime?
-  clientIp       String?
-  scorePercent   Decimal?                @db.Decimal(5, 2)
-  earnedPoints   Int?
-  maxPoints      Int?
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
+  applicationId      String
+  templateId         String
+  accessToken        String                  @unique
+  status             AssessmentAttemptStatus @default(pending)
+  startedAt          DateTime?
+  submittedAt        DateTime?
+  expiresAt          DateTime?
+  lastActivityAt     DateTime?
+  consentAcceptedAt  DateTime?
+  locale             String?
+  clientIp           String?
+  userAgent          String?
+  scorePercent       Decimal?                @db.Decimal(5, 2)
+  earnedPoints       Int?
+  maxPoints          Int?
+  passed             Boolean?
+  needsManualGrading Boolean                 @default(false)
+  gradedAt           DateTime?
+  /// Normalised psychometric output: { dimensions: {..}, percentile, sten }
+  dimensionScores    Json?
+  /// Weighted competency fit vs the job profile (0-100).
+  fitScore           Decimal?                @db.Decimal(5, 2)
+  /// Integrity score 0-100 (100 = clean); computed from integrity events.
+  integrityScore     Int?
+  integrityFlags     Json?
+  tabSwitchCount     Int                     @default(0)
+  purgedAt           DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
-  application Application                  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  template    AssessmentTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  answers     ApplicationAssessmentAnswer[]
+  application     Application                   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  template        AssessmentTemplate            @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  answers         ApplicationAssessmentAnswer[]
+  integrityEvents AttemptIntegrityEvent[]
 
   @@unique([applicationId, templateId])
   @@index([applicationId])
@@ -2003,19 +2725,216 @@ model ApplicationAssessmentAnswer {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  attemptId  String
-  questionId String
-  answer     Json?
-  filePath   String?
-  isCorrect  Boolean?
-  pointsAwarded Int?
-  createdAt  DateTime @default(now())
+  attemptId        String
+  questionId       String
+  answer           Json?
+  filePath         String?
+  isCorrect        Boolean?
+  pointsAwarded    Int?
+  /// Seconds the candidate spent on this question (integrity + item analysis).
+  timeSpentSeconds Int?
+  /// Manual grading (file / long_text / code) by staff.
+  gradedByUserId   String?
+  gradedAt         DateTime?
+  graderNote       String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
 
   attempt  ApplicationAssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question AssessmentQuestion         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  question AssessmentQuestion           @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
   @@index([attemptId])
+}
+
+enum IntegrityEventType {
+  tab_blur
+  tab_focus
+  copy
+  paste
+  paste_blocked
+  right_click
+  fullscreen_enter
+  fullscreen_exit
+  window_resize
+  webcam_snapshot
+  face_missing
+  multiple_faces
+}
+
+/// Proctoring / integrity signals captured during a candidate attempt.
+model AttemptIntegrityEvent {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  attemptId String
+  type      IntegrityEventType
+  detail    Json?
+  mediaUrl  String? // webcam snapshot blob url
+  createdAt DateTime           @default(now())
+
+  attempt ApplicationAssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId, createdAt])
+}
+
+enum AssessmentProviderKey {
+  generic
+  criteria
+  shl
+  hogan
+  predictive_index
+  disc
+  big_five
+  hirevue
+}
+
+enum ExternalInviteStatus {
+  pending
+  invited
+  in_progress
+  completed
+  error
+  expired
+}
+
+/// Per-tenant connection to an external psychometric / assessment provider.
+model AssessmentProviderConnection {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  provider          AssessmentProviderKey
+  label             String
+  baseUrl           String?
+  /// AES-256-GCM encrypted JSON credential blob (never returned to the client).
+  credentialsCipher String                @db.Text
+  webhookSecret     String?
+  isActive          Boolean               @default(true)
+  createdByUserId   String?
+  lastSyncedAt      DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  externalAssessments ExternalAssessment[]
+  invites             ExternalAssessmentInvite[]
+
+  @@unique([organizationId, provider, label])
+  @@index([organizationId, provider])
+}
+
+/// A specific test from a provider's catalog, imported so it can be assigned to jobs.
+model ExternalAssessment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  connectionId    String
+  provider        AssessmentProviderKey
+  externalId      String // provider's test/assessment id
+  name            String
+  description     String?               @db.Text
+  category        String?
+  durationMinutes Int?
+  /// Dimensions this test measures, e.g. ["Openness","Conscientiousness",...]
+  dimensions      Json?
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  connection     AssessmentProviderConnection      @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  jobAssignments JobExternalAssessmentAssignment[]
+  invites        ExternalAssessmentInvite[]
+
+  @@unique([connectionId, externalId])
+  @@index([organizationId, isActive])
+}
+
+/// Links an external assessment to a job (mirrors JobAssessmentAssignment for native).
+model JobExternalAssessmentAssignment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  jobId                String
+  externalAssessmentId String
+  triggerStatus        ApplicationStatus?
+  createdAt            DateTime           @default(now())
+
+  job                Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  externalAssessment ExternalAssessment @relation(fields: [externalAssessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, externalAssessmentId])
+  @@index([jobId])
+}
+
+/// A candidate's invitation + result for an external assessment.
+model ExternalAssessmentInvite {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  applicationId        String
+  externalAssessmentId String
+  connectionId         String
+  provider             AssessmentProviderKey
+  externalInviteId     String?
+  candidateUrl         String?               @db.Text
+  status               ExternalInviteStatus  @default(pending)
+  rawResult            Json?
+  /// Normalised output: { scorePercent, percentile, dimensions:{..} }
+  normalizedResult     Json?
+  scorePercent         Decimal?              @db.Decimal(5, 2)
+  costCents            Int?
+  currency             String                @default("USD")
+  invitedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  application        Application                  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  externalAssessment ExternalAssessment           @relation(fields: [externalAssessmentId], references: [id], onDelete: Cascade)
+  connection         AssessmentProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, externalAssessmentId])
+  @@index([applicationId])
+  @@index([externalInviteId])
+}
+
+/// Per-job weighting of competency dimensions, used to compute candidate fit.
+model JobCompetencyProfile {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  jobId     String   @unique
+  /// { dimension: weight } e.g. { "Conscientiousness": 3, "NumericalReasoning": 2 }
+  weights   Json
+  /// Optional target bands: { dimension: { min, max } }
+  targets   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+enum AssessmentUsageType {
+  native_attempt
+  external_invite
+  proctoring_snapshot
+}
+
+/// Metering ledger for assessment usage (billing + entitlement enforcement).
+model AssessmentUsageEvent {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  type          AssessmentUsageType
+  provider      AssessmentProviderKey?
+  applicationId String?
+  quantity      Int                    @default(1)
+  unitCostCents Int?
+  currency      String                 @default("USD")
+  metadata      Json?
+  createdAt     DateTime               @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, type])
 }
 
 // Staff members who can access the dashboard
@@ -2029,6 +2948,13 @@ model User {
   staffUserType           StaffUserType @default(operations)
   /// Direct manager for internal leave approvals (reportees appear on approver team overview).
   leaveApproverId         String?
+  /// Internal staff department (e.g. Operations, Finance) — used for leave grouping & reporting.
+  department              String?
+  /// Cost-centre code/name for internal staff leave liability roll-ups.
+  costCenterCode          String?
+  costCenterName          String?
+  /// Monthly gross pay (KES) — optional basis for monetary leave-liability on internal staff.
+  monthlySalary           Decimal?      @db.Decimal(12, 2)
   isActive                Boolean       @default(true)
   mfaEnabled              Boolean       @default(false)
   mfaSecret               String?
@@ -2044,83 +2970,109 @@ model User {
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt
 
-  staffLeaveBalances               StaffLeaveBalance[]
-  staffLeaveApplications           StaffLeaveApplication[]    @relation("StaffLeaveApplicant")
-  staffLeaveReviews                StaffLeaveApplication[]    @relation("StaffLeaveReviewer")
-  staffNotifications               StaffNotification[]        @relation("StaffUserNotifications")
-  accountsStaffAccess              AccountsStaffAccess[]
-  contractManagers                 ContractManager[]
-  credentialReminders              CredentialReminderSent[]
-  essPortalUsersCreated            EssPortalUser[]            @relation("EssPortalUserCreator")
-  permissionOverrides              UserPermissionOverride[]
-  auditEvents                      AuditEvent[]               @relation("AuditEventActor")
-  updatedSettings                  SystemSetting[]            @relation("SystemSettingUpdatedBy")
-  attendanceEventsCreated          AttendanceEvent[]
-  attendanceExceptionsResolved     AttendanceException[]
-  leaveBalanceLedgersCreated       LeaveBalanceLedger[]
-  leaveApprovalSteps               LeaveApprovalStep[]
-  leaveApprovalActions             LeaveApprovalAction[]
-  uploadedEmployeeDocuments        EmployeeDocument[]
-  onboardingAssignedTasks          OnboardingTask[]           @relation("OnboardingTaskAssignee")
-  onboardingCompletedTasks         OnboardingTask[]           @relation("OnboardingTaskCompletedBy")
-  reportedCases                    DisciplinaryCase[]         @relation("CaseReporter")
-  resolvedCases                    DisciplinaryCase[]         @relation("CaseResolver")
-  disciplinaryActions              DisciplinaryAction[]       @relation("DisciplinaryActionPerformer")
-  uploadedDisciplinaryDocuments    DisciplinaryDocument[]     @relation("DisciplinaryDocumentUploader")
-  uploadedGrievanceDocuments       GrievanceDocument[]        @relation("GrievanceDocumentUploader")
-  resolvedGrievances               Grievance[]                @relation("GrievanceResolver")
-  initiatedEmployeeEntityTransfers EmployeeEntityTransfer[]
-  actedEmployeeLifecycleEvents     EmployeeLifecycleEvent[]
-  workflowRunsCurrentAssignee      WorkflowRun[]              @relation("WorkflowCurrentAssigneeUser")
-  workflowRunsDelegatedFrom        WorkflowRun[]              @relation("WorkflowDelegatedFromUser")
-  workflowRunsDelegatedTo          WorkflowRun[]              @relation("WorkflowDelegatedToUser")
-  workflowEventRecipients          WorkflowEvent[]            @relation("WorkflowEventRecipientUser")
-  notificationPolicy               NotificationPolicy?
-  notificationDeliveries           NotificationDelivery[]     @relation("NotificationDeliveryRecipientUser")
-  assetsAssigned                   CompanyAsset[]             @relation("AssetAssignedByUser")
-  fleetComplianceChecks            FleetTripComplianceCheck[] @relation("FleetComplianceCheckedBy")
-  fleetTripDocumentsUploaded       FleetTripDocument[]        @relation("FleetTripDocumentUploader")
-  fleetTripDocumentsVerified       FleetTripDocument[]        @relation("FleetTripDocumentVerifier")
-  fleetIncidentsOwned              FleetIncident[]            @relation("FleetIncidentOwner")
-  fleetDriverEvaluations           FleetDriverEvaluation[]    @relation("FleetDriverEvaluationBy")
-  purchaseRequestsRequested        PurchaseRequest[]          @relation("PurchaseRequestRequester")
-  purchaseRequestsReviewed         PurchaseRequest[]          @relation("PurchaseRequestReviewer")
-  purchaseOrdersIssued             PurchaseOrder[]            @relation("PurchaseOrderIssuer")
-  goodsReceiptsReceived            GoodsReceipt[]             @relation("GoodsReceiptReceiver")
-  payrollDisbursementsInitiated    PayrollDisbursementBatch[] @relation("PayrollDisbursementInitiator")
-  performanceCyclesCreated         PerformanceCycle[]         @relation("PerformanceCycleCreator")
-  performanceReviewsManaged        PerformanceReview[]        @relation("PerformanceReviewManager")
-  performanceFeedbackAuthored      PerformanceFeedback[]      @relation("PerformanceFeedbackStaffAuthor")
-  jobDescriptionsCreated           JobDescription[]           @relation("JobDescriptionCreator")
-  jdDocumentsUploaded              JdDocument[]               @relation("JdDocumentUploader")
-  jdParserConfigsConsented         JdParserConfig[]           @relation("JdParserConfigConsent")
-  jdParserConfigsAiEvalConsented   JdParserConfig[]           @relation("JdParserConfigAiEvalConsent")
-  projectsOwned                    Project[]                  @relation("ProjectOwner")
-  projectsCreated                  Project[]                  @relation("ProjectCreator")
-  projectTasksAssigned             ProjectTask[]              @relation("ProjectTaskAssignee")
-  projectTasksCreated              ProjectTask[]              @relation("ProjectTaskCreator")
-  facilitySitesManaged             FacilitySite[]             @relation("FacilitySiteManager")
-  facilitySitesCreated             FacilitySite[]             @relation("FacilitySiteCreator")
-  facilityLeasesCreated            FacilityLease[]            @relation("FacilityLeaseCreator")
-  facilityTicketsReported          FacilityMaintenanceTicket[] @relation("FacilityTicketReporter")
-  facilityTicketsAssigned          FacilityMaintenanceTicket[] @relation("FacilityTicketAssignee")
-  facilityTicketsCreated           FacilityMaintenanceTicket[] @relation("FacilityTicketCreator")
-  governanceMeetingsCreated        GovernanceMeeting[]         @relation("GovernanceMeetingCreator")
-  governanceResolutionsCreated     GovernanceResolution[]      @relation("GovernanceResolutionCreator")
-  governanceActionsAssigned        GovernanceActionItem[]      @relation("GovernanceActionAssignee")
-  governanceActionsCreated         GovernanceActionItem[]      @relation("GovernanceActionCreator")
-  hseIncidentsReported             HseIncident[]               @relation("HseIncidentReporter")
-  hseIncidentsCreated              HseIncident[]               @relation("HseIncidentCreator")
-  hseActionsAssigned               HseAction[]                 @relation("HseActionAssignee")
-  hseActionsCreated                HseAction[]                 @relation("HseActionCreator")
-  saccoLedgerEntriesCreated        SaccoLedgerEntry[]          @relation("SaccoLedgerCreator")
-  saccoDividendRunsCreated         SaccoDividendRun[]          @relation("SaccoDividendRunCreator")
-  supportTicketsCreated            SupportTicket[]             @relation("SupportTicketCreator")
-  supportTicketMessages            SupportTicketMessage[]      @relation("SupportTicketMessageAuthor")
-  salesTargetsSet                  SalesTarget[]               @relation("SalesTargetSetBy")
-  salesTargetsApproved             SalesTarget[]               @relation("SalesTargetApprovedBy")
-  salesActualsRecorded             SalesActual[]               @relation("SalesActualRecordedBy")
-  salesDealStageChanges            SalesDealStageHistory[]     @relation("SalesDealStageChangedBy")
+  staffLeaveBalances                StaffLeaveBalance[]
+  staffLeaveApplications            StaffLeaveApplication[]           @relation("StaffLeaveApplicant")
+  staffLeaveReviews                 StaffLeaveApplication[]           @relation("StaffLeaveReviewer")
+  staffNotifications                StaffNotification[]               @relation("StaffUserNotifications")
+  accountsStaffAccess               AccountsStaffAccess[]
+  contractManagers                  ContractManager[]
+  credentialReminders               CredentialReminderSent[]
+  essPortalUsersCreated             EssPortalUser[]                   @relation("EssPortalUserCreator")
+  permissionOverrides               UserPermissionOverride[]
+  auditEvents                       AuditEvent[]                      @relation("AuditEventActor")
+  applicationComments               ApplicationComment[]              @relation("ApplicationCommentAuthor")
+  updatedSettings                   SystemSetting[]                   @relation("SystemSettingUpdatedBy")
+  attendanceEventsCreated           AttendanceEvent[]
+  attendanceExceptionsResolved      AttendanceException[]
+  staffShiftAssignments             StaffShiftAssignment[]            @relation("StaffShiftAssignmentUser")
+  staffAttendancePolicyAssignments  StaffAttendancePolicyAssignment[] @relation("StaffAttendancePolicyAssignmentUser")
+  staffAttendanceEvents             StaffAttendanceEvent[]            @relation("StaffAttendanceEventSubject")
+  staffAttendanceEventsCreated      StaffAttendanceEvent[]            @relation("StaffAttendanceEventCreator")
+  staffAttendanceDaySummaries       StaffAttendanceDaySummary[]       @relation("StaffAttendanceDaySummaryUser")
+  staffAttendanceExceptions         StaffAttendanceException[]        @relation("StaffAttendanceExceptionSubject")
+  staffAttendanceExceptionsResolved StaffAttendanceException[]        @relation("StaffAttendanceExceptionResolver")
+  staffBiometricPunches             StaffBiometricPunch[]             @relation("StaffBiometricPunchUser")
+  leaveBalanceLedgersCreated        LeaveBalanceLedger[]
+  leaveApprovalSteps                LeaveApprovalStep[]
+  leaveApprovalActions              LeaveApprovalAction[]
+  uploadedEmployeeDocuments         EmployeeDocument[]
+  onboardingAssignedTasks           OnboardingTask[]                  @relation("OnboardingTaskAssignee")
+  onboardingCompletedTasks          OnboardingTask[]                  @relation("OnboardingTaskCompletedBy")
+  onboardingFormReviews             OnboardingFormSubmission[]        @relation("OnboardingFormReviewer")
+  onboardingSignatureRequests       OnboardingSignatureRequest[]      @relation("OnboardingSignatureCreator")
+  reportedCases                     DisciplinaryCase[]                @relation("CaseReporter")
+  resolvedCases                     DisciplinaryCase[]                @relation("CaseResolver")
+  disciplinaryActions               DisciplinaryAction[]              @relation("DisciplinaryActionPerformer")
+  uploadedDisciplinaryDocuments     DisciplinaryDocument[]            @relation("DisciplinaryDocumentUploader")
+  uploadedGrievanceDocuments        GrievanceDocument[]               @relation("GrievanceDocumentUploader")
+  resolvedGrievances                Grievance[]                       @relation("GrievanceResolver")
+  initiatedEmployeeEntityTransfers  EmployeeEntityTransfer[]
+  actedEmployeeLifecycleEvents      EmployeeLifecycleEvent[]
+  workflowRunsCurrentAssignee       WorkflowRun[]                     @relation("WorkflowCurrentAssigneeUser")
+  workflowRunsDelegatedFrom         WorkflowRun[]                     @relation("WorkflowDelegatedFromUser")
+  workflowRunsDelegatedTo           WorkflowRun[]                     @relation("WorkflowDelegatedToUser")
+  workflowEventRecipients           WorkflowEvent[]                   @relation("WorkflowEventRecipientUser")
+  notificationPolicy                NotificationPolicy?
+  notificationDeliveries            NotificationDelivery[]            @relation("NotificationDeliveryRecipientUser")
+  assetsAssigned                    CompanyAsset[]                    @relation("AssetAssignedByUser")
+  assetAssignmentEventsPerformed    AssetAssignmentEvent[]            @relation("AssetEventPerformedByUser")
+  fleetComplianceChecks             FleetTripComplianceCheck[]        @relation("FleetComplianceCheckedBy")
+  fleetTripDocumentsUploaded        FleetTripDocument[]               @relation("FleetTripDocumentUploader")
+  fleetTripDocumentsVerified        FleetTripDocument[]               @relation("FleetTripDocumentVerifier")
+  fleetIncidentsOwned               FleetIncident[]                   @relation("FleetIncidentOwner")
+  fleetDriverEvaluations            FleetDriverEvaluation[]           @relation("FleetDriverEvaluationBy")
+  purchaseRequestsRequested         PurchaseRequest[]                 @relation("PurchaseRequestRequester")
+  purchaseRequestsReviewed          PurchaseRequest[]                 @relation("PurchaseRequestReviewer")
+  purchaseOrdersIssued              PurchaseOrder[]                   @relation("PurchaseOrderIssuer")
+  goodsReceiptsReceived             GoodsReceipt[]                    @relation("GoodsReceiptReceiver")
+  purchaseRequestApprovalSteps      PurchaseRequestApprovalStep[]     @relation("PurchaseRequestApprovalStepApprover")
+  purchaseRequestApprovalStepsActed PurchaseRequestApprovalStep[]     @relation("PurchaseRequestApprovalStepActor")
+  procurementApprovalPolicies       ProcurementApprovalPolicy[]       @relation("ProcurementApprovalPolicyApprover")
+  rfqsCreated                       Rfq[]                             @relation("RfqCreator")
+  vendorScorecardsCreated           VendorScorecard[]                 @relation("VendorScorecardCreator")
+  budgetCommitmentsCreated          BudgetCommitment[]                @relation("BudgetCommitmentCreator")
+  payrollDisbursementsInitiated     PayrollDisbursementBatch[]        @relation("PayrollDisbursementInitiator")
+  performanceCyclesCreated          PerformanceCycle[]                @relation("PerformanceCycleCreator")
+  performanceReviewsManaged         PerformanceReview[]               @relation("PerformanceReviewManager")
+  performanceFeedbackAuthored       PerformanceFeedback[]             @relation("PerformanceFeedbackStaffAuthor")
+  jobDescriptionsCreated            JobDescription[]                  @relation("JobDescriptionCreator")
+  jdDocumentsUploaded               JdDocument[]                      @relation("JdDocumentUploader")
+  jdParserConfigsConsented          JdParserConfig[]                  @relation("JdParserConfigConsent")
+  jdParserConfigsAiEvalConsented    JdParserConfig[]                  @relation("JdParserConfigAiEvalConsent")
+  projectsOwned                     Project[]                         @relation("ProjectOwner")
+  projectsCreated                   Project[]                         @relation("ProjectCreator")
+  projectTasksAssigned              ProjectTask[]                     @relation("ProjectTaskAssignee")
+  projectTasksCreated               ProjectTask[]                     @relation("ProjectTaskCreator")
+  projectMemberships                ProjectMember[]                   @relation("ProjectMemberships")
+  projectComments                   ProjectComment[]                  @relation("ProjectCommentAuthor")
+  projectAttachments                ProjectAttachment[]               @relation("ProjectAttachmentUploader")
+  projectActivities                 ProjectActivity[]                 @relation("ProjectActivityActor")
+  facilitySitesManaged              FacilitySite[]                    @relation("FacilitySiteManager")
+  facilitySitesCreated              FacilitySite[]                    @relation("FacilitySiteCreator")
+  facilityLeasesCreated             FacilityLease[]                   @relation("FacilityLeaseCreator")
+  facilityTicketsReported           FacilityMaintenanceTicket[]       @relation("FacilityTicketReporter")
+  facilityTicketsAssigned           FacilityMaintenanceTicket[]       @relation("FacilityTicketAssignee")
+  facilityTicketsCreated            FacilityMaintenanceTicket[]       @relation("FacilityTicketCreator")
+  governanceMeetingsCreated         GovernanceMeeting[]               @relation("GovernanceMeetingCreator")
+  governanceResolutionsCreated      GovernanceResolution[]            @relation("GovernanceResolutionCreator")
+  governanceActionsAssigned         GovernanceActionItem[]            @relation("GovernanceActionAssignee")
+  governanceActionsCreated          GovernanceActionItem[]            @relation("GovernanceActionCreator")
+  hseIncidentsReported              HseIncident[]                     @relation("HseIncidentReporter")
+  hseIncidentsCreated               HseIncident[]                     @relation("HseIncidentCreator")
+  hseActionsAssigned                HseAction[]                       @relation("HseActionAssignee")
+  hseActionsCreated                 HseAction[]                       @relation("HseActionCreator")
+  saccoLedgerEntriesCreated         SaccoLedgerEntry[]                @relation("SaccoLedgerCreator")
+  saccoDividendRunsCreated          SaccoDividendRun[]                @relation("SaccoDividendRunCreator")
+  supportTicketsCreated             SupportTicket[]                   @relation("SupportTicketCreator")
+  supportTicketMessages             SupportTicketMessage[]            @relation("SupportTicketMessageAuthor")
+  salesTargetsSet                   SalesTarget[]                     @relation("SalesTargetSetBy")
+  salesTargetsApproved              SalesTarget[]                     @relation("SalesTargetApprovedBy")
+  salesActualsRecorded              SalesActual[]                     @relation("SalesActualRecordedBy")
+  salesDealStageChanges             SalesDealStageHistory[]           @relation("SalesDealStageChangedBy")
+  salesQuotesCreated                SalesQuote[]                      @relation("SalesQuoteCreatedBy")
+  salesTasksCreated                 SalesTask[]                       @relation("SalesTaskCreatedBy")
+  legalObligationsOwned             LegalObligation[]                 @relation("LegalObligationOwner")
+  legalObligationEvents             LegalObligationEvent[]            @relation("LegalObligationEventActor")
 
   leaveApprover  User?  @relation("UserLeaveApprover", fields: [leaveApproverId], references: [id], onDelete: SetNull)
   leaveReportees User[] @relation("UserLeaveApprover")
@@ -2198,12 +3150,14 @@ model EssPortalUser {
   employee      Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   createdByUser User?     @relation("EssPortalUserCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
-  notifications               StaffNotification[]    @relation("EssUserNotifications")
-  workflowRunsCurrentAssignee WorkflowRun[]          @relation("WorkflowCurrentAssigneeEss")
-  workflowEventRecipients     WorkflowEvent[]        @relation("WorkflowEventRecipientEss")
+  notifications               StaffNotification[]          @relation("EssUserNotifications")
+  workflowRunsCurrentAssignee WorkflowRun[]                @relation("WorkflowCurrentAssigneeEss")
+  workflowEventRecipients     WorkflowEvent[]              @relation("WorkflowEventRecipientEss")
   notificationPolicy          NotificationPolicy?
-  notificationDeliveries      NotificationDelivery[] @relation("NotificationDeliveryRecipientEss")
+  notificationDeliveries      NotificationDelivery[]       @relation("NotificationDeliveryRecipientEss")
   performanceFeedbackAuthored PerformanceFeedback[]
+  onboardingFormSubmissions   OnboardingFormSubmission[]   @relation("OnboardingFormEss")
+  onboardingSignatureRequests OnboardingSignatureRequest[] @relation("OnboardingSignatureEss")
 
   @@index([employeeId])
   @@index([isActive])
@@ -2404,27 +3358,27 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships OrganizationMembership[]
-  authConfig    OrganizationAuthConfig?
-  emailDomains  OrganizationEmailDomain[]
+  memberships  OrganizationMembership[]
+  authConfig   OrganizationAuthConfig?
+  emailDomains OrganizationEmailDomain[]
 }
 
 /// Per-org sign-in policy (RLS). Replaces STAFF_ALLOWED_DOMAIN env for pooled deployments.
 model OrganizationAuthConfig {
-  id                   String   @id @default(uuid()) @db.Uuid
-  organizationId       String   @unique @db.Uuid
+  id                    String         @id @default(uuid()) @db.Uuid
+  organizationId        String         @unique @db.Uuid
   staffEnabledProviders AuthProvider[] @default([credentials])
-  essEnabledProviders  AuthProvider[] @default([credentials])
-  ssoEnforcedStaff     Boolean  @default(false)
-  ssoEnforcedEss       Boolean  @default(false)
-  jitProvisioning      Boolean  @default(false)
-  lockedMsTenantId     String?
+  essEnabledProviders   AuthProvider[] @default([credentials])
+  ssoEnforcedStaff      Boolean        @default(false)
+  ssoEnforcedEss        Boolean        @default(false)
+  jitProvisioning       Boolean        @default(false)
+  lockedMsTenantId      String?
   /// AUTH-09 — SAML IdP metadata URL (enterprise; activation via Raven ops).
-  samlIdpMetadataUrl   String?
-  samlEnabledStaff     Boolean  @default(false)
-  samlEnabledEss       Boolean  @default(false)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  samlIdpMetadataUrl    String?
+  samlEnabledStaff      Boolean        @default(false)
+  samlEnabledEss        Boolean        @default(false)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -2545,6 +3499,7 @@ model AccountsClient {
   fleetCustomers FleetCustomer[]
   salesDeals     SalesDeal[]
   salesContacts  SalesContact[]
+  salesQuotes    SalesQuote[]
 
   @@index([type])
   @@index([name])
@@ -2708,6 +3663,7 @@ model AccountsInvoice {
   fleetTripBill  FleetTrip?                         @relation("FleetTripClientInvoice")
   salesDeals     SalesDeal[]
   salesActuals   SalesActual[]
+  salesQuotes    SalesQuote[]
 
   @@unique([clientId, invoiceNumber])
   @@unique([invoiceNumber])
@@ -2836,6 +3792,12 @@ model AccountsVendor {
   purchaseRequests PurchaseRequest[]
   purchaseOrders   PurchaseOrder[]
 
+  procurementProfile ProcurementVendorProfile?
+  scorecards         VendorScorecard[]
+  rfqInvitations     RfqInvitation[]
+  rfqQuotes          RfqQuote[]
+  awardedRfqs        Rfq[]                     @relation("RfqAwardedVendor")
+
   @@index([name])
 }
 
@@ -2854,9 +3816,9 @@ model AccountsVendorBill {
   createdAt  DateTime                 @default(now())
   updatedAt  DateTime                 @updatedAt
 
-  vendor      AccountsVendor                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  lines       AccountsVendorBillLine[]
-  allocations AccountsVendorPaymentAllocation[]
+  vendor         AccountsVendor                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  lines          AccountsVendorBillLine[]
+  allocations    AccountsVendorPaymentAllocation[]
   purchaseOrders PurchaseOrder[]
 
   @@index([vendorId])
@@ -3036,6 +3998,7 @@ model NotificationPolicy {
   essPortalUserId     String?  @unique
   inAppEnabled        Boolean  @default(true)
   emailEnabled        Boolean  @default(true)
+  whatsappEnabled     Boolean  @default(false)
   actionRequiredEmail Boolean  @default(true)
   urgentEmail         Boolean  @default(true)
   quietHoursEnabled   Boolean  @default(false)
@@ -3244,6 +4207,7 @@ model Budget {
   currency         String           @default("KES")
   allocatedAmount  Decimal          @db.Decimal(14, 2)
   spentAmount      Decimal          @default(0) @db.Decimal(14, 2)
+  committedAmount  Decimal          @default(0) @db.Decimal(14, 2)
   status           BudgetStatus     @default(draft)
   startDate        DateTime         @db.Date
   endDate          DateTime         @db.Date
@@ -3269,11 +4233,15 @@ model BudgetLineItem {
   name            String
   allocatedAmount Decimal  @db.Decimal(14, 2)
   spentAmount     Decimal  @default(0) @db.Decimal(14, 2)
+  committedAmount Decimal  @default(0) @db.Decimal(14, 2)
   notes           String?  @db.Text
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  budget               Budget                @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  purchaseRequestLines PurchaseRequestLine[]
+  purchaseOrderLines   PurchaseOrderLine[]
+  commitments          BudgetCommitment[]
 
   @@index([budgetId])
 }
@@ -3354,24 +4322,63 @@ model Announcement {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  title             String
-  body              String               @db.Text
-  status            AnnouncementStatus   @default(draft)
-  priority          AnnouncementPriority @default(normal)
-  authorUserId      String
-  publishedAt       DateTime?
-  expiresAt         DateTime?
-  isPinned          Boolean              @default(false)
-  targetDepartments Json?
-  targetRoles       Json?
-  attachmentPath    String?
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  title                  String
+  body                   String               @db.Text
+  status                 AnnouncementStatus   @default(draft)
+  priority               AnnouncementPriority @default(normal)
+  authorUserId           String
+  publishedAt            DateTime?
+  expiresAt              DateTime?
+  isPinned               Boolean              @default(false)
+  requireAcknowledgement Boolean              @default(false)
+  targetDepartments      Json?
+  targetRoles            Json?
+  attachmentPath         String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  reads       AnnouncementRead[]
+  attachments AnnouncementAttachment[]
 
   @@index([status, publishedAt])
   @@index([isPinned, publishedAt])
   @@index([authorUserId])
   @@index([expiresAt])
+}
+
+model AnnouncementRead {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  announcementId String
+  userId         String?
+  employeeId     String?
+  readAt         DateTime  @default(now())
+  acknowledgedAt DateTime?
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([announcementId])
+  @@index([userId])
+  @@index([employeeId])
+}
+
+model AnnouncementAttachment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  announcementId   String
+  fileName         String
+  fileUrl          String
+  contentType      String?
+  fileSize         Int?
+  uploadedByUserId String?
+  createdAt        DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@index([announcementId])
 }
 
 enum TrainingStatus {
@@ -3496,6 +4503,120 @@ model CompanyDocument {
   @@index([effectiveDate])
 }
 
+enum LegalObligationCategory {
+  filing
+  permit
+  licence
+  board
+  regulator
+  insurance
+  other
+}
+
+enum LegalObligationStatus {
+  pending
+  completed
+  waived
+}
+
+enum LegalObligationPriority {
+  low
+  medium
+  high
+  critical
+}
+
+model LegalObligation {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  title            String
+  description      String?                 @db.Text
+  category         LegalObligationCategory @default(other)
+  priority         LegalObligationPriority @default(medium)
+  dueDate          DateTime                @db.Date
+  status           LegalObligationStatus   @default(pending)
+  ownerUserId      String?
+  regulator        String?
+  reminderDays     Int                     @default(30)
+  /// When set, completing this obligation auto-creates the next one this many months later.
+  recurrenceMonths Int?
+  completedAt      DateTime?
+  waivedReason     String?                 @db.Text
+  evidencePath     String?
+  evidenceFileName String?
+  notes            String?                 @db.Text
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  owner     User?                         @relation("LegalObligationOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  reminders LegalObligationReminderSent[]
+  events    LegalObligationEvent[]
+
+  @@index([organizationId, dueDate])
+  @@index([organizationId, status])
+  @@index([organizationId, priority])
+  @@index([ownerUserId])
+}
+
+enum LegalObligationReminderKind {
+  days_60
+  days_30
+  days_14
+  days_7
+  due_day
+  overdue_weekly
+}
+
+/// Audit log for legal obligation reminders (milestones once each; overdue can repeat weekly).
+model LegalObligationReminderSent {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  obligationId String
+  kind         LegalObligationReminderKind
+  sentOnYmd    String
+  sentAt       DateTime                    @default(now())
+
+  obligation LegalObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+
+  @@unique([obligationId, kind, sentOnYmd])
+  @@index([organizationId, kind])
+  @@index([sentOnYmd])
+}
+
+enum LegalObligationEventType {
+  created
+  updated
+  assigned
+  status_changed
+  completed
+  waived
+  reopened
+  evidence_uploaded
+  evidence_removed
+}
+
+/// Activity history for a legal obligation (assignment, status transitions, evidence).
+model LegalObligationEvent {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  obligationId String
+  actorUserId  String?
+  type         LegalObligationEventType
+  fromStatus   LegalObligationStatus?
+  toStatus     LegalObligationStatus?
+  note         String?                  @db.Text
+  createdAt    DateTime                 @default(now())
+
+  obligation LegalObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  actor      User?           @relation("LegalObligationEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([obligationId, createdAt])
+  @@index([organizationId, createdAt])
+}
+
 model Insight {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
@@ -3587,15 +4708,15 @@ model FleetVehicle {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
-  client           OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  trips            FleetTrip[]
-  fuelLogs         FleetFuelLog[]
-  maintenanceLogs  FleetMaintenanceLog[]
-  positions        FleetVehiclePosition[]
-  servicePlans     FleetServicePlan[]
-  defectReports    FleetDefectReport[]
+  client                 OutsourcingClient            @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  trips                  FleetTrip[]
+  fuelLogs               FleetFuelLog[]
+  maintenanceLogs        FleetMaintenanceLog[]
+  positions              FleetVehiclePosition[]
+  servicePlans           FleetServicePlan[]
+  defectReports          FleetDefectReport[]
   environmentalSnapshots FleetEnvironmentalSnapshot[]
-  drivingTimeLogs  FleetDrivingTimeLog[]
+  drivingTimeLogs        FleetDrivingTimeLog[]
 
   @@unique([outsourcingClientId, registration])
   @@index([organizationId, status])
@@ -3618,11 +4739,11 @@ model FleetDriver {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
-  client   OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  employee Employee?         @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  trips    FleetTrip[]
-  fuelLogs FleetFuelLog[]
-  evaluations FleetDriverEvaluation[]
+  client          OutsourcingClient       @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  employee        Employee?               @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  trips           FleetTrip[]
+  fuelLogs        FleetFuelLog[]
+  evaluations     FleetDriverEvaluation[]
   drivingTimeLogs FleetDrivingTimeLog[]
   defectReports   FleetDefectReport[]
 
@@ -3656,20 +4777,20 @@ model FleetFuelLog {
 }
 
 model FleetMaintenanceLog {
-  id                  String                @id @default(cuid())
-  organizationId      String                @db.Uuid
+  id                  String               @id @default(cuid())
+  organizationId      String               @db.Uuid
   outsourcingClientId String
   vehicleId           String
-  maintenanceType     FleetMaintenanceType  @default(service)
+  maintenanceType     FleetMaintenanceType @default(service)
   description         String
-  performedAt         DateTime              @default(now())
-  costKes             Decimal?              @db.Decimal(14, 2)
+  performedAt         DateTime             @default(now())
+  costKes             Decimal?             @db.Decimal(14, 2)
   odometerKm          Int?
   vendor              String?
-  notes               String?               @db.Text
+  notes               String?              @db.Text
   createdByUserId     String?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   client  OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
   vehicle FleetVehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
@@ -3775,25 +4896,25 @@ model FleetTrip {
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
-  client           OutsourcingClient          @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  order            FleetOrder?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  customer         FleetCustomer              @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  vehicle          FleetVehicle?              @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  driver           FleetDriver?               @relation(fields: [driverId], references: [id], onDelete: SetNull)
-  partner          FleetTransportPartner?     @relation(fields: [partnerId], references: [id], onDelete: SetNull)
-  events           FleetTripEvent[]
-  complianceChecks FleetTripComplianceCheck[]
-  documents        FleetTripDocument[]
-  settlement       FleetSettlement?
-  incidents        FleetIncident[]
-  clientInvoiceId  String?                    @unique
-  clientInvoice    AccountsInvoice?           @relation("FleetTripClientInvoice", fields: [clientInvoiceId], references: [id], onDelete: SetNull)
-  fuelLogs         FleetFuelLog[]
-  positions        FleetVehiclePosition[]
-  defectReports    FleetDefectReport[]
-  driverEvaluations FleetDriverEvaluation[]
+  client                 OutsourcingClient            @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  order                  FleetOrder?                  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  customer               FleetCustomer                @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vehicle                FleetVehicle?                @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  driver                 FleetDriver?                 @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  partner                FleetTransportPartner?       @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  events                 FleetTripEvent[]
+  complianceChecks       FleetTripComplianceCheck[]
+  documents              FleetTripDocument[]
+  settlement             FleetSettlement?
+  incidents              FleetIncident[]
+  clientInvoiceId        String?                      @unique
+  clientInvoice          AccountsInvoice?             @relation("FleetTripClientInvoice", fields: [clientInvoiceId], references: [id], onDelete: SetNull)
+  fuelLogs               FleetFuelLog[]
+  positions              FleetVehiclePosition[]
+  defectReports          FleetDefectReport[]
+  driverEvaluations      FleetDriverEvaluation[]
   environmentalSnapshots FleetEnvironmentalSnapshot[]
-  drivingTimeLogs  FleetDrivingTimeLog[]
+  drivingTimeLogs        FleetDrivingTimeLog[]
 
   @@unique([outsourcingClientId, tripNumber])
   @@index([outsourcingClientId, status])
@@ -4078,10 +5199,10 @@ model FleetDefectReport {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
-  client         OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  vehicle        FleetVehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  trip           FleetTrip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
-  reportedByDriver FleetDriver?    @relation(fields: [reportedByDriverId], references: [id], onDelete: SetNull)
+  client           OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  vehicle          FleetVehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  trip             FleetTrip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  reportedByDriver FleetDriver?      @relation(fields: [reportedByDriverId], references: [id], onDelete: SetNull)
 
   @@index([outsourcingClientId, status])
   @@index([vehicleId])
@@ -4139,10 +5260,10 @@ model FleetDriverEvaluation {
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
 
-  client     OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  driver     FleetDriver       @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  trip       FleetTrip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
-  evaluatedBy User?            @relation("FleetDriverEvaluationBy", fields: [evaluatedByUserId], references: [id], onDelete: SetNull)
+  client      OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  driver      FleetDriver       @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  trip        FleetTrip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  evaluatedBy User?             @relation("FleetDriverEvaluationBy", fields: [evaluatedByUserId], references: [id], onDelete: SetNull)
 
   @@index([driverId, evaluatedAt(sort: Desc)])
   @@index([outsourcingClientId])
@@ -4228,12 +5349,14 @@ model PurchaseRequest {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
-  client      OutsourcingClient     @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  vendor      AccountsVendor?       @relation(fields: [vendorId], references: [id], onDelete: SetNull)
-  requestedBy User                  @relation("PurchaseRequestRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
-  reviewedBy  User?                 @relation("PurchaseRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
-  lines       PurchaseRequestLine[]
+  client        OutsourcingClient             @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  vendor        AccountsVendor?               @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  requestedBy   User                          @relation("PurchaseRequestRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  reviewedBy    User?                         @relation("PurchaseRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  lines         PurchaseRequestLine[]
   purchaseOrder PurchaseOrder?
+  approvalSteps PurchaseRequestApprovalStep[]
+  rfqs          Rfq[]
 
   @@index([outsourcingClientId])
   @@index([status])
@@ -4245,17 +5368,21 @@ model PurchaseRequestLine {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  requestId   String
-  item        String
-  description String?  @db.Text
-  quantity    Decimal  @default(1) @db.Decimal(12, 2)
-  unitPrice   Decimal  @db.Decimal(14, 2)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
+  requestId        String
+  item             String
+  description      String?  @db.Text
+  quantity         Decimal  @default(1) @db.Decimal(12, 2)
+  unitPrice        Decimal  @db.Decimal(14, 2)
+  sortOrder        Int      @default(0)
+  budgetLineItemId String?
+  createdAt        DateTime @default(now())
 
-  request PurchaseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  request            PurchaseRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  budgetLineItem     BudgetLineItem?     @relation(fields: [budgetLineItemId], references: [id], onDelete: SetNull)
+  purchaseOrderLines PurchaseOrderLine[]
 
   @@index([requestId])
+  @@index([budgetLineItemId])
 }
 
 enum PurchaseOrderStatus {
@@ -4270,25 +5397,28 @@ model PurchaseOrder {
   organizationId String @db.Uuid
 
   outsourcingClientId String
-  purchaseRequestId   String?               @unique
-  lpoNumber           String                @unique
+  purchaseRequestId   String?                  @unique
+  lpoNumber           String                   @unique
   title               String
-  currency            String                @default("KES")
-  totalAmount         Decimal               @default(0) @db.Decimal(14, 2)
-  status              PurchaseOrderStatus   @default(draft)
+  currency            String                   @default("KES")
+  totalAmount         Decimal                  @default(0) @db.Decimal(14, 2)
+  status              PurchaseOrderStatus      @default(draft)
+  matchStatus         PurchaseOrderMatchStatus @default(not_matched)
   vendorId            String
   vendorBillId        String?
+  rfqId               String?
   issuedAt            DateTime?
   issuedByUserId      String?
-  notes               String?               @db.Text
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  notes               String?                  @db.Text
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
-  client          OutsourcingClient     @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  purchaseRequest PurchaseRequest?      @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
-  vendor          AccountsVendor        @relation(fields: [vendorId], references: [id], onDelete: Restrict)
-  vendorBill      AccountsVendorBill?   @relation(fields: [vendorBillId], references: [id], onDelete: SetNull)
-  issuedBy        User?                 @relation("PurchaseOrderIssuer", fields: [issuedByUserId], references: [id], onDelete: SetNull)
+  client          OutsourcingClient   @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  purchaseRequest PurchaseRequest?    @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
+  vendor          AccountsVendor      @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  vendorBill      AccountsVendorBill? @relation(fields: [vendorBillId], references: [id], onDelete: SetNull)
+  rfq             Rfq?                @relation(fields: [rfqId], references: [id], onDelete: SetNull)
+  issuedBy        User?               @relation("PurchaseOrderIssuer", fields: [issuedByUserId], references: [id], onDelete: SetNull)
   lines           PurchaseOrderLine[]
   goodsReceipts   GoodsReceipt[]
 
@@ -4296,29 +5426,38 @@ model PurchaseOrder {
   @@index([vendorId])
   @@index([status])
   @@index([issuedAt])
+  @@index([rfqId])
 }
 
 model PurchaseOrderLine {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  purchaseOrderId String
-  item            String
-  description     String?  @db.Text
-  quantity        Decimal  @default(1) @db.Decimal(12, 2)
-  unitPrice       Decimal  @db.Decimal(14, 2)
-  sortOrder       Int      @default(0)
-  createdAt       DateTime @default(now())
+  purchaseOrderId       String
+  item                  String
+  description           String?  @db.Text
+  quantity              Decimal  @default(1) @db.Decimal(12, 2)
+  unitPrice             Decimal  @db.Decimal(14, 2)
+  receivedQuantity      Decimal  @default(0) @db.Decimal(12, 2)
+  sortOrder             Int      @default(0)
+  purchaseRequestLineId String?
+  budgetLineItemId      String?
+  createdAt             DateTime @default(now())
 
-  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  goodsReceiptLines GoodsReceiptLine[]
+  purchaseOrder       PurchaseOrder        @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseRequestLine PurchaseRequestLine? @relation(fields: [purchaseRequestLineId], references: [id], onDelete: SetNull)
+  budgetLineItem      BudgetLineItem?      @relation(fields: [budgetLineItemId], references: [id], onDelete: SetNull)
+  goodsReceiptLines   GoodsReceiptLine[]
 
   @@index([purchaseOrderId])
+  @@index([purchaseRequestLineId])
+  @@index([budgetLineItemId])
 }
 
 enum GoodsReceiptStatus {
   draft
   posted
+  cancelled
 }
 
 model GoodsReceipt {
@@ -4327,17 +5466,17 @@ model GoodsReceipt {
 
   outsourcingClientId String
   purchaseOrderId     String
-  grnNumber           String              @unique
-  receivedAt          DateTime            @db.Date
+  grnNumber           String             @unique
+  receivedAt          DateTime           @db.Date
   receivedByUserId    String
-  status              GoodsReceiptStatus  @default(draft)
-  notes               String?             @db.Text
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  status              GoodsReceiptStatus @default(draft)
+  notes               String?            @db.Text
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
-  client        OutsourcingClient   @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  purchaseOrder PurchaseOrder       @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  receivedBy    User                @relation("GoodsReceiptReceiver", fields: [receivedByUserId], references: [id], onDelete: Restrict)
+  client        OutsourcingClient  @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  purchaseOrder PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  receivedBy    User               @relation("GoodsReceiptReceiver", fields: [receivedByUserId], references: [id], onDelete: Restrict)
   lines         GoodsReceiptLine[]
 
   @@index([outsourcingClientId])
@@ -4352,6 +5491,8 @@ model GoodsReceiptLine {
   goodsReceiptId      String
   purchaseOrderLineId String
   quantityReceived    Decimal  @db.Decimal(12, 2)
+  rejectedQuantity    Decimal  @default(0) @db.Decimal(12, 2)
+  condition           String?
   createdAt           DateTime @default(now())
 
   goodsReceipt      GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
@@ -4359,6 +5500,343 @@ model GoodsReceiptLine {
 
   @@index([goodsReceiptId])
   @@index([purchaseOrderLineId])
+}
+
+// --- Procurement overhaul foundation (numbering, approvals, matching) ---
+
+enum PurchaseApprovalStepStatus {
+  pending
+  approved
+  rejected
+  skipped
+}
+
+enum PurchaseOrderMatchStatus {
+  not_matched
+  partially_matched
+  matched
+  exception
+}
+
+/// Atomic per-tenant document numbering — replaces race-prone count()+1 numbering.
+model ProcurementSequence {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  docType             String
+  year                Int
+  nextValue           Int      @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, outsourcingClientId, docType, year])
+  @@index([outsourcingClientId])
+}
+
+/// Multi-level approval steps for a purchase request (mirrors LeaveApprovalStep).
+model PurchaseRequestApprovalStep {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  purchaseRequestId   String
+  stepOrder           Int
+  approverUserId      String?
+  approverRole        String?
+  status              PurchaseApprovalStepStatus @default(pending)
+  actedByUserId       String?
+  actedAt             DateTime?
+  comment             String?                    @db.Text
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  client          OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  purchaseRequest PurchaseRequest   @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  approver        User?             @relation("PurchaseRequestApprovalStepApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+  actedBy         User?             @relation("PurchaseRequestApprovalStepActor", fields: [actedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([purchaseRequestId, stepOrder])
+  @@index([outsourcingClientId])
+  @@index([purchaseRequestId, status])
+  @@index([approverUserId, status])
+}
+
+/// Threshold-based approval routing policy — approval steps can be auto-generated from amount bands.
+model ProcurementApprovalPolicy {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  name                String
+  minAmount           Decimal  @default(0) @db.Decimal(14, 2)
+  maxAmount           Decimal? @db.Decimal(14, 2)
+  stepOrder           Int      @default(0)
+  approverRole        String?
+  approverUserId      String?
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  client   OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  approver User?             @relation("ProcurementApprovalPolicyApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([outsourcingClientId, active])
+  @@index([outsourcingClientId, minAmount])
+}
+
+// --- Procurement sourcing (RFQ), vendor enrichment & budget encumbrance ---
+
+enum RfqStatus {
+  draft
+  issued
+  evaluating
+  awarded
+  cancelled
+  closed
+}
+
+enum RfqInvitationStatus {
+  invited
+  responded
+  declined
+}
+
+enum RfqQuoteStatus {
+  draft
+  submitted
+  shortlisted
+  awarded
+  rejected
+}
+
+enum ProcurementVendorStatus {
+  prospective
+  onboarding
+  active
+  suspended
+  blacklisted
+}
+
+enum BudgetCommitmentSourceType {
+  purchase_request
+  purchase_order
+}
+
+enum BudgetCommitmentStatus {
+  active
+  released
+  consumed
+}
+
+/// Request for quotation — sourcing event that collects vendor quotes and awards a winner.
+model Rfq {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  rfqNumber           String    @unique
+  title               String
+  description         String?   @db.Text
+  currency            String    @default("KES")
+  status              RfqStatus @default(draft)
+  dueDate             DateTime? @db.Date
+  createdByUserId     String
+  awardedVendorId     String?
+  awardedQuoteId      String?
+  purchaseRequestId   String?
+  notes               String?   @db.Text
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  client          OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  createdBy       User              @relation("RfqCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  awardedVendor   AccountsVendor?   @relation("RfqAwardedVendor", fields: [awardedVendorId], references: [id], onDelete: SetNull)
+  purchaseRequest PurchaseRequest?  @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
+  lines           RfqLine[]
+  invitations     RfqInvitation[]
+  quotes          RfqQuote[]
+  purchaseOrders  PurchaseOrder[]
+
+  @@index([outsourcingClientId])
+  @@index([status])
+  @@index([awardedVendorId])
+  @@index([purchaseRequestId])
+}
+
+model RfqLine {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  rfqId       String
+  item        String
+  description String?  @db.Text
+  quantity    Decimal  @default(1) @db.Decimal(12, 2)
+  unit        String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  rfq        Rfq            @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  quoteLines RfqQuoteLine[]
+
+  @@index([rfqId])
+}
+
+model RfqInvitation {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  rfqId               String
+  vendorId            String
+  status              RfqInvitationStatus @default(invited)
+  invitedAt           DateTime            @default(now())
+  respondedAt         DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  rfq    Rfq               @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendor AccountsVendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([rfqId, vendorId])
+  @@index([outsourcingClientId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model RfqQuote {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  rfqId               String
+  vendorId            String
+  quoteNumber         String?
+  status              RfqQuoteStatus @default(draft)
+  totalAmount         Decimal        @default(0) @db.Decimal(14, 2)
+  submittedAt         DateTime?
+  validUntil          DateTime?      @db.Date
+  notes               String?        @db.Text
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  rfq    Rfq               @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendor AccountsVendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  lines  RfqQuoteLine[]
+
+  @@index([outsourcingClientId])
+  @@index([rfqId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model RfqQuoteLine {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  quoteId      String
+  rfqLineId    String?
+  unitPrice    Decimal  @db.Decimal(14, 2)
+  quantity     Decimal  @default(1) @db.Decimal(12, 2)
+  leadTimeDays Int?
+  notes        String?  @db.Text
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  quote   RfqQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  rfqLine RfqLine? @relation(fields: [rfqLineId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId])
+  @@index([rfqLineId])
+}
+
+/// Procurement-side enrichment of the Finance-owned AccountsVendor (1:1).
+model ProcurementVendorProfile {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  vendorId            String                  @unique
+  category            String?
+  taxId               String?
+  registrationNo      String?
+  status              ProcurementVendorStatus @default(prospective)
+  rating              Decimal?                @db.Decimal(3, 2)
+  leadTimeDays        Int?
+  paymentTerms        String?
+  bankName            String?
+  bankAccount         String?
+  contactName         String?
+  contactEmail        String?
+  contactPhone        String?
+  onboardedAt         DateTime?
+  notes               String?                 @db.Text
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  vendor AccountsVendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([outsourcingClientId, status])
+  @@index([category])
+}
+
+/// Periodic vendor performance scorecard (a vendor has many over time).
+model VendorScorecard {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  vendorId            String
+  periodStart         DateTime @db.Date
+  periodEnd           DateTime @db.Date
+  deliveryScore       Decimal? @db.Decimal(3, 2)
+  qualityScore        Decimal? @db.Decimal(3, 2)
+  priceScore          Decimal? @db.Decimal(3, 2)
+  overallScore        Decimal? @db.Decimal(3, 2)
+  notes               String?  @db.Text
+  createdByUserId     String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  client    OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  vendor    AccountsVendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdBy User              @relation("VendorScorecardCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([outsourcingClientId])
+  @@index([vendorId, periodEnd(sort: Desc)])
+}
+
+/// Auditable budget encumbrance ledger — reserves budget at PR/PO stage (enforce-at-approval).
+model BudgetCommitment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  outsourcingClientId String
+  budgetLineItemId    String
+  sourceType          BudgetCommitmentSourceType
+  sourceId            String
+  sourceRef           String?
+  amount              Decimal                    @db.Decimal(14, 2)
+  status              BudgetCommitmentStatus     @default(active)
+  createdByUserId     String?
+  releasedAt          DateTime?
+  notes               String?                    @db.Text
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  client         OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  budgetLineItem BudgetLineItem    @relation(fields: [budgetLineItemId], references: [id], onDelete: Cascade)
+  createdBy      User?             @relation("BudgetCommitmentCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([outsourcingClientId])
+  @@index([budgetLineItemId])
+  @@index([sourceType, sourceId])
+  @@index([status])
 }
 
 // --- Performance BSC: Job Descriptions (PERF-01 / RAV-252) ---
@@ -4428,36 +5906,36 @@ model JobDescription {
   divisionId           String?
   title                String
   grade                String?
-  version              Int      @default(1)
-  status               JdStatus @default(draft)
-  jobPurpose           String?  @db.Text
-  keyActivities        String?  @db.Text
-  authorityScope       String?  @db.Text
-  workingConditions    String?  @db.Text
-  qualifications       String?  @db.Text
-  relationships        String?  @db.Text
+  version              Int       @default(1)
+  status               JdStatus  @default(draft)
+  jobPurpose           String?   @db.Text
+  keyActivities        String?   @db.Text
+  authorityScope       String?   @db.Text
+  workingConditions    String?   @db.Text
+  qualifications       String?   @db.Text
+  relationships        String?   @db.Text
   rootJobDescriptionId String?
-  previousVersionId    String?  @unique
+  previousVersionId    String?   @unique
   publishedAt          DateTime?
   createdByUserId      String?
-  sourceDocumentId     String?  @unique
-  isReferencePack      Boolean  @default(false)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  sourceDocumentId     String?   @unique
+  isReferencePack      Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  division         JdDivision?     @relation(fields: [divisionId], references: [id], onDelete: SetNull)
-  rootJobDescription JobDescription? @relation("JdVersionRoot", fields: [rootJobDescriptionId], references: [id], onDelete: SetNull)
-  versionChildren  JobDescription[] @relation("JdVersionRoot")
-  previousVersion  JobDescription? @relation("JdVersionChain", fields: [previousVersionId], references: [id], onDelete: SetNull)
-  nextVersion      JobDescription? @relation("JdVersionChain")
-  createdBy        User?           @relation("JobDescriptionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  sourceDocument   JdDocument?     @relation("JdSourceDocument", fields: [sourceDocumentId], references: [id], onDelete: SetNull)
-  kras             JobKRA[]
-  competencies     JobCompetency[]
-  kpis             JobKPI[]
-  documents        JdDocument[]    @relation("JdDocuments")
-  scorecardTemplates ScorecardTemplate[]
-  performanceReviews PerformanceReview[]
+  division              JdDivision?            @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  rootJobDescription    JobDescription?        @relation("JdVersionRoot", fields: [rootJobDescriptionId], references: [id], onDelete: SetNull)
+  versionChildren       JobDescription[]       @relation("JdVersionRoot")
+  previousVersion       JobDescription?        @relation("JdVersionChain", fields: [previousVersionId], references: [id], onDelete: SetNull)
+  nextVersion           JobDescription?        @relation("JdVersionChain")
+  createdBy             User?                  @relation("JobDescriptionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  sourceDocument        JdDocument?            @relation("JdSourceDocument", fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+  kras                  JobKRA[]
+  competencies          JobCompetency[]
+  kpis                  JobKPI[]
+  documents             JdDocument[]           @relation("JdDocuments")
+  scorecardTemplates    ScorecardTemplate[]
+  performanceReviews    PerformanceReview[]
   performanceObjectives PerformanceObjective[]
 
   @@unique([organizationId, title, grade, version])
@@ -4500,8 +5978,8 @@ model JobKPI {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
-  jobKra         JobKRA?        @relation(fields: [jobKraId], references: [id], onDelete: SetNull)
+  jobDescription    JobDescription     @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+  jobKra            JobKRA?            @relation(fields: [jobKraId], references: [id], onDelete: SetNull)
   scorecardMeasures ScorecardMeasure[]
 
   @@index([jobDescriptionId, sortOrder])
@@ -4514,13 +5992,13 @@ model JobCompetency {
 
   jobDescriptionId String
   name             String
-  description      String? @db.Text
+  description      String?  @db.Text
   requiredLevel    Int
-  sortOrder        Int     @default(0)
+  sortOrder        Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+  jobDescription        JobDescription          @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
   scorecardRequirements CompetencyRequirement[]
 
   @@index([jobDescriptionId, sortOrder])
@@ -4549,19 +6027,19 @@ model JdParserConfig {
   id             String @id @default(cuid())
   organizationId String @unique @db.Uuid
 
-  mode              JdParserMode @default(manual)
-  provider          String?
-  apiKeyRef         String?
-  promptTemplate    String?      @db.Text
-  consentAt         DateTime?
-  consentByUserId   String?
-  aiEvaluationEnabled Boolean    @default(false)
-  aiEvaluationConsentAt DateTime?
+  mode                        JdParserMode @default(manual)
+  provider                    String?
+  apiKeyRef                   String?
+  promptTemplate              String?      @db.Text
+  consentAt                   DateTime?
+  consentByUserId             String?
+  aiEvaluationEnabled         Boolean      @default(false)
+  aiEvaluationConsentAt       DateTime?
   aiEvaluationConsentByUserId String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  createdAt                   DateTime     @default(now())
+  updatedAt                   DateTime     @updatedAt
 
-  consentBy User? @relation("JdParserConfigConsent", fields: [consentByUserId], references: [id], onDelete: SetNull)
+  consentBy             User? @relation("JdParserConfigConsent", fields: [consentByUserId], references: [id], onDelete: SetNull)
   aiEvaluationConsentBy User? @relation("JdParserConfigAiEvalConsent", fields: [aiEvaluationConsentByUserId], references: [id], onDelete: SetNull)
 }
 
@@ -4576,17 +6054,17 @@ model ScorecardTemplate {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  jobDescriptionId        String
-  jobDescriptionVersion   Int
-  title                   String
-  grade                   String?
-  resultsWeightPercent    Int      @default(70)
-  competenciesWeightPercent Int    @default(30)
-  status                  JdStatus @default(published)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  jobDescriptionId          String
+  jobDescriptionVersion     Int
+  title                     String
+  grade                     String?
+  resultsWeightPercent      Int      @default(70)
+  competenciesWeightPercent Int      @default(30)
+  status                    JdStatus @default(published)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 
-  jobDescription JobDescription         @relation(fields: [jobDescriptionId], references: [id], onDelete: Restrict)
+  jobDescription JobDescription          @relation(fields: [jobDescriptionId], references: [id], onDelete: Restrict)
   perspectives   ScorecardPerspective[]
   measures       ScorecardMeasure[]
   competencyReqs CompetencyRequirement[]
@@ -4600,12 +6078,12 @@ model ScorecardPerspective {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  templateId     String
-  perspective    BscPerspective
-  weightPercent  Int
-  sortOrder      Int @default(0)
+  templateId    String
+  perspective   BscPerspective
+  weightPercent Int
+  sortOrder     Int            @default(0)
 
-  template ScorecardTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template ScorecardTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
   measures ScorecardMeasure[]
 
   @@unique([templateId, perspective])
@@ -4615,17 +6093,17 @@ model ScorecardMeasure {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  templateId       String
-  perspectiveId    String?
-  jobKpiId         String?
-  title            String
-  description      String? @db.Text
-  targetValue      String?
-  unit             String?
-  weightPercent    Int     @default(25)
-  sourceType       ScorecardMeasureSource @default(manual)
-  kpiSourceKey     String?
-  sortOrder        Int     @default(0)
+  templateId    String
+  perspectiveId String?
+  jobKpiId      String?
+  title         String
+  description   String?                @db.Text
+  targetValue   String?
+  unit          String?
+  weightPercent Int                    @default(25)
+  sourceType    ScorecardMeasureSource @default(manual)
+  kpiSourceKey  String?
+  sortOrder     Int                    @default(0)
 
   template    ScorecardTemplate     @relation(fields: [templateId], references: [id], onDelete: Cascade)
   perspective ScorecardPerspective? @relation(fields: [perspectiveId], references: [id], onDelete: SetNull)
@@ -4638,15 +6116,15 @@ model CompetencyRequirement {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  templateId       String
-  jobCompetencyId  String?
-  name             String
-  description      String? @db.Text
-  requiredLevel    Int
-  sortOrder        Int     @default(0)
+  templateId      String
+  jobCompetencyId String?
+  name            String
+  description     String? @db.Text
+  requiredLevel   Int
+  sortOrder       Int     @default(0)
 
   template      ScorecardTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  jobCompetency JobCompetency?  @relation(fields: [jobCompetencyId], references: [id], onDelete: SetNull)
+  jobCompetency JobCompetency?    @relation(fields: [jobCompetencyId], references: [id], onDelete: SetNull)
 
   @@index([templateId, sortOrder])
 }
@@ -4708,28 +6186,28 @@ model SalesTarget {
   employeeId       String?
   departmentId     String?
   periodType       SalesTargetPeriodType
-  periodStart      DateTime            @db.Date
-  periodEnd        DateTime            @db.Date
-  amount           Decimal             @db.Decimal(14, 2)
-  currency         String              @default("KES")
+  periodStart      DateTime              @db.Date
+  periodEnd        DateTime              @db.Date
+  amount           Decimal               @db.Decimal(14, 2)
+  currency         String                @default("KES")
   product          String?
   region           String?
   segment          String?
-  status           SalesTargetStatus   @default(draft)
+  status           SalesTargetStatus     @default(draft)
   parentTargetId   String?
   setByUserId      String?
   approvedByUserId String?
   approvedAt       DateTime?
-  notes            String?             @db.Text
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  notes            String?               @db.Text
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
-  employee     Employee?    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  parentTarget SalesTarget? @relation("SalesTargetCascade", fields: [parentTargetId], references: [id], onDelete: SetNull)
+  employee     Employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  parentTarget SalesTarget?  @relation("SalesTargetCascade", fields: [parentTargetId], references: [id], onDelete: SetNull)
   childTargets SalesTarget[] @relation("SalesTargetCascade")
-  setBy        User?        @relation("SalesTargetSetBy", fields: [setByUserId], references: [id], onDelete: SetNull)
-  approvedBy   User?        @relation("SalesTargetApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  setBy        User?         @relation("SalesTargetSetBy", fields: [setByUserId], references: [id], onDelete: SetNull)
+  approvedBy   User?         @relation("SalesTargetApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, periodEnd])
   @@index([organizationId, employeeId])
@@ -4752,9 +6230,10 @@ model SalesContact {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  accountsClient AccountsClient       @relation(fields: [accountsClientId], references: [id], onDelete: Cascade)
+  accountsClient  AccountsClient      @relation(fields: [accountsClientId], references: [id], onDelete: Cascade)
   primaryForDeals SalesDeal[]         @relation("SalesDealPrimaryContact")
   activities      SalesDealActivity[]
+  tasks           SalesTask[]
 
   @@index([organizationId, accountsClientId])
   @@index([organizationId, name])
@@ -4765,36 +6244,42 @@ model SalesDeal {
   organizationId String @db.Uuid
 
   name              String
-  stage             SalesDealStage @default(lead)
-  value             Decimal        @db.Decimal(14, 2)
-  currency          String         @default("KES")
+  stage             SalesDealStage        @default(lead)
+  value             Decimal               @db.Decimal(14, 2)
+  currency          String                @default("KES")
   ownerEmployeeId   String
-  expectedCloseDate DateTime?      @db.Date
+  expectedCloseDate DateTime?             @db.Date
   closedAt          DateTime?
   accountsInvoiceId String?
   accountsClientId  String?
   primaryContactId  String?
-  probability       Int            @default(10)
+  probability       Int                   @default(10)
   forecastCategory  SalesForecastCategory @default(pipeline)
   source            String?
   nextStep          String?
-  nextStepDue       DateTime?      @db.Date
+  nextStepDue       DateTime?             @db.Date
   lostReason        String?
   competitor        String?
-  notes             String?        @db.Text
+  notes             String?               @db.Text
   /// Optional planned cargo weight for fleet capacity soft-check on won deals.
-  cargoWeightKg   Int?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  cargoWeightKg     Int?
+  /// When the deal last entered its current stage — powers stage-age / rotting alerts.
+  stageEnteredAt    DateTime?
+  /// Timestamp of the most recent logged activity — powers idle / rotting detection.
+  lastActivityAt    DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
 
-  owner           Employee                 @relation("SalesDealOwner", fields: [ownerEmployeeId], references: [id], onDelete: Cascade)
-  accountsInvoice AccountsInvoice?         @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
-  accountsClient  AccountsClient?          @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
-  primaryContact  SalesContact?            @relation("SalesDealPrimaryContact", fields: [primaryContactId], references: [id], onDelete: SetNull)
-  actuals         SalesActual[]
-  activities      SalesDealActivity[]
-  stageHistory    SalesDealStageHistory[]
-  lineItems       SalesDealLineItem[]
+  owner             Employee                @relation("SalesDealOwner", fields: [ownerEmployeeId], references: [id], onDelete: Cascade)
+  accountsInvoice   AccountsInvoice?        @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
+  accountsClient    AccountsClient?         @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
+  primaryContact    SalesContact?           @relation("SalesDealPrimaryContact", fields: [primaryContactId], references: [id], onDelete: SetNull)
+  actuals           SalesActual[]
+  activities        SalesDealActivity[]
+  stageHistory      SalesDealStageHistory[]
+  lineItems         SalesDealLineItem[]
+  tasks             SalesTask[]
+  quotes            SalesQuote[]
   convertedFromLead SalesLead?
 
   @@index([organizationId, stage])
@@ -4809,17 +6294,19 @@ model SalesDealLineItem {
   organizationId String @db.Uuid
 
   dealId      String
+  productId   String?
   description String
-  quantity    Decimal  @db.Decimal(12, 2) @default(1)
+  quantity    Decimal  @default(1) @db.Decimal(12, 2)
   unitPrice   Decimal  @db.Decimal(14, 2)
-  discountPct Decimal  @db.Decimal(5, 2) @default(0)
+  discountPct Decimal  @default(0) @db.Decimal(5, 2)
   isRecurring Boolean  @default(false)
   termMonths  Int?
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  deal SalesDeal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal    SalesDeal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  product SalesProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, dealId])
 }
@@ -4835,23 +6322,30 @@ model SalesLead {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  name             String
-  company          String?
-  email            String?
-  phone            String?
-  source           String?
-  status           SalesLeadStatus @default(new)
-  ownerEmployeeId  String?
-  notes            String?         @db.Text
-  convertedDealId  String?         @unique
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  name            String
+  company         String?
+  email           String?
+  phone           String?
+  source          String?
+  status          SalesLeadStatus @default(new)
+  ownerEmployeeId String?
+  /// Computed lead score (0-100) from firmographic + engagement signals.
+  score           Int             @default(0)
+  rating          SalesLeadRating @default(cold)
+  estimatedValue  Decimal?        @db.Decimal(14, 2)
+  lastActivityAt  DateTime?
+  notes           String?         @db.Text
+  convertedDealId String?         @unique
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  owner         Employee?  @relation("SalesLeadOwner", fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
-  convertedDeal SalesDeal? @relation(fields: [convertedDealId], references: [id], onDelete: SetNull)
+  owner         Employee?   @relation("SalesLeadOwner", fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+  convertedDeal SalesDeal?  @relation(fields: [convertedDealId], references: [id], onDelete: SetNull)
+  tasks         SalesTask[]
 
   @@index([organizationId, status])
   @@index([organizationId, ownerEmployeeId])
+  @@index([organizationId, rating])
 }
 
 model SalesForecastSnapshot {
@@ -4862,11 +6356,11 @@ model SalesForecastSnapshot {
   periodStart    DateTime @db.Date
   periodEnd      DateTime @db.Date
   currency       String   @default("KES")
-  commitAmount   Decimal  @db.Decimal(14, 2) @default(0)
-  bestCaseAmount Decimal  @db.Decimal(14, 2) @default(0)
-  pipelineAmount Decimal  @db.Decimal(14, 2) @default(0)
-  closedAmount   Decimal  @db.Decimal(14, 2) @default(0)
-  teamTarget     Decimal  @db.Decimal(14, 2) @default(0)
+  commitAmount   Decimal  @default(0) @db.Decimal(14, 2)
+  bestCaseAmount Decimal  @default(0) @db.Decimal(14, 2)
+  pipelineAmount Decimal  @default(0) @db.Decimal(14, 2)
+  closedAmount   Decimal  @default(0) @db.Decimal(14, 2)
+  teamTarget     Decimal  @default(0) @db.Decimal(14, 2)
   notes          String?  @db.Text
 
   @@index([organizationId, takenAt(sort: Desc)])
@@ -4877,17 +6371,17 @@ model SalesDealActivity {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  dealId           String
-  type             SalesDealActivityType
-  subject          String
-  body             String?               @db.Text
-  outcome          String?
-  actorEmployeeId  String
-  contactId        String?
-  createdAt        DateTime              @default(now())
+  dealId          String
+  type            SalesDealActivityType
+  subject         String
+  body            String?               @db.Text
+  outcome         String?
+  actorEmployeeId String
+  contactId       String?
+  createdAt       DateTime              @default(now())
 
-  deal   SalesDeal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
-  actor  Employee     @relation("SalesDealActivityActor", fields: [actorEmployeeId], references: [id], onDelete: Cascade)
+  deal    SalesDeal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  actor   Employee      @relation("SalesDealActivityActor", fields: [actorEmployeeId], references: [id], onDelete: Cascade)
   contact SalesContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, dealId, createdAt(sort: Desc)])
@@ -4898,11 +6392,11 @@ model SalesDealStageHistory {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  dealId           String
-  fromStage        SalesDealStage?
-  toStage          SalesDealStage
-  changedByUserId  String?
-  changedAt        DateTime        @default(now())
+  dealId          String
+  fromStage       SalesDealStage?
+  toStage         SalesDealStage
+  changedByUserId String?
+  changedAt       DateTime        @default(now())
 
   deal      SalesDeal @relation(fields: [dealId], references: [id], onDelete: Cascade)
   changedBy User?     @relation("SalesDealStageChangedBy", fields: [changedByUserId], references: [id], onDelete: SetNull)
@@ -4929,9 +6423,9 @@ model SalesActual {
   updatedAt         DateTime          @updatedAt
 
   employee        Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  salesDeal         SalesDeal?       @relation(fields: [salesDealId], references: [id], onDelete: SetNull)
-  accountsInvoice   AccountsInvoice? @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
-  recordedBy        User?            @relation("SalesActualRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+  salesDeal       SalesDeal?       @relation(fields: [salesDealId], references: [id], onDelete: SetNull)
+  accountsInvoice AccountsInvoice? @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
+  recordedBy      User?            @relation("SalesActualRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, employeeId, periodEnd])
   @@index([organizationId, periodStart, periodEnd])
@@ -4944,7 +6438,7 @@ model SalesCommissionRule {
   name        String
   description String?                   @db.Text
   status      SalesCommissionRuleStatus @default(draft)
-  /// JSON tiers/accelerators/caps — VICTOR TODO: formalize + payroll handoff (SALES-05).
+  /// JSON CommissionRuleConfig: { tiers: [{ minAttainmentPct, ratePct }], capAmount?, acceleratorAbovePct?, acceleratorMultiplier? }. Payroll handoff via POST /api/sales/commissions action=push_to_payroll.
   config      Json
   createdAt   DateTime                  @default(now())
   updatedAt   DateTime                  @updatedAt
@@ -4961,7 +6455,7 @@ model SalesRepPeriodMetric {
   periodStart    DateTime @db.Date
   periodEnd      DateTime @db.Date
   pipelineTarget Decimal  @db.Decimal(14, 2)
-  pipelineClosed Decimal  @db.Decimal(14, 2) @default(0)
+  pipelineClosed Decimal  @default(0) @db.Decimal(14, 2)
   currency       String   @default("KES")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -4970,6 +6464,140 @@ model SalesRepPeriodMetric {
 
   @@unique([organizationId, employeeId, periodStart, periodEnd])
   @@index([organizationId, periodEnd])
+}
+
+enum SalesLeadRating {
+  hot
+  warm
+  cold
+}
+
+enum SalesTaskStatus {
+  open
+  completed
+  cancelled
+}
+
+enum SalesQuoteStatus {
+  draft
+  sent
+  accepted
+  rejected
+  expired
+}
+
+/// Reusable price-book product/service. Line items may reference a product for consistent pricing.
+model SalesProduct {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  name              String
+  sku               String?
+  category          String?
+  description       String?  @db.Text
+  unitPrice         Decimal  @db.Decimal(14, 2)
+  currency          String   @default("KES")
+  isRecurring       Boolean  @default(false)
+  defaultTermMonths Int?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  dealLineItems  SalesDealLineItem[]
+  quoteLineItems SalesQuoteLineItem[]
+
+  @@index([organizationId, active])
+  @@index([organizationId, name])
+}
+
+/// Task / reminder attached to a deal, lead, or contact. Powers follow-up workflows and rotting alerts.
+model SalesTask {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  title              String
+  notes              String?               @db.Text
+  type               SalesDealActivityType @default(task)
+  status             SalesTaskStatus       @default(open)
+  dueDate            DateTime?
+  completedAt        DateTime?
+  assigneeEmployeeId String?
+  dealId             String?
+  leadId             String?
+  contactId          String?
+  createdByUserId    String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  assignee  Employee?     @relation("SalesTaskAssignee", fields: [assigneeEmployeeId], references: [id], onDelete: SetNull)
+  deal      SalesDeal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  lead      SalesLead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contact   SalesContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  createdBy User?         @relation("SalesTaskCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status, dueDate])
+  @@index([organizationId, assigneeEmployeeId, status])
+  @@index([organizationId, dealId])
+  @@index([organizationId, leadId])
+}
+
+/// Customer-facing quote/proposal generated from a deal. Can render to PDF and hand off to a Finance invoice.
+model SalesQuote {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  quoteNumber       Int
+  dealId            String?
+  accountsClientId  String?
+  accountsInvoiceId String?
+  title             String
+  status            SalesQuoteStatus @default(draft)
+  currency         String           @default("KES")
+  issueDate        DateTime         @default(now()) @db.Date
+  validUntil       DateTime?        @db.Date
+  discountPct      Decimal          @default(0) @db.Decimal(5, 2)
+  /// Basis points: 1600 = 16.00% VAT.
+  taxRateBps       Int              @default(1600)
+  notes            String?          @db.Text
+  terms            String?          @db.Text
+  sentAt           DateTime?
+  acceptedAt       DateTime?
+  createdByUserId  String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  deal            SalesDeal?           @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  accountsClient  AccountsClient?      @relation(fields: [accountsClientId], references: [id], onDelete: SetNull)
+  accountsInvoice AccountsInvoice?     @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
+  createdBy       User?                @relation("SalesQuoteCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  lineItems       SalesQuoteLineItem[]
+
+  @@unique([organizationId, quoteNumber])
+  @@index([organizationId, status])
+  @@index([organizationId, dealId])
+  @@index([organizationId, accountsClientId])
+}
+
+model SalesQuoteLineItem {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  quoteId     String
+  productId   String?
+  description String
+  quantity    Decimal  @default(1) @db.Decimal(12, 2)
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  discountPct Decimal  @default(0) @db.Decimal(5, 2)
+  isRecurring Boolean  @default(false)
+  termMonths  Int?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quote   SalesQuote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product SalesProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, quoteId])
 }
 
 // --- Performance management (RAV-69) ---
@@ -5000,26 +6628,26 @@ model PerformanceCycle {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  name                String
-  description         String?               @db.Text
-  periodStart         DateTime              @db.Date
-  periodEnd           DateTime              @db.Date
-  status              PerformanceCycleStatus @default(draft)
-  cycleKind           PerformanceCycleKind   @default(annual)
-  method              PerformanceMethod      @default(bsc)
-  resultsWeightPercent Int                   @default(70)
-  competenciesWeightPercent Int              @default(30)
-  outsourcingClientId String?
-  goalTemplates       Json?
-  ratingDimensions    Json?
-  createdByUserId     String?
-  activatedAt         DateTime?
-  closedAt            DateTime?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  name                      String
+  description               String?                @db.Text
+  periodStart               DateTime               @db.Date
+  periodEnd                 DateTime               @db.Date
+  status                    PerformanceCycleStatus @default(draft)
+  cycleKind                 PerformanceCycleKind   @default(annual)
+  method                    PerformanceMethod      @default(bsc)
+  resultsWeightPercent      Int                    @default(70)
+  competenciesWeightPercent Int                    @default(30)
+  outsourcingClientId       String?
+  goalTemplates             Json?
+  ratingDimensions          Json?
+  createdByUserId           String?
+  activatedAt               DateTime?
+  closedAt                  DateTime?
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
 
-  outsourcingClient OutsourcingClient? @relation(fields: [outsourcingClientId], references: [id], onDelete: SetNull)
-  createdBy         User?              @relation("PerformanceCycleCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  outsourcingClient OutsourcingClient?     @relation(fields: [outsourcingClientId], references: [id], onDelete: SetNull)
+  createdBy         User?                  @relation("PerformanceCycleCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   goals             PerformanceGoal[]
   reviews           PerformanceReview[]
   objectives        PerformanceObjective[]
@@ -5034,17 +6662,17 @@ model PerformanceGoal {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  cycleId       String
-  employeeId    String
-  title         String
-  description   String?  @db.Text
-  weightPercent Int      @default(25)
+  cycleId            String
+  employeeId         String
+  title              String
+  description        String?  @db.Text
+  weightPercent      Int      @default(25)
   scorecardMeasureId String?
-  selfScore     Int?
-  managerScore  Int?
-  sortOrder     Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  selfScore          Int?
+  managerScore       Int?
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   cycle    PerformanceCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   employee Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
@@ -5056,38 +6684,38 @@ model PerformanceReview {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  cycleId              String
-  employeeId           String
-  managerUserId        String?
-  scorecardTemplateId  String?
-  jobDescriptionId     String?
-  jobDescriptionVersion Int?
+  cycleId                 String
+  employeeId              String
+  managerUserId           String?
+  scorecardTemplateId     String?
+  jobDescriptionId        String?
+  jobDescriptionVersion   Int?
   frozenScorecardSnapshot Json?
-  status               PerformanceReviewStatus @default(not_started)
-  selfSummary          String?                 @db.Text
-  managerSummary       String?                 @db.Text
-  overallSelfRating    Int?
-  overallManagerRating Int?
-  finalResultsScore    Decimal? @db.Decimal(5, 2)
-  finalCompetenciesScore Decimal? @db.Decimal(5, 2)
-  finalBlendedScore    Decimal? @db.Decimal(5, 2)
-  aiSuggestions        Json?
-  calibratedAt         DateTime?
-  selfSubmittedAt      DateTime?
-  managerSubmittedAt   DateTime?
-  completedAt          DateTime?
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
+  status                  PerformanceReviewStatus @default(not_started)
+  selfSummary             String?                 @db.Text
+  managerSummary          String?                 @db.Text
+  overallSelfRating       Int?
+  overallManagerRating    Int?
+  finalResultsScore       Decimal?                @db.Decimal(5, 2)
+  finalCompetenciesScore  Decimal?                @db.Decimal(5, 2)
+  finalBlendedScore       Decimal?                @db.Decimal(5, 2)
+  aiSuggestions           Json?
+  calibratedAt            DateTime?
+  selfSubmittedAt         DateTime?
+  managerSubmittedAt      DateTime?
+  completedAt             DateTime?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
 
-  cycle    PerformanceCycle          @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  employee Employee                  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  manager  User?                     @relation("PerformanceReviewManager", fields: [managerUserId], references: [id], onDelete: SetNull)
-  scorecardTemplate ScorecardTemplate? @relation(fields: [scorecardTemplateId], references: [id], onDelete: SetNull)
-  jobDescription JobDescription?      @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
-  ratings  PerformanceReviewRating[]
-  feedback PerformanceFeedback[]
-  pip      PerformancePip?
-  raters   PerformanceRater[]
+  cycle             PerformanceCycle          @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  employee          Employee                  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  manager           User?                     @relation("PerformanceReviewManager", fields: [managerUserId], references: [id], onDelete: SetNull)
+  scorecardTemplate ScorecardTemplate?        @relation(fields: [scorecardTemplateId], references: [id], onDelete: SetNull)
+  jobDescription    JobDescription?           @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
+  ratings           PerformanceReviewRating[]
+  feedback          PerformanceFeedback[]
+  pip               PerformancePip?
+  raters            PerformanceRater[]
 
   @@unique([cycleId, employeeId])
   @@index([organizationId, status])
@@ -5098,13 +6726,13 @@ model PerformanceReviewRating {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  reviewId     String
-  dimension    String
-  requiredLevel Int?
+  reviewId                String
+  dimension               String
+  requiredLevel           Int?
   competencyRequirementId String?
-  selfScore    Int?
-  managerScore Int?
-  sortOrder    Int    @default(0)
+  selfScore               Int?
+  managerScore            Int?
+  sortOrder               Int     @default(0)
 
   review PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
@@ -5116,12 +6744,12 @@ model PerformanceFeedback {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  reviewId          String
-  authorType        String
-  authorUserId      String?
-  authorEssUserId   String?
-  content           String   @db.Text
-  createdAt         DateTime @default(now())
+  reviewId        String
+  authorType      String
+  authorUserId    String?
+  authorEssUserId String?
+  content         String   @db.Text
+  createdAt       DateTime @default(now())
 
   review        PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   authorUser    User?             @relation("PerformanceFeedbackStaffAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
@@ -5154,13 +6782,13 @@ model CompetencyFrameworkEntry {
 
   frameworkId      String
   name             String
-  description      String? @db.Text
-  level1Descriptor String? @db.Text
-  level2Descriptor String? @db.Text
-  level3Descriptor String? @db.Text
-  level4Descriptor String? @db.Text
-  level5Descriptor String? @db.Text
-  sortOrder        Int     @default(0)
+  description      String?  @db.Text
+  level1Descriptor String?  @db.Text
+  level2Descriptor String?  @db.Text
+  level3Descriptor String?  @db.Text
+  level4Descriptor String?  @db.Text
+  level5Descriptor String?  @db.Text
+  sortOrder        Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -5180,18 +6808,18 @@ model PerformanceObjective {
   jobDescriptionId  String?
   employeeId        String?
   title             String
-  description       String? @db.Text
-  weightPercent     Int     @default(100)
-  sortOrder         Int     @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  description       String?                   @db.Text
+  weightPercent     Int                       @default(100)
+  sortOrder         Int                       @default(0)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
 
-  cycle          PerformanceCycle?    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  parent         PerformanceObjective? @relation("ObjectiveCascade", fields: [parentObjectiveId], references: [id], onDelete: SetNull)
+  cycle          PerformanceCycle?      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  parent         PerformanceObjective?  @relation("ObjectiveCascade", fields: [parentObjectiveId], references: [id], onDelete: SetNull)
   children       PerformanceObjective[] @relation("ObjectiveCascade")
-  division       JdDivision?          @relation(fields: [divisionId], references: [id], onDelete: SetNull)
-  jobDescription JobDescription?      @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
-  employee       Employee?            @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  division       JdDivision?            @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  jobDescription JobDescription?        @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
+  employee       Employee?              @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, cycleId])
   @@index([parentObjectiveId])
@@ -5204,17 +6832,17 @@ model PerformancePip {
 
   employeeId String
   cycleId    String?
-  reviewId   String?  @unique
+  reviewId   String?              @unique
   status     PerformancePipStatus @default(draft)
-  startDate  DateTime @db.Date
-  endDate    DateTime @db.Date
+  startDate  DateTime             @db.Date
+  endDate    DateTime             @db.Date
   goals      Json?
-  notes      String?  @db.Text
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  notes      String?              @db.Text
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
 
-  employee Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  cycle    PerformanceCycle? @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+  employee Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycle    PerformanceCycle?  @relation(fields: [cycleId], references: [id], onDelete: SetNull)
   review   PerformanceReview? @relation(fields: [reviewId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, status])
@@ -5229,10 +6857,10 @@ model PerformanceRater {
   raterEmployeeId String
   relationship    String
   submittedAt     DateTime?
-  summary         String?  @db.Text
+  summary         String?   @db.Text
   ratings         Json?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   review        PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   raterEmployee Employee          @relation("PerformanceRaterEmployee", fields: [raterEmployeeId], references: [id], onDelete: Cascade)
@@ -5271,6 +6899,26 @@ enum ProjectTaskPriority {
   high
 }
 
+enum ProjectHealth {
+  on_track
+  at_risk
+  off_track
+}
+
+enum ProjectActivityType {
+  created
+  updated
+  status_changed
+  comment
+  assignee_changed
+  milestone_changed
+  attachment_added
+  task_completed
+  due_date_changed
+  dependency_added
+  label_added
+}
+
 model Project {
   id                  String        @id @default(cuid())
   organizationId      String        @db.Uuid
@@ -5279,6 +6927,8 @@ model Project {
   name                String
   description         String?       @db.Text
   status              ProjectStatus @default(planning)
+  health              ProjectHealth @default(on_track)
+  color               String?
   department          String?
   currency            String        @default("KES")
   budgetAmount        Decimal?      @db.Decimal(14, 2)
@@ -5286,18 +6936,24 @@ model Project {
   startDate           DateTime?     @db.Date
   dueDate             DateTime?     @db.Date
   completedAt         DateTime?
+  archivedAt          DateTime?
   ownerUserId         String?
   createdByUserId     String
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
-  client      OutsourcingClient   @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  budget      Budget?             @relation(fields: [budgetId], references: [id], onDelete: SetNull)
-  owner       User?               @relation("ProjectOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
-  createdBy   User                @relation("ProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  milestones  ProjectMilestone[]
-  tasks       ProjectTask[]
+  client            OutsourcingClient   @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  budget            Budget?             @relation(fields: [budgetId], references: [id], onDelete: SetNull)
+  owner             User?               @relation("ProjectOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy         User                @relation("ProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  milestones        ProjectMilestone[]
+  tasks             ProjectTask[]
   constructionSites ConstructionSite[]
+  members           ProjectMember[]
+  labels            ProjectLabel[]
+  comments          ProjectComment[]
+  attachments       ProjectAttachment[]
+  activities        ProjectActivity[]
 
   @@unique([outsourcingClientId, projectCode])
   @@index([organizationId, status])
@@ -5315,6 +6971,8 @@ model ProjectMilestone {
   title          String
   description    String?                @db.Text
   status         ProjectMilestoneStatus @default(pending)
+  color          String?
+  progress       Int                    @default(0)
   dueDate        DateTime?              @db.Date
   completedAt    DateTime?
   sortOrder      Int                    @default(0)
@@ -5338,24 +6996,179 @@ model ProjectTask {
   status          ProjectTaskStatus   @default(todo)
   priority        ProjectTaskPriority @default(medium)
   assigneeUserId  String?
+  parentTaskId    String?
+  startDate       DateTime?           @db.Date
   dueDate         DateTime?           @db.Date
+  estimateHours   Decimal?            @db.Decimal(8, 2)
+  progress        Int                 @default(0)
   completedAt     DateTime?
   sortOrder       Int                 @default(0)
   createdByUserId String
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
-  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  milestone ProjectMilestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
-  assignee  User?             @relation("ProjectTaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
-  createdBy User              @relation("ProjectTaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  project     Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone   ProjectMilestone?       @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  assignee    User?                   @relation("ProjectTaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  createdBy   User                    @relation("ProjectTaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  parent      ProjectTask?            @relation("ProjectSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks    ProjectTask[]           @relation("ProjectSubtasks")
+  taskLabels  ProjectTaskLabel[]
+  blocking    ProjectTaskDependency[] @relation("TaskBlocking")
+  blockedBy   ProjectTaskDependency[] @relation("TaskBlockedBy")
+  comments    ProjectComment[]
+  attachments ProjectAttachment[]
+  activities  ProjectActivity[]
 
   @@index([projectId])
   @@index([organizationId, status])
   @@index([milestoneId])
   @@index([status])
   @@index([assigneeUserId])
+  @@index([parentTaskId])
   @@index([dueDate])
+}
+
+model ProjectMember {
+  id             String   @id @default(cuid())
+  organizationId String   @db.Uuid
+  projectId      String
+  userId         String
+  role           String   @default("member") // owner | lead | member | viewer
+  createdAt      DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation("ProjectMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model ProjectLabel {
+  id             String   @id @default(cuid())
+  organizationId String   @db.Uuid
+  projectId      String? // null = org-wide label
+  name           String
+  color          String   @default("#6b7280")
+  createdAt      DateTime @default(now())
+
+  project    Project?           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  taskLabels ProjectTaskLabel[]
+
+  @@unique([organizationId, projectId, name])
+  @@index([organizationId])
+  @@index([projectId])
+}
+
+model ProjectTaskLabel {
+  id             String   @id @default(cuid())
+  organizationId String   @db.Uuid
+  taskId         String
+  labelId        String
+  createdAt      DateTime @default(now())
+
+  task  ProjectTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label ProjectLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+  @@index([taskId])
+  @@index([labelId])
+  @@index([organizationId])
+}
+
+model ProjectTaskDependency {
+  id              String   @id @default(cuid())
+  organizationId  String   @db.Uuid
+  blockingTaskId  String
+  blockedTaskId   String
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  blockingTask ProjectTask @relation("TaskBlocking", fields: [blockingTaskId], references: [id], onDelete: Cascade)
+  blockedTask  ProjectTask @relation("TaskBlockedBy", fields: [blockedTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([blockingTaskId, blockedTaskId])
+  @@index([blockingTaskId])
+  @@index([blockedTaskId])
+  @@index([organizationId])
+}
+
+model ProjectComment {
+  id             String   @id @default(cuid())
+  organizationId String   @db.Uuid
+  projectId      String
+  taskId         String?
+  authorUserId   String
+  body           String   @db.Text
+  /// User ids @mentioned in the comment body (drives StaffNotification).
+  mentions       String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task    ProjectTask? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author  User         @relation("ProjectCommentAuthor", fields: [authorUserId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt(sort: Desc)])
+  @@index([taskId, createdAt(sort: Desc)])
+  @@index([authorUserId])
+  @@index([organizationId])
+}
+
+model ProjectAttachment {
+  id               String   @id @default(cuid())
+  organizationId   String   @db.Uuid
+  projectId        String
+  taskId           String?
+  fileName         String
+  fileUrl          String   @db.Text
+  fileSize         Int?
+  contentType      String?
+  uploadedByUserId String
+  createdAt        DateTime @default(now())
+
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task       ProjectTask? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User         @relation("ProjectAttachmentUploader", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([taskId])
+  @@index([organizationId])
+}
+
+model ProjectActivity {
+  id             String              @id @default(cuid())
+  organizationId String              @db.Uuid
+  projectId      String
+  taskId         String?
+  type           ProjectActivityType
+  actorUserId    String?
+  summary        String
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task    ProjectTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  actor   User?        @relation("ProjectActivityActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, projectId, createdAt(sort: Desc)])
+  @@index([taskId])
+}
+
+model ProjectTemplate {
+  id              String   @id @default(cuid())
+  organizationId  String   @db.Uuid
+  name            String
+  description     String?
+  category        String?
+  blueprint       Json
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
 }
 
 // --- Facilities (RAV-88 / Phase E1) ---
@@ -5421,11 +7234,11 @@ model FacilitySite {
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 
-  client              OutsourcingClient           @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  manager             User?                       @relation("FacilitySiteManager", fields: [managerUserId], references: [id], onDelete: SetNull)
-  createdBy           User                        @relation("FacilitySiteCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  leases              FacilityLease[]
-  maintenanceTickets  FacilityMaintenanceTicket[]
+  client             OutsourcingClient           @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  manager            User?                       @relation("FacilitySiteManager", fields: [managerUserId], references: [id], onDelete: SetNull)
+  createdBy          User                        @relation("FacilitySiteCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  leases             FacilityLease[]
+  maintenanceTickets FacilityMaintenanceTicket[]
 
   @@unique([outsourcingClientId, siteCode])
   @@index([outsourcingClientId])
@@ -5458,23 +7271,23 @@ model FacilityLease {
 }
 
 model FacilityMaintenanceTicket {
-  id               String                 @id @default(cuid())
-  organizationId   String                 @db.Uuid
+  id                  String                 @id @default(cuid())
+  organizationId      String                 @db.Uuid
   outsourcingClientId String
-  siteId           String
-  ticketNumber     String
-  title            String
-  description      String?                @db.Text
-  category         FacilityTicketCategory @default(other)
-  priority         FacilityTicketPriority @default(medium)
-  status           FacilityTicketStatus   @default(open)
-  reportedByUserId String?
-  assigneeUserId   String?
-  dueDate          DateTime?              @db.Date
-  resolvedAt       DateTime?
-  createdByUserId  String
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
+  siteId              String
+  ticketNumber        String
+  title               String
+  description         String?                @db.Text
+  category            FacilityTicketCategory @default(other)
+  priority            FacilityTicketPriority @default(medium)
+  status              FacilityTicketStatus   @default(open)
+  reportedByUserId    String?
+  assigneeUserId      String?
+  dueDate             DateTime?              @db.Date
+  resolvedAt          DateTime?
+  createdByUserId     String
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
 
   client     OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
   site       FacilitySite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
@@ -5626,34 +7439,44 @@ enum HseActionStatus {
 }
 
 model HseIncident {
-  id                    String              @id @default(cuid())
-  organizationId        String              @db.Uuid
-  outsourcingClientId   String
-  incidentNumber        String
-  title                 String
-  description           String              @db.Text
-  incidentType          HseIncidentType     @default(other)
-  severity              HseIncidentSeverity @default(medium)
-  status                HseIncidentStatus   @default(open)
-  location              String?
-  siteName              String?
-  occurredAt            DateTime
-  immediateAction       String?             @db.Text
-  injuredParty          String?
-  reportedByUserId      String?
-  reportedByEmployeeId  String?
-  reportedAt            DateTime            @default(now())
-  resolvedAt            DateTime?
-  closedAt              DateTime?
-  createdByUserId       String?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  id                   String              @id @default(cuid())
+  organizationId       String              @db.Uuid
+  outsourcingClientId  String
+  incidentNumber       String
+  title                String
+  description          String              @db.Text
+  incidentType         HseIncidentType     @default(other)
+  severity             HseIncidentSeverity @default(medium)
+  status               HseIncidentStatus   @default(open)
+  location             String?
+  siteName             String?
+  occurredAt           DateTime
+  immediateAction      String?             @db.Text
+  injuredParty         String?
+  reportedByUserId     String?
+  reportedByEmployeeId String?
+  reportedAt           DateTime            @default(now())
+  resolvedAt           DateTime?
+  closedAt             DateTime?
+  createdByUserId      String?
 
-  client              OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  reportedByUser      User?             @relation("HseIncidentReporter", fields: [reportedByUserId], references: [id], onDelete: SetNull)
-  reportedByEmployee  Employee?         @relation(fields: [reportedByEmployeeId], references: [id], onDelete: SetNull)
-  createdBy           User?             @relation("HseIncidentCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  actions             HseAction[]
+  // Investigation depth
+  rootCause             String? @db.Text
+  rootCauseCategory     String? // human_factor | equipment | process | environment | other
+  witnessNames          String? @db.Text
+  reportableToAuthority Boolean @default(false)
+  lostTimeInjury        Boolean @default(false)
+  lostTimeDays          Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client             OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  reportedByUser     User?             @relation("HseIncidentReporter", fields: [reportedByUserId], references: [id], onDelete: SetNull)
+  reportedByEmployee Employee?         @relation(fields: [reportedByEmployeeId], references: [id], onDelete: SetNull)
+  createdBy          User?             @relation("HseIncidentCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  actions            HseAction[]
+  attachments        HseAttachment[]
 
   @@unique([outsourcingClientId, incidentNumber])
   @@index([outsourcingClientId])
@@ -5661,6 +7484,24 @@ model HseIncident {
   @@index([severity])
   @@index([occurredAt])
   @@index([reportedByEmployeeId])
+}
+
+model HseAttachment {
+  id             String @id @default(cuid())
+  organizationId String @db.Uuid
+
+  incidentId       String
+  fileName         String
+  fileUrl          String
+  contentType      String?
+  fileSize         Int?
+  kind             String? // evidence | photo | report | other
+  uploadedByUserId String?
+  createdAt        DateTime @default(now())
+
+  incident HseIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
 }
 
 model HseAction {
@@ -5812,13 +7653,13 @@ model SaccoDividendRun {
 }
 
 model SaccoDividendLine {
-  id              String   @id @default(cuid())
-  organizationId  String   @db.Uuid
-  runId           String
-  memberId        String
-  sharesBalance   Decimal  @db.Decimal(14, 2)
-  dividendAmount  Decimal  @db.Decimal(14, 2)
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  organizationId String   @db.Uuid
+  runId          String
+  memberId       String
+  sharesBalance  Decimal  @db.Decimal(14, 2)
+  dividendAmount Decimal  @db.Decimal(14, 2)
+  createdAt      DateTime @default(now())
 
   run    SaccoDividendRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   member SaccoMember      @relation(fields: [memberId], references: [id], onDelete: Cascade)
@@ -5875,10 +7716,10 @@ model HealthcareClinicalAssignment {
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
 
-  client            OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  ward              HealthcareWard    @relation(fields: [wardId], references: [id], onDelete: Cascade)
-  employee          Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  shiftAssignment   ShiftAssignment?  @relation(fields: [shiftAssignmentId], references: [id], onDelete: SetNull)
+  client          OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  ward            HealthcareWard    @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  employee        Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shiftAssignment ShiftAssignment?  @relation(fields: [shiftAssignmentId], references: [id], onDelete: SetNull)
 
   @@index([outsourcingClientId, workDate])
   @@index([wardId, workDate])
@@ -5929,7 +7770,7 @@ model EnergyPermit {
   outsourcingClientId String
   siteId              String
   permitNumber        String
-  permitType          EnergyPermitType     @default(operating)
+  permitType          EnergyPermitType   @default(operating)
   issuingAuthority    String
   issuedAt            DateTime           @db.Date
   expiresAt           DateTime           @db.Date
@@ -5981,12 +7822,12 @@ model ConstructionSite {
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
 
-  client           OutsourcingClient           @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  project          Project?                    @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  parentSite       ConstructionSite?           @relation("ConstructionSiteHierarchy", fields: [parentSiteId], references: [id], onDelete: SetNull)
-  childSites       ConstructionSite[]          @relation("ConstructionSiteHierarchy")
-  plantAssets      ConstructionPlantAsset[]
-  subcontractors   ConstructionSubcontractor[]
+  client         OutsourcingClient           @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  project        Project?                    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentSite     ConstructionSite?           @relation("ConstructionSiteHierarchy", fields: [parentSiteId], references: [id], onDelete: SetNull)
+  childSites     ConstructionSite[]          @relation("ConstructionSiteHierarchy")
+  plantAssets    ConstructionPlantAsset[]
+  subcontractors ConstructionSubcontractor[]
 
   @@unique([outsourcingClientId, code])
   @@index([outsourcingClientId, status])
@@ -6009,33 +7850,33 @@ model ConstructionPlantAsset {
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 
-  client       OutsourcingClient  @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  site         ConstructionSite   @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  companyAsset CompanyAsset?      @relation(fields: [companyAssetId], references: [id], onDelete: SetNull)
+  client       OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  site         ConstructionSite  @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  companyAsset CompanyAsset?     @relation(fields: [companyAssetId], references: [id], onDelete: SetNull)
 
   @@unique([outsourcingClientId, assetTag])
   @@index([siteId, status])
 }
 
 model ConstructionSubcontractor {
-  id                  String                        @id @default(cuid())
-  organizationId      String                        @db.Uuid
+  id                  String                          @id @default(cuid())
+  organizationId      String                          @db.Uuid
   outsourcingClientId String
   siteId              String?
   name                String
   trade               String?
   contactName         String?
   contactPhone        String?
-  retentionPct        Decimal?                      @db.Decimal(5, 2)
-  contractValue       Decimal?                      @db.Decimal(14, 2)
-  amountInvoiced      Decimal                       @default(0) @db.Decimal(14, 2)
-  amountPaid          Decimal                       @default(0) @db.Decimal(14, 2)
+  retentionPct        Decimal?                        @db.Decimal(5, 2)
+  contractValue       Decimal?                        @db.Decimal(14, 2)
+  amountInvoiced      Decimal                         @default(0) @db.Decimal(14, 2)
+  amountPaid          Decimal                         @default(0) @db.Decimal(14, 2)
   status              ConstructionSubcontractorStatus @default(active)
-  createdAt           DateTime                      @default(now())
-  updatedAt           DateTime                      @updatedAt
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
 
-  client OutsourcingClient  @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
-  site   ConstructionSite?    @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  client OutsourcingClient @relation(fields: [outsourcingClientId], references: [id], onDelete: Cascade)
+  site   ConstructionSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
 
   @@index([outsourcingClientId, status])
   @@index([siteId])

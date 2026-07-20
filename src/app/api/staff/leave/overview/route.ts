@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { canAccessTeamLeaveScope } from '@/lib/staff-api-auth';
 import { syncStaffLeaveUsedDaysForUsersYear } from '@/lib/staff-leave-balance';
@@ -55,14 +56,14 @@ export async function GET(request: NextRequest) {
           orderBy: { name: 'asc' },
         }),
         tx.staffLeaveApplication.count({
-          where: ctx.where({ userId: { in: memberIds }, status: 'pending' }),
+          where: ctx.where({ userId: { in: memberIds }, status: 'pending' }) as Prisma.StaffLeaveApplicationWhereInput,
         }),
         tx.staffLeaveApplication.findMany({
           where: ctx.where({
             userId: { in: memberIds },
             status: 'approved',
             startDate: { gte: yearStart, lte: yearEnd },
-          }),
+          }) as Prisma.StaffLeaveApplicationWhereInput,
           select: {
             userId: true,
             totalDays: true,
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
             userId: { in: memberIds },
             status: 'approved',
             startDate: { gt: today },
-          }),
+          }) as Prisma.StaffLeaveApplicationWhereInput,
           include: {
             user: { select: { name: true } },
             leaveType: { select: { name: true, color: true } },
@@ -104,17 +105,20 @@ export async function GET(request: NextRequest) {
           take: 12,
         }),
         tx.staffLeaveType.findFirst({
-          where: ctx.where({ active: true, name: { contains: 'Annual', mode: 'insensitive' } }),
+          where: ctx.where({
+            active: true,
+            name: { contains: 'Annual', mode: 'insensitive' },
+          }) as Prisma.StaffLeaveTypeWhereInput,
           select: { id: true },
         }),
       ]);
 
       const pendingByUser = await tx.staffLeaveApplication.groupBy({
         by: ['userId'],
-        where: ctx.where({ userId: { in: memberIds }, status: 'pending' }),
+        where: ctx.where({ userId: { in: memberIds }, status: 'pending' }) as Prisma.StaffLeaveApplicationWhereInput,
         _count: { _all: true },
       });
-      const pendingMap = new Map(pendingByUser.map((p) => [p.userId, p._count._all]));
+      const pendingMap = new Map(pendingByUser.map((p) => [p.userId, p._count?._all ?? 0]));
 
       const lastApprovedByUser = new Map<string, { startDate: Date; endDate: Date; totalDays: number }>();
       for (const app of approvedApps) {
@@ -160,7 +164,8 @@ export async function GET(request: NextRequest) {
         }
 
         const userApproved = approvedApps.filter((a) => a.userId === m.id);
-        daysTakenYtd += userApproved.reduce((s, a) => s + a.totalDays, 0);
+        const userYtd = userApproved.reduce((s, a) => s + a.totalDays, 0);
+        daysTakenYtd += userYtd;
 
         const onLeave = userApproved.some((a) => {
           const s = new Date(a.startDate);
@@ -181,6 +186,7 @@ export async function GET(request: NextRequest) {
           annualEntitled,
           annualUsed,
           annualRemaining,
+          ytdTaken: userYtd,
           pendingCount: pendingMap.get(m.id) ?? 0,
           lastLeave: last
             ? {

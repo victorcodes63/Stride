@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { reportApiError } from '@/lib/monitoring';
-import { serializeIncident } from '@/lib/hse/serialize';
+import {
+  serializeIncident,
+  serializeAttachment,
+  HSE_ACTION_STATUS_LABELS,
+  HSE_ROOT_CAUSE_CATEGORY_VALUES,
+} from '@/lib/hse/serialize';
 import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
 
 const incidentInclude = {
   reportedByUser: { select: { name: true } },
@@ -19,12 +26,29 @@ const incidentInclude = {
     },
     orderBy: { createdAt: 'asc' as const },
   },
+  attachments: {
+    select: {
+      id: true,
+      fileName: true,
+      fileUrl: true,
+      contentType: true,
+      fileSize: true,
+      kind: true,
+      uploadedByUserId: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' as const },
+  },
 } as const;
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  }
+
   return withTenant(request, async (ctx) => {
     const { id } = await params;
 
@@ -46,10 +70,12 @@ export async function GET(
             title: a.title,
             description: a.description,
             status: a.status,
+            statusLabel: HSE_ACTION_STATUS_LABELS[a.status],
             dueDate: a.dueDate?.toISOString().slice(0, 10) ?? null,
             completedAt: a.completedAt?.toISOString() ?? null,
             assignee: a.assignee,
           })),
+          attachments: incident.attachments.map(serializeAttachment),
         },
       });
     } catch (error) {
@@ -66,6 +92,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  }
+
   return withTenant(request, async (ctx) => {
     const { id } = await params;
 
@@ -102,6 +132,36 @@ export async function PATCH(
     }
     if (typeof body.immediateAction === 'string') {
       data.immediateAction = body.immediateAction.trim() || null;
+    }
+    if (typeof body.injuredParty === 'string') {
+      data.injuredParty = body.injuredParty.trim() || null;
+    }
+
+    // Investigation fields.
+    if (typeof body.rootCause === 'string') {
+      data.rootCause = body.rootCause.trim() || null;
+    }
+    if (body.rootCauseCategory === null || body.rootCauseCategory === '') {
+      data.rootCauseCategory = null;
+    } else if (
+      typeof body.rootCauseCategory === 'string' &&
+      HSE_ROOT_CAUSE_CATEGORY_VALUES.includes(body.rootCauseCategory)
+    ) {
+      data.rootCauseCategory = body.rootCauseCategory;
+    }
+    if (typeof body.witnessNames === 'string') {
+      data.witnessNames = body.witnessNames.trim() || null;
+    }
+    if (typeof body.reportableToAuthority === 'boolean') {
+      data.reportableToAuthority = body.reportableToAuthority;
+    }
+    if (typeof body.lostTimeInjury === 'boolean') {
+      data.lostTimeInjury = body.lostTimeInjury;
+    }
+    if (body.lostTimeDays === null) {
+      data.lostTimeDays = null;
+    } else if (typeof body.lostTimeDays === 'number' && Number.isFinite(body.lostTimeDays)) {
+      data.lostTimeDays = Math.max(0, Math.trunc(body.lostTimeDays));
     }
 
     if (Object.keys(data).length === 0) {

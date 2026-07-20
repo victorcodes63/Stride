@@ -17,10 +17,16 @@ export async function syncLinkedBillingClients(db: PrismaClient): Promise<{
     },
   });
 
-  const settings = await db.recruitmentSettings.findUnique({ where: { id: 'default' } });
-  const linkedId = settings?.linkedClientId ?? null;
-  const recruitmentClients = linkedId
-    ? await db.client.findMany({ where: { id: linkedId } })
+  // Recruitment settings are per-tenant: collect every org's linked billing client.
+  const settingsRows = await db.recruitmentSettings.findMany({
+    where: { linkedClientId: { not: null } },
+    select: { linkedClientId: true },
+  });
+  const linkedIds = settingsRows
+    .map((s) => s.linkedClientId)
+    .filter((id): id is string => id != null);
+  const recruitmentClients = linkedIds.length
+    ? await db.client.findMany({ where: { id: { in: linkedIds } } })
     : [];
   let recruitmentSynced = 0;
   for (const c of recruitmentClients) {
@@ -28,6 +34,7 @@ export async function syncLinkedBillingClients(db: PrismaClient): Promise<{
       where: { recruitmentClientId: c.id },
     });
     const payload = {
+      organizationId: c.organizationId,
       type: 'recruitment' as const,
       name: c.name,
       contactName: c.contactName,
@@ -67,6 +74,7 @@ export async function syncLinkedBillingClients(db: PrismaClient): Promise<{
     });
     const currency = (c.currency ?? 'KES').trim() || 'KES';
     const payload = {
+      organizationId: c.organizationId,
       type: 'outsourcing' as const,
       name: c.name,
       contactName: c.contactName,

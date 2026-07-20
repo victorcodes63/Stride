@@ -1,9 +1,6 @@
-import { DisbursementsContent } from './DisbursementsContent';
+import { DisbursementsWorkspace } from '@/components/payroll/DisbursementsWorkspace';
+import { INTERNAL_PAYROLL_SURFACE } from '@/lib/payroll-surface';
 
 export default function PayrollDisbursementsPage() {
-  return (
-    <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-neutral-100" />}>
-      <DisbursementsContent />
-    </Suspense>
-  );
+  return <DisbursementsWorkspace config={INTERNAL_PAYROLL_SURFACE} />;
 }

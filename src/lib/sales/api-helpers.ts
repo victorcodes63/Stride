@@ -11,6 +11,8 @@ type DealLineItem = {
   isRecurring: boolean;
   termMonths: number | null;
   sortOrder: number;
+  productId?: string | null;
+  product?: { id: string; name: string } | null;
 };
 
 type DealWithRelations = SalesDeal & {
@@ -69,6 +71,8 @@ export function mapLineItemToJson(item: DealLineItem) {
     isRecurring: item.isRecurring,
     termMonths: item.termMonths,
     sortOrder: item.sortOrder,
+    productId: item.productId ?? null,
+    product: item.product ?? null,
     extendedAmount: extended,
   };
 }
@@ -102,6 +106,8 @@ export function mapDealToJson(d: DealWithRelations) {
     competitor: d.competitor,
     notes: d.notes,
     cargoWeightKg: d.cargoWeightKg ?? null,
+    stageEnteredAt: d.stageEnteredAt?.toISOString() ?? null,
+    lastActivityAt: d.lastActivityAt?.toISOString() ?? null,
     lineItems,
     lineItemsTotal: Math.round(lineTotal * 100) / 100,
     createdAt: d.createdAt.toISOString(),
@@ -115,5 +121,8 @@ export const dealInclude = {
   primaryContact: {
     select: { id: true, name: true, title: true, email: true, phone: true },
   },
-  lineItems: { orderBy: { sortOrder: 'asc' as const } },
+  lineItems: {
+    orderBy: { sortOrder: 'asc' as const },
+    include: { product: { select: { id: true, name: true } } },
+  },
 } as const;

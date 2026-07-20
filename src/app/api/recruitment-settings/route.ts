@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         { status: 503 }
       );
     }
-    const row = await getOrCreateRecruitmentSettings(prisma);
+    const row = await getOrCreateRecruitmentSettings(prisma, user.currentOrgId);
     return NextResponse.json(settingsToDto(row));
   } catch (e) {
     await reportApiError({
@@ -68,7 +68,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const current = await getOrCreateRecruitmentSettings(prisma);
+    const current = await getOrCreateRecruitmentSettings(prisma, user.currentOrgId);
     const updated = await prisma.$transaction(async (tx) => {
       const next = await tx.recruitmentSettings.update({
         where: { id: current.id },

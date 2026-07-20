@@ -3,9 +3,10 @@ import { Prisma as PrismaRuntime } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { buildNotificationEmail, type NotificationEvent } from '@/lib/notification-emails';
 import { sendEmail } from '@/lib/email';
+import { sendWhatsApp, whatsAppProvider, normalizePhoneE164 } from '@/lib/whatsapp';
 import { logAuditEvent } from '@/lib/audit-events';
 
-export type NotificationChannel = 'in_app' | 'email' | 'both';
+export type NotificationChannel = 'in_app' | 'email' | 'whatsapp' | 'both';
 export type NotificationPriority = 'info' | 'action_required' | 'urgent';
 export type WorkflowState =
   | 'pending'
@@ -27,6 +28,8 @@ export interface NotificationPayload {
   href?: string;
   priority: NotificationPriority;
   channel: NotificationChannel;
+  /** When true, ALSO send a WhatsApp message in addition to the primary channel(s). */
+  whatsapp?: boolean;
   emailSubject?: string;
   emailHtml?: string;
   metadata?: Record<string, unknown>;
@@ -88,10 +91,14 @@ export function shouldEscalateWorkflow(input: {
 function channelAllowedByPolicy(policy: {
   emailEnabled: boolean;
   inAppEnabled: boolean;
+  whatsappEnabled?: boolean;
   actionRequiredEmail: boolean;
   urgentEmail: boolean;
 } | null, channel: NotificationChannel, priority: NotificationPriority): boolean {
-  if (!policy) return true;
+  if (!policy) {
+    // No stored policy → defaults apply. WhatsApp is opt-in (default off), everything else on.
+    return channel !== 'whatsapp';
+  }
   if (channel === 'in_app') return policy.inAppEnabled;
   if (channel === 'email') {
     if (!policy.emailEnabled) return false;
@@ -99,6 +106,7 @@ function channelAllowedByPolicy(policy: {
     if (priority === 'urgent' && !policy.urgentEmail) return false;
     return true;
   }
+  if (channel === 'whatsapp') return policy.whatsappEnabled === true;
   return policy.inAppEnabled || policy.emailEnabled;
 }
 
@@ -138,6 +146,54 @@ async function createDeliveryRecord(input: {
 function toPrismaJson(value: unknown): Prisma.InputJsonValue | typeof PrismaRuntime.JsonNull {
   if (value == null) return PrismaRuntime.JsonNull;
   return value as Prisma.InputJsonValue;
+}
+
+/** Strip lightweight markdown so the WhatsApp body reads as clean plain text. */
+function stripMarkdown(input: string): string {
+  return input
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)') // links → "text (url)"
+    .replace(/[*_~`]{1,3}([^*_~`]+)[*_~`]{1,3}/g, '$1') // bold/italic/code
+    .replace(/^#{1,6}\s+/gm, '') // headings
+    .replace(/^>\s?/gm, '') // blockquotes
+    .replace(/\r/g, '')
+    .trim();
+}
+
+/** Compose a short, plain-text WhatsApp message from the notification payload. */
+function buildWhatsAppBody(payload: NotificationPayload): string {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '');
+  const title = stripMarkdown(payload.title);
+  const body = stripMarkdown(payload.body);
+  const parts = [title, body].filter(Boolean);
+  if (payload.href) {
+    const link = payload.href.startsWith('http') ? payload.href : `${appUrl}${payload.href}`;
+    if (link) parts.push(link);
+  }
+  return parts.join('\n\n');
+}
+
+/** Resolve an on-file phone (E.164) for a staff user via their linked employee record. */
+async function resolveStaffPhone(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  if (!user?.email) return null;
+  // Staff users have no direct employee link; match the employee via the ESS portal account.
+  const essUser = await prisma.essPortalUser.findFirst({
+    where: { email: user.email, isActive: true },
+    select: { employee: { select: { phone: true } } },
+  });
+  return normalizePhoneE164(essUser?.employee?.phone ?? null);
+}
+
+/** Resolve an on-file phone (E.164) for an ESS portal user via their employee record. */
+async function resolveEssPhone(essPortalUserId: string): Promise<string | null> {
+  const essUser = await prisma.essPortalUser.findUnique({
+    where: { id: essPortalUserId },
+    select: { employee: { select: { phone: true } } },
+  });
+  return normalizePhoneE164(essUser?.employee?.phone ?? null);
 }
 
 export async function getUserIdsByRole(role: 'admin' | 'staff' | 'viewer'): Promise<string[]> {
@@ -204,6 +260,7 @@ export async function sendNotification(payload: NotificationPayload): Promise<vo
             userId: true,
             inAppEnabled: true,
             emailEnabled: true,
+            whatsappEnabled: true,
             actionRequiredEmail: true,
             urgentEmail: true,
             quietHoursEnabled: true,
@@ -219,6 +276,7 @@ export async function sendNotification(payload: NotificationPayload): Promise<vo
             essPortalUserId: true,
             inAppEnabled: true,
             emailEnabled: true,
+            whatsappEnabled: true,
             actionRequiredEmail: true,
             urgentEmail: true,
             quietHoursEnabled: true,
@@ -464,6 +522,162 @@ export async function sendNotification(payload: NotificationPayload): Promise<vo
       }
     }
   }
+
+  // WhatsApp: sent when the primary channel is 'whatsapp', or as an add-on when payload.whatsapp is true.
+  const sendWhatsAppChannel = payload.channel === 'whatsapp' || payload.whatsapp === true;
+  if (sendWhatsAppChannel) {
+    const waBody = buildWhatsAppBody(payload);
+
+    for (const userId of staffIds) {
+      const policy = staffPolicyMap.get(userId) ?? null;
+      if (!channelAllowedByPolicy(policy, 'whatsapp', payload.priority)) {
+        await createDeliveryRecord({
+          workflowRunId: payload.workflowRunId ?? null,
+          event: payload.event,
+          triggerType,
+          recipientKind: 'staff',
+          recipientUserId: userId,
+          channel: 'whatsapp',
+          status: 'skipped_policy',
+          metadata: payload.metadata,
+        });
+        continue;
+      }
+      if (policy?.quietHoursEnabled && isWithinQuietHours(now, policy.quietHoursStart, policy.quietHoursEnd)) {
+        await createDeliveryRecord({
+          workflowRunId: payload.workflowRunId ?? null,
+          event: payload.event,
+          triggerType,
+          recipientKind: 'staff',
+          recipientUserId: userId,
+          channel: 'whatsapp',
+          status: 'skipped_quiet_hours',
+          metadata: payload.metadata,
+        });
+        continue;
+      }
+      try {
+        const phone = await resolveStaffPhone(userId);
+        if (!phone) {
+          await createDeliveryRecord({
+            workflowRunId: payload.workflowRunId ?? null,
+            event: payload.event,
+            triggerType,
+            recipientKind: 'staff',
+            recipientUserId: userId,
+            channel: 'whatsapp',
+            status: 'failed',
+            provider: whatsAppProvider() ?? 'whatsapp',
+            error: 'No phone number on file',
+            metadata: payload.metadata,
+          });
+          continue;
+        }
+        const result = await sendWhatsApp({ to: phone, body: waBody });
+        await createDeliveryRecord({
+          workflowRunId: payload.workflowRunId ?? null,
+          event: payload.event,
+          triggerType,
+          recipientKind: 'staff',
+          recipientUserId: userId,
+          channel: 'whatsapp',
+          status: result.sent ? 'sent' : 'failed',
+          provider: result.sent ? result.provider : whatsAppProvider() ?? 'whatsapp',
+          error: result.sent ? null : result.error,
+          metadata: payload.metadata,
+        });
+      } catch (err) {
+        console.error(`[notifications] Failed to WhatsApp staff ${userId} for ${payload.event}:`, err);
+        await createDeliveryRecord({
+          workflowRunId: payload.workflowRunId ?? null,
+          event: payload.event,
+          triggerType,
+          recipientKind: 'staff',
+          recipientUserId: userId,
+          channel: 'whatsapp',
+          status: 'failed',
+          provider: whatsAppProvider() ?? 'whatsapp',
+          error: err instanceof Error ? err.message : String(err),
+          metadata: payload.metadata,
+        });
+      }
+    }
+
+    for (const essPortalUserId of essIds) {
+      const policy = essPolicyMap.get(essPortalUserId) ?? null;
+      if (!channelAllowedByPolicy(policy, 'whatsapp', payload.priority)) {
+        await createDeliveryRecord({
+          workflowRunId: payload.workflowRunId ?? null,
+          event: payload.event,
+          triggerType,
+          recipientKind: 'ess',
+          recipientEssPortalUserId: essPortalUserId,
+          channel: 'whatsapp',
+          status: 'skipped_policy',
+          metadata: payload.metadata,
+        });
+        continue;
+      }
+      if (policy?.quietHoursEnabled && isWithinQuietHours(now, policy.quietHoursStart, policy.quietHoursEnd)) {
+        await createDeliveryRecord({
+          workflowRunId: payload.workflowRunId ?? null,
+          event: payload.event,
+          triggerType,
+          recipientKind: 'ess',
+          recipientEssPortalUserId: essPortalUserId,
+          channel: 'whatsapp',
+          status: 'skipped_quiet_hours',
+          metadata: payload.metadata,
+        });
+        continue;
+      }
+      try {
+        const phone = await resolveEssPhone(essPortalUserId);
+        if (!phone) {
+          await createDeliveryRecord({
+            workflowRunId: payload.workflowRunId ?? null,
+            event: payload.event,
+            triggerType,
+            recipientKind: 'ess',
+            recipientEssPortalUserId: essPortalUserId,
+            channel: 'whatsapp',
+            status: 'failed',
+            provider: whatsAppProvider() ?? 'whatsapp',
+            error: 'No phone number on file',
+            metadata: payload.metadata,
+          });
+          continue;
+        }
+        const result = await sendWhatsApp({ to: phone, body: waBody });
+        await createDeliveryRecord({
+          workflowRunId: payload.workflowRunId ?? null,
+          event: payload.event,
+          triggerType,
+          recipientKind: 'ess',
+          recipientEssPortalUserId: essPortalUserId,
+          channel: 'whatsapp',
+          status: result.sent ? 'sent' : 'failed',
+          provider: result.sent ? result.provider : whatsAppProvider() ?? 'whatsapp',
+          error: result.sent ? null : result.error,
+          metadata: payload.metadata,
+        });
+      } catch (err) {
+        console.error(`[notifications] Failed to WhatsApp ESS ${essPortalUserId} for ${payload.event}:`, err);
+        await createDeliveryRecord({
+          workflowRunId: payload.workflowRunId ?? null,
+          event: payload.event,
+          triggerType,
+          recipientKind: 'ess',
+          recipientEssPortalUserId: essPortalUserId,
+          channel: 'whatsapp',
+          status: 'failed',
+          provider: whatsAppProvider() ?? 'whatsapp',
+          error: err instanceof Error ? err.message : String(err),
+          metadata: payload.metadata,
+        });
+      }
+    }
+  }
 }
 
 export async function createWorkflowRun(payload: WorkflowPrimitivePayload) {
@@ -567,6 +781,7 @@ export async function runWorkflowEscalationSweep(now = new Date()) {
     },
     select: {
       id: true,
+      organizationId: true,
       module: true,
       status: true,
       dueAt: true,
@@ -589,6 +804,7 @@ export async function runWorkflowEscalationSweep(now = new Date()) {
       });
       await prisma.workflowEvent.create({
         data: {
+          organizationId: run.organizationId,
           workflowRunId: run.id,
           triggerType: 'time',
           eventType: 'workflow_escalated',

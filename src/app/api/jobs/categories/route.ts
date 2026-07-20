@@ -6,8 +6,10 @@ import { requireStaffUser } from '@/lib/staff-api-auth';
 import { withTenant } from '@/lib/tenant-api';
 
 async function resolvePublicCareersOrganizationId(): Promise<string | null> {
-  const row = await prisma.recruitmentSettings.findUnique({
-    where: { id: 'default' },
+  // Public careers currently surfaces the earliest recruitment tenant. Per-tenant public
+  // careers (routing a visitor to a specific org by domain/slug) is a planned follow-up.
+  const row = await prisma.recruitmentSettings.findFirst({
+    orderBy: { createdAt: 'asc' },
     select: { organizationId: true },
   });
   return row?.organizationId ?? null;

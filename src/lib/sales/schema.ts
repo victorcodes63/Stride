@@ -26,6 +26,44 @@ export type SalesTargetStatus = (typeof SALES_TARGET_STATUSES)[number];
 export const SALES_ACTUAL_SOURCES = ['manual', 'deal', 'finance_invoice'] as const;
 export type SalesActualSource = (typeof SALES_ACTUAL_SOURCES)[number];
 
+export const SALES_LEAD_RATINGS = ['hot', 'warm', 'cold'] as const;
+export type SalesLeadRating = (typeof SALES_LEAD_RATINGS)[number];
+
+export const SALES_TASK_STATUSES = ['open', 'completed', 'cancelled'] as const;
+export type SalesTaskStatus = (typeof SALES_TASK_STATUSES)[number];
+
+export const SALES_QUOTE_STATUSES = ['draft', 'sent', 'accepted', 'rejected', 'expired'] as const;
+export type SalesQuoteStatus = (typeof SALES_QUOTE_STATUSES)[number];
+
+/** Terminal (closed) pipeline stages. */
+export const CLOSED_STAGES: SalesDealStage[] = ['won', 'lost'];
+
+/**
+ * Days a deal may sit idle in a stage before it is considered "rotting".
+ * Later stages get shorter fuses since momentum matters more near the close.
+ */
+export const STAGE_ROTTING_THRESHOLD_DAYS: Record<SalesDealStage, number> = {
+  lead: 21,
+  qualified: 14,
+  proposal: 10,
+  negotiation: 7,
+  won: Number.POSITIVE_INFINITY,
+  lost: Number.POSITIVE_INFINITY,
+};
+
+const STAGE_LABELS: Record<SalesDealStage, string> = {
+  lead: 'Lead',
+  qualified: 'Qualified',
+  proposal: 'Proposal',
+  negotiation: 'Negotiation',
+  won: 'Won',
+  lost: 'Lost',
+};
+
+export function stageLabel(stage: string): string {
+  return STAGE_LABELS[stage as SalesDealStage] ?? stage;
+}
+
 /** Default win probability (%) by pipeline stage. */
 export const STAGE_DEFAULT_PROBABILITY: Record<SalesDealStage, number> = {
   lead: 10,

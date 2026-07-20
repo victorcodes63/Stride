@@ -47,6 +47,13 @@ export async function GET(request: NextRequest) {
         ]),
       );
 
+      const policy = await ctx.run((tx) =>
+        tx.notificationPolicy.findUnique({
+          where: { userId: ctx.staff.id },
+          select: { inAppEnabled: true, emailEnabled: true, whatsappEnabled: true },
+        }),
+      );
+
       const response: Record<string, unknown> = {
         notifications: notifications.map((n) => ({
           id: n.id,
@@ -60,6 +67,12 @@ export async function GET(request: NextRequest) {
           createdAt: n.createdAt.toISOString(),
         })),
         unreadCount,
+        // Channel preferences (defaults: in-app + email on, WhatsApp opt-in off).
+        preferences: {
+          inAppEnabled: policy?.inAppEnabled ?? true,
+          emailEnabled: policy?.emailEnabled ?? true,
+          whatsappEnabled: policy?.whatsappEnabled ?? false,
+        },
       };
 
       if (includeHistory) {
@@ -183,6 +196,46 @@ export async function PATCH(request: NextRequest) {
         message: error instanceof Error ? error.message : String(error),
       });
       return NextResponse.json({ error: 'Failed to update notifications.' }, { status: 500 });
+    }
+  });
+}
+
+/** PUT — persist channel preferences for the signed-in staff user (NotificationPolicy). */
+export async function PUT(request: NextRequest) {
+  return withTenant(request, async (ctx) => {
+    let body: { inAppEnabled?: boolean; emailEnabled?: boolean; whatsappEnabled?: boolean };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    try {
+      const policy = await ctx.run((tx) =>
+        tx.notificationPolicy.upsert({
+          where: { userId: ctx.staff.id },
+          create: {
+            organizationId: ctx.organizationId,
+            userId: ctx.staff.id,
+            ...(typeof body.inAppEnabled === 'boolean' ? { inAppEnabled: body.inAppEnabled } : {}),
+            ...(typeof body.emailEnabled === 'boolean' ? { emailEnabled: body.emailEnabled } : {}),
+            ...(typeof body.whatsappEnabled === 'boolean' ? { whatsappEnabled: body.whatsappEnabled } : {}),
+          },
+          update: {
+            ...(typeof body.inAppEnabled === 'boolean' ? { inAppEnabled: body.inAppEnabled } : {}),
+            ...(typeof body.emailEnabled === 'boolean' ? { emailEnabled: body.emailEnabled } : {}),
+            ...(typeof body.whatsappEnabled === 'boolean' ? { whatsappEnabled: body.whatsappEnabled } : {}),
+          },
+          select: { inAppEnabled: true, emailEnabled: true, whatsappEnabled: true },
+        }),
+      );
+      return NextResponse.json({ ok: true, preferences: policy });
+    } catch (error) {
+      await reportApiError({
+        route: 'PUT /api/dashboard/notifications',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to save preferences.' }, { status: 500 });
     }
   });
 }

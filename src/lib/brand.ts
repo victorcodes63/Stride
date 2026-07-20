@@ -74,7 +74,7 @@ export const emailSubjectTag = `[${brandConfig.productName}]`;
 /** Serializable brand snapshot for client components (root BrandProvider). */
 export type PublicBrand = {
   orgName: string;
-  /** Always Stride — platform product name, not tenant-configurable. */
+  /** Platform product name (Stride) — overridden by the tenant on enterprise white-label. */
   appName: string;
   tagline: string;
   contactEmail: string;
@@ -85,6 +85,7 @@ export type PublicBrand = {
   logoPngPath: string;
   /** Tenant logo from company setup — dashboard sidebar, payslips, letters. */
   tenantLogoSrc: string;
+  /** Wordmark text (Stride) — overridden by the tenant on enterprise white-label. */
   wordmark: string;
   faviconSrc: string;
   primaryColor: string;

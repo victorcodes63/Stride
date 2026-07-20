@@ -8,7 +8,7 @@ export default function EssInstallPage() {
     <div>
       <EssPageHeader
         title="Install app"
-        subtitle="Add ESS to your home screen for faster access, standalone mode, and cached pages."
+        subtitle="Add ESS to your home screen for faster access."
         backHref="/ess/more"
       />
       <EssCard className="space-y-5 text-sm text-[var(--ess-muted)]">

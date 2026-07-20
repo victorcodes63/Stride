@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ModuleHomeContent } from '@/components/dashboard/module-home/ModuleHomeContent';
+import { LegalHubContent } from '@/components/legal/LegalHubContent';
 
 export const metadata: Metadata = {
   title: 'Legal & compliance | Stride Dashboard',
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LegalModuleHomePage() {
-  return <ModuleHomeContent domainId="legal-documents" />;
+  return <LegalHubContent />;
 }

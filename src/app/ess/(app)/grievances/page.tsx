@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssAlert, EssCard, EssEmptyState, EssListItem, essInputClass, essPrimaryButtonClass } from '@/components/ess/EssUi';
 import { EssStatusPill } from '@/components/ess/EssStatusPill';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { toDisplayLabel } from '@/lib/format-label';
 
 type Grievance = {
   id: string;
@@ -69,9 +71,13 @@ export default function EssGrievancesPage() {
       <EssCard>
         <p className="text-sm font-black text-[var(--ess-text)]">Submit grievance</p>
         <div className="mt-2 space-y-2">
-          <select className={essInputClass} value={category} onChange={(e) => setCategory(e.target.value)}>
-            {['WORKPLACE_SAFETY','HARASSMENT','DISCRIMINATION','WORKLOAD','MANAGEMENT','COMPENSATION','POLICY','OTHER'].map((c) => <option key={c} value={c}>{c.replaceAll('_', ' ')}</option>)}
-          </select>
+          <StrideSelect
+            surface="ess"
+            value={category}
+            onChange={(value) => setCategory(value)}
+            options={['WORKPLACE_SAFETY','HARASSMENT','DISCRIMINATION','WORKLOAD','MANAGEMENT','COMPENSATION','POLICY','OTHER'].map((c) => ({ value: c, label: toDisplayLabel(c) }))}
+            ariaLabel="Grievance category"
+          />
           <input className={essInputClass} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" />
           <textarea className={`${essInputClass} min-h-28`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the grievance" />
           {error ? <EssAlert tone="danger">{error}</EssAlert> : null}

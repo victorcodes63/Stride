@@ -364,6 +364,20 @@ button, a, input, textarea {
   background: var(--brand-primary-subtle) !important;
 }
 
+/* Opt the payroll table out of global zebra striping (kept clean for grouped
+   department views). Specificity is raised above the zebra rules so this wins
+   even when data-table-zebra is enabled globally. */
+:is(html, .table-zebra-scope)[data-table-zebra='true'] .payroll-table-clean.dashboard-data-table tbody tr:nth-child(4n + 2):not([data-selected='true']),
+:is(html, .table-zebra-scope)[data-table-zebra='true'] .payroll-table-clean.dashboard-data-table tbody tr:nth-child(4n):not([data-selected='true']),
+:is(html, .table-zebra-scope)[data-table-zebra='true'] .payroll-table-clean.dashboard-data-table tbody tr.table-stripe-primary:not([data-selected='true']),
+:is(html, .table-zebra-scope)[data-table-zebra='true'] .payroll-table-clean.dashboard-data-table tbody tr.table-stripe-secondary:not([data-selected='true']) {
+  background: transparent !important;
+}
+
+:is(html, .table-zebra-scope)[data-table-zebra='true'] .payroll-table-clean.dashboard-data-table tbody tr:hover {
+  background: var(--dash-hover) !important;
+}
+
 .table-empty-state {
   display: flex;
   min-height: 280px;
@@ -388,6 +402,15 @@ table .numeric,
 [data-numeric='true'],
 .tabular-nums {
   font-family: var(--font-mono);
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* Payroll table: keep numbers column-aligned but use the readable sans font
+   instead of the monospace treatment for a cleaner, less "styled" look. */
+.payroll-table-clean .tabular-nums,
+.payroll-table-clean [data-numeric='true'] {
+  font-family: var(--font-sans);
   font-feature-settings: 'tnum';
   font-variant-numeric: tabular-nums;
 }

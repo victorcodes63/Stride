@@ -54,6 +54,9 @@ export async function GET(request: NextRequest) {
       if (!process.env.DATABASE_URL) {
         return NextResponse.json([], { status: 200 });
       }
+      // HR Outsourcing surfaces pass ?excludePrimary=1 so the end-client switcher never
+      // lists the company's own "primary workspace client" (that's internal payroll).
+      const excludePrimary = new URL(request.url).searchParams.get('excludePrimary') === '1';
       const entityId = await resolveEntityIdOrDefault(request, ctx.organizationId);
       if (entityId) {
         const scoped = await ctx.run((tx) =>
@@ -64,6 +67,12 @@ export async function GET(request: NextRequest) {
         );
         if (!scoped) {
           return NextResponse.json([]);
+        }
+        if (excludePrimary) {
+          const primary = await getOrCreatePrimaryWorkspaceClient(prisma, ctx.organizationId);
+          if (scoped.id === primary.id) {
+            return NextResponse.json([]);
+          }
         }
         const row = mapOutsourcingClientToJson(scoped);
         const label = row.county ? `${row.name} — ${row.county}` : row.name;
@@ -86,7 +95,7 @@ export async function GET(request: NextRequest) {
           include: listInclude,
         }),
       );
-      const ordered = [primaryFull, ...rest];
+      const ordered = excludePrimary ? rest : [primaryFull, ...rest];
       const mapped = ordered.map((c) => mapOutsourcingClientToJson(c));
       const nameLowerCounts = mapped.reduce((m, row) => {
         const k = row.name.trim().toLowerCase();

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
+import {
+  avgSalesCycleDays,
+  avgWonDealValue,
+  computeSalesVelocity,
+  computeWinRate,
+  type AnalyticsDeal,
+} from '@/lib/sales/analytics';
 import { buildSalesOverview } from '@/lib/sales/overview-analytics';
 import { parsePeriodBounds } from '@/lib/sales/schema';
 import { withTenant } from '@/lib/tenant-api';
@@ -21,15 +28,48 @@ export async function GET(request: NextRequest) {
     );
 
     try {
-      const overview = await ctx.run((tx) =>
-        buildSalesOverview(tx, {
+      const { overview, performance } = await ctx.run(async (tx) => {
+        const overview = await buildSalesOverview(tx, {
           organizationId: ctx.organizationId,
           periodStart,
           periodEnd,
-        }),
-      );
+        });
 
-      return NextResponse.json({ overview });
+        const dealRows = await tx.salesDeal.findMany({
+          where: { organizationId: ctx.organizationId },
+          select: {
+            stage: true,
+            value: true,
+            probability: true,
+            createdAt: true,
+            closedAt: true,
+            stageEnteredAt: true,
+            lastActivityAt: true,
+          },
+        });
+
+        const deals: AnalyticsDeal[] = dealRows.map((d) => ({
+          stage: d.stage,
+          value: Number(d.value),
+          probability: d.probability,
+          createdAt: d.createdAt,
+          closedAt: d.closedAt,
+          stageEnteredAt: d.stageEnteredAt,
+          lastActivityAt: d.lastActivityAt,
+        }));
+
+        return {
+          overview,
+          performance: {
+            winRatePct: computeWinRate(deals),
+            avgDealSize: avgWonDealValue(deals),
+            avgSalesCycleDays: avgSalesCycleDays(deals),
+            salesVelocity: computeSalesVelocity(deals),
+          },
+        };
+      });
+
+      return NextResponse.json({ overview: { ...overview, ...performance } });
     } catch (error) {
       await reportApiError({
         route: 'GET /api/sales/overview',

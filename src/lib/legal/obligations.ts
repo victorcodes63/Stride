@@ -1,12 +1,15 @@
+export type ObligationSource = 'contract' | 'credential' | 'policy' | 'compliance';
+
 export type ObligationRow = {
   id: string;
-  source: 'contract' | 'credential';
+  source: ObligationSource;
   title: string;
   party: string;
   dueDate: string;
-  status: 'overdue' | 'due_soon' | 'ok';
+  status: 'overdue' | 'due_soon' | 'ok' | 'completed' | 'waived';
   owner: string | null;
   href: string;
+  category?: string | null;
 };
 
 function daysUntil(date: Date, asOf: Date): number {
@@ -35,6 +38,21 @@ export function buildObligationRegister(input: {
     expiryDate: Date | null;
     employee: { firstName: string; lastName: string };
   }>;
+  policies?: Array<{
+    id: string;
+    title: string;
+    category: string;
+    expiryDate: Date;
+  }>;
+  compliance?: Array<{
+    id: string;
+    title: string;
+    category: string;
+    dueDate: Date;
+    status: 'pending' | 'completed' | 'waived';
+    regulator: string | null;
+    owner: { name: string } | null;
+  }>;
   asOf?: Date;
 }): ObligationRow[] {
   const asOf = input.asOf ?? new Date();
@@ -50,7 +68,7 @@ export function buildObligationRegister(input: {
       dueDate: c.endDate.toISOString().slice(0, 10),
       status: bucketStatus(days),
       owner: c.managers[0]?.name ?? null,
-      href: `/dashboard/people/contracts`,
+      href: `/dashboard/people/contracts/${c.id}`,
     });
   }
 
@@ -66,6 +84,64 @@ export function buildObligationRegister(input: {
       status: bucketStatus(days),
       owner: null,
       href: `/dashboard/credentials`,
+    });
+  }
+
+  for (const policy of input.policies ?? []) {
+    const days = daysUntil(policy.expiryDate, asOf);
+    rows.push({
+      id: `policy-${policy.id}`,
+      source: 'policy',
+      title: policy.title,
+      party: policy.category,
+      dueDate: policy.expiryDate.toISOString().slice(0, 10),
+      status: bucketStatus(days),
+      owner: null,
+      href: `/dashboard/company-documents`,
+      category: policy.category,
+    });
+  }
+
+  for (const item of input.compliance ?? []) {
+    if (item.status === 'completed') {
+      rows.push({
+        id: `compliance-${item.id}`,
+        source: 'compliance',
+        title: item.title,
+        party: item.regulator || item.category,
+        dueDate: item.dueDate.toISOString().slice(0, 10),
+        status: 'completed',
+        owner: item.owner?.name ?? null,
+        href: `/dashboard/legal/obligations`,
+        category: item.category,
+      });
+      continue;
+    }
+    if (item.status === 'waived') {
+      rows.push({
+        id: `compliance-${item.id}`,
+        source: 'compliance',
+        title: item.title,
+        party: item.regulator || item.category,
+        dueDate: item.dueDate.toISOString().slice(0, 10),
+        status: 'waived',
+        owner: item.owner?.name ?? null,
+        href: `/dashboard/legal/obligations`,
+        category: item.category,
+      });
+      continue;
+    }
+    const days = daysUntil(item.dueDate, asOf);
+    rows.push({
+      id: `compliance-${item.id}`,
+      source: 'compliance',
+      title: item.title,
+      party: item.regulator || item.category,
+      dueDate: item.dueDate.toISOString().slice(0, 10),
+      status: bucketStatus(days),
+      owner: item.owner?.name ?? null,
+      href: `/dashboard/legal/obligations`,
+      category: item.category,
     });
   }
 

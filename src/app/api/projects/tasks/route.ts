@@ -1,6 +1,8 @@
+import type { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { reportApiError } from '@/lib/monitoring';
+import { logProjectActivity } from '@/lib/projects/activity';
 import { serializeTask } from '@/lib/projects/serialize';
 import { withTenant } from '@/lib/tenant-api';
 
@@ -9,9 +11,14 @@ const TASK_PRIORITIES = ['low', 'medium', 'high'] as const;
 
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
-    const projectId = request.nextUrl.searchParams.get('projectId')?.trim() || undefined;
-    const status = request.nextUrl.searchParams.get('status')?.trim() || undefined;
-    const assigneeUserId = request.nextUrl.searchParams.get('assigneeUserId')?.trim() || undefined;
+    const sp = request.nextUrl.searchParams;
+    const projectId = sp.get('projectId')?.trim() || undefined;
+    const status = sp.get('status')?.trim() || undefined;
+    const assigneeUserId = sp.get('assigneeUserId')?.trim() || undefined;
+    const milestoneId = sp.get('milestoneId')?.trim() || undefined;
+    const parentTaskId = sp.get('parentTaskId')?.trim() || undefined;
+    const label = sp.get('label')?.trim() || undefined;
+    const includeSubtasks = sp.get('include')?.split(',').includes('subtasks') ?? false;
 
     try {
       const tasks = await ctx.run(async (tx) => {
@@ -22,18 +29,34 @@ export async function GET(request: NextRequest) {
           ctx.organizationId,
         );
 
+        const where: Prisma.ProjectTaskWhereInput = {
+          organizationId: ctx.organizationId,
+          project: { outsourcingClientId: clientId },
+          ...(projectId ? { projectId } : {}),
+          ...(status ? { status: status as never } : {}),
+          ...(assigneeUserId ? { assigneeUserId } : {}),
+          ...(milestoneId ? { milestoneId } : {}),
+          ...(parentTaskId ? { parentTaskId } : {}),
+          ...(label
+            ? { taskLabels: { some: { label: { name: label } } } }
+            : {}),
+        };
+
         return tx.projectTask.findMany({
-          where: {
-            organizationId: ctx.organizationId,
-            project: { outsourcingClientId: clientId },
-            ...(projectId ? { projectId } : {}),
-            ...(status ? { status: status as never } : {}),
-            ...(assigneeUserId ? { assigneeUserId } : {}),
-          },
+          where,
           include: {
             project: { select: { id: true, projectCode: true, name: true } },
             milestone: { select: { id: true, title: true } },
             assignee: { select: { id: true, name: true, email: true } },
+            taskLabels: { include: { label: true } },
+            ...(includeSubtasks
+              ? {
+                  subtasks: {
+                    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+                  },
+                }
+              : {}),
+            _count: { select: { subtasks: true, comments: true, attachments: true, blocking: true, blockedBy: true } },
           },
           orderBy: [{ dueDate: 'asc' }, { updatedAt: 'desc' }],
           take: 500,
@@ -67,7 +90,8 @@ export async function POST(request: NextRequest) {
     }
 
     const description = typeof body.description === 'string' ? body.description.trim() : null;
-    const milestoneId = typeof body.milestoneId === 'string' ? body.milestoneId.trim() : null;
+    const milestoneId = typeof body.milestoneId === 'string' && body.milestoneId.trim() ? body.milestoneId.trim() : null;
+    const parentTaskId = typeof body.parentTaskId === 'string' && body.parentTaskId.trim() ? body.parentTaskId.trim() : null;
     const status =
       typeof body.status === 'string' && TASK_STATUSES.includes(body.status as (typeof TASK_STATUSES)[number])
         ? body.status
@@ -77,9 +101,18 @@ export async function POST(request: NextRequest) {
       TASK_PRIORITIES.includes(body.priority as (typeof TASK_PRIORITIES)[number])
         ? body.priority
         : 'medium';
-    const assigneeUserId = typeof body.assigneeUserId === 'string' ? body.assigneeUserId.trim() : null;
+    const assigneeUserId = typeof body.assigneeUserId === 'string' && body.assigneeUserId.trim() ? body.assigneeUserId.trim() : null;
     const dueDate =
       typeof body.dueDate === 'string' && body.dueDate.trim() ? new Date(body.dueDate) : null;
+    const startDate =
+      typeof body.startDate === 'string' && body.startDate.trim() ? new Date(body.startDate) : null;
+    const estimateHours =
+      typeof body.estimateHours === 'number' && Number.isFinite(body.estimateHours) && body.estimateHours >= 0
+        ? body.estimateHours
+        : null;
+    const labelIds = Array.isArray(body.labelIds)
+      ? [...new Set(body.labelIds.filter((l): l is string => typeof l === 'string' && l.trim().length > 0))]
+      : [];
 
     try {
       const created = await ctx.run(async (tx) => {
@@ -103,31 +136,80 @@ export async function POST(request: NextRequest) {
           if (!milestone) throw new Error('Milestone not found for this project.');
         }
 
+        if (parentTaskId) {
+          const parent = await tx.projectTask.findFirst({
+            where: { id: parentTaskId, projectId, organizationId: ctx.organizationId },
+            select: { id: true },
+          });
+          if (!parent) throw new Error('Parent task not found for this project.');
+        }
+
+        if (labelIds.length > 0) {
+          const validLabels = await tx.projectLabel.findMany({
+            where: {
+              id: { in: labelIds },
+              organizationId: ctx.organizationId,
+              OR: [{ projectId: null }, { projectId }],
+            },
+            select: { id: true },
+          });
+          if (validLabels.length !== labelIds.length) {
+            throw new Error('One or more labels are invalid for this project.');
+          }
+        }
+
         const sortOrder = await tx.projectTask.count({
           where: { projectId, organizationId: ctx.organizationId, status: status as never },
         });
 
-        return tx.projectTask.create({
+        const task = await tx.projectTask.create({
           data: {
             organizationId: project.organizationId,
             projectId,
             milestoneId,
+            parentTaskId,
             title,
             description,
             status: status as never,
             priority: priority as never,
             assigneeUserId,
             dueDate,
+            startDate,
+            estimateHours,
             sortOrder,
             createdByUserId: ctx.staff.id,
             completedAt: status === 'done' ? new Date() : null,
+            progress: status === 'done' ? 100 : 0,
+            ...(labelIds.length > 0
+              ? {
+                  taskLabels: {
+                    create: labelIds.map((labelId) => ({
+                      organizationId: ctx.organizationId,
+                      labelId,
+                    })),
+                  },
+                }
+              : {}),
           },
           include: {
             project: { select: { id: true, projectCode: true, name: true } },
             milestone: { select: { id: true, title: true } },
             assignee: { select: { id: true, name: true, email: true } },
+            taskLabels: { include: { label: true } },
           },
         });
+
+        await logProjectActivity(tx, {
+          organizationId: ctx.organizationId,
+          projectId,
+          taskId: task.id,
+          type: 'created',
+          actorUserId: ctx.staff.id,
+          summary: `Task "${task.title}" created`,
+          metadata: { taskId: task.id, parentTaskId, milestoneId },
+        });
+
+        return task;
       });
 
       return NextResponse.json({ task: serializeTask(created) }, { status: 201 });
@@ -136,7 +218,11 @@ export async function POST(request: NextRequest) {
       if (message === 'Project not found.') {
         return NextResponse.json({ error: message }, { status: 404 });
       }
-      if (message === 'Milestone not found for this project.') {
+      if (
+        message === 'Milestone not found for this project.' ||
+        message === 'Parent task not found for this project.' ||
+        message === 'One or more labels are invalid for this project.'
+      ) {
         return NextResponse.json({ error: message }, { status: 400 });
       }
       await reportApiError({

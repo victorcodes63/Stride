@@ -22,6 +22,7 @@ import {
   Activity
 } from 'lucide-react';
 import { JobListing, JobApplication, Employer } from '@/types/ats';
+import { StrideSelect } from '@/components/ui/stride-select';
 import { useATS } from '@/lib/use-ats';
 
 interface EmployerDashboardProps {
@@ -310,17 +311,19 @@ const EmployerDashboard = ({ employerId }: EmployerDashboardProps) => {
               className="pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
-          <select
+          <StrideSelect
+            surface="public"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="shortlisted">Shortlisted</option>
-            <option value="hired">Hired</option>
-            <option value="rejected">Rejected</option>
-          </select>
+            onChange={(value) => setStatusFilter(value)}
+            options={[
+              { value: 'all', label: 'All Status' },
+              { value: 'pending', label: 'Pending' },
+              { value: 'shortlisted', label: 'Shortlisted' },
+              { value: 'hired', label: 'Hired' },
+              { value: 'rejected', label: 'Rejected' },
+            ]}
+            ariaLabel="Filter by status"
+          />
         </div>
       </div>
 

@@ -5,8 +5,12 @@
 .ess-app {
   /* Floating Check in CTA sits above the glass bar — keep clearance tall enough */
   --ess-tab-height: 104px;
-  /* Chrome header: safe-area + glass pill (~3.5rem) + vertical padding */
-  --ess-header-offset: calc(max(env(safe-area-inset-top, 0px), 0.75rem) + 4.25rem);
+  /* Bottom clearance below the tab bar — driven by the device home indicator / gesture
+     bar. On phones with a home indicator this resolves to the inset (~34px) so the bar
+     tucks just above it; on devices without one it drops to a small floor. */
+  --ess-tab-gap: max(env(safe-area-inset-bottom, 0px), 0.25rem);
+  /* Chrome header: safe-area + glass pill (~3.5rem) + vertical padding + breathing gap below the bar */
+  --ess-header-offset: calc(max(env(safe-area-inset-top, 0px), 0.75rem) + 5.5rem);
   --ess-touch-min: 44px;
   --ess-bg: var(--stride-paper);
   --ess-bg-strong: var(--sc-paper-2);
@@ -76,7 +80,7 @@
 }
 
 .ess-tab-bar {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
+  padding-bottom: var(--ess-tab-gap);
   min-height: calc(var(--ess-tab-height) + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }

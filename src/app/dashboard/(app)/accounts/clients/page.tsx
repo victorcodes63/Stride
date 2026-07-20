@@ -78,7 +78,7 @@ export default function AccountsClientsPage() {
  <DashboardPageHeader
  icon={Building2}
  title="Billing clients"
- description="Parties you issue invoices to — subsidiaries, inter-company entities, or external customers. Each client holds its own contact details, currency, and invoice history."
+ description="Parties you invoice — subsidiaries, inter-company, or external customers."
  actions={[
  { href: '/dashboard/accounts/clients/new', label: 'Add billing client', icon: Plus },
  ]}

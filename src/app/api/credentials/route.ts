@@ -3,155 +3,60 @@ import { CredentialCategory, CredentialStatus } from '@prisma/client';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { canAccessCredentials, forbiddenResponse } from '@/lib/demo-route-access';
 import { withTenant } from '@/lib/tenant-api';
-
-const CATEGORIES = new Set<string>(Object.values(CredentialCategory));
-const STATUSES = new Set<string>(Object.values(CredentialStatus));
-
-function asOptionalString(value: unknown): string | null {
-  return typeof value === 'string' ? value.trim() || null : null;
-}
-
-function asDate(value: unknown): Date | null {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function deriveStatus(
-  status: CredentialStatus,
-  expiryDate: Date | null,
-  reminderDays: number,
-): CredentialStatus {
-  if (status === 'suspended' || status === 'revoked') return status;
-  if (!expiryDate) return status;
-
-  const now = new Date();
-  const ms = expiryDate.getTime() - now.getTime();
-  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-  if (days < 0) return 'expired';
-  if (days <= reminderDays) return 'expiring_soon';
-  return 'active';
-}
-
-function toResponse(record: {
-  id: string;
-  employeeId: string;
-  category: CredentialCategory;
-  credentialName: string;
-  credentialNumber: string | null;
-  issuingAuthority: string | null;
-  issueDate: Date | null;
-  expiryDate: Date | null;
-  reminderDays: number;
-  status: CredentialStatus;
-  scopeOfPractice: string | null;
-  notes: string | null;
-  documentPath: string | null;
-  verifiedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  employee: {
-    firstName: string;
-    lastName: string;
-    employeeNumber: string | null;
-    jobTitle: string | null;
-    department: { name: string } | null;
-  };
-}) {
-  const effectiveStatus = deriveStatus(record.status, record.expiryDate, record.reminderDays);
-  return {
-    id: record.id,
-    employeeId: record.employeeId,
-    employeeName: `${record.employee.firstName} ${record.employee.lastName}`.trim(),
-    employeeNumber: record.employee.employeeNumber,
-    jobTitle: record.employee.jobTitle,
-    departmentName: record.employee.department?.name ?? null,
-    category: record.category,
-    credentialName: record.credentialName,
-    credentialNumber: record.credentialNumber,
-    issuingAuthority: record.issuingAuthority,
-    issueDate: record.issueDate?.toISOString().slice(0, 10) ?? null,
-    expiryDate: record.expiryDate?.toISOString().slice(0, 10) ?? null,
-    reminderDays: record.reminderDays,
-    status: record.status,
-    effectiveStatus,
-    scopeOfPractice: record.scopeOfPractice,
-    notes: record.notes,
-    documentPath: record.documentPath,
-    verifiedAt: record.verifiedAt?.toISOString() ?? null,
-    createdAt: record.createdAt.toISOString(),
-    updatedAt: record.updatedAt.toISOString(),
-  };
-}
+import {
+  CATEGORIES,
+  STATUSES,
+  asDate,
+  asOptionalString,
+  credentialInclude,
+  loadCredentials,
+  parseCredentialQuery,
+  toResponse,
+} from './_shared';
 
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
     if (!canAccessCredentials(ctx.staff)) {
       return forbiddenResponse('Credentials access is restricted to HR and admins.');
     }
-    if (!process.env.DATABASE_URL) return NextResponse.json([], { status: 200 });
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ credentials: [], total: 0, page: 1, pageSize: 25 }, { status: 200 });
+    }
 
-    const workspaceClientId = await ctx.run((tx) =>
-      resolvePrimaryWorkspaceClientId(tx, null, request, ctx.organizationId),
-    );
-    const employeeId = request.nextUrl.searchParams.get('employeeId') || undefined;
-    const categoryRaw = request.nextUrl.searchParams.get('category');
-    const statusRaw = request.nextUrl.searchParams.get('status');
-    const expiringOnly = request.nextUrl.searchParams.get('expiring') === '1';
+    const query = parseCredentialQuery(request);
+    const all = await loadCredentials(ctx, request, query);
 
-    const category =
-      categoryRaw && CATEGORIES.has(categoryRaw) ? (categoryRaw as CredentialCategory) : undefined;
-    const status =
-      statusRaw && STATUSES.has(statusRaw) ? (statusRaw as CredentialStatus) : undefined;
-
-    const records = await ctx.run((tx) =>
-      tx.employeeCredential.findMany({
-        where: {
-          ...ctx.where(),
-          employee: {
-            outsourcingClientId: workspaceClientId,
-            client: { organizationId: ctx.organizationId },
-          },
-          ...(employeeId ? { employeeId } : {}),
-          ...(category ? { category } : {}),
-          ...(status ? { status } : {}),
-        },
-        include: {
-          employee: {
-            select: {
-              firstName: true,
-              lastName: true,
-              employeeNumber: true,
-              jobTitle: true,
-              department: { select: { name: true } },
-            },
-          },
-        },
-        orderBy: [{ expiryDate: 'asc' }, { createdAt: 'desc' }],
-      }),
-    );
-
-    const mapped = records.map(toResponse);
-    const filtered = expiringOnly
-      ? mapped.filter(
-          (item) =>
-            item.effectiveStatus === 'expiring_soon' || item.effectiveStatus === 'expired',
-        )
-      : mapped;
+    const sp = request.nextUrl.searchParams;
+    const pageSizeRaw = Number(sp.get('pageSize'));
+    const pageSize =
+      Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(100, Math.floor(pageSizeRaw)) : 25;
+    const total = all.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const pageRaw = Number(sp.get('page'));
+    const page =
+      Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.min(Math.floor(pageRaw), totalPages) : 1;
+    const start = (page - 1) * pageSize;
+    const credentials = all.slice(start, start + pageSize);
 
     await ctx.audit({
       action: 'credential.records.view',
       entityType: 'EmployeeCredential',
       route: 'GET /api/credentials',
       metadata: {
-        employeeId: employeeId ?? null,
-        category: category ?? null,
-        status: status ?? null,
-        count: filtered.length,
+        employeeId: query.employeeId ?? null,
+        category: query.category ?? null,
+        status: query.status ?? null,
+        expiring: query.expiringOnly,
+        q: query.q,
+        sort: query.sort,
+        dir: query.dir,
+        page,
+        pageSize,
+        total,
       },
     });
 
-    return NextResponse.json(filtered);
+    return NextResponse.json({ credentials, total, page, pageSize });
   });
 }
 
@@ -224,17 +129,7 @@ export async function POST(request: NextRequest) {
           documentPath: asOptionalString(body.documentPath) ?? undefined,
           verifiedAt: asDate(body.verifiedAt) ?? undefined,
         },
-        include: {
-          employee: {
-            select: {
-              firstName: true,
-              lastName: true,
-              employeeNumber: true,
-              jobTitle: true,
-              department: { select: { name: true } },
-            },
-          },
-        },
+        include: credentialInclude,
       }),
     );
 

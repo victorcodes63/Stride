@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { OnboardingTaskStatus, WorkflowStatus } from '@prisma/client';
+import { OnboardingTaskStatus, TaskPriority, TaskRecurrence, WorkflowStatus, WorkflowType } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { canManageOnboarding } from '@/lib/hr-onboarding-access';
 import { forbiddenResponse } from '@/lib/demo-route-access';
-import { getRoleKeysForUser } from '@/lib/onboarding-workflows';
+import { ensureOperationalWorkflow, getRoleKeysForUser } from '@/lib/onboarding-workflows';
 import { sendNotification } from '@/lib/notifications';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
@@ -18,10 +18,29 @@ function parseDate(value: unknown): Date | null | undefined {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
+function parsePriority(value: unknown): TaskPriority {
+  const upper = typeof value === 'string' ? value.toUpperCase() : '';
+  return (Object.values(TaskPriority) as string[]).includes(upper)
+    ? (upper as TaskPriority)
+    : TaskPriority.MEDIUM;
+}
+
+function parseRecurrence(value: unknown): TaskRecurrence {
+  const upper = typeof value === 'string' ? value.toUpperCase() : '';
+  return (Object.values(TaskRecurrence) as string[]).includes(upper)
+    ? (upper as TaskRecurrence)
+    : TaskRecurrence.NONE;
+}
+
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
     const url = new URL(request.url);
-    const mineOnly = url.searchParams.get('mine') === 'true';
+    const scope = url.searchParams.get('scope');
+    const isManager = canManageOnboarding(ctx.staff);
+    // `scope=all` lets HR/managers see every task in the workspace; everyone
+    // else (and the legacy `mine=true` param) stays scoped to their own queue.
+    const mineOnly = scope === 'all' ? false : scope === 'mine' ? true : url.searchParams.get('mine') === 'true';
+    const effectiveMineOnly = mineOnly || !isManager;
     const q = url.searchParams.get('q')?.trim();
     const statuses = (url.searchParams.get('statuses') ?? '')
       .split(',')
@@ -40,7 +59,10 @@ export async function GET(request: NextRequest) {
       ctx.where(),
       {
         workflow: {
-          employee: { outsourcingClientId: workspaceClientId },
+          OR: [
+            { employee: { outsourcingClientId: workspaceClientId } },
+            { outsourcingClientId: workspaceClientId },
+          ],
         },
       },
     ];
@@ -49,7 +71,7 @@ export async function GET(request: NextRequest) {
       andFilters.push({ status: { in: statuses } });
     }
 
-    if (mineOnly) {
+    if (effectiveMineOnly) {
       andFilters.push({
         OR: [{ assignedToId: ctx.staff.id }, { assignedRole: { in: roleKeys } }],
       });
@@ -84,7 +106,9 @@ export async function GET(request: NextRequest) {
         where: { AND: andFilters },
         include: {
           assignedTo: { select: { id: true, name: true, email: true } },
+          completedBy: { select: { id: true, name: true, email: true } },
           document: { select: { id: true, fileName: true, title: true } },
+          employee: { select: { id: true, firstName: true, lastName: true } },
           workflow: {
             include: {
               employee: { select: { id: true, firstName: true, lastName: true } },
@@ -97,8 +121,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       tasks,
-      canCreate: canManageOnboarding(ctx.staff),
+      canCreate: isManager,
+      canManage: isManager,
       currentUserId: ctx.staff.id,
+      roleKeys,
     });
   });
 }
@@ -106,13 +132,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return withTenant(request, async (ctx) => {
     if (!canManageOnboarding(ctx.staff)) {
-      return forbiddenResponse('Creating onboarding tasks requires HR privileges.');
+      return forbiddenResponse('Creating tasks requires HR privileges.');
     }
 
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     if (!body) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
 
-    const workflowId = typeof body.workflowId === 'string' ? body.workflowId : '';
+    const isOperational = body.type === 'OPERATIONAL' || body.kind === 'operational';
     const title = typeof body.title === 'string' ? body.title.trim() : '';
     const description = typeof body.description === 'string' ? body.description.trim() : undefined;
     const assignedRole =
@@ -127,17 +153,24 @@ export async function POST(request: NextRequest) {
       : [];
     const startDate = parseDate(body.startDate);
     const dueDate = parseDate(body.dueDate);
+    const priority = parsePriority(body.priority);
+    const recurrence = isOperational ? parseRecurrence(body.recurrence) : TaskRecurrence.NONE;
+    const recurrenceEndsAt = parseDate(body.recurrenceEndsAt);
 
-    if (!workflowId) return NextResponse.json({ error: 'workflowId is required' }, { status: 400 });
     if (!title) return NextResponse.json({ error: 'Task name is required' }, { status: 400 });
-    if (assigneeIds.length === 0) {
-      return NextResponse.json({ error: 'At least one assignee is required' }, { status: 400 });
-    }
     if (startDate === undefined && body.startDate !== undefined) {
       return NextResponse.json({ error: 'Invalid start date' }, { status: 400 });
     }
     if (dueDate === undefined && body.dueDate !== undefined) {
       return NextResponse.json({ error: 'Invalid due date' }, { status: 400 });
+    }
+    if (recurrenceEndsAt === undefined && body.recurrenceEndsAt !== undefined) {
+      return NextResponse.json({ error: 'Invalid recurrence end date' }, { status: 400 });
+    }
+    // Workflow (onboarding/offboarding) tasks must be assigned to someone;
+    // operational tasks may sit in a role pool unassigned.
+    if (!isOperational && assigneeIds.length === 0) {
+      return NextResponse.json({ error: 'At least one assignee is required' }, { status: 400 });
     }
 
     const workspaceClientId = await resolvePrimaryWorkspaceClientId(
@@ -147,46 +180,85 @@ export async function POST(request: NextRequest) {
       ctx.organizationId,
     );
 
-    const workflow = await ctx.run((tx) =>
-      tx.onboardingWorkflow.findFirst({
-        where: ctx.where({ id: workflowId }),
-        include: {
-          employee: { select: { outsourcingClientId: true, firstName: true, lastName: true } },
-          tasks: { select: { order: true }, orderBy: { order: 'desc' }, take: 1 },
-        },
-      }),
-    );
-    if (!workflow || workflow.employee.outsourcingClientId !== workspaceClientId) {
-      return NextResponse.json({ error: 'Workflow not found' }, { status: 404 });
-    }
-    if (workflow.status !== WorkflowStatus.IN_PROGRESS) {
-      return NextResponse.json({ error: 'Tasks can only be added to active workflows' }, { status: 409 });
-    }
-
-    const assignees = await ctx.run((tx) =>
-      tx.organizationMembership.findMany({
-        where: {
-          organizationId: ctx.organizationId,
-          status: 'active',
-          userId: { in: assigneeIds },
-          user: { isActive: true },
-        },
-        select: { userId: true, user: { select: { id: true, name: true } } },
-      }),
-    );
-    if (assignees.length !== assigneeIds.length) {
-      return NextResponse.json({ error: 'One or more assignees are invalid' }, { status: 400 });
+    // Validate assignees (if any).
+    let assigneeUserIds: string[] = [];
+    if (assigneeIds.length > 0) {
+      const assignees = await ctx.run((tx) =>
+        tx.organizationMembership.findMany({
+          where: {
+            organizationId: ctx.organizationId,
+            status: 'active',
+            userId: { in: assigneeIds },
+            user: { isActive: true },
+          },
+          select: { userId: true },
+        }),
+      );
+      if (assignees.length !== assigneeIds.length) {
+        return NextResponse.json({ error: 'One or more assignees are invalid' }, { status: 400 });
+      }
+      assigneeUserIds = assignees.map((a) => a.userId);
     }
 
-    const nextOrder = (workflow.tasks[0]?.order ?? 0) + 1;
-    const targetAssignees = createOnePerAssignee
-      ? assignees.map((a) => a.userId)
-      : [assignees[0]!.userId];
+    let workflowId: string;
+    let participantName: string | null = null;
+    let workflowLabel: string;
+    let operationalEmployeeId: string | null = null;
+
+    if (isOperational) {
+      const rawEmployeeId = typeof body.employeeId === 'string' ? body.employeeId.trim() : '';
+      if (rawEmployeeId) {
+        const emp = await ctx.run((tx) =>
+          tx.employee.findFirst({
+            where: ctx.where({ id: rawEmployeeId, outsourcingClientId: workspaceClientId }),
+            select: { id: true, firstName: true, lastName: true },
+          }),
+        );
+        if (!emp) return NextResponse.json({ error: 'Employee not found' }, { status: 400 });
+        operationalEmployeeId = emp.id;
+        participantName = `${emp.firstName} ${emp.lastName}`;
+      }
+      workflowId = await ctx.run((tx) =>
+        ensureOperationalWorkflow(tx, ctx.organizationId, workspaceClientId),
+      );
+      workflowLabel = 'Operational';
+    } else {
+      const rawWorkflowId = typeof body.workflowId === 'string' ? body.workflowId : '';
+      if (!rawWorkflowId) return NextResponse.json({ error: 'workflowId is required' }, { status: 400 });
+      const workflow = await ctx.run((tx) =>
+        tx.onboardingWorkflow.findFirst({
+          where: ctx.where({ id: rawWorkflowId }),
+          include: {
+            employee: { select: { outsourcingClientId: true, firstName: true, lastName: true } },
+          },
+        }),
+      );
+      if (!workflow || workflow.employee?.outsourcingClientId !== workspaceClientId) {
+        return NextResponse.json({ error: 'Workflow not found' }, { status: 404 });
+      }
+      if (workflow.status !== WorkflowStatus.IN_PROGRESS) {
+        return NextResponse.json({ error: 'Tasks can only be added to active workflows' }, { status: 409 });
+      }
+      workflowId = workflow.id;
+      participantName = `${workflow.employee!.firstName} ${workflow.employee!.lastName}`;
+      workflowLabel = `${workflow.type === WorkflowType.ONBOARDING ? 'Onboarding' : 'Offboarding'} · ${participantName}`;
+    }
+
+    const last = await ctx.run((tx) =>
+      tx.onboardingTask.findFirst({ where: { workflowId }, orderBy: { order: 'desc' }, select: { order: true } }),
+    );
+    const nextOrder = (last?.order ?? 0) + 1;
+
+    const targets: (string | null)[] =
+      assigneeUserIds.length === 0
+        ? [null]
+        : createOnePerAssignee
+          ? assigneeUserIds
+          : [assigneeUserIds[0]!];
 
     const created = await ctx.run(async (tx) => {
       const rows = [];
-      for (let i = 0; i < targetAssignees.length; i++) {
-        const assignedToId = targetAssignees[i]!;
+      for (let i = 0; i < targets.length; i++) {
         const row = await tx.onboardingTask.create({
           data: {
             organizationId: ctx.organizationId,
@@ -194,16 +266,21 @@ export async function POST(request: NextRequest) {
             title,
             description: description || null,
             assignedRole,
-            assignedToId,
+            assignedToId: targets[i],
             category: category || null,
             order: nextOrder + i,
             isRequired,
+            priority,
+            recurrence,
+            recurrenceEndsAt: recurrenceEndsAt ?? null,
+            employeeId: operationalEmployeeId,
             startDate: startDate === undefined ? new Date() : startDate,
             dueDate: dueDate === undefined ? null : dueDate,
             status: OnboardingTaskStatus.PENDING,
           },
           include: {
             assignedTo: { select: { id: true, name: true, email: true } },
+            employee: { select: { id: true, firstName: true, lastName: true } },
             workflow: {
               include: {
                 employee: { select: { id: true, firstName: true, lastName: true } },
@@ -216,19 +293,32 @@ export async function POST(request: NextRequest) {
       return rows;
     });
 
-    try {
-      await sendNotification({
-        event: 'onboarding_task_assigned',
-        recipientUserIds: targetAssignees,
-        title: 'New onboarding task assigned',
-        body: `"${title}" for ${workflow.employee.firstName} ${workflow.employee.lastName} was assigned to you.`,
-        href: `/dashboard/people/tasks`,
-        priority: 'action_required',
-        channel: 'in_app',
-        metadata: { workflowId, taskIds: created.map((t) => t.id) },
-      });
-    } catch (error) {
-      console.error('[onboarding] Failed to notify assignees:', error);
+    const notifyIds = targets.filter((t): t is string => Boolean(t));
+    const dueLabel = dueDate ? dueDate.toISOString().slice(0, 10) : 'No due date';
+    if (notifyIds.length > 0) {
+      try {
+        await sendNotification({
+          event: 'onboarding_task_assigned',
+          recipientUserIds: notifyIds,
+          title: 'New task assigned to you',
+          body: participantName
+            ? `"${title}" for ${participantName} was assigned to you.`
+            : `"${title}" was assigned to you.`,
+          href: `/dashboard/people/tasks`,
+          priority: priority === TaskPriority.URGENT ? 'urgent' : 'action_required',
+          channel: 'both',
+          metadata: {
+            workflowId,
+            taskIds: created.map((t) => t.id),
+            taskTitle: title,
+            participantName: participantName ?? undefined,
+            workflowLabel,
+            dueLabel,
+          },
+        });
+      } catch (error) {
+        console.error('[onboarding] Failed to notify assignees:', error);
+      }
     }
 
     for (const task of created) {
@@ -239,14 +329,17 @@ export async function POST(request: NextRequest) {
         route: 'POST /api/onboarding/tasks',
         metadata: {
           workflowId,
+          operational: isOperational,
           assignedToId: task.assignedToId,
           assignedRole: task.assignedRole,
+          priority: task.priority,
+          recurrence: task.recurrence,
           title: task.title,
         },
       });
     }
 
-    return NextResponse.json(createOnePerAssignee ? created : created[0], {
+    return NextResponse.json(createOnePerAssignee && created.length > 1 ? created : created[0], {
       status: 201,
     });
   });

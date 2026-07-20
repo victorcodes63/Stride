@@ -59,7 +59,8 @@ export async function resolveSessionEntitlements(
 export function subscriptionFromEntitlements(
   entitlements: DeploymentEntitlements | null,
 ): {
-  subscribedModules: Partial<Record<ModuleKey, boolean>>;
+  // Optional by design: demo/sandbox cells omit this to signal "every module licensed".
+  subscribedModules?: Partial<Record<ModuleKey, boolean>>;
   accountStatus?: string;
   verticalEnginesAllowed?: boolean;
 } | undefined {

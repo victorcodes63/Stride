@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mkdir, readdir, stat, writeFile } from 'fs/promises';
+import { mkdir, readdir, stat, unlink, writeFile } from 'fs/promises';
 import path from 'path';
 import { prisma } from '@/lib/prisma';
 import { requireStaffUser } from '@/lib/staff-api-auth';
@@ -98,5 +98,36 @@ export async function POST(
     uploadedAt: new Date().toISOString(),
     url: `/uploads/contracts/${encodeURIComponent(fileName)}`,
   });
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const access = await ensureContractAccess(id, request);
+  if (access.error) return access.error;
+
+  const name = request.nextUrl.searchParams.get('name')?.trim();
+  if (!name) {
+    return NextResponse.json({ error: 'Missing file (query: name)' }, { status: 400 });
+  }
+
+  // Guard against path traversal: only allow a plain filename that belongs to
+  // this contract (files are stored as `${id}__${timestamp}__${originalName}`).
+  const base = path.basename(name);
+  if (base !== name || !base.startsWith(`${id}__`)) {
+    return NextResponse.json({ error: 'Invalid file name.' }, { status: 400 });
+  }
+
+  const dir = contractUploadsDir();
+  const filePath = path.join(dir, base);
+  try {
+    await unlink(filePath);
+  } catch {
+    return NextResponse.json({ error: 'Attachment not found.' }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true });
 }
 

@@ -101,15 +101,21 @@ async function ensureDemoOrganization(): Promise<string> {
     return '';
   }
 
-  const slug = `demo-${pack.id}`;
+  const multi = process.env.DEMO_MULTI_CONTEXT === 'true';
+  /** One tenant for the industry tour — packs become operating entities, not separate orgs. */
+  const slug = multi ? 'demo-multi-vertical' : `demo-${pack.id}`;
+  const name = multi ? 'Stride Demo' : pack.workspace.name;
+
   const org = await basePrisma.organization.upsert({
     where: { slug },
-    update: {
-      name: pack.workspace.name,
-      updatedAt: new Date(),
-    },
+    update: multi
+      ? { updatedAt: new Date() }
+      : {
+          name: pack.workspace.name,
+          updatedAt: new Date(),
+        },
     create: {
-      name: pack.workspace.name,
+      name,
       slug,
       country: 'KE',
       currency: 'KES',
@@ -117,6 +123,9 @@ async function ensureDemoOrganization(): Promise<string> {
       updatedAt: new Date(),
     },
   });
+  if (multi) {
+    console.log(`→ Shared multi-vertical org: ${org.name} (${org.slug})`);
+  }
   return org.id;
 }
 

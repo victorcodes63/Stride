@@ -196,6 +196,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
         const patchData: Record<string, unknown> = {};
 
+        // Advancing the stage resets the idle clock and counts as activity.
+        if (stage && stage !== existing.stage) {
+          patchData.stageEnteredAt = new Date();
+          patchData.lastActivityAt = new Date();
+        }
+
         if (body.value != null && Number.isFinite(Number(body.value))) {
           patchData.value = Number(body.value);
         }

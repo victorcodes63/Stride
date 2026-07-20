@@ -17,11 +17,15 @@ export async function GET(request: NextRequest) {
       employeeId: string;
       year?: number;
       month?: number;
-      status?: 'draft' | 'approved' | 'paid';
-    } = ctx.where({ employeeId: ctx.employeeId });
+      status: 'approved' | 'paid' | { in: Array<'approved' | 'paid'> };
+    } = {
+      ...ctx.where({ employeeId: ctx.employeeId }),
+      // Employees only ever see finalised payslips; drafts stay internal.
+      status: { in: ['approved', 'paid'] },
+    };
     if (yearParam && !Number.isNaN(Number(yearParam))) where.year = Number(yearParam);
     if (monthParam && !Number.isNaN(Number(monthParam))) where.month = Number(monthParam);
-    if (statusParam === 'draft' || statusParam === 'approved' || statusParam === 'paid') {
+    if (statusParam === 'approved' || statusParam === 'paid') {
       where.status = statusParam;
     }
 

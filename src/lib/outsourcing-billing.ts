@@ -13,6 +13,7 @@ import {
 import {
   computeRateCardLineAmount,
   type OutsourcingRateCardJson,
+  type OutsourcingRateCardLineJson,
 } from '@/lib/outsourcing-client';
 
 const MONTH_NAMES = [
@@ -26,7 +27,10 @@ export function buildRateCardInvoiceLines(input: {
   month: number;
   year: number;
   clientName: string;
-  rateCard: Pick<OutsourcingRateCardJson, 'lines' | 'currency' | 'name'>;
+  rateCard: Pick<OutsourcingRateCardJson, 'currency' | 'name'> & {
+    // Only the fields consumed here are required; id/sortOrder are irrelevant to billing math.
+    lines: Array<Pick<OutsourcingRateCardLineJson, 'label' | 'pricingModel' | 'unitAmount' | 'percentageBps'>>;
+  };
   headcount: number;
   payrollGrossTotal?: number;
 }): BillingLineDraft[] {
@@ -52,7 +56,7 @@ export function buildRateCardInvoiceLines(input: {
         amountExVat,
       } satisfies BillingLineDraft;
     })
-    .filter((line): line is BillingLineDraft => line !== null);
+    .filter((line): line is NonNullable<typeof line> => line !== null);
 }
 
 export function mergeBillingLines(...groups: BillingLineDraft[][]): BillingLineDraft[] {

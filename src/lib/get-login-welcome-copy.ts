@@ -1,10 +1,11 @@
 import { cookies } from 'next/headers';
 import { loadCompanySetupSettings, toPublicCompanySetup } from '@/lib/company-setup';
-import { brandConfig } from '@/lib/brand.config';
 import { HRIS_ENTITY_COOKIE } from '@/lib/entity-constants';
 import { parseDemoEntitySlug } from '@/lib/demo-entity-slug';
 import { isGenericPublicLogin } from '@/lib/marketing-site';
 import { resolvePublicBrand } from '@/lib/resolve-public-brand';
+import { getCompanySetupCapabilities } from '@/lib/company-setup-tier-features';
+import { getDeploymentTier, getDeploymentFeatureOverrides } from '@/lib/deployment-tier';
 
 export type LoginWelcomeCopy = {
   staff: {
@@ -26,9 +27,13 @@ export async function getLoginWelcomeCopy(): Promise<LoginWelcomeCopy> {
   const { contextId } = parseDemoEntitySlug(entitySlug);
   const setup = await loadCompanySetupSettings(contextId);
   const pub = toPublicCompanySetup(setup);
-  const brand = resolvePublicBrand(setup);
-  const productName = brandConfig.productName;
-  const genericStaffSubtitle = 'Sign in to manage your company or organization on Stride.';
+  const allowWhiteLabel = getCompanySetupCapabilities({
+    tier: getDeploymentTier(),
+    features: getDeploymentFeatureOverrides(),
+  }).canConfigureWhiteLabel;
+  const brand = resolvePublicBrand(setup, { allowWhiteLabel });
+  const productName = brand.appName;
+  const genericStaffSubtitle = `Sign in to manage your company or organization on ${productName}.`;
 
   if (isGenericPublicLogin()) {
     return {

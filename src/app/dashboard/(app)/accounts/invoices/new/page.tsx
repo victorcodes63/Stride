@@ -9,6 +9,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { computeInvoiceVatFromLines } from '@/lib/accounts-invoice-totals';
 import { InvoicePaymentAccountSelect } from '@/components/accounts/InvoiceBankPanel';
 import { InvoiceDraftPdfPreview } from '@/components/accounts/InvoiceDraftPdfPreview';
+import { StrideSelect } from '@/components/ui/stride-select';
 import type { PaymentAccountRow } from '@/lib/payment-accounts';
 import useEntityConfig, { useDisplayMoney } from '@/hooks/useEntityConfig';
 import { getEntityConfig } from '@/lib/entityConfig';
@@ -347,20 +348,16 @@ function NewInvoiceForm() {
  <label htmlFor="client" className="block text-sm font-medium text-neutral-800 mb-1.5">
  Billing client *
  </label>
- <select
+ <StrideSelect
  id="client"
- required
- className={inputClass}
+ ariaLabel="Billing client"
  value={clientId}
- onChange={(e) => setClientId(e.target.value)}
- >
- <option value="">Select…</option>
- {clientsGrouped.map((c) => (
- <option key={c.id} value={c.id}>
- {c.name} · {c.currency}
- </option>
- ))}
- </select>
+ onChange={(value) => setClientId(value)}
+ options={[
+ { value: '', label: 'Select…' },
+ ...clientsGrouped.map((c) => ({ value: c.id, label: `${c.name} · ${c.currency}` })),
+ ]}
+ />
  <p className="text-xs text-neutral-500 mt-1.5">
  Missing a client?{' '}
  <Link
@@ -420,16 +417,17 @@ function NewInvoiceForm() {
  <label htmlFor="vat" className="block text-sm font-medium text-neutral-800 mb-1.5">
  {entityConfig.tax.vatLabel} rate
  </label>
- <select
+ <StrideSelect
  id="vat"
- className={inputClass}
- value={vatRateBps}
- onChange={(e) => setVatRateBps(parseInt(e.target.value, 10))}
- >
- <option value={1600}>{getEntityConfig('ke').tax.vatRate} (standard)</option>
- <option value={1800}>{getEntityConfig('ug').tax.vatRate} (standard)</option>
- <option value={0}>0% (zero-rated / exempt)</option>
- </select>
+ ariaLabel="VAT rate"
+ value={String(vatRateBps)}
+ onChange={(value) => setVatRateBps(parseInt(value, 10))}
+ options={[
+ { value: '1600', label: `${getEntityConfig('ke').tax.vatRate} (standard)` },
+ { value: '1800', label: `${getEntityConfig('ug').tax.vatRate} (standard)` },
+ { value: '0', label: '0% (zero-rated / exempt)' },
+ ]}
+ />
  </div>
  </div>
  <InvoicePaymentAccountSelect

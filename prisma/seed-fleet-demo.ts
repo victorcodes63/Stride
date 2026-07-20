@@ -1,7 +1,8 @@
 /**
  * Seed fleet demo data (vehicles, drivers, partners, customers, trips across all statuses).
  * Run: npx tsx prisma/seed-fleet-demo.ts
- * Optional: FLEET_CLIENT_NAME="SwiftFreight East Africa Ltd"
+ * Resolves cargo-logistics__ke first, then FLEET_CLIENT_NAME / Savannah Freight.
+ * Optional: FLEET_CLIENT_NAME="Savannah Freight & Logistics Ltd"
  */
 import {
   FleetComplianceResult,
@@ -22,7 +23,7 @@ import {
 
 const prisma = new PrismaClient();
 
-const DEFAULT_CLIENT = 'SwiftFreight East Africa Ltd';
+const DEFAULT_CLIENT = 'Savannah Freight & Logistics Ltd';
 
 const VEHICLES = [
   {
@@ -455,9 +456,23 @@ async function clearFleetData(clientId: string) {
 
 async function main() {
   const clientName = process.env.FLEET_CLIENT_NAME?.trim() || DEFAULT_CLIENT;
+  const sharedOrg = await prisma.organization.findUnique({
+    where: { slug: 'demo-multi-vertical' },
+    select: { id: true },
+  });
   let client =
+    (sharedOrg
+      ? await prisma.outsourcingClient.findFirst({
+          where: { organizationId: sharedOrg.id, entityCode: 'cargo-logistics__ke' },
+        })
+      : null) ??
     (await prisma.outsourcingClient.findFirst({
       where: { entityCode: 'cargo-logistics__ke' },
+      orderBy: { createdAt: 'desc' },
+    })) ??
+    (await prisma.outsourcingClient.findFirst({
+      where: { name: { contains: 'Savannah Freight', mode: 'insensitive' } },
+      orderBy: { createdAt: 'desc' },
     })) ??
     (await prisma.outsourcingClient.findFirst({ where: { name: clientName } }));
   if (!client) {

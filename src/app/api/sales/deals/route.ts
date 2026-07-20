@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
@@ -30,15 +31,38 @@ export async function GET(request: NextRequest) {
       const forecastCategory = params.get('forecastCategory')?.trim() || undefined;
       const closeFrom = params.get('closeFrom')?.trim() || undefined;
       const closeTo = params.get('closeTo')?.trim() || undefined;
+      const q = params.get('q')?.trim() || undefined;
+      const sort = params.get('sort')?.trim() || undefined;
       const owner =
         params.get('owner')?.trim() ||
         params.get('ownerEmployeeId')?.trim() ||
         undefined;
 
+      const orderBy: Prisma.SalesDealOrderByWithRelationInput | Prisma.SalesDealOrderByWithRelationInput[] =
+        sort === 'value'
+          ? { value: 'desc' }
+          : sort === 'close'
+            ? [{ expectedCloseDate: { sort: 'asc', nulls: 'last' } }, { updatedAt: 'desc' }]
+            : sort === 'idle'
+              ? [
+                  { lastActivityAt: { sort: 'asc', nulls: 'first' } },
+                  { stageEnteredAt: { sort: 'asc', nulls: 'first' } },
+                ]
+              : { updatedAt: 'desc' };
+
       const deals = await ctx.run(async (tx) => {
         const baseWhere = ctx.where({
           ...(stage ? { stage: stage as never } : {}),
           ...(forecastCategory ? { forecastCategory: forecastCategory as never } : {}),
+          ...(q
+            ? {
+                OR: [
+                  { name: { contains: q, mode: 'insensitive' as const } },
+                  { accountsClient: { is: { name: { contains: q, mode: 'insensitive' as const } } } },
+                  { primaryContact: { is: { name: { contains: q, mode: 'insensitive' as const } } } },
+                ],
+              }
+            : {}),
           ...(closeFrom || closeTo
             ? {
                 expectedCloseDate: {
@@ -60,7 +84,7 @@ export async function GET(request: NextRequest) {
         return tx.salesDeal.findMany({
           where,
           include: dealInclude,
-          orderBy: { updatedAt: 'desc' },
+          orderBy,
           take: 200,
         });
       });
@@ -154,6 +178,8 @@ export async function POST(request: NextRequest) {
             notes: typeof body.notes === 'string' ? body.notes.trim() || null : null,
             cargoWeightKg,
             closedAt: stage === 'won' || stage === 'lost' ? new Date() : null,
+            stageEnteredAt: new Date(),
+            lastActivityAt: new Date(),
           },
           include: dealInclude,
         });

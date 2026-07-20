@@ -1,85 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CredentialCategory, CredentialStatus } from '@prisma/client';
-import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { canAccessCredentials, forbiddenResponse } from '@/lib/demo-route-access';
 import { withTenant } from '@/lib/tenant-api';
-
-const CATEGORIES = new Set<string>(Object.values(CredentialCategory));
-const STATUSES = new Set<string>(Object.values(CredentialStatus));
-
-function asOptionalString(value: unknown): string | null {
-  return typeof value === 'string' ? value.trim() || null : null;
-}
-
-function asDate(value: unknown): Date | null {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function deriveStatus(
-  status: CredentialStatus,
-  expiryDate: Date | null,
-  reminderDays: number,
-): CredentialStatus {
-  if (status === 'suspended' || status === 'revoked') return status;
-  if (!expiryDate) return status;
-  const now = new Date();
-  const days = Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (days < 0) return 'expired';
-  if (days <= reminderDays) return 'expiring_soon';
-  return 'active';
-}
-
-function toResponse(record: {
-  id: string;
-  employeeId: string;
-  category: CredentialCategory;
-  credentialName: string;
-  credentialNumber: string | null;
-  issuingAuthority: string | null;
-  issueDate: Date | null;
-  expiryDate: Date | null;
-  reminderDays: number;
-  status: CredentialStatus;
-  scopeOfPractice: string | null;
-  notes: string | null;
-  documentPath: string | null;
-  verifiedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  employee: {
-    firstName: string;
-    lastName: string;
-    employeeNumber: string | null;
-    jobTitle: string | null;
-    department: { name: string } | null;
-  };
-}) {
-  return {
-    id: record.id,
-    employeeId: record.employeeId,
-    employeeName: `${record.employee.firstName} ${record.employee.lastName}`.trim(),
-    employeeNumber: record.employee.employeeNumber,
-    jobTitle: record.employee.jobTitle,
-    departmentName: record.employee.department?.name ?? null,
-    category: record.category,
-    credentialName: record.credentialName,
-    credentialNumber: record.credentialNumber,
-    issuingAuthority: record.issuingAuthority,
-    issueDate: record.issueDate?.toISOString().slice(0, 10) ?? null,
-    expiryDate: record.expiryDate?.toISOString().slice(0, 10) ?? null,
-    reminderDays: record.reminderDays,
-    status: record.status,
-    effectiveStatus: deriveStatus(record.status, record.expiryDate, record.reminderDays),
-    scopeOfPractice: record.scopeOfPractice,
-    notes: record.notes,
-    documentPath: record.documentPath,
-    verifiedAt: record.verifiedAt?.toISOString() ?? null,
-    createdAt: record.createdAt.toISOString(),
-    updatedAt: record.updatedAt.toISOString(),
-  };
-}
+import {
+  CATEGORIES,
+  STATUSES,
+  asDate,
+  asOptionalString,
+  credentialInclude,
+  toResponse,
+} from '../_shared';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return withTenant(_request, async (ctx) => {
@@ -93,17 +23,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const record = await ctx.run((tx) =>
       tx.employeeCredential.findFirst({
         where: ctx.where({ id }),
-        include: {
-          employee: {
-            select: {
-              firstName: true,
-              lastName: true,
-              employeeNumber: true,
-              jobTitle: true,
-              department: { select: { name: true } },
-            },
-          },
-        },
+        include: credentialInclude,
       }),
     );
     if (!record) return NextResponse.json({ error: 'Credential not found' }, { status: 404 });
@@ -178,7 +98,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (body.documentPath !== undefined) data.documentPath = asOptionalString(body.documentPath);
     if (body.issueDate !== undefined) data.issueDate = asDate(body.issueDate);
     if (body.expiryDate !== undefined) data.expiryDate = asDate(body.expiryDate);
-    if (body.verifiedAt !== undefined) data.verifiedAt = asDate(body.verifiedAt);
+
+    // Verification: `verify: true` stamps the current time, `verify: false`
+    // clears it; an explicit `verifiedAt` string is honoured otherwise.
+    let verified = false;
+    if (body.verify !== undefined) {
+      data.verifiedAt = body.verify ? new Date() : null;
+      verified = body.verify === true;
+    } else if (body.verifiedAt !== undefined) {
+      data.verifiedAt = asDate(body.verifiedAt);
+    }
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: 'No fields supplied to update' }, { status: 400 });
@@ -189,21 +118,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         tx.employeeCredential.update({
           where: { id },
           data,
-          include: {
-            employee: {
-              select: {
-                firstName: true,
-                lastName: true,
-                employeeNumber: true,
-                jobTitle: true,
-                department: { select: { name: true } },
-              },
-            },
-          },
+          include: credentialInclude,
         }),
       );
       await ctx.audit({
-        action: 'credential.updated',
+        action: verified ? 'credential.verified' : 'credential.updated',
         entityType: 'EmployeeCredential',
         entityId: updated.id,
         route: 'PATCH /api/credentials/[id]',

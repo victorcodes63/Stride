@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdmin } from '@/lib/staff-api-auth';
 import { syncStaffLeaveUsedDaysForUserYear } from '@/lib/staff-leave-balance';
@@ -24,13 +25,13 @@ export async function GET(request: NextRequest) {
           userId: uid,
           status: 'pending',
           startDate: { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31) },
-        }),
+        }) as Prisma.StaffLeaveApplicationWhereInput,
         _sum: { totalDays: true },
       });
       return { balances, pending };
     });
 
-    const pendingMap = new Map(data.pending.map((p) => [p.leaveTypeId, p._sum.totalDays ?? 0]));
+    const pendingMap = new Map(data.pending.map((p) => [p.leaveTypeId, p._sum?.totalDays ?? 0]));
     return NextResponse.json({
       year,
       userId: uid,

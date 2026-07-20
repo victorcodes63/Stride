@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
-import Link from 'next/link';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -29,8 +28,11 @@ import {
 import { dashStatusChip } from '@/lib/dashboard-status-chips';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
 import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
+import { PayrollSubnav } from '@/components/payroll/PayrollSubnav';
 import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
-import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
+import type { OutsourcingClientOption } from '@/lib/outsourcing-client-context';
+import { StrideSelect } from '@/components/ui/stride-select';
+import type { PayrollSurfaceConfig } from '@/components/payroll/PayrollWorkspace';
 
 type BatchSummary = {
   id: string;
@@ -58,6 +60,22 @@ type BatchDetail = BatchSummary & {
   }>;
 };
 
+type ClientState = {
+  clientId: string;
+  clients: OutsourcingClientOption[];
+  setClientId: (id: string) => void;
+  showSwitcher: boolean;
+  selectedClient: OutsourcingClientOption | null;
+};
+
+const INTERNAL_CLIENT_STATE: ClientState = {
+  clientId: '',
+  clients: [],
+  setClientId: () => {},
+  showSwitcher: false,
+  selectedClient: null,
+};
+
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -83,9 +101,38 @@ function statusLabel(status: string) {
   return status.replace(/_/g, ' ');
 }
 
-export function DisbursementsContent() {
+export function DisbursementsWorkspace({ config }: { config: PayrollSurfaceConfig }) {
+  return (
+    <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-neutral-100" />}>
+      {config.mode === 'outsourcing' ? (
+        <OutsourcingDisbursementsWorkspace config={config} />
+      ) : (
+        <DisbursementsContent config={config} client={INTERNAL_CLIENT_STATE} />
+      )}
+    </Suspense>
+  );
+}
+
+function OutsourcingDisbursementsWorkspace({ config }: { config: PayrollSurfaceConfig }) {
+  const { clientId, clients, setClientId, showSwitcher, selectedClient } = useOutsourcingClient({ excludePrimary: true });
+  return (
+    <DisbursementsContent
+      config={config}
+      client={{ clientId, clients, setClientId, showSwitcher, selectedClient }}
+    />
+  );
+}
+
+function DisbursementsContent({
+  config,
+  client,
+}: {
+  config: PayrollSurfaceConfig;
+  client: ClientState;
+}) {
   const now = new Date();
-  const { clientId, clients, setClientId, showSwitcher, selectedClient } = useOutsourcingClient();
+  const { clientId, clients, setClientId, showSwitcher, selectedClient } = client;
+  const isOutsourcing = config.mode === 'outsourcing';
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [batches, setBatches] = useState<BatchSummary[]>([]);
@@ -99,7 +146,7 @@ export function DisbursementsContent() {
   useEntityConfig();
 
   const loadBatches = useCallback(async () => {
-    if (!clientId) {
+    if (isOutsourcing && !clientId) {
       setBatches([]);
       setLoading(false);
       return;
@@ -107,8 +154,9 @@ export function DisbursementsContent() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ month: String(month), year: String(year), clientId });
-      const res = await fetch(`/api/outsourcing/payroll/disbursements?${params.toString()}`, {
+      const params = new URLSearchParams({ month: String(month), year: String(year) });
+      if (clientId) params.set('clientId', clientId);
+      const res = await fetch(`${config.apiBase}/disbursements?${params.toString()}`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -121,16 +169,16 @@ export function DisbursementsContent() {
     } finally {
       setLoading(false);
     }
-  }, [month, year, clientId]);
+  }, [month, year, clientId, isOutsourcing, config.apiBase]);
 
   const loadBatchDetail = useCallback(async (id: string) => {
-    const res = await fetch(`/api/outsourcing/payroll/disbursements/${id}`, {
+    const res = await fetch(`${config.apiBase}/disbursements/${id}`, {
       credentials: 'include',
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? 'Failed to load batch');
     setSelected(data.batch);
-  }, []);
+  }, [config.apiBase]);
 
   useEffect(() => {
     void loadBatches();
@@ -140,11 +188,11 @@ export function DisbursementsContent() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch('/api/outsourcing/payroll/disbursements', {
+      const res = await fetch(`${config.apiBase}/disbursements`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month, year, clientId }),
+        body: JSON.stringify({ month, year, ...(clientId ? { clientId } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Disbursement failed');
@@ -161,7 +209,7 @@ export function DisbursementsContent() {
     setPolling(true);
     setError(null);
     try {
-      const res = await fetch(`/api/outsourcing/payroll/disbursements/${batchId}/poll`, {
+      const res = await fetch(`${config.apiBase}/disbursements/${batchId}/poll`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -176,9 +224,7 @@ export function DisbursementsContent() {
     }
   }
 
-  const bankExportHref = clientId
-    ? `/api/outsourcing/payroll/bank-export?month=${month}&year=${year}&clientId=${encodeURIComponent(clientId)}`
-    : '#';
+  const bankExportHref = `${config.apiBase}/bank-export?month=${month}&year=${year}${clientId ? `&clientId=${encodeURIComponent(clientId)}` : ''}`;
 
   const summary = useMemo(() => {
     const totals = batches.reduce(
@@ -211,10 +257,6 @@ export function DisbursementsContent() {
             {providerMode === 'simulated' ? (
               <> — poll twice to simulate M-Pesa processing → completed.</>
             ) : null}
-            {' · '}
-            <Link href={withOutsourcingClientQuery('/dashboard/outsourcing/payroll', clientId)} className="text-primary-600 hover:underline">
-              Payroll runs
-            </Link>
             {selectedClient ? (
               <>
                 {' · '}
@@ -223,9 +265,10 @@ export function DisbursementsContent() {
             ) : null}
           </span>
         }
+        footer={<PayrollSubnav config={config} clientId={clientId} />}
         actions={
           <div className="flex flex-shrink-0 flex-wrap items-end gap-3">
-            {showSwitcher ? (
+            {isOutsourcing && showSwitcher ? (
               <OutsourcingClientSwitcher
                 clients={clients}
                 value={clientId}
@@ -233,18 +276,12 @@ export function DisbursementsContent() {
                 className="min-w-[12rem]"
               />
             ) : null}
-            <select
-              value={month}
-              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-              className="dash-auth-input rounded-lg px-3 py-2 text-sm"
-              aria-label="Month"
-            >
-              {MONTHS.map((label, i) => (
-                <option key={label} value={i + 1}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <StrideSelect
+              value={String(month)}
+              onChange={(value) => setMonth(parseInt(value, 10))}
+              ariaLabel="Month"
+              options={MONTHS.map((label, i) => ({ value: String(i + 1), label }))}
+            />
             <input
               type="number"
               value={year}

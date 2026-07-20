@@ -64,8 +64,16 @@ function daysFromNow(n: number) {
 }
 
 async function seedConstructionProjects() {
+  const sharedOrg = await prisma.organization.findUnique({
+    where: { slug: 'demo-multi-vertical' },
+    select: { id: true },
+  });
+
   const clients = await prisma.outsourcingClient.findMany({
-    where: { entityCode: { startsWith: 'construction__' } },
+    where: {
+      entityCode: { startsWith: 'construction__' },
+      ...(sharedOrg ? { organizationId: sharedOrg.id } : {}),
+    },
     select: { id: true, name: true, entityCode: true },
   });
 
@@ -83,11 +91,18 @@ async function seedConstructionProjects() {
     return;
   }
 
+  const sharedOrg = await prisma.organization.findUnique({
+    where: { slug: 'demo-multi-vertical' },
+    select: { id: true },
+  });
   const membership = await prisma.organizationMembership.findFirst({
-    where: { userId: admin.id },
+    where: {
+      userId: admin.id,
+      ...(sharedOrg ? { organizationId: sharedOrg.id } : {}),
+    },
     select: { organizationId: true },
   });
-  const organizationId = membership?.organizationId;
+  const organizationId = sharedOrg?.id ?? membership?.organizationId;
   if (!organizationId) {
     console.warn('→ Projects demo: no organization membership — skipped');
     return;

@@ -63,6 +63,20 @@ export const AUTH_RATE_LIMIT = {
   windowMs: 15 * 60 * 1000,
 } as const;
 
+// Pre-auth org resolution: hit a few times legitimately (typos, "Change"),
+// but throttle bots probing which email domains map to a tenant.
+export const RESOLVE_EMAIL_RATE_LIMIT = {
+  limit: 20,
+  windowMs: 15 * 60 * 1000,
+} as const;
+
+// Password reset triggers outbound email — keep this tight to avoid using it
+// as an email-flooding / enumeration oracle.
+export const PASSWORD_RESET_RATE_LIMIT = {
+  limit: 5,
+  windowMs: 15 * 60 * 1000,
+} as const;
+
 export function authRateLimitKey(route: string, request: Request): string {
   return `${route}:${clientIpFromRequest(request)}`;
 }

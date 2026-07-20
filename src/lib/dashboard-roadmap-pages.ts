@@ -82,7 +82,7 @@ export const ROADMAP_PAGES: Record<string, RoadmapPageConfig> = {
     bullets: ['Vendor spend by period', 'Department allocation', 'Budget burn alerts'],
     related: [
       { label: 'Vendor bills', href: '/dashboard/accounts/vendor-bills' },
-      { label: 'Budgets', href: '/dashboard/accounts/budgets', note: 'Partial' },
+      { label: 'Budgets', href: '/dashboard/accounts/budgets' },
       { label: 'Financial reports', href: '/dashboard/accounts/financial-reports' },
     ],
   },
@@ -90,19 +90,21 @@ export const ROADMAP_PAGES: Record<string, RoadmapPageConfig> = {
     slug: 'projects',
     title: 'Projects',
     icon: Briefcase,
-    readiness: 'partial',
-    phase: 'Phase D1 — live',
+    readiness: 'live',
+    phase: 'Phase D — live',
     summary:
-      'Project register, milestones, tasks, and kanban board — budget vs actual links in Phase D2.',
+      'Project register, milestones, tasks, kanban board, and budget vs actual linked to Finance.',
     bullets: [
       'Create projects with codes, owners, and due dates',
       'Milestones and tasks with status workflow',
       'Kanban board across active projects',
+      'Link Finance budgets for utilization and burn',
     ],
     related: [
       { label: 'All projects', href: '/dashboard/projects/all' },
       { label: 'Project board', href: '/dashboard/projects/board' },
-      { label: 'Budgets (Finance)', href: '/dashboard/accounts/budgets', note: 'Not project-scoped yet' },
+      { label: 'Budget vs actual', href: '/dashboard/projects/budget' },
+      { label: 'Budgets (Finance)', href: '/dashboard/accounts/budgets' },
     ],
   },
   'projects-board': {
@@ -155,7 +157,7 @@ export const ROADMAP_PAGES: Record<string, RoadmapPageConfig> = {
     slug: 'legal-obligations',
     title: 'Obligations register',
     icon: Scale,
-    readiness: 'planned',
+    readiness: 'live',
     phase: 'Phase B4',
     summary:
       'Track licences, permits, filings, and renewal obligations with owners, due dates, and evidence documents.',

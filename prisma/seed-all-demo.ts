@@ -12,7 +12,10 @@
  * 4. seed-disciplinary-grievance — sample disciplinary cases + grievances (HR ER).
  * 5. seed-accounts-module — billing clients synced from recruitment/outsourcing, contracts,
  *    invoices, payments, vendors (requires a staff User; defaults to demo admin).
+ * 5b. seed-procurement-demo — purchase requests, LPO, and AP vendor bill for SwiftFreight demo.
  * 6. seed-staff-leave — internal staff leave types + per-user balances (dashboard staff leave).
+ * 7. seed-demo-job-descriptions — published JDs + scorecards matched to demo staff titles.
+ * 8. seed-performance-cycle — active review cycle (binds to JDs when titles match).
  *
  * Run: npm run db:seed-all-demo
  * After clean reset: npm run db:reset-demo
@@ -49,7 +52,9 @@ async function main() {
   run('node prisma/seed-biometric-hikvision.js');
   run('node prisma/seed-disciplinary-grievance.js');
   run('node prisma/seed-accounts-module.js');
+  run('npx tsx scripts/seed-procurement-demo.ts');
   run('node prisma/seed-staff-leave.js');
+  run('npx tsx scripts/seed-demo-job-descriptions.ts');
   run('npx tsx scripts/seed-performance-cycle.ts');
   run('npx tsx prisma/seed-sales-demo.ts');
   run('npx tsx prisma/seed-ess-demo.ts');

@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Download, FileText, Pencil, Plus, Shield, Trash2, X } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 const inputClass =
  'w-full min-w-0 px-4 py-2.5 sm:py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base';
@@ -414,12 +415,16 @@ export default function EditEmployeePage() {
  </div>
  <div>
  <label htmlFor="departmentId" className="block text-sm font-medium text-primary-900 mb-2">Department</label>
- <select id="departmentId" value={form.departmentId} onChange={update('departmentId')} className={inputClass}>
- <option value="">— No department —</option>
- {departments.map((d) => (
- <option key={d.id} value={d.id}>{d.name}</option>
- ))}
- </select>
+ <StrideSelect
+ id="departmentId"
+ value={form.departmentId}
+ onChange={(value) => setForm((f) => ({ ...f, departmentId: value }))}
+ options={[
+ { value: '', label: '— No department —' },
+ ...departments.map((d) => ({ value: d.id, label: d.name })),
+ ]}
+ className="w-full min-w-0"
+ />
  </div>
  <div>
  <label htmlFor="dateOfJoining" className="block text-sm font-medium text-primary-900 mb-2">Date of joining</label>
@@ -557,7 +562,7 @@ export default function EditEmployeePage() {
  body: JSON.stringify(payload),
  });
  const body = await res.json().catch(() => null);
- if (res.ok && body?.id) router.push(`/dashboard/disciplinary/cases/${body.id}`);
+ if (res.ok && body?.id) router.push(`/dashboard/outsourcing/disciplinary/cases/${body.id}`);
  }}
  className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700"
  >
@@ -569,7 +574,7 @@ export default function EditEmployeePage() {
  ) : (
  <div className="space-y-2">
  {disciplinaryCases.map((item) => (
- <Link key={item.id} href={`/dashboard/disciplinary/cases/${item.id}`} className="block rounded-lg border border-neutral-200 px-3 py-2 hover:bg-neutral-50">
+ <Link key={item.id} href={`/dashboard/outsourcing/disciplinary/cases/${item.id}`} className="block rounded-lg border border-neutral-200 px-3 py-2 hover:bg-neutral-50">
  <p className="text-sm font-semibold text-primary-900">{item.caseNumber} - {item.subject}</p>
  <p className="text-xs text-neutral-600">Status: {item.status.replaceAll('_', ' ')}</p>
  </Link>
@@ -730,17 +735,13 @@ export default function EditEmployeePage() {
  </div>
  <div>
  <label className="mb-2 block text-sm font-medium text-primary-900">Category</label>
- <select
+ <StrideSelect
  value={docForm.category}
- onChange={(e) => setDocForm((prev) => ({ ...prev, category: e.target.value as DocumentCategory }))}
- className={inputClass}
- >
- {CATEGORY_OPTIONS.map((option) => (
- <option key={option.value} value={option.value}>
- {option.label}
- </option>
- ))}
- </select>
+ onChange={(value) => setDocForm((prev) => ({ ...prev, category: value as DocumentCategory }))}
+ options={CATEGORY_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+ ariaLabel="Category"
+ className="w-full min-w-0"
+ />
  </div>
  <div>
  <label className="mb-2 block text-sm font-medium text-primary-900">Notes (optional)</label>

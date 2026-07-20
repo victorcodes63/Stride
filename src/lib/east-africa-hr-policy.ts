@@ -4,6 +4,8 @@
  * the employer’s registered policies, collective agreements, and sector regulators.
  */
 
+import { toDisplayLabel } from '@/lib/format-label';
+
 export type LaborJurisdictionCode = 'KE' | 'UG' | 'TZ' | 'RW' | 'BI' | 'SS' | 'EAC';
 
 export type JurisdictionPolicy = {
@@ -143,5 +145,5 @@ export function getJurisdictionPolicy(code: string | null | undefined): Jurisdic
 }
 
 export function formatEnumLabel(value: string): string {
-  return value.replaceAll('_', ' ');
+  return toDisplayLabel(value);
 }

@@ -165,6 +165,33 @@ export function computePayrollVariance(
   };
 }
 
+/**
+ * Derived lifecycle state for a payroll period — drives the guided run UI's
+ * dominant call-to-action and empty/setup states.
+ * - `needs_setup`      — no workforce on the surface yet (add/import staff first)
+ * - `ready_to_generate`— staff exist but no payroll records for the period
+ * - `draft`            — draft records pending review/approval
+ * - `approved`         — approved (some may still be unpaid) — ready to pay
+ * - `paid`             — every record for the period is paid
+ */
+export type PayrollRunState = 'needs_setup' | 'ready_to_generate' | 'draft' | 'approved' | 'paid';
+
+export function derivePayrollRunState(input: {
+  staffCount: number;
+  payrollCount: number;
+  draftCount: number;
+  approvedCount: number;
+  paidCount: number;
+}): PayrollRunState {
+  if (input.payrollCount === 0) {
+    return input.staffCount === 0 ? 'needs_setup' : 'ready_to_generate';
+  }
+  if (input.draftCount > 0) return 'draft';
+  if (input.payrollCount > 0 && input.paidCount === input.payrollCount) return 'paid';
+  if (input.approvedCount > 0 || input.paidCount > 0) return 'approved';
+  return 'draft';
+}
+
 export function inferWizardStep(input: {
   payrollCount: number;
   draftCount: number;

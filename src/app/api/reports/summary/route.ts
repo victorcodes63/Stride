@@ -3,6 +3,8 @@ import { assertReportsStaffRole } from '@/app/api/reports/_shared';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
 
+export const dynamic = 'force-dynamic';
+
 function isMissingTableError(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2021';
 }

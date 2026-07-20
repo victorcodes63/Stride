@@ -11,6 +11,8 @@ import {
 } from '@/lib/operating-entities';
 import { recruitmentEmployerNameFromEnv } from '@/lib/recruitment-workspace';
 import { isDemoSandboxCell } from '@/lib/deployment-cell';
+import { getCompanySetupCapabilities } from '@/lib/company-setup-tier-features';
+import { getDeploymentTier, getDeploymentFeatureOverrides } from '@/lib/deployment-tier';
 
 /** Stale outsourcing demo rows that must not drive public careers branding. */
 const LEGACY_CAREERS_EMPLOYER = /nyati\s+sacco/i;
@@ -31,7 +33,11 @@ export async function getResolvedPublicBrand(): Promise<PublicBrand> {
 
   const { contextId } = parseDemoEntitySlug(resolvedSlug);
   const setup = await loadCompanySetupSettings(contextId);
-  const brand = resolvePublicBrand(setup);
+  const allowWhiteLabel = getCompanySetupCapabilities({
+    tier: getDeploymentTier(),
+    features: getDeploymentFeatureOverrides(),
+  }).canConfigureWhiteLabel;
+  const brand = resolvePublicBrand(setup, { allowWhiteLabel });
 
   const orgName = operatingEntity?.legalName?.trim();
 

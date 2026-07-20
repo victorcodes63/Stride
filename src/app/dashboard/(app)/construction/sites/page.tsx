@@ -5,6 +5,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTable, DashboardTableCard, DashboardTableEmpty, DashboardTableViewport } from '@/components/dashboard/DashboardDataTable';
 import { DashboardAsyncState, DashboardPageSkeleton } from '@/components/dashboard/DashboardAsyncState';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Site = {
   id: string;
@@ -65,18 +66,26 @@ export default function ConstructionSitesPage() {
       <form onSubmit={handleCreate} className="mb-6 grid gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 sm:grid-cols-5">
         <input required placeholder="Code" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />
         <input required placeholder="Site name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />
-        <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm">
-          <option value="planning">Planning</option>
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-          <option value="completed">Completed</option>
-        </select>
-        <select value={form.parentSiteId} onChange={(e) => setForm((f) => ({ ...f, parentSiteId: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm">
-          <option value="">No parent</option>
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>{s.code}</option>
-          ))}
-        </select>
+        <StrideSelect
+          value={form.status}
+          onChange={(value) => setForm((f) => ({ ...f, status: value }))}
+          options={[
+            { value: 'planning', label: 'Planning' },
+            { value: 'active', label: 'Active' },
+            { value: 'suspended', label: 'Suspended' },
+            { value: 'completed', label: 'Completed' },
+          ]}
+          ariaLabel="Status"
+        />
+        <StrideSelect
+          value={form.parentSiteId}
+          onChange={(value) => setForm((f) => ({ ...f, parentSiteId: value }))}
+          options={[
+            { value: '', label: 'No parent' },
+            ...sites.map((s) => ({ value: s.id, label: s.code })),
+          ]}
+          ariaLabel="Parent site"
+        />
         <button type="submit" className="h-10 rounded-lg bg-primary-500 text-sm font-medium text-white">Add site</button>
       </form>
       {error ? <DashboardAsyncState variant="error" title="Sites" message={error} onRetry={() => void load()} /> : (

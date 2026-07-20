@@ -3,6 +3,7 @@ export {
   canAccessCompanySetup,
   companySetupTierLabel,
   getDeploymentTier,
+  getDeploymentFeatureOverrides,
   parseDeploymentTier,
   type DeploymentTier,
 } from '@/lib/deployment-tier-shared';

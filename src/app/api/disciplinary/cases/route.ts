@@ -16,9 +16,12 @@ export async function GET(request: NextRequest) {
     const status = request.nextUrl.searchParams.get('status') || undefined;
     const employeeId = request.nextUrl.searchParams.get('employeeId') || undefined;
     const type = request.nextUrl.searchParams.get('type') || undefined;
+    const requestedClientId =
+      request.nextUrl.searchParams.get('outsourcingClientId') ||
+      request.nextUrl.searchParams.get('clientId');
     const workspaceClientId = await resolvePrimaryWorkspaceClientId(
       prisma,
-      request.nextUrl.searchParams.get('clientId'),
+      requestedClientId,
       request,
       ctx.organizationId,
     );

@@ -11,6 +11,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import type { FleetOrderListRow } from '@/lib/fleet-orders-api';
 import { fleetOrderStatusBadgeClass } from '@/lib/fleet-order-status';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type OrderDetail = FleetOrderListRow & {
   customer: { id: string; name: string; contactPhone: string | null };
@@ -226,55 +227,51 @@ export default function FleetOrderDetailPage() {
                     <>
                       <label className="block text-sm">
                         <span className="mb-1 block font-medium text-neutral-700">Vehicle</span>
-                        <select
+                        <StrideSelect
                           value={vehicleId}
-                          onChange={(e) => setVehicleId(e.target.value)}
-                          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-                        >
-                          <option value="">Select vehicle…</option>
-                          {vehicles
-                            .filter((v) => v.status === 'available')
-                            .map((v) => (
-                              <option key={v.id} value={v.id}>
-                                {v.registration} {v.label ? `(${v.label})` : ''}
-                              </option>
-                            ))}
-                        </select>
+                          onChange={(value) => setVehicleId(value)}
+                          options={[
+                            { value: '', label: 'Select vehicle…' },
+                            ...vehicles
+                              .filter((v) => v.status === 'available')
+                              .map((v) => ({
+                                value: v.id,
+                                label: `${v.registration} ${v.label ? `(${v.label})` : ''}`,
+                              })),
+                          ]}
+                          ariaLabel="Vehicle"
+                          className="w-full"
+                        />
                       </label>
                       <label className="block text-sm">
                         <span className="mb-1 block font-medium text-neutral-700">Driver</span>
-                        <select
+                        <StrideSelect
                           value={driverId}
-                          onChange={(e) => setDriverId(e.target.value)}
-                          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-                        >
-                          <option value="">Select driver…</option>
-                          {drivers
-                            .filter((d) => d.status === 'available')
-                            .map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.fullName}
-                              </option>
-                            ))}
-                        </select>
+                          onChange={(value) => setDriverId(value)}
+                          options={[
+                            { value: '', label: 'Select driver…' },
+                            ...drivers
+                              .filter((d) => d.status === 'available')
+                              .map((d) => ({ value: d.id, label: d.fullName })),
+                          ]}
+                          ariaLabel="Driver"
+                          className="w-full"
+                        />
                       </label>
                     </>
                   ) : (
                     <label className="block text-sm">
                       <span className="mb-1 block font-medium text-neutral-700">Transport partner</span>
-                      <select
-                        required
+                      <StrideSelect
                         value={partnerId}
-                        onChange={(e) => setPartnerId(e.target.value)}
-                        className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-                      >
-                        <option value="">Select partner…</option>
-                        {partners.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(value) => setPartnerId(value)}
+                        options={[
+                          { value: '', label: 'Select partner…' },
+                          ...partners.map((p) => ({ value: p.id, label: p.name })),
+                        ]}
+                        ariaLabel="Transport partner"
+                        className="w-full"
+                      />
                     </label>
                   )}
                   <button

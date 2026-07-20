@@ -28,15 +28,19 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/dashboard/schedule', module: 'ats' },
 
   // —— Payroll ——
-  { prefix: '/api/outsourcing/payroll', module: 'payroll' },
+  // NOTE: Outsourcing (client-specific) payroll is gated by the `outsourcing`
+  // module, NOT `payroll`. It is a separate payroll surface for outsourced
+  // staff (different frequency, leave-pay/earnings handling per end-client) and
+  // must stay independent of the HR & Payroll module's payroll. See the
+  // `/api/outsourcing/payroll` binding in the HR Outsourcing section below.
   { prefix: '/api/payroll', module: 'payroll' },
   { prefix: '/dashboard/payroll', module: 'payroll' },
   { prefix: '/dashboard/people', module: 'core' },
   { prefix: '/dashboard/operations', module: 'reports' },
   { prefix: '/dashboard/procurement', module: 'procurement' },
   { prefix: '/api/procurement', module: 'procurement' },
-  { prefix: '/dashboard/projects', module: 'core' },
-  { prefix: '/api/projects', module: 'core' },
+  { prefix: '/dashboard/projects', module: 'projects' },
+  { prefix: '/api/projects', module: 'projects' },
   { prefix: '/api/facilities', module: 'core' },
   { prefix: '/api/governance', module: 'core' },
   { prefix: '/dashboard/admin/facilities', module: 'core' },
@@ -50,6 +54,11 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/api/biometric', module: 'time' },
   { prefix: '/api/cron/biometric-poll', module: 'time' },
   { prefix: '/api/outsourcing/attendance', module: 'time' },
+  // Internal-staff (tenant-own) T&A — mirror of the outsourcing routes above.
+  { prefix: '/api/staff/rota', module: 'time' },
+  { prefix: '/api/staff/attendance', module: 'time' },
+  { prefix: '/api/staff/biometric', module: 'time' },
+  { prefix: '/api/cron/staff-biometric-poll', module: 'time' },
   { prefix: '/dashboard/rota', module: 'time' },
   { prefix: '/dashboard/attendance', module: 'time' },
   { prefix: '/dashboard/biometric-devices', module: 'time' },
@@ -60,6 +69,7 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/api/outsourcing/leave', module: 'leave' },
   { prefix: '/api/leave', module: 'leave' },
   { prefix: '/dashboard/leave', module: 'leave' },
+  { prefix: '/dashboard/staff-leave', module: 'leave' },
   { prefix: '/dashboard/outsourcing/leave', module: 'leave' },
   { prefix: '/api/ess/home-summary', module: 'ess' },
   { prefix: '/api/ess/team', module: 'leave' },
@@ -162,6 +172,10 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/api/onboarding', module: 'core' },
   { prefix: '/api/outsourcing/ess', module: 'ess' },
   { prefix: '/api/outsourcing/document-requests', module: 'ess' },
+  // Outsourcing client-specific payroll — gated by the HR Outsourcing module,
+  // kept separate from the HR & Payroll module's payroll.
+  { prefix: '/api/outsourcing/payroll', module: 'outsourcing' },
+  { prefix: '/dashboard/outsourcing/payroll', module: 'outsourcing' },
   { prefix: '/api/outsourcing', module: 'outsourcing' },
   { prefix: '/dashboard/ess/portal-accounts', module: 'ess' },
   { prefix: '/dashboard/ess/shifts', module: 'ess' },
@@ -173,8 +187,9 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   { prefix: '/dashboard/employees', module: 'core' },
   { prefix: '/dashboard/departments', module: 'core' },
   { prefix: '/dashboard/onboarding', module: 'core' },
+  { prefix: '/api/people/contracts', module: 'legal' },
   { prefix: '/dashboard/credentials', module: 'core' },
-  { prefix: '/dashboard/people/contracts', module: 'core' },
+  { prefix: '/dashboard/people/contracts', module: 'legal' },
   { prefix: '/dashboard/people/tasks', module: 'core' },
   { prefix: '/dashboard/users', module: 'core' },
   { prefix: '/dashboard/admin', module: 'core' },
@@ -258,7 +273,7 @@ export const NAV_SECTION_MODULES: Record<string, ModuleKey[]> = {
   finance: ['accounts'],
   procurement: ['procurement'],
   'legal-documents': ['legal', 'documents'],
-  projects: ['core'],
+  projects: ['projects'],
   development: ['training'],
   admin: ['core'],
 };

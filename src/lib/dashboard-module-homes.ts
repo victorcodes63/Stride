@@ -53,7 +53,7 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         eyebrow: domain.marketingLabel,
         title: 'Procurement',
         description:
-          'Purchase-to-pay: requests, LPOs, goods receipt, and spend visibility. Vendor master lives in Finance.',
+          'Purchase-to-pay: requests, LPOs, receiving, vendors, and spend visibility. Vendor master is shared with Finance.',
       };
 
     case 'legal-documents':
@@ -63,8 +63,6 @@ export function getModuleHomeMeta(domainId: DashboardModuleDomainId): ModuleHome
         title: 'Legal & compliance',
         description:
           'Contracts, credentials, company policies, and regulatory obligations — one place for document risk.',
-        phase: 'Phase B — live',
-        plannedBullets: ['Obligation register with owners and due dates', 'Board filing deadlines', 'Evidence document vault'],
       };
 
     case 'projects':
@@ -136,15 +134,18 @@ export function getModuleHomeHeaderActions(
   modules: Partial<Record<ModuleKey, boolean>>,
 ) {
   const { primary, more } = getDomainQuickActions(domainId, user, modules);
-  const actions = [
-    { href: primary.href, label: primary.label, icon: primary.icon, variant: 'primary' as const },
-  ];
+  const actions: {
+    href: string;
+    label: string;
+    icon: typeof primary.icon;
+    variant: 'primary' | 'secondary';
+  }[] = [{ href: primary.href, label: primary.label, icon: primary.icon, variant: 'primary' }];
   if (more[0]) {
     actions.push({
       href: more[0].href,
       label: more[0].label,
       icon: more[0].icon,
-      variant: 'secondary' as const,
+      variant: 'secondary',
     });
   }
   return actions;

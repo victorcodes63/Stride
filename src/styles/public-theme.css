@@ -207,7 +207,7 @@ html.dark .public-app.studio-craft-marketing :where(h1, h2, h3, h4, h5, h6) {
 .public-app .pub-login-input:focus {
   outline: none;
   border-color: var(--pub-primary);
-  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+  box-shadow: 0 0 0 3px rgba(var(--stride-coral-rgb), 0.12);
 }
 
 .public-app .pub-login-oauth-btn {
@@ -241,7 +241,7 @@ html.dark .public-app.studio-craft-marketing :where(h1, h2, h3, h4, h5, h6) {
 
 .public-app .pub-login-oauth-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+  box-shadow: 0 0 0 3px rgba(var(--stride-coral-rgb), 0.12);
 }
 
 /* --- Autofill --- */
@@ -308,7 +308,7 @@ html:not(.dark) .public-app input:-webkit-autofill:focus {
   transform: rotate(-34deg);
   background: linear-gradient(
     102deg,
-    rgba(255, 84, 54, 0.98) 0%,
+    rgba(var(--stride-coral-rgb), 0.98) 0%,
     rgba(255, 120, 90, 0.95) 18%,
     rgba(255, 180, 160, 0.92) 38%,
     rgba(255, 233, 228, 0.9) 58%,
@@ -330,7 +330,7 @@ html:not(.dark) .public-app input:-webkit-autofill:focus {
     96deg,
     rgba(255, 180, 140, 0.75) 0%,
     rgba(255, 120, 90, 0.7) 38%,
-    rgba(255, 84, 54, 0.68) 72%,
+    rgba(var(--stride-coral-rgb), 0.68) 72%,
     rgba(26, 23, 20, 0.62) 100%
   );
   filter: blur(64px) saturate(1.1);
@@ -448,7 +448,7 @@ html:not(.dark) .public-app input:-webkit-autofill:focus {
   position: absolute;
   inset: -15% -10%;
   background:
-    radial-gradient(ellipse 65% 50% at 92% 6%, rgba(255, 84, 54, 0.11) 0%, transparent 58%),
+    radial-gradient(ellipse 65% 50% at 92% 6%, rgba(var(--stride-coral-rgb), 0.11) 0%, transparent 58%),
     radial-gradient(ellipse 55% 45% at 8% 88%, rgba(230, 62, 34, 0.09) 0%, transparent 52%),
     radial-gradient(ellipse 50% 40% at 48% 42%, rgba(255, 180, 160, 0.05) 0%, transparent 55%),
     radial-gradient(ellipse 40% 35% at 75% 72%, rgba(255, 120, 90, 0.06) 0%, transparent 50%);
@@ -506,8 +506,8 @@ html:not(.dark) .public-app input:-webkit-autofill:focus {
   border: none;
   border-radius: var(--pub-radius-sm, 6px);
   box-shadow:
-    0 0 0 1px rgba(255, 84, 54, 0.35),
-    0 2px 4px rgba(255, 84, 54, 0.18);
+    0 0 0 1px rgba(var(--stride-coral-rgb), 0.35),
+    0 2px 4px rgba(var(--stride-coral-rgb), 0.18);
   transition: background 150ms ease, box-shadow 150ms ease;
   text-decoration: none;
 }
@@ -516,8 +516,8 @@ html:not(.dark) .public-app input:-webkit-autofill:focus {
 .pub-nav-cta:hover {
   background: var(--pub-primary-hover);
   box-shadow:
-    0 0 0 1px rgba(255, 84, 54, 0.45),
-    0 4px 8px rgba(255, 84, 54, 0.22);
+    0 0 0 1px rgba(var(--stride-coral-rgb), 0.45),
+    0 4px 8px rgba(var(--stride-coral-rgb), 0.22);
 }
 
 .public-app .pub-nav-cta svg,
@@ -594,7 +594,7 @@ html:not(.dark) .public-app input:-webkit-autofill:focus {
 .public-app .pub-badge-new {
   background: var(--pub-primary-subtle);
   color: var(--pub-primary);
-  border-color: rgba(255, 84, 54, 0.22);
+  border-color: rgba(var(--stride-coral-rgb), 0.22);
   font-weight: 600;
 }
 
@@ -635,7 +635,7 @@ html:not(.dark) .public-app input:-webkit-autofill:focus {
   font-weight: 500;
   color: var(--pub-primary);
   background: var(--pub-primary-subtle);
-  border: 1px solid rgba(255, 84, 54, 0.15);
+  border: 1px solid rgba(var(--stride-coral-rgb), 0.15);
   border-radius: 9999px;
   transition: background 120ms ease;
 }
@@ -663,7 +663,7 @@ html:not(.dark) .public-app input:-webkit-autofill:focus {
 .public-app .pub-search-input:focus {
   outline: none;
   border-color: var(--pub-primary);
-  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+  box-shadow: 0 0 0 3px rgba(var(--stride-coral-rgb), 0.12);
 }
 
 .public-app .pub-select {
@@ -682,7 +682,7 @@ html:not(.dark) .public-app input:-webkit-autofill:focus {
 .public-app .pub-select:focus {
   outline: none;
   border-color: var(--pub-primary);
-  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+  box-shadow: 0 0 0 3px rgba(var(--stride-coral-rgb), 0.12);
 }
 
 /* Dashboard appearance toggle must not break marketing/careers (auth pages excluded) */

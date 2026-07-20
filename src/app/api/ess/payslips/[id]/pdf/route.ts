@@ -30,6 +30,10 @@ export async function GET(
     );
 
     if (!payroll) return NextResponse.json({ error: 'Payslip not found.' }, { status: 404 });
+    // Employees can only download finalised payslips (approved/paid), never drafts.
+    if (payroll.status !== 'approved' && payroll.status !== 'paid') {
+      return NextResponse.json({ error: 'Payslip not found.' }, { status: 404 });
+    }
 
     await logSensitiveFieldAccess({
       actor: { userId: ctx.essUser.id, email: ctx.essUser.email, name: ctx.essUser.name },

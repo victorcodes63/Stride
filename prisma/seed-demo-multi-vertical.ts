@@ -2,6 +2,9 @@
  * Seed all vertical showcase packs into one database.
  * The entity switcher lists one Kenya entity per sector — switch without re-seeding.
  *
+ * All packs share org slug `demo-multi-vertical` so login brand + switcher + session
+ * use the same source of truth (not six separate tenants).
+ *
  * Run: npm run demo:reseed:all-verticals
  */
 import { execSync } from 'node:child_process';
@@ -20,9 +23,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 const prisma = new PrismaClient();
 
+export const MULTI_VERTICAL_ORG_SLUG = 'demo-multi-vertical';
+
 async function seedCombinedOperatingEntities() {
+  const sharedOrg = await prisma.organization.findUnique({
+    where: { slug: MULTI_VERTICAL_ORG_SLUG },
+    select: { id: true, name: true, slug: true },
+  });
+  if (!sharedOrg) {
+    console.warn(`Shared org ${MULTI_VERTICAL_ORG_SLUG} missing — skip operating entities merge.`);
+    return;
+  }
+
   const clients = await prisma.outsourcingClient.findMany({
-    where: { entityCode: { endsWith: '__ke' } },
+    where: {
+      organizationId: sharedOrg.id,
+      entityCode: { endsWith: '__ke' },
+    },
     orderBy: [{ entityCode: 'asc' }],
     select: {
       entityCode: true,
@@ -39,9 +56,13 @@ async function seedCombinedOperatingEntities() {
     return;
   }
 
+  // Session org (real) + legacy DEFAULT id used by some public brand loaders.
+  await systemSettingUpsert(prisma, sharedOrg.id, OPERATING_ENTITIES_SETTINGS_KEY, settings);
   await systemSettingUpsert(prisma, SEED_DEFAULT_ORG_ID, OPERATING_ENTITIES_SETTINGS_KEY, settings);
 
-  console.log(`→ Vertical switcher: ${settings.entities.length} company contexts (one per sector)`);
+  console.log(
+    `→ Vertical switcher on ${sharedOrg.slug}: ${settings.entities.length} companies (default ${settings.defaultEntityId})`,
+  );
   for (const e of settings.entities) {
     console.log(`   · ${e.legalName} (${e.id})`);
   }
@@ -52,8 +73,11 @@ async function main() {
     throw new Error('DATABASE_URL is not set.');
   }
 
-  console.log('Seeding all vertical showcase contexts into one database…');
-  console.log(`Unified admin login: ${UNIFIED_DEMO_EMAIL}\n`);
+  console.log('Seeding all vertical showcase contexts into one shared organization…');
+  console.log(`  Org slug: ${MULTI_VERTICAL_ORG_SLUG}`);
+  console.log(
+    `  Unified admin login: ${process.env.DEMO_UNIFIED_ADMIN_EMAIL ?? UNIFIED_DEMO_EMAIL}\n`,
+  );
 
   for (const packId of VERTICAL_SHOWCASE_PACK_IDS) {
     console.log(`\n════════ ${packId} ════════\n`);

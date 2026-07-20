@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react';
 import type { PaymentAccountDetails, PaymentAccountRow } from '@/lib/payment-accounts';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 export function InvoiceBankDisplay({ details }: { details: PaymentAccountDetails }) {
   return (
@@ -44,23 +45,21 @@ export function InvoicePaymentAccountSelect({
         Payment account on invoice
       </label>
       <div className="relative print:hidden">
-        <select
-          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:opacity-60"
+        <StrideSelect
+          className="w-full"
+          ariaLabel="Payment account on invoice"
           value={value}
           disabled={disabled || saving || loading || accounts.length === 0}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          {accounts.length === 0 ? (
-            <option value="">No payment accounts configured</option>
-          ) : (
-            accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.label}
-                {account.isPayrollOnly ? ' (payroll)' : ''}
-              </option>
-            ))
-          )}
-        </select>
+          onChange={(id) => onChange(id)}
+          options={
+            accounts.length === 0
+              ? [{ value: '', label: 'No payment accounts configured' }]
+              : accounts.map((account) => ({
+                  value: account.id,
+                  label: `${account.label}${account.isPayrollOnly ? ' (payroll)' : ''}`,
+                }))
+          }
+        />
         {(saving || loading) && (
           <span className="absolute right-10 top-1/2 -translate-y-1/2 text-neutral-400">
             <Loader2 className="w-4 h-4 animate-spin" />

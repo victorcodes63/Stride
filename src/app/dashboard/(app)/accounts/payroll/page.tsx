@@ -9,6 +9,8 @@ import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { useEntity } from '@/components/EntitySwitcher';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { toDisplayLabel } from '@/lib/format-label';
 
 interface PayrollRecord {
  id: string;
@@ -33,11 +35,6 @@ interface PayrollRecord {
  payrollFrequency?: string;
  period1Gross?: string | null;
  period2Gross?: string | null;
-}
-
-interface ClientOption {
- id: string;
- name: string;
 }
 
 interface DepartmentOption {
@@ -81,10 +78,8 @@ export default function AccountsPayrollPage() {
  const now = new Date();
  const [month, setMonth] = useState(now.getMonth() + 1);
  const [year, setYear] = useState(now.getFullYear());
- const [scope, setScope] = useState<'all' | 'client' | 'department'>('all');
- const [clientId, setClientId] = useState('');
+ const [scope, setScope] = useState<'all' | 'department'>('all');
  const [departmentId, setDepartmentId] = useState('');
- const [clients, setClients] = useState<ClientOption[]>([]);
  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
  const [payrolls, setPayrolls] = useState<PayrollRecord[]>([]);
  const [loading, setLoading] = useState(true);
@@ -119,9 +114,8 @@ export default function AccountsPayrollPage() {
  const params = new URLSearchParams();
  params.set('month', String(month));
  params.set('year', String(year));
- if (scope === 'client' && clientId.trim()) params.set('clientId', clientId.trim());
  if (scope === 'department' && departmentId.trim()) params.set('departmentId', departmentId.trim());
- const res = await fetch(`/api/outsourcing/payroll?${params}`);
+ const res = await fetch(`/api/payroll?${params}`);
  const data = await res.json();
  if (!res.ok) throw new Error(data.error || 'Failed to load payroll');
  setPayrolls(Array.isArray(data) ? data : []);
@@ -133,21 +127,9 @@ export default function AccountsPayrollPage() {
  }
  };
 
- const fetchClients = async () => {
+ const fetchDepartments = async () => {
  try {
- const res = await fetch('/api/outsourcing/clients');
- const data = await res.json().catch(() => []);
- if (res.ok && Array.isArray(data)) {
- setClients(data.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })));
- }
- } catch {
- setClients([]);
- }
- };
-
- const fetchDepartments = async (cid: string) => {
- try {
- const res = await fetch(`/api/outsourcing/clients/${cid}/departments`);
+ const res = await fetch(`/api/payroll/departments`);
  const data = await res.json().catch(() => []);
  if (res.ok && Array.isArray(data)) {
  setDepartments(data.map((d: { id: string; name: string }) => ({ id: d.id, name: d.name })));
@@ -160,21 +142,16 @@ export default function AccountsPayrollPage() {
  };
 
  useEffect(() => {
- fetchClients();
- }, [activeEntity.id]);
-
- useEffect(() => {
  fetchPayrolls();
- }, [month, year, scope, clientId, departmentId, activeEntity.id]);
+ }, [month, year, scope, departmentId, activeEntity.id]);
 
  useEffect(() => {
- if (scope === 'department' && clientId.trim()) {
- fetchDepartments(clientId.trim());
+ if (scope === 'department') {
+ fetchDepartments();
  } else {
- setDepartments([]);
  setDepartmentId('');
  }
- }, [scope, clientId]);
+ }, [scope, activeEntity.id]);
 
  const uniqueStatuses = useMemo(() => {
  const set = new Set<string>();
@@ -287,7 +264,7 @@ export default function AccountsPayrollPage() {
  if (employeeIds.length === 0) return;
  setError(null);
  try {
- const res = await fetch('/api/outsourcing/payroll/send-payslips', {
+ const res = await fetch('/api/payroll/send-payslips', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ month, year, employeeIds }),
@@ -314,9 +291,8 @@ export default function AccountsPayrollPage() {
  setError(null);
  try {
  const body: Record<string, unknown> = { month, year };
- if (scope === 'client' && clientId.trim()) body.clientId = clientId.trim();
  if (scope === 'department' && departmentId.trim()) body.departmentId = departmentId.trim();
- const res = await fetch('/api/outsourcing/payroll/generate', {
+ const res = await fetch('/api/payroll/generate', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  credentials: 'include',
@@ -341,13 +317,11 @@ export default function AccountsPayrollPage() {
  const params = new URLSearchParams();
  params.set('month', String(month));
  params.set('year', String(year));
- if (scope === 'client' && clientId.trim()) params.set('clientId', clientId.trim());
  if (scope === 'department' && departmentId.trim()) params.set('departmentId', departmentId.trim());
  return `/dashboard/accounts/payroll/payslips?${params}`;
  };
 
- const canGenerate = scope === 'all' || (scope === 'client' && clientId.trim()) || (scope === 'department' && departmentId.trim());
- const canUsePayrollInputImport = !!clientId.trim();
+ const canGenerate = scope === 'all' || (scope === 'department' && departmentId.trim());
 
  const runPayrollImportPreview = async (file: File) => {
  setImportingPayrollInput(true);
@@ -356,10 +330,9 @@ export default function AccountsPayrollPage() {
  try {
  const formData = new FormData();
  formData.append('file', file);
- formData.append('clientId', clientId.trim());
  formData.append('month', String(month));
  formData.append('year', String(year));
- const res = await fetch('/api/outsourcing/payroll/import/preview', {
+ const res = await fetch('/api/payroll/import/preview', {
  method: 'POST',
  body: formData,
  });
@@ -400,16 +373,12 @@ export default function AccountsPayrollPage() {
  const file = e.target.files?.[0];
  e.target.value = '';
  if (!file) return;
- if (!canUsePayrollInputImport) {
- setError('Select a client first (Scope: client or department) before importing payroll input.');
- return;
- }
  setSelectedPayrollInputFile(file);
  await runPayrollImportPreview(file);
  };
 
  const handleCreateMissingEmployees = async () => {
- if (!importPreview || !clientId.trim()) return;
+ if (!importPreview) return;
  const missingRows = importPreview.unmatchedRows.map((r) => ({
  nationalId: r.nationalId,
  employeeName: r.employeeName,
@@ -419,10 +388,10 @@ export default function AccountsPayrollPage() {
  setImportingPayrollInput(true);
  setError(null);
  try {
- const res = await fetch('/api/outsourcing/payroll/import/create-missing-employees', {
+ const res = await fetch('/api/payroll/import/create-missing-employees', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ clientId: clientId.trim(), missingRows }),
+ body: JSON.stringify({ missingRows }),
  });
  const data = await res.json().catch(() => ({}));
  if (!res.ok) throw new Error(data.error || 'Failed to create missing employees.');
@@ -437,13 +406,12 @@ export default function AccountsPayrollPage() {
  };
 
  const handleCommitPayrollImport = async () => {
- if (!selectedPayrollInputFile || !clientId.trim()) return;
+ if (!selectedPayrollInputFile) return;
  setCommittingPayrollInput(true);
  setError(null);
  try {
  const formData = new FormData();
  formData.append('file', selectedPayrollInputFile);
- formData.append('clientId', clientId.trim());
  formData.append('month', String(month));
  formData.append('year', String(year));
  if (acceptSheetValueUpdates) {
@@ -453,7 +421,7 @@ export default function AccountsPayrollPage() {
  formData.append('duplicateAction', 'purge');
  formData.append('duplicateResolution', JSON.stringify(duplicateResolution));
  }
- const res = await fetch('/api/outsourcing/payroll/import/commit', {
+ const res = await fetch('/api/payroll/import/commit', {
  method: 'POST',
  body: formData,
  });
@@ -478,7 +446,7 @@ export default function AccountsPayrollPage() {
  const executeSingleSendPayslip = async (employeeId: string, employeeName: string) => {
  setSendingId(employeeId);
  try {
- const res = await fetch('/api/outsourcing/payroll/send-payslips', {
+ const res = await fetch('/api/payroll/send-payslips', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ month, year, employeeIds: [employeeId] }),
@@ -507,9 +475,8 @@ export default function AccountsPayrollPage() {
  setError(null);
  try {
  const body: Record<string, unknown> = { month, year };
- if (scope === 'client' && clientId.trim()) body.clientId = clientId.trim();
  if (scope === 'department' && departmentId.trim()) body.departmentId = departmentId.trim();
- const res = await fetch('/api/outsourcing/payroll/recalculate-statutory', {
+ const res = await fetch('/api/payroll/recalculate-statutory', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify(body),
@@ -544,9 +511,8 @@ export default function AccountsPayrollPage() {
  const params = new URLSearchParams();
  params.set('month', String(month));
  params.set('year', String(year));
- if (scope === 'client' && clientId.trim()) params.set('clientId', clientId.trim());
  if (scope === 'department' && departmentId.trim()) params.set('departmentId', departmentId.trim());
- const res = await fetch(`/api/outsourcing/payroll/bank-export?${params.toString()}`, { credentials: 'include' });
+ const res = await fetch(`/api/payroll/bank-export?${params.toString()}`, { credentials: 'include' });
  const miss = parseInt(res.headers.get('X-Missing-Bank-Details-Count') || '0', 10);
  if (!res.ok) {
  const data = await res.json().catch(() => ({}));
@@ -619,15 +585,12 @@ export default function AccountsPayrollPage() {
  <div className="flex flex-wrap gap-4 items-end">
  <div>
  <label className="block text-xs font-medium text-neutral-600 mb-1">Month</label>
- <select
- value={month}
- onChange={(e) => setMonth(parseInt(e.target.value, 10))}
- className="px-4 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500"
- >
- {MONTHS.map((m, i) => (
- <option key={i} value={i + 1}>{m}</option>
- ))}
- </select>
+              <StrideSelect
+                value={String(month)}
+                onChange={(value) => setMonth(parseInt(value, 10))}
+                ariaLabel="Month"
+                options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))}
+              />
  </div>
  <div>
  <label className="block text-xs font-medium text-neutral-600 mb-1">Year</label>
@@ -642,61 +605,30 @@ export default function AccountsPayrollPage() {
  </div>
  <div>
  <label className="block text-xs font-medium text-neutral-600 mb-1">Scope</label>
- <select
- value={scope}
- onChange={(e) => setScope(e.target.value as 'all' | 'client' | 'department')}
- className="px-4 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500"
- >
- <option value="all">All employees</option>
- <option value="client">By client</option>
- <option value="department">By department</option>
- </select>
+              <StrideSelect
+                value={scope}
+                onChange={(value) => setScope(value as 'all' | 'department')}
+                ariaLabel="Scope"
+                options={[
+                  { value: 'all', label: 'All employees' },
+                  { value: 'department', label: 'By department' },
+                ]}
+              />
  </div>
- {scope === 'client' && (
- <div>
- <label className="block text-xs font-medium text-neutral-600 mb-1">Client</label>
- <select
- value={clientId}
- onChange={(e) => setClientId(e.target.value)}
- className="px-4 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 min-w-[200px]"
- >
- <option value="">Select client</option>
- {clients.map((c) => (
- <option key={c.id} value={c.id}>{c.name}</option>
- ))}
- </select>
- </div>
- )}
  {scope === 'department' && (
- <>
- <div>
- <label className="block text-xs font-medium text-neutral-600 mb-1">Client</label>
- <select
- value={clientId}
- onChange={(e) => { setClientId(e.target.value); setDepartmentId(''); }}
- className="px-4 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 min-w-[200px]"
- >
- <option value="">Select client</option>
- {clients.map((c) => (
- <option key={c.id} value={c.id}>{c.name}</option>
- ))}
- </select>
- </div>
  <div>
  <label className="block text-xs font-medium text-neutral-600 mb-1">Department</label>
- <select
- value={departmentId}
- onChange={(e) => setDepartmentId(e.target.value)}
- disabled={!clientId.trim()}
- className="px-4 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 min-w-[180px] disabled:opacity-50"
- >
- <option value="">Select department</option>
- {departments.map((d) => (
- <option key={d.id} value={d.id}>{d.name}</option>
- ))}
- </select>
+                <StrideSelect
+                  value={departmentId}
+                  onChange={(value) => setDepartmentId(value)}
+                  ariaLabel="Department"
+                  className="min-w-[180px]"
+                  options={[
+                    { value: '', label: 'Select department' },
+                    ...departments.map((d) => ({ value: d.id, label: d.name })),
+                  ]}
+                />
  </div>
- </>
  )}
  <div className="flex gap-2">
  <button
@@ -749,14 +681,7 @@ export default function AccountsPayrollPage() {
  <button
  type="button"
  onClick={() => {
- if (!canUsePayrollInputImport) {
- setError('Select a client first (Scope: client or department) to download/import payroll input.');
- return;
- }
- window.open(
- `/api/outsourcing/employees/template?mode=payroll-input&clientId=${encodeURIComponent(clientId.trim())}`,
- '_blank',
- );
+ window.open('/api/payroll/import/template', '_blank');
  }}
  className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-50"
  >
@@ -772,7 +697,7 @@ export default function AccountsPayrollPage() {
  />
  <button
  type="button"
- disabled={!canUsePayrollInputImport || importingPayrollInput}
+ disabled={importingPayrollInput}
  onClick={() => {
  const el = document.getElementById('accounts-payroll-input-import-file') as HTMLInputElement | null;
  el?.click();
@@ -860,19 +785,15 @@ export default function AccountsPayrollPage() {
  />
  </div>
  <div className="flex items-center gap-3 flex-wrap">
- <select
- value={statusFilter}
- onChange={(e) => setStatusFilter(e.target.value)}
- className="px-4 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500"
- aria-label="Filter by status"
- >
- <option value="">All statuses</option>
- {uniqueStatuses.map((s) => (
- <option key={s} value={s}>
- {s}
- </option>
- ))}
- </select>
+                  <StrideSelect
+                    value={statusFilter}
+                    onChange={(value) => setStatusFilter(value)}
+                    ariaLabel="Filter by status"
+                    options={[
+                      { value: '', label: 'All statuses' },
+                      ...uniqueStatuses.map((s) => ({ value: s, label: toDisplayLabel(s) })),
+                    ]}
+                  />
  {hasActiveTableFilters && (
  <button
  type="button"
@@ -1067,6 +988,7 @@ export default function AccountsPayrollPage() {
  year={year}
  onClose={() => { setEditPayrollId(null); setEditEmployeeName(''); }}
  onSaved={fetchPayrolls}
+ apiBase="/api/payroll"
  />
  )}
  {showMissingEmployeesPrompt && importPreview && (
@@ -1122,18 +1044,19 @@ export default function AccountsPayrollPage() {
  {importPreview.duplicateNationalIds.map((id) => (
  <div key={id} className="border border-neutral-200 rounded-lg p-3">
  <p className="text-sm font-semibold text-neutral-900">National ID: {id}</p>
- <select
- value={duplicateResolution[id] ?? ''}
- onChange={(e) => setDuplicateResolution((prev) => ({ ...prev, [id]: Number(e.target.value) }))}
- className="mt-2 w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500"
- >
- <option value="">Select correct row</option>
- {(duplicateChoicesById[id] ?? []).map((choice) => (
- <option key={`${id}-${choice.row}`} value={choice.row}>
- Row {choice.row} - {choice.employeeName || 'Unnamed'} - Gross {Number(choice.grossPay).toLocaleString()}
- </option>
- ))}
- </select>
+                    <StrideSelect
+                      value={String(duplicateResolution[id] ?? '')}
+                      onChange={(value) => setDuplicateResolution((prev) => ({ ...prev, [id]: Number(value) }))}
+                      ariaLabel="Select correct row"
+                      className="mt-2 w-full"
+                      options={[
+                        { value: '', label: 'Select correct row' },
+                        ...(duplicateChoicesById[id] ?? []).map((choice) => ({
+                          value: String(choice.row),
+                          label: `Row ${choice.row} - ${choice.employeeName || 'Unnamed'} - Gross ${Number(choice.grossPay).toLocaleString()}`,
+                        })),
+                      ]}
+                    />
  </div>
  ))}
  </div>

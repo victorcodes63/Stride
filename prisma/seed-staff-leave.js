@@ -1,7 +1,7 @@
 /**
- * Default leave types + balances for all active users (current year).
+ * Default leave types + balances for all active users (current year), per organization.
  * Run: node prisma/seed-staff-leave.js
- * Requires: DATABASE_URL, existing User rows
+ * Requires: DATABASE_URL, existing User + OrganizationMembership rows
  */
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
@@ -15,47 +15,70 @@ const DEFAULT_TYPES = [
   { name: 'Unpaid leave', daysPerYear: 0, color: '#94a3b8', sortOrder: 99, description: 'Does not consume paid balance; still needs approval.' },
 ];
 
+async function ensureTypesForOrg(organizationId) {
+  let types = await prisma.staffLeaveType.findMany({ where: { organizationId } });
+  if (types.length === 0) {
+    for (const t of DEFAULT_TYPES) {
+      await prisma.staffLeaveType.create({
+        data: { ...t, organizationId },
+      });
+    }
+    types = await prisma.staffLeaveType.findMany({ where: { organizationId } });
+    console.log(`Created ${types.length} leave types for org ${organizationId}`);
+  }
+  return types;
+}
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     console.error('DATABASE_URL missing');
     process.exit(1);
   }
   const year = new Date().getFullYear();
-  let types = await prisma.staffLeaveType.findMany();
-  if (types.length === 0) {
-    for (const t of DEFAULT_TYPES) {
-      await prisma.staffLeaveType.create({ data: t });
-    }
-    types = await prisma.staffLeaveType.findMany();
-    console.log('Created', types.length, 'leave types');
-  } else {
-    console.log('Leave types already exist:', types.length);
+
+  const memberships = await prisma.organizationMembership.findMany({
+    where: { user: { isActive: true } },
+    select: { organizationId: true, userId: true },
+  });
+
+  if (memberships.length === 0) {
+    console.warn('No organization memberships — skip staff leave seed');
+    return;
   }
 
-  const users = await prisma.user.findMany({ where: { isActive: true } });
+  const byOrg = new Map();
+  for (const m of memberships) {
+    if (!byOrg.has(m.organizationId)) byOrg.set(m.organizationId, []);
+    byOrg.get(m.organizationId).push(m.userId);
+  }
+
   let created = 0;
-  for (const u of users) {
-    for (const t of types) {
-      if (!t.active) continue;
-      const ex = await prisma.staffLeaveBalance.findUnique({
-        where: { userId_leaveTypeId_year: { userId: u.id, leaveTypeId: t.id, year } },
-      });
-      if (!ex) {
-        await prisma.staffLeaveBalance.create({
-          data: {
-            userId: u.id,
-            leaveTypeId: t.id,
-            year,
-            entitledDays: t.daysPerYear,
-            usedDays: 0,
-            carriedOver: 0,
-          },
+  for (const [organizationId, userIds] of byOrg) {
+    const types = await ensureTypesForOrg(organizationId);
+    for (const userId of userIds) {
+      for (const t of types) {
+        if (!t.active) continue;
+        const ex = await prisma.staffLeaveBalance.findUnique({
+          where: { userId_leaveTypeId_year: { userId, leaveTypeId: t.id, year } },
         });
-        created++;
+        if (!ex) {
+          await prisma.staffLeaveBalance.create({
+            data: {
+              organizationId,
+              userId,
+              leaveTypeId: t.id,
+              year,
+              entitledDays: t.daysPerYear,
+              usedDays: 0,
+              carriedOver: 0,
+            },
+          });
+          created++;
+        }
       }
     }
   }
-  console.log('Balances created:', created, 'for', users.length, 'users, year', year);
+  console.log('Balances created:', created, 'across', byOrg.size, 'org(s), year', year);
 }
 
 main()

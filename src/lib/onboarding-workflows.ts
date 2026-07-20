@@ -1,4 +1,12 @@
-import { Prisma, WorkflowType, WorkflowStatus, OnboardingTaskStatus } from '@prisma/client';
+import {
+  Prisma,
+  WorkflowType,
+  WorkflowStatus,
+  OnboardingTaskStatus,
+  OnboardingTaskType,
+  OnboardingSignatureStatus,
+  TaskRecurrence,
+} from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { createWorkflowRun, getHrUserIds, sendNotification, transitionWorkflowRun } from '@/lib/notifications';
 import {
@@ -251,21 +259,44 @@ export async function startWorkflowForEmployee(params: {
 
     if (template.steps.length > 0) {
       const startedAt = workflow.startedAt ?? new Date();
-      await tx.onboardingTask.createMany({
-        data: template.steps.map((step) => ({
-          organizationId: employee.organizationId,
-          workflowId: workflow.id,
-          title: step.title,
-          description: step.description,
-          assignedRole: step.assignedRole,
-          category: step.category,
-          order: step.order,
-          isRequired: step.isRequired,
-          startDate: startedAt,
-          dueDate: new Date(Date.now() + step.dueDaysOffset * 86400000),
-          status: OnboardingTaskStatus.PENDING,
-        })),
-      });
+      // Instantiate one task per step. Signature steps pre-create a pending
+      // signature request so HR can track it; form steps carry the form template
+      // and lazily create a submission when the participant first opens the task.
+      for (const step of template.steps) {
+        let signatureRequestId: string | undefined;
+        if (step.taskType === OnboardingTaskType.SIGNATURE) {
+          const sig = await tx.onboardingSignatureRequest.create({
+            data: {
+              organizationId: employee.organizationId,
+              documentTitle: step.signatureDocumentTitle?.trim() || step.title,
+              documentPath: step.signatureDocumentPath ?? null,
+              employeeId,
+              status: OnboardingSignatureStatus.PENDING,
+            },
+            select: { id: true },
+          });
+          signatureRequestId = sig.id;
+        }
+        await tx.onboardingTask.create({
+          data: {
+            organizationId: employee.organizationId,
+            workflowId: workflow.id,
+            title: step.title,
+            description: step.description,
+            assignedRole: step.assignedRole,
+            category: step.category,
+            order: step.order,
+            isRequired: step.isRequired,
+            startDate: startedAt,
+            // Negative dueDaysOffset supports pre-boarding tasks (before the start date).
+            dueDate: new Date(startedAt.getTime() + step.dueDaysOffset * 86400000),
+            status: OnboardingTaskStatus.PENDING,
+            taskType: step.taskType,
+            formTemplateId: step.taskType === OnboardingTaskType.FORM ? step.formTemplateId : null,
+            signatureRequestId,
+          },
+        });
+      }
     }
 
     const full = await tx.onboardingWorkflow.findUnique({
@@ -315,6 +346,8 @@ export async function maybeCompleteWorkflow(workflowId: string) {
     },
   });
   if (!workflow || workflow.status !== WorkflowStatus.IN_PROGRESS) return null;
+  // Operational buckets are ongoing containers — they never auto-complete.
+  if (workflow.type === WorkflowType.OPERATIONAL) return null;
 
   await refreshWorkflowTaskSLAs(workflowId);
   const refreshed = await prisma.onboardingWorkflow.findUnique({
@@ -355,7 +388,7 @@ export async function maybeCompleteWorkflow(workflowId: string) {
       event: 'employee_created',
       recipientUserIds: hrUserIds,
       title: 'Workflow completed',
-      body: `${refreshed.type === WorkflowType.ONBOARDING ? 'Onboarding' : 'Offboarding'} completed for ${refreshed.employee.firstName} ${refreshed.employee.lastName}.`,
+      body: `${refreshed.type === WorkflowType.ONBOARDING ? 'Onboarding' : 'Offboarding'} completed for ${refreshed.employee?.firstName ?? ''} ${refreshed.employee?.lastName ?? ''}.`,
       href: `/dashboard/onboarding/${workflowId}`,
       priority: 'info',
       channel: 'in_app',
@@ -366,4 +399,116 @@ export async function maybeCompleteWorkflow(workflowId: string) {
   }
 
   return completed;
+}
+
+/** Advance a date by one recurrence interval. */
+export function advanceByRecurrence(date: Date, recurrence: TaskRecurrence): Date {
+  const next = new Date(date);
+  switch (recurrence) {
+    case TaskRecurrence.DAILY:
+      next.setDate(next.getDate() + 1);
+      break;
+    case TaskRecurrence.WEEKLY:
+      next.setDate(next.getDate() + 7);
+      break;
+    case TaskRecurrence.MONTHLY:
+      next.setMonth(next.getMonth() + 1);
+      break;
+    default:
+      break;
+  }
+  return next;
+}
+
+/**
+ * When a recurring task is completed, create its next occurrence with dates
+ * shifted forward by one interval. Returns the new task (or null when the
+ * series has ended / the task is not recurring).
+ */
+export async function spawnRecurrenceFollowUp(taskId: string) {
+  const task = await prisma.onboardingTask.findUnique({ where: { id: taskId } });
+  if (!task || task.recurrence === TaskRecurrence.NONE) return null;
+
+  const baseDue = task.dueDate ?? new Date();
+  const nextDue = advanceByRecurrence(baseDue, task.recurrence);
+  if (task.recurrenceEndsAt && nextDue.getTime() > task.recurrenceEndsAt.getTime()) return null;
+
+  const nextStart = task.startDate ? advanceByRecurrence(task.startDate, task.recurrence) : new Date();
+  const last = await prisma.onboardingTask.findFirst({
+    where: { workflowId: task.workflowId },
+    orderBy: { order: 'desc' },
+    select: { order: true },
+  });
+
+  const created = await prisma.onboardingTask.create({
+    data: {
+      organizationId: task.organizationId,
+      workflowId: task.workflowId,
+      title: task.title,
+      description: task.description,
+      assignedRole: task.assignedRole,
+      assignedToId: task.assignedToId,
+      category: task.category,
+      order: (last?.order ?? 0) + 1,
+      isRequired: task.isRequired,
+      priority: task.priority,
+      recurrence: task.recurrence,
+      recurrenceEndsAt: task.recurrenceEndsAt,
+      employeeId: task.employeeId,
+      startDate: nextStart,
+      dueDate: nextDue,
+      status: OnboardingTaskStatus.PENDING,
+    },
+  });
+
+  if (created.assignedToId) {
+    try {
+      await sendNotification({
+        event: 'onboarding_task_assigned',
+        recipientUserIds: [created.assignedToId],
+        title: 'Recurring task ready',
+        body: `The next occurrence of "${created.title}" is now open.`,
+        href: '/dashboard/people/tasks',
+        priority: 'action_required',
+        channel: 'both',
+        metadata: {
+          taskId: created.id,
+          taskTitle: created.title,
+          dueLabel: created.dueDate ? created.dueDate.toISOString().slice(0, 10) : 'No due date',
+        },
+      });
+    } catch (error) {
+      console.error('[onboarding] Failed to notify recurring task assignee:', error);
+    }
+  }
+
+  return created;
+}
+
+/**
+ * Find (or lazily create) the single OPERATIONAL workflow bucket that holds a
+ * workspace's ad-hoc operational tasks. Runs inside the caller's tenant tx.
+ */
+export async function ensureOperationalWorkflow(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  outsourcingClientId: string,
+) {
+  const existing = await tx.onboardingWorkflow.findFirst({
+    where: { organizationId, type: WorkflowType.OPERATIONAL, outsourcingClientId },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const created = await tx.onboardingWorkflow.create({
+    data: {
+      organizationId,
+      type: WorkflowType.OPERATIONAL,
+      status: WorkflowStatus.IN_PROGRESS,
+      outsourcingClientId,
+      title: 'Operational tasks',
+    },
+    select: { id: true },
+  });
+  return created.id;
 }

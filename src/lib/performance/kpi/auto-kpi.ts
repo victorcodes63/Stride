@@ -26,13 +26,15 @@ export async function refreshAutoKpisForReview(
 
   const review = await tx.performanceReview.findFirst({
     where: { id: input.reviewId, organizationId: input.organizationId },
-    include: {
-      goals: true,
-    },
   });
   if (!review?.frozenScorecardSnapshot) {
     return { updatedGoals: 0, skipped: 0 };
   }
+
+  // Goals are keyed by cycle + employee (no direct relation on PerformanceReview).
+  const goals = await tx.performanceGoal.findMany({
+    where: { organizationId: input.organizationId, cycleId: review.cycleId, employeeId: review.employeeId },
+  });
 
   const snapshot = review.frozenScorecardSnapshot as FrozenScorecardSnapshot;
   const measureById = new Map(snapshot.measures.map((m) => [m.id, m]));
@@ -40,7 +42,7 @@ export async function refreshAutoKpisForReview(
   let updatedGoals = 0;
   let skipped = 0;
 
-  for (const goal of review.goals) {
+  for (const goal of goals) {
     if (!goal.scorecardMeasureId) {
       skipped += 1;
       continue;

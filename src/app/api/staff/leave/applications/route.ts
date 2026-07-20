@@ -1,8 +1,10 @@
+import type { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { canAccessTeamLeaveScope } from '@/lib/staff-api-auth';
 import { workingDaysBetween } from '@/lib/staff-leave-days';
 import { getTeamLeaveMemberIds } from '@/lib/staff-leave-team';
 import { syncStaffLeaveUsedDaysForUserYear } from '@/lib/staff-leave-balance';
+import { resolveStaffLeaveApprovalChain } from '@/lib/leave/approval-chain';
 import { withTenant } from '@/lib/tenant-api';
 
 export async function GET(request: NextRequest) {
@@ -15,20 +17,25 @@ export async function GET(request: NextRequest) {
       | 'cancelled'
       | null;
 
-    const where: Record<string, unknown> = {};
+    const filter: Prisma.StaffLeaveApplicationWhereInput = {};
     if (scope === 'team' && canAccessTeamLeaveScope(ctx.staff)) {
       const memberIds = await getTeamLeaveMemberIds(ctx.staff);
-      where.userId = { in: memberIds };
-      if (status) where.status = status;
+      // Visible when the viewer manages the applicant OR is the approver on the
+      // current pending step (so multi-step approvers see items awaiting them).
+      filter.OR = [
+        { userId: { in: memberIds } },
+        { approvalSteps: { some: { approverUserId: ctx.staff.id, status: 'pending' } } },
+      ];
     } else {
-      where.userId = ctx.staff.id;
-      if (status) where.status = status;
+      filter.userId = ctx.staff.id;
     }
+    if (status) filter.status = status;
+    const where = ctx.where(filter) as Prisma.StaffLeaveApplicationWhereInput;
 
     try {
       const list = await ctx.run((tx) =>
         tx.staffLeaveApplication.findMany({
-          where: ctx.where(where),
+          where,
           include: {
             leaveType: { select: { id: true, name: true, color: true } },
             user: { select: { id: true, name: true, email: true } },
@@ -65,7 +72,7 @@ export async function GET(request: NextRequest) {
       if (!message.includes('Unknown field `approvalSteps`')) throw error;
       const baseList = await ctx.run((tx) =>
         tx.staffLeaveApplication.findMany({
-          where: ctx.where(where),
+          where,
           include: {
             leaveType: { select: { id: true, name: true, color: true } },
             user: { select: { id: true, name: true, email: true } },
@@ -142,10 +149,10 @@ export async function POST(request: NextRequest) {
           leaveTypeId,
           status: 'pending',
           startDate: { gte: new Date(year, 0, 1) },
-        }),
+        }) as Prisma.StaffLeaveApplicationWhereInput,
         _sum: { totalDays: true },
       });
-      const pendingDays = pendingSum._sum.totalDays ?? 0;
+      const pendingDays = pendingSum._sum?.totalDays ?? 0;
       const available = balance.entitledDays + balance.carriedOver - balance.usedDays - pendingDays;
       if (!skipBalance && type.requiresApproval && available < totalDays) {
         return {
@@ -191,36 +198,26 @@ export async function POST(request: NextRequest) {
         include: { leaveType: true, user: { select: { name: true, email: true } } },
       });
 
-      const applicantRow = await tx.user.findUnique({
-        where: { id: ctx.staff.id },
-        select: { leaveApproverId: true },
+      // Build the full ordered approval chain (manager -> dept head -> HR/admin).
+      // Collapses to a single step in small orgs, preserving prior behaviour.
+      const chain = await resolveStaffLeaveApprovalChain(tx, {
+        organizationId: ctx.organizationId,
+        applicantId: ctx.staff.id,
+        requiresApproval: true,
       });
-      const approverOr: Array<{ id: string } | { role: 'admin' } | { staffUserType: 'business_manager' }> = [];
-      if (applicantRow?.leaveApproverId) {
-        approverOr.push({ id: applicantRow.leaveApproverId });
-      }
-      approverOr.push({ role: 'admin' }, { staffUserType: 'business_manager' });
-
-      const defaultApprover = await tx.user.findFirst({
-        where: {
-          isActive: true,
-          id: { not: ctx.staff.id },
-          OR: approverOr,
-        },
-        orderBy: [{ role: 'desc' }, { createdAt: 'asc' }],
-        select: { id: true },
-      });
-      if (defaultApprover) {
+      for (const stage of chain) {
         await tx.leaveApprovalStep.create({
           data: {
+            organizationId: ctx.organizationId,
             staffLeaveApplicationId: app.id,
-            stepOrder: 1,
-            approverUserId: defaultApprover.id,
+            stepOrder: stage.order,
+            approverUserId: stage.approverUserId,
           },
         });
       }
       await tx.leaveApprovalAction.create({
         data: {
+          organizationId: ctx.organizationId,
           staffLeaveApplicationId: app.id,
           actorUserId: ctx.staff.id,
           action: 'submitted',
@@ -232,7 +229,11 @@ export async function POST(request: NextRequest) {
     });
 
     if ('error' in result) {
-      return NextResponse.json({ error: result.error }, { status: result.error.includes('not found') ? 404 : 400 });
+      const errorMessage = result.error ?? 'Request failed';
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: errorMessage.includes('not found') ? 404 : 400 },
+      );
     }
 
     await ctx.run((tx) => syncStaffLeaveUsedDaysForUserYear(tx, ctx.staff.id, year));

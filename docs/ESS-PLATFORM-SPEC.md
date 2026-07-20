@@ -551,7 +551,7 @@ Replace monolithic `src/app/ess/(app)/layout.tsx` with:
 ### Phase D — Compliance & assets (1–2 sprints)
 
 - [ ] `/ess/hse/report`
-- [ ] `/ess/assets` + acknowledge
+- [x] `/ess/assets` + acknowledge
 - [ ] Disciplinary/grievance UX polish (mobile sheets)
 
 ### Phase E — Performance & push (2 sprints)

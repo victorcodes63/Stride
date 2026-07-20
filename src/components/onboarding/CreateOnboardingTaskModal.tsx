@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Upload, X } from 'lucide-react';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type WorkflowOption = {
   id: string;
@@ -15,15 +16,42 @@ type AssigneeOption = {
   email: string;
 };
 
+type EmployeeOption = {
+  id: string;
+  firstName: string;
+  lastName: string;
+};
+
+type TaskMode = 'operational' | 'workflow';
+
 type Props = {
   onClose: () => void;
   onCreated: () => void;
 };
 
+const PRIORITY_OPTIONS = [
+  { value: 'LOW', label: 'Low' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HIGH', label: 'High' },
+  { value: 'URGENT', label: 'Urgent' },
+];
+
+const RECURRENCE_OPTIONS = [
+  { value: 'NONE', label: 'Does not repeat' },
+  { value: 'DAILY', label: 'Daily' },
+  { value: 'WEEKLY', label: 'Weekly' },
+  { value: 'MONTHLY', label: 'Monthly' },
+];
+
 export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
+  const [mode, setMode] = useState<TaskMode>('operational');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [workflowId, setWorkflowId] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
+  const [priority, setPriority] = useState('MEDIUM');
+  const [recurrence, setRecurrence] = useState('NONE');
+  const [recurrenceEndsAt, setRecurrenceEndsAt] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [startDate, setStartDate] = useState('');
   const [assignees, setAssignees] = useState<AssigneeOption[]>([]);
@@ -31,6 +59,7 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
   const [assigneeQuery, setAssigneeQuery] = useState('');
   const [createOnePerAssignee, setCreateOnePerAssignee] = useState(false);
   const [workflows, setWorkflows] = useState<WorkflowOption[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -40,16 +69,19 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
     setLoadingMeta(true);
     setError(null);
     try {
-      const [wfRes, asRes] = await Promise.all([
+      const [wfRes, asRes, empRes] = await Promise.all([
         fetch('/api/onboarding/workflows?status=IN_PROGRESS'),
         fetch('/api/onboarding/assignees'),
+        fetch('/api/outsourcing/employees?limit=500'),
       ]);
       const wfData = await wfRes.json().catch(() => []);
       const asData = await asRes.json().catch(() => []);
+      const empData = await empRes.json().catch(() => []);
       if (!wfRes.ok) throw new Error(wfData.error || 'Failed to load workflows.');
       if (!asRes.ok) throw new Error(asData.error || 'Failed to load assignees.');
       setWorkflows(Array.isArray(wfData) ? wfData : []);
       setAssignees(Array.isArray(asData) ? asData : []);
+      setEmployees(Array.isArray(empData) ? empData : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load form data.');
     } finally {
@@ -79,12 +111,12 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
       setError('Task name is required.');
       return;
     }
-    if (!workflowId) {
-      setError('Belongs to (workflow) is required.');
+    if (mode === 'workflow' && !workflowId) {
+      setError('Belongs to (workflow) is required for workflow tasks.');
       return;
     }
-    if (selectedIds.length === 0) {
-      setError('At least one assignee is required.');
+    if (mode === 'workflow' && selectedIds.length === 0) {
+      setError('At least one assignee is required for workflow tasks.');
       return;
     }
 
@@ -95,9 +127,17 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          type: mode === 'operational' ? 'OPERATIONAL' : undefined,
           title: title.trim(),
           description: description.trim() || undefined,
-          workflowId,
+          workflowId: mode === 'workflow' ? workflowId : undefined,
+          employeeId: mode === 'operational' && employeeId ? employeeId : undefined,
+          priority,
+          recurrence: mode === 'operational' ? recurrence : undefined,
+          recurrenceEndsAt:
+            mode === 'operational' && recurrence !== 'NONE' && recurrenceEndsAt
+              ? recurrenceEndsAt
+              : undefined,
           assigneeIds: selectedIds,
           createOnePerAssignee,
           dueDate: dueDate || null,
@@ -130,6 +170,8 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
     }
   }
 
+  const isOperational = mode === 'operational';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div
@@ -144,7 +186,9 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
               Create a task
             </h2>
             <p className="mt-0.5 text-sm text-[var(--dash-text-muted)]">
-              Add an ad-hoc step to an active onboarding or offboarding workflow.
+              {isOperational
+                ? 'A standalone operational task, optionally linked to an employee.'
+                : 'An ad-hoc step inside an active onboarding or offboarding workflow.'}
             </p>
           </div>
           <button
@@ -171,6 +215,29 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
             </div>
           ) : (
             <>
+              {/* Task type toggle */}
+              <div className="grid grid-cols-2 gap-2 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-1">
+                {(
+                  [
+                    { key: 'operational', label: 'Operational task' },
+                    { key: 'workflow', label: 'Workflow task' },
+                  ] as { key: TaskMode; label: string }[]
+                ).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setMode(opt.key)}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                      mode === opt.key
+                        ? 'bg-[var(--dash-surface)] text-[var(--dash-text)] shadow-sm'
+                        : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">
                   Task name <span className="text-red-600">*</span>
@@ -194,9 +261,41 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
                 />
               </label>
 
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">Priority</span>
+                  <StrideSelect
+                    value={priority}
+                    onChange={setPriority}
+                    options={PRIORITY_OPTIONS}
+                    ariaLabel="Priority"
+                    className="w-full"
+                  />
+                </label>
+                {isOperational ? (
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">Repeats</span>
+                    <StrideSelect
+                      value={recurrence}
+                      onChange={setRecurrence}
+                      options={RECURRENCE_OPTIONS}
+                      ariaLabel="Recurrence"
+                      className="w-full"
+                    />
+                  </label>
+                ) : null}
+              </div>
+
               <div>
                 <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">
-                  Assignees <span className="text-red-600">*</span>
+                  Assignees{' '}
+                  {isOperational ? (
+                    <span className="text-xs font-normal text-[var(--dash-text-muted)]">
+                      (optional — leave empty to assign the role pool)
+                    </span>
+                  ) : (
+                    <span className="text-red-600">*</span>
+                  )}
                 </span>
                 <input
                   className="mb-2 w-full rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-2 text-sm"
@@ -234,14 +333,16 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
                     {selectedIds.length} selected
                   </p>
                 ) : null}
-                <label className="mt-2 flex items-center gap-2 text-sm text-[var(--dash-text)]">
-                  <input
-                    type="checkbox"
-                    checked={createOnePerAssignee}
-                    onChange={(e) => setCreateOnePerAssignee(e.target.checked)}
-                  />
-                  Create one task per assignee
-                </label>
+                {selectedIds.length > 0 ? (
+                  <label className="mt-2 flex items-center gap-2 text-sm text-[var(--dash-text)]">
+                    <input
+                      type="checkbox"
+                      checked={createOnePerAssignee}
+                      onChange={(e) => setCreateOnePerAssignee(e.target.checked)}
+                    />
+                    Create one task per assignee
+                  </label>
+                ) : null}
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -265,29 +366,65 @@ export function CreateOnboardingTaskModal({ onClose, onCreated }: Props) {
                 </label>
               </div>
 
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">
-                  Belongs to <span className="text-red-600">*</span>
-                </span>
-                <select
-                  className="w-full rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-2 text-sm"
-                  value={workflowId}
-                  onChange={(e) => setWorkflowId(e.target.value)}
-                  required
-                >
-                  <option value="">Select active workflow…</option>
-                  {workflows.map((wf) => (
-                    <option key={wf.id} value={wf.id}>
-                      {wf.type} · {wf.employee.firstName} {wf.employee.lastName}
-                    </option>
-                  ))}
-                </select>
-                {workflows.length === 0 ? (
-                  <p className="mt-1 text-xs text-[var(--dash-text-muted)]">
-                    No active workflows. Start onboarding or offboarding first.
-                  </p>
-                ) : null}
-              </label>
+              {isOperational && recurrence !== 'NONE' ? (
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">
+                    Repeat until <span className="text-xs font-normal text-[var(--dash-text-muted)]">(optional)</span>
+                  </span>
+                  <input
+                    type="date"
+                    className="w-full rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-2 text-sm"
+                    value={recurrenceEndsAt}
+                    onChange={(e) => setRecurrenceEndsAt(e.target.value)}
+                  />
+                </label>
+              ) : null}
+
+              {isOperational ? (
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">
+                    Related employee{' '}
+                    <span className="text-xs font-normal text-[var(--dash-text-muted)]">(optional)</span>
+                  </span>
+                  <StrideSelect
+                    value={employeeId}
+                    onChange={setEmployeeId}
+                    options={[
+                      { value: '', label: 'Not linked to an employee' },
+                      ...employees.map((emp) => ({
+                        value: emp.id,
+                        label: `${emp.firstName} ${emp.lastName}`,
+                      })),
+                    ]}
+                    ariaLabel="Related employee"
+                    className="w-full"
+                  />
+                </label>
+              ) : (
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">
+                    Belongs to <span className="text-red-600">*</span>
+                  </span>
+                  <StrideSelect
+                    value={workflowId}
+                    onChange={(value) => setWorkflowId(value)}
+                    options={[
+                      { value: '', label: 'Select active workflow…' },
+                      ...workflows.map((wf) => ({
+                        value: wf.id,
+                        label: `${wf.type} · ${wf.employee.firstName} ${wf.employee.lastName}`,
+                      })),
+                    ]}
+                    ariaLabel="Belongs to"
+                    className="w-full"
+                  />
+                  {workflows.length === 0 ? (
+                    <p className="mt-1 text-xs text-[var(--dash-text-muted)]">
+                      No active workflows. Start onboarding or offboarding first.
+                    </p>
+                  ) : null}
+                </label>
+              )}
 
               <div>
                 <span className="mb-1 block text-sm font-medium text-[var(--dash-text)]">Files</span>

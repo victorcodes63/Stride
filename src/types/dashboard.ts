@@ -284,6 +284,13 @@ export interface UserSummary {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Internal-staff department (leave grouping & reporting). */
+  department: string | null;
+  /** Cost-centre code/name for internal-staff leave liability roll-ups. */
+  costCenterCode: string | null;
+  costCenterName: string | null;
+  /** Monthly gross pay (KES) — optional basis for monetary leave-liability. */
+  monthlySalary: number | null;
   /** True if user should see Accounts in the dashboard (admin or any AccountsStaffAccess row). */
   hasAccountsAccess: boolean;
   accountsPermissions: AccountsPermissionsSummary;

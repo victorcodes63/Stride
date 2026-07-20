@@ -4,7 +4,12 @@ import { reportApiError } from '@/lib/monitoring';
 import { serializeAction } from '@/lib/hse/serialize';
 import { withTenant } from '@/lib/tenant-api';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ actions: [] });
+  }
   return withTenant(request, async (ctx) => {
     try {
       const actions = await ctx.run(async (tx) => {
@@ -40,6 +45,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
+  }
   return withTenant(request, async (ctx) => {
     let body: Record<string, unknown>;
     try {

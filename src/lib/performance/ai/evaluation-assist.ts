@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { PerformanceGoal, Prisma } from '@prisma/client';
 
 import { getDeploymentTier } from '@/lib/deployment-tier-shared';
 
@@ -31,10 +31,11 @@ type SuggestInput = {
   organizationId: string;
   review: Prisma.PerformanceReviewGetPayload<{
     include: {
-      goals: true;
       ratings: true;
     };
   }>;
+  // Goals are keyed by cycle + employee (no direct relation on PerformanceReview).
+  goals: PerformanceGoal[];
   parserConfig: {
     mode: string;
     aiEvaluationEnabled: boolean;
@@ -83,7 +84,7 @@ export async function buildAiEvaluationSuggestions(input: SuggestInput): Promise
     throw new Error('Stride LLM evaluation assist is not wired in this cell yet. Use STRIDE_AI_EVAL_DRY_RUN=1 for heuristic suggestions.');
   }
 
-  const goals: AiGoalSuggestion[] = input.review.goals.map((goal) => {
+  const goals: AiGoalSuggestion[] = input.goals.map((goal) => {
     const missingEvidence = !(goal.description ?? '').trim();
     const suggested = heuristicGoalScore(goal.description, goal.selfScore);
     return {

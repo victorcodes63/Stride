@@ -69,10 +69,49 @@ export type OutsourcingClientJson = {
   whiteLabelReports: boolean;
   reportRecipientEmails: string[];
   reportSections: OutsourcingReportSection[];
+  payslipFromName: string | null;
+  payslipReplyTo: string | null;
+  payslipSenderMode: string;
+  payslipSenderLocalPart: string | null;
+  payslipSenderDomain: string | null;
+  payslipDomainStatus: string | null;
+  payslipDomainRecords: PayslipDnsRecord[] | null;
+  payslipDomainVerifiedAt: string | null;
   employeeCount: number;
   departmentCount: number;
   activeRateCard: OutsourcingRateCardJson | null;
 };
+
+/** DNS record a client must add to verify their payslip sending domain (Resend). */
+export type PayslipDnsRecord = {
+  record: string;
+  name: string;
+  type: string;
+  value: string;
+  ttl: string;
+  status?: string;
+  priority?: number;
+};
+
+export function parsePayslipDnsRecords(value: unknown): PayslipDnsRecord[] | null {
+  if (!Array.isArray(value)) return null;
+  const records: PayslipDnsRecord[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== 'object') continue;
+    const r = raw as Record<string, unknown>;
+    if (typeof r.name !== 'string' || typeof r.value !== 'string' || typeof r.type !== 'string') continue;
+    records.push({
+      record: typeof r.record === 'string' ? r.record : r.type,
+      name: r.name,
+      type: r.type,
+      value: r.value,
+      ttl: typeof r.ttl === 'string' ? r.ttl : 'Auto',
+      status: typeof r.status === 'string' ? r.status : undefined,
+      priority: typeof r.priority === 'number' ? r.priority : undefined,
+    });
+  }
+  return records;
+}
 
 export type OutsourcingRateCardLineJson = {
   id: string;
@@ -181,6 +220,10 @@ export function parseClientBody(b: Record<string, unknown>) {
     whiteLabelReports,
     reportRecipientEmails,
     reportSections,
+    // Option B payslip sender fields. Domain state (mode, domain, status, records)
+    // is managed exclusively by the payslip-domain endpoints, not the generic form.
+    payslipFromName: str(b, 'payslipFromName') ?? undefined,
+    payslipReplyTo: str(b, 'payslipReplyTo') ?? undefined,
   };
 }
 
@@ -265,6 +308,14 @@ type ClientRow = {
   whiteLabelReports?: boolean | null;
   reportRecipientEmails?: unknown;
   reportSections?: unknown;
+  payslipFromName?: string | null;
+  payslipReplyTo?: string | null;
+  payslipSenderMode?: string | null;
+  payslipSenderLocalPart?: string | null;
+  payslipSenderDomain?: string | null;
+  payslipDomainStatus?: string | null;
+  payslipDomainRecords?: unknown;
+  payslipDomainVerifiedAt?: Date | null;
   _count: { employees: number; departments: number };
   rateCards?: Array<{
     id: string;
@@ -358,6 +409,14 @@ export function mapOutsourcingClientToJson(c: ClientRow): OutsourcingClientJson 
     whiteLabelReports: c.whiteLabelReports === true,
     reportRecipientEmails: parseReportRecipientEmails(c.reportRecipientEmails),
     reportSections: parseReportSections(c.reportSections),
+    payslipFromName: c.payslipFromName ?? null,
+    payslipReplyTo: c.payslipReplyTo ?? null,
+    payslipSenderMode: c.payslipSenderMode ?? 'platform',
+    payslipSenderLocalPart: c.payslipSenderLocalPart ?? null,
+    payslipSenderDomain: c.payslipSenderDomain ?? null,
+    payslipDomainStatus: c.payslipDomainStatus ?? null,
+    payslipDomainRecords: parsePayslipDnsRecords(c.payslipDomainRecords),
+    payslipDomainVerifiedAt: c.payslipDomainVerifiedAt?.toISOString() ?? null,
     employeeCount: c._count.employees,
     departmentCount: c._count.departments,
     activeRateCard: activeRateCard ? mapRateCard(activeRateCard) : null,

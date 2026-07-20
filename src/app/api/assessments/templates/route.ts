@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { withTenant } from '@/lib/tenant-api';
+import { parseTemplateInput, TemplateValidationError } from '@/lib/assessments/template-io';
 
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
@@ -11,10 +13,11 @@ export async function GET(request: NextRequest) {
       tx.assessmentTemplate.findMany({
         where: ctx.where({ isActive: true }),
         include: {
+          sections: { orderBy: { orderIndex: 'asc' } },
           questions: { orderBy: { orderIndex: 'asc' } },
-          _count: { select: { jobAssignments: true } },
+          _count: { select: { jobAssignments: true, applicationAttempts: true } },
         },
-        orderBy: { name: 'asc' },
+        orderBy: { updatedAt: 'desc' },
       }),
     );
 
@@ -23,16 +26,44 @@ export async function GET(request: NextRequest) {
         id: t.id,
         name: t.name,
         description: t.description,
+        kind: t.kind,
+        category: t.category,
         timeLimitMinutes: t.timeLimitMinutes,
+        passingScorePercent: t.passingScorePercent,
+        shuffleSections: t.shuffleSections,
+        shuffleQuestions: t.shuffleQuestions,
+        negativeMarking: t.negativeMarking,
+        showResultsToCandidate: t.showResultsToCandidate,
+        requireConsent: t.requireConsent,
+        requireWebcam: t.requireWebcam,
+        lockdown: t.lockdown,
+        retentionDays: t.retentionDays,
         questionCount: t.questions.length,
         jobAssignmentCount: t._count.jobAssignments,
+        attemptCount: t._count.applicationAttempts,
+        sections: t.sections.map((s) => ({
+          id: s.id,
+          title: s.title,
+          description: s.description,
+          orderIndex: s.orderIndex,
+          timeLimitMinutes: s.timeLimitMinutes,
+          shuffleQuestions: s.shuffleQuestions,
+          pickCount: s.pickCount,
+        })),
         questions: t.questions.map((q) => ({
           id: q.id,
+          sectionId: q.sectionId,
           type: q.type,
           prompt: q.prompt,
           options: q.options,
           correctAnswer: q.correctAnswer,
+          scoring: q.scoring,
+          explanation: q.explanation,
+          mediaUrl: q.mediaUrl,
+          difficulty: q.difficulty,
+          weight: q.weight,
           maxPoints: q.maxPoints,
+          required: q.required,
           orderIndex: q.orderIndex,
         })),
       })),
@@ -46,42 +77,83 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Database not configured.' }, { status: 503 });
     }
 
-    const body = (await request.json()) as Record<string, unknown>;
-    const name = typeof body.name === 'string' ? body.name.trim() : '';
-    if (!name) return NextResponse.json({ error: 'name is required.' }, { status: 400 });
+    let parsed;
+    try {
+      parsed = parseTemplateInput((await request.json()) as Record<string, unknown>);
+    } catch (e) {
+      if (e instanceof TemplateValidationError) return NextResponse.json({ error: e.message }, { status: 400 });
+      throw e;
+    }
 
-    const description = typeof body.description === 'string' ? body.description.trim() || null : null;
-    const timeLimitMinutes =
-      typeof body.timeLimitMinutes === 'number' ? Math.max(5, Math.min(body.timeLimitMinutes, 180)) : 30;
-
-    const questions = Array.isArray(body.questions) ? body.questions : [];
-    const template = await ctx.run((tx) =>
-      tx.assessmentTemplate.create({
+    const template = await ctx.run(async (tx) => {
+      const created = await tx.assessmentTemplate.create({
         data: {
           organizationId: ctx.organizationId,
-          name,
-          description,
-          timeLimitMinutes,
-          questions: {
-            create: questions.map((raw, index) => {
-              const q = raw as Record<string, unknown>;
-              const type = q.type === 'numeric' || q.type === 'file' ? q.type : 'mcq';
-              return {
-                organizationId: ctx.organizationId,
-                type,
-                prompt: typeof q.prompt === 'string' ? q.prompt.trim() : `Question ${index + 1}`,
-                options: q.options ?? null,
-                correctAnswer: q.correctAnswer ?? null,
-                maxPoints: typeof q.maxPoints === 'number' ? q.maxPoints : 1,
-                orderIndex: index,
-              };
-            }),
-          },
+          name: parsed.name,
+          description: parsed.description,
+          kind: parsed.kind,
+          category: parsed.category,
+          timeLimitMinutes: parsed.timeLimitMinutes,
+          passingScorePercent: parsed.passingScorePercent,
+          shuffleSections: parsed.shuffleSections,
+          shuffleQuestions: parsed.shuffleQuestions,
+          negativeMarking: parsed.negativeMarking,
+          showResultsToCandidate: parsed.showResultsToCandidate,
+          requireConsent: parsed.requireConsent,
+          requireWebcam: parsed.requireWebcam,
+          lockdown: parsed.lockdown,
+          retentionDays: parsed.retentionDays,
         },
-        include: { questions: { orderBy: { orderIndex: 'asc' } } },
-      }),
-    );
+      });
 
+      const sectionIdByKey = new Map<string, string>();
+      for (const section of parsed.sections) {
+        const s = await tx.assessmentSection.create({
+          data: {
+            organizationId: ctx.organizationId,
+            templateId: created.id,
+            title: section.title,
+            description: section.description,
+            orderIndex: section.orderIndex,
+            timeLimitMinutes: section.timeLimitMinutes,
+            shuffleQuestions: section.shuffleQuestions,
+            pickCount: section.pickCount,
+          },
+        });
+        sectionIdByKey.set(section.clientKey, s.id);
+      }
+
+      for (const q of parsed.questions) {
+        const sectionId = q.sectionKey ? sectionIdByKey.get(q.sectionKey) ?? null : null;
+        await tx.assessmentQuestion.create({
+          data: {
+            organizationId: ctx.organizationId,
+            templateId: created.id,
+            sectionId,
+            bankItemId: q.bankItemId,
+            type: q.type,
+            prompt: q.prompt,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            scoring: q.scoring,
+            explanation: q.explanation,
+            mediaUrl: q.mediaUrl,
+            difficulty: q.difficulty,
+            weight: q.weight,
+            maxPoints: q.maxPoints,
+            required: q.required,
+            orderIndex: q.orderIndex,
+          } satisfies Prisma.AssessmentQuestionUncheckedCreateInput,
+        });
+      }
+
+      return tx.assessmentTemplate.findUnique({
+        where: { id: created.id },
+        include: { sections: true, questions: true },
+      });
+    });
+
+    await ctx.audit({ action: 'ats.assessment_template.created', entityType: 'AssessmentTemplate', entityId: template?.id });
     return NextResponse.json(template, { status: 201 });
   });
 }

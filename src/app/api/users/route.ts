@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { parseAccountsPermissionsBody } from '@/lib/parse-accounts-permissions-body';
+import { parseStaffProfileBody } from '@/lib/parse-staff-profile-body';
 import { setUserGlobalAccountsAccess } from '@/lib/set-global-accounts-access';
 import { isStaffUserType } from '@/lib/staff-permissions';
 import type { StaffUserType, UserRole } from '@/types/dashboard';
@@ -107,6 +108,10 @@ export async function POST(request: NextRequest) {
   const staffUserType: StaffUserType = isStaffUserType(staffUserTypeRaw)
     ? staffUserTypeRaw
     : 'operations';
+  const profile = parseStaffProfileBody(b);
+  if (profile === 'invalid') {
+    return NextResponse.json({ error: 'Monthly salary must be a non-negative number.' }, { status: 400 });
+  }
 
   if (!email) {
     return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
@@ -144,11 +149,15 @@ export async function POST(request: NextRequest) {
       role,
     });
 
-    if (staffUserType !== 'operations') {
+    const profileData = profile === 'invalid' ? {} : profile;
+    if (staffUserType !== 'operations' || Object.keys(profileData).length > 0) {
       await withOrgContext(organizationId, (tx) =>
         tx.user.update({
           where: { id: created.userId },
-          data: { staffUserType },
+          data: {
+            ...(staffUserType !== 'operations' ? { staffUserType } : {}),
+            ...profileData,
+          },
         }),
       );
     }

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     const [activeJobs, settingsRow, candidates, applications] = await Promise.all([
       prisma.job.count({ where: { isActive: true } }),
-      prisma.recruitmentSettings.findUnique({ where: { id: 'default' } }),
+      prisma.recruitmentSettings.findFirst({ where: { organizationId: user.currentOrgId } }),
       prisma.candidate.count(),
       prisma.application.count(),
     ]);

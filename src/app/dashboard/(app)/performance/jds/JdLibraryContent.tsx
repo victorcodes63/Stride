@@ -3,15 +3,18 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Download, Loader2, Plus, Upload, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookOpen, Download, FileText, Loader2, Plus, Upload, X } from 'lucide-react';
 
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import {
   DashboardTable,
+  DashboardTableActionButton,
+  DashboardTableActions,
   DashboardTableCard,
   DashboardTableCell,
   DashboardTableEmpty,
+  DashboardTableFooter,
   DashboardTableHead,
   DashboardTableSearchInput,
   DashboardTableToolbar,
@@ -20,12 +23,18 @@ import {
 import { isPublicDemoMode } from '@/lib/deployment-flags';
 import { jdManualImportTemplateJson } from '@/lib/performance/jd/jd-manual-import';
 import type { JobDescriptionDto, JobDescriptionInput } from '@/lib/performance/jd/types';
+import { dashStatusChip, type DashStatusTone } from '@/lib/dashboard-status-chips';
 import { DASHBOARD_SURFACE_CLASS } from '@/lib/dashboard-layout';
 
-function statusClass(status: string) {
-  if (status === 'published') return 'bg-emerald-100 text-emerald-800';
-  if (status === 'archived') return 'bg-zinc-100 text-zinc-600';
-  return 'bg-amber-100 text-amber-900';
+const PAGE_SIZE = 10;
+
+type SortKey = 'title' | 'division' | 'grade' | 'status' | 'kras' | 'competencies';
+type SortDir = 'asc' | 'desc';
+
+function statusTone(status: string): DashStatusTone {
+  if (status === 'published') return 'success';
+  if (status === 'archived') return 'neutral';
+  return 'warning';
 }
 
 function downloadTemplate() {
@@ -48,6 +57,9 @@ export function JdLibraryContent() {
   const [error, setError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'title', dir: 'asc' });
+  const [page, setPage] = useState(1);
+  const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
   const showDemoPack = isPublicDemoMode();
 
   const load = useCallback(async () => {
@@ -71,14 +83,68 @@ export function JdLibraryContent() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
-        r.title.toLowerCase().includes(q) ||
-        (r.grade ?? '').toLowerCase().includes(q) ||
-        (r.divisionName ?? '').toLowerCase().includes(q),
-    );
-  }, [rows, search]);
+    const matched = !q
+      ? rows
+      : rows.filter(
+          (r) =>
+            r.title.toLowerCase().includes(q) ||
+            (r.grade ?? '').toLowerCase().includes(q) ||
+            (r.divisionName ?? '').toLowerCase().includes(q),
+        );
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    return [...matched].sort((a, b) => {
+      switch (sort.key) {
+        case 'division':
+          return dir * (a.divisionName ?? '').localeCompare(b.divisionName ?? '');
+        case 'grade':
+          return dir * (a.grade ?? '').localeCompare(b.grade ?? '');
+        case 'status':
+          return dir * a.status.localeCompare(b.status);
+        case 'kras':
+          return dir * (a.kraCount - b.kraCount);
+        case 'competencies':
+          return dir * (a.competencyCount - b.competencyCount);
+        default:
+          return dir * a.title.localeCompare(b.title);
+      }
+    });
+  }, [rows, search, sort]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, sort]);
+
+  function toggleSort(key: SortKey) {
+    setSort((prev) => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
+  }
+
+  async function exportPdf(id: string) {
+    setPdfBusyId(id);
+    try {
+      const res = await fetch(`/api/performance/jds/${id}/pdf`, { credentials: 'include' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'PDF export failed');
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const match = disposition.match(/filename="([^"]+)"/);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = match?.[1] ?? 'job-description.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'PDF export failed');
+    } finally {
+      setPdfBusyId(null);
+    }
+  }
 
   async function importSingleRoleText(text: string, fileName: string) {
     const parseRes = await fetch('/api/performance/jds/parse', {
@@ -176,7 +242,7 @@ export function JdLibraryContent() {
     <DashboardPage>
       <DashboardPageHeader
         title="Job description library"
-        description="Manual JD entry is the default — structured 10-section roles, KRAs, KPIs, and competencies. Import your company's JD manual (JSON) or a single role document (.txt / .md). No data leaves your tenant unless you enable AI parsing in Company Setup."
+        description="Structured role profiles — KRAs, KPIs, and competencies."
         footer={
           <div className="flex flex-wrap gap-2">
             <Link href="/dashboard/performance/jds/new" className="btn-primary inline-flex h-10 items-center gap-2 px-4">
@@ -300,31 +366,33 @@ export function JdLibraryContent() {
         </DashboardTableToolbar>
         <DashboardTableViewport>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-sm text-zinc-500">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading job descriptions…
+            <div className="space-y-2 p-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-12 w-full animate-pulse rounded-lg bg-[var(--dash-surface-muted)]" />
+              ))}
             </div>
           ) : (
             <DashboardTable>
               <thead>
                 <tr>
-                  <DashboardTableHead>Role</DashboardTableHead>
-                  <DashboardTableHead>Division</DashboardTableHead>
-                  <DashboardTableHead>Grade</DashboardTableHead>
-                  <DashboardTableHead>Status</DashboardTableHead>
-                  <DashboardTableHead>KRAs</DashboardTableHead>
-                  <DashboardTableHead>Competencies</DashboardTableHead>
+                  <JdSortHead label="Role" sortKey="title" sort={sort} onSort={toggleSort} />
+                  <JdSortHead label="Division" sortKey="division" sort={sort} onSort={toggleSort} />
+                  <JdSortHead label="Grade" sortKey="grade" sort={sort} onSort={toggleSort} />
+                  <JdSortHead label="Status" sortKey="status" sort={sort} onSort={toggleSort} />
+                  <JdSortHead label="KRAs" sortKey="kras" sort={sort} onSort={toggleSort} />
+                  <JdSortHead label="Competencies" sortKey="competencies" sort={sort} onSort={toggleSort} />
+                  <DashboardTableHead>Actions</DashboardTableHead>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
-                  <DashboardTableEmpty colSpan={6}>
+                {paged.length === 0 ? (
+                  <DashboardTableEmpty colSpan={7}>
                     No job descriptions yet. Create one manually or import your company JD manual (JSON
                     template or single-role .txt / .md).
                   </DashboardTableEmpty>
                 ) : (
-                  filtered.map((row) => (
-                    <tr key={row.id} className="border-t border-zinc-100">
+                  paged.map((row) => (
+                    <tr key={row.id} className="border-t border-[var(--dash-border-subtle)]">
                       <DashboardTableCell>
                         <Link
                           href={`/dashboard/performance/jds/${row.id}`}
@@ -332,17 +400,36 @@ export function JdLibraryContent() {
                         >
                           {row.title}
                         </Link>
-                        <div className="text-xs text-zinc-500">v{row.version}</div>
+                        <div className="text-xs text-[var(--dash-text-muted)]">v{row.version}</div>
                       </DashboardTableCell>
                       <DashboardTableCell>{row.divisionName ?? '—'}</DashboardTableCell>
                       <DashboardTableCell>{row.grade ?? '—'}</DashboardTableCell>
                       <DashboardTableCell>
-                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${statusClass(row.status)}`}>
-                          {row.status}
-                        </span>
+                        <span className={dashStatusChip(statusTone(row.status))}>{row.status}</span>
                       </DashboardTableCell>
-                      <DashboardTableCell>{row.kraCount}</DashboardTableCell>
-                      <DashboardTableCell>{row.competencyCount}</DashboardTableCell>
+                      <DashboardTableCell numeric>{row.kraCount}</DashboardTableCell>
+                      <DashboardTableCell numeric>{row.competencyCount}</DashboardTableCell>
+                      <DashboardTableCell>
+                        <DashboardTableActions>
+                          <Link
+                            href={`/dashboard/performance/jds/${row.id}`}
+                            className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+                          >
+                            {row.status === 'draft' ? 'Edit' : 'View'}
+                          </Link>
+                          <DashboardTableActionButton
+                            disabled={pdfBusyId === row.id}
+                            onClick={() => void exportPdf(row.id)}
+                          >
+                            {pdfBusyId === row.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <FileText className="h-3.5 w-3.5" />
+                            )}
+                            PDF
+                          </DashboardTableActionButton>
+                        </DashboardTableActions>
+                      </DashboardTableCell>
                     </tr>
                   ))
                 )}
@@ -350,7 +437,71 @@ export function JdLibraryContent() {
             </DashboardTable>
           )}
         </DashboardTableViewport>
+        {!loading && filtered.length > 0 ? (
+          <DashboardTableFooter>
+            <span>
+              {filtered.length} job description{filtered.length === 1 ? '' : 's'}
+            </span>
+            {pageCount > 1 ? (
+              <div className="inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  className="rounded-lg border border-neutral-200 px-2.5 py-1 text-xs disabled:opacity-40"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </button>
+                <span className="text-xs tabular-nums">
+                  Page {currentPage} of {pageCount}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage >= pageCount}
+                  className="rounded-lg border border-neutral-200 px-2.5 py-1 text-xs disabled:opacity-40"
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            ) : null}
+          </DashboardTableFooter>
+        ) : null}
       </DashboardTableCard>
     </DashboardPage>
+  );
+}
+
+function JdSortHead({
+  label,
+  sortKey,
+  sort,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  sort: { key: SortKey; dir: SortDir };
+  onSort: (key: SortKey) => void;
+}) {
+  const active = sort.key === sortKey;
+  return (
+    <DashboardTableHead>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 hover:text-[var(--dash-text-strong)] ${
+          active ? 'text-[var(--dash-text-strong)]' : ''
+        }`}
+      >
+        {label}
+        {active ? (
+          sort.dir === 'asc' ? (
+            <ArrowUp className="h-3 w-3" aria-hidden />
+          ) : (
+            <ArrowDown className="h-3 w-3" aria-hidden />
+          )
+        ) : null}
+      </button>
+    </DashboardTableHead>
   );
 }

@@ -17,6 +17,18 @@ type NotificationItem = {
   createdAt: string;
 };
 
+type NotificationPreferences = {
+  inAppEnabled: boolean;
+  emailEnabled: boolean;
+  whatsappEnabled: boolean;
+};
+
+const DEFAULT_PREFERENCES: NotificationPreferences = {
+  inAppEnabled: true,
+  emailEnabled: true,
+  whatsappEnabled: false,
+};
+
 function formatNotifTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -35,6 +47,8 @@ export function DashboardNotificationsContent() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [credentialsExpiring, setCredentialsExpiring] = useState(0);
   const [credentialsExpired, setCredentialsExpired] = useState(0);
+  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+  const [savingChannel, setSavingChannel] = useState<keyof NotificationPreferences | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,9 +64,13 @@ export function DashboardNotificationsContent() {
         const data = (await notifRes.json()) as {
           notifications?: NotificationItem[];
           unreadCount?: number;
+          preferences?: Partial<NotificationPreferences>;
         };
         setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
         setUnreadCount(typeof data.unreadCount === 'number' ? data.unreadCount : 0);
+        if (data.preferences) {
+          setPreferences({ ...DEFAULT_PREFERENCES, ...data.preferences });
+        }
       }
 
       if (metricsRes?.ok) {
@@ -80,6 +98,27 @@ export function DashboardNotificationsContent() {
     });
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
     setUnreadCount(0);
+  };
+
+  const updatePreference = async (channel: keyof NotificationPreferences, value: boolean) => {
+    const previous = preferences;
+    const next = { ...preferences, [channel]: value };
+    setPreferences(next);
+    setSavingChannel(channel);
+    try {
+      const res = await fetch('/api/dashboard/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [channel]: value }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      const data = (await res.json()) as { preferences?: Partial<NotificationPreferences> };
+      if (data.preferences) setPreferences({ ...DEFAULT_PREFERENCES, ...data.preferences });
+    } catch {
+      setPreferences(previous);
+    } finally {
+      setSavingChannel(null);
+    }
   };
 
   const openNotification = async (n: NotificationItem) => {
@@ -145,6 +184,45 @@ export function DashboardNotificationsContent() {
           </div>
         </DashboardPageSection>
       ) : null}
+
+      <DashboardPageSection
+        title="Notification preferences"
+        description="Choose how you’d like to be notified. WhatsApp messages are sent to your employee phone number on file."
+      >
+        <div className="dashboard-panel divide-y divide-[var(--dash-border-subtle)] overflow-hidden">
+          {([
+            { key: 'inAppEnabled', label: 'In-app', hint: 'Show alerts in your dashboard inbox.' },
+            { key: 'emailEnabled', label: 'Email', hint: 'Send notifications to your email address.' },
+            {
+              key: 'whatsappEnabled',
+              label: 'WhatsApp',
+              hint: 'Sent to your employee phone number on file.',
+            },
+          ] as const).map(({ key, label, hint }) => (
+            <label
+              key={key}
+              className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5"
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-[var(--dash-text-strong)]">{label}</span>
+                <span className="mt-0.5 block text-xs text-[var(--dash-text-muted)]">{hint}</span>
+              </span>
+              <span className="flex items-center gap-2">
+                {savingChannel === key ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-[var(--dash-text-muted)]" aria-hidden />
+                ) : null}
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary-600"
+                  checked={preferences[key]}
+                  disabled={savingChannel !== null}
+                  onChange={(e) => void updatePreference(key, e.target.checked)}
+                />
+              </span>
+            </label>
+          ))}
+        </div>
+      </DashboardPageSection>
 
       <DashboardPageSection
         title="Inbox"

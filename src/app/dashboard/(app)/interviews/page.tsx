@@ -14,6 +14,7 @@ import type {
 import { formatInNairobi, parseDateTimeAsNairobi, toDateTimeLocalNairobi } from '@/lib/timezone';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 import type { UserSummary } from '@/types/dashboard';
 
 const TYPE_LABELS: Record<InterviewType, string> = {
@@ -601,17 +602,16 @@ export default function DashboardInterviewsPage() {
  aria-label="Search vacancies"
  />
  </div>
- <select
+ <StrideSelect
  value={jobCardsJobFilter}
- onChange={(e) => setJobCardsJobFilter(e.target.value)}
- className="flex-1 min-w-0 px-3 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm bg-white"
- aria-label="Filter by job"
- >
- <option value="">All jobs</option>
- {jobFilterOptions.map((j) => (
- <option key={j.id} value={j.id}>{j.title}</option>
- ))}
- </select>
+ onChange={(value) => setJobCardsJobFilter(value)}
+ options={[
+ { value: '', label: 'All jobs' },
+ ...jobFilterOptions.map((j) => ({ value: j.id, label: j.title })),
+ ]}
+ ariaLabel="Filter by job"
+ className="flex-1 min-w-0"
+ />
  {(jobCardsSearch || jobCardsJobFilter) && (
  <button
  type="button"
@@ -710,18 +710,17 @@ export default function DashboardInterviewsPage() {
  <label htmlFor="interview-job-view" className="block text-sm font-medium text-primary-900 mb-1.5">
  Job
  </label>
- <select
+ <StrideSelect
  id="interview-job-view"
  value={selectedJobView}
- onChange={(e) => setSelectedJobView(e.target.value)}
- className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
- >
- <option value="">← Back to job list</option>
- <option value="all">All jobs</option>
- {jobs.map((j) => (
- <option key={j.id} value={j.id}>{j.title}</option>
- ))}
- </select>
+ onChange={(value) => setSelectedJobView(value)}
+ options={[
+ { value: '', label: '← Back to job list' },
+ { value: 'all', label: 'All jobs' },
+ ...jobs.map((j) => ({ value: j.id, label: j.title })),
+ ]}
+ className="w-full"
+ />
  </div>
  <div className="flex flex-wrap items-end gap-3 flex-1">
  <div className="flex items-center gap-2">
@@ -750,27 +749,27 @@ export default function DashboardInterviewsPage() {
  aria-label="Date to"
  />
  </div>
- <select
+ <StrideSelect
  value={filterStatus}
- onChange={(e) => setFilterStatus(e.target.value)}
- className="px-3 py-2.5 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
- aria-label="Filter by status"
- >
- <option value="">All statuses</option>
- <option value="scheduled">Scheduled</option>
- <option value="completed">Completed</option>
- <option value="cancelled">Cancelled</option>
- </select>
- <select
+ onChange={(value) => setFilterStatus(value)}
+ options={[
+ { value: '', label: 'All statuses' },
+ { value: 'scheduled', label: 'Scheduled' },
+ { value: 'completed', label: 'Completed' },
+ { value: 'cancelled', label: 'Cancelled' },
+ ]}
+ ariaLabel="Filter by status"
+ />
+ <StrideSelect
  value={filterInviteSent}
- onChange={(e) => setFilterInviteSent(e.target.value)}
- className="px-3 py-2.5 border border-neutral-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
- aria-label="Filter by invite sent"
- >
- <option value="">Invite sent: any</option>
- <option value="yes">Yes</option>
- <option value="no">No</option>
- </select>
+ onChange={(value) => setFilterInviteSent(value)}
+ options={[
+ { value: '', label: 'Invite sent: any' },
+ { value: 'yes', label: 'Yes' },
+ { value: 'no', label: 'No' },
+ ]}
+ ariaLabel="Filter by invite sent"
+ />
  {(filterDateFrom || filterDateTo || filterStatus || filterInviteSent) && (
  <button
  type="button"
@@ -1231,19 +1230,15 @@ export default function DashboardInterviewsPage() {
  </div>
  <div>
  <label className="block text-sm font-medium text-primary-900 mb-1">Duration (minutes)</label>
- <select
- value={breakForm.durationMinutes}
- onChange={(e) =>
- setBreakForm((f) => ({ ...f, durationMinutes: parseInt(e.target.value, 10) }))
+ <StrideSelect
+ value={String(breakForm.durationMinutes)}
+ onChange={(value) =>
+ setBreakForm((f) => ({ ...f, durationMinutes: parseInt(value, 10) }))
  }
- className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm bg-white"
- >
- {[15, 30, 45, 60, 90, 120].map((m) => (
- <option key={m} value={m}>
- {m} min
- </option>
- ))}
- </select>
+ options={[15, 30, 45, 60, 90, 120].map((m) => ({ value: String(m), label: `${m} min` }))}
+ ariaLabel="Duration (minutes)"
+ className="w-full"
+ />
  </div>
  <div>
  <label className="block text-sm font-medium text-primary-900 mb-1">Label</label>
@@ -1378,39 +1373,41 @@ export default function DashboardInterviewsPage() {
  </div>
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Duration</label>
- <select
- value={editForm.durationMinutes}
- onChange={(e) => setEditForm((f) => ({ ...f, durationMinutes: Number(e.target.value) as InterviewDurationMinutes }))}
- className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm"
- >
- {DURATION_OPTIONS.map((opt) => (
- <option key={opt.value} value={opt.value}>{opt.label}</option>
- ))}
- </select>
+ <StrideSelect
+ value={String(editForm.durationMinutes)}
+ onChange={(value) => setEditForm((f) => ({ ...f, durationMinutes: Number(value) as InterviewDurationMinutes }))}
+ options={DURATION_OPTIONS.map((opt) => ({ value: String(opt.value), label: opt.label }))}
+ ariaLabel="Duration"
+ className="w-full"
+ />
  </div>
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Type</label>
- <select
+ <StrideSelect
  value={editForm.type}
- onChange={(e) => setEditForm((f) => ({ ...f, type: e.target.value as InterviewType }))}
- className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm"
- >
- <option value="phone">Phone</option>
- <option value="video">Video</option>
- <option value="onsite">On-site</option>
- </select>
+ onChange={(value) => setEditForm((f) => ({ ...f, type: value as InterviewType }))}
+ options={[
+ { value: 'phone', label: 'Phone' },
+ { value: 'video', label: 'Video' },
+ { value: 'onsite', label: 'On-site' },
+ ]}
+ ariaLabel="Type"
+ className="w-full"
+ />
  </div>
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Status</label>
- <select
+ <StrideSelect
  value={editForm.status}
- onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value as InterviewStatus }))}
- className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm"
- >
- <option value="scheduled">Scheduled</option>
- <option value="completed">Completed</option>
- <option value="cancelled">Cancelled</option>
- </select>
+ onChange={(value) => setEditForm((f) => ({ ...f, status: value as InterviewStatus }))}
+ options={[
+ { value: 'scheduled', label: 'Scheduled' },
+ { value: 'completed', label: 'Completed' },
+ { value: 'cancelled', label: 'Cancelled' },
+ ]}
+ ariaLabel="Status"
+ className="w-full"
+ />
  </div>
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Location / link <span className="text-red-600">*</span></label>

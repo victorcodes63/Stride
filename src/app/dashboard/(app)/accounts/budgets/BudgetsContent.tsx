@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type BudgetRow = {
  id: string;
@@ -96,17 +97,12 @@ export default function BudgetsContent() {
  description="Allocate, track, and monitor departmental and project budgets."
  actions={
  <>
- <select
- value={year}
- onChange={(e) => setYear(Number(e.target.value))}
- className="px-3 py-2.5 rounded-lg border border-neutral-300 text-sm bg-white font-semibold"
- >
- {[2024, 2025, 2026, 2027].map((y) => (
- <option key={y} value={y}>
- FY {y}
- </option>
- ))}
- </select>
+ <StrideSelect
+ value={String(year)}
+ onChange={(value) => setYear(Number(value))}
+ ariaLabel="Fiscal year"
+ options={[2024, 2025, 2026, 2027].map((y) => ({ value: String(y), label: `FY ${y}` }))}
+ />
  <button
  type="button"
  onClick={() => setShowForm(!showForm)}
@@ -147,12 +143,14 @@ export default function BudgetsContent() {
  className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
- <select value={form.periodType} onChange={(e) => setForm({ ...form, periodType: e.target.value })}
- className="px-3 py-2 rounded-lg border border-neutral-300 text-sm bg-white">
- <option value="annual">Annual</option>
- <option value="quarterly">Quarterly</option>
- <option value="monthly">Monthly</option>
- </select>
+ <StrideSelect value={form.periodType} onChange={(value) => setForm({ ...form, periodType: value })}
+ ariaLabel="Budget period type"
+ options={[
+ { value: 'annual', label: 'Annual' },
+ { value: 'quarterly', label: 'Quarterly' },
+ { value: 'monthly', label: 'Monthly' },
+ ]}
+ />
  <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })}
  className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
  <input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })}

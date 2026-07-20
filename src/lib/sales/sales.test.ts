@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { lineItemExtendedAmount } from '@/lib/sales/access';
-import { computeCommissionFromAttainment } from '@/lib/sales/commission';
+import {
+  computeCommissionFromAttainment,
+  parseCommissionRuleConfig,
+} from '@/lib/sales/commission';
 import { rollupForecastFromDeals } from '@/lib/sales/forecast';
 import {
   computeAttainmentPercent,
@@ -54,6 +57,20 @@ describe('commission tiers', () => {
       capAmount: 10_000,
     };
     expect(computeCommissionFromAttainment(100, 1_000_000, config)).toBe(10_000);
+  });
+
+  it('parses and rejects invalid commission config', () => {
+    expect(
+      parseCommissionRuleConfig({
+        tiers: [{ minAttainmentPct: 0, ratePct: 2 }],
+        capAmount: 50_000,
+      }),
+    ).toEqual({
+      tiers: [{ minAttainmentPct: 0, ratePct: 2 }],
+      capAmount: 50_000,
+    });
+    expect(parseCommissionRuleConfig({ tiers: [] })).toBeNull();
+    expect(parseCommissionRuleConfig(null)).toBeNull();
   });
 });
 

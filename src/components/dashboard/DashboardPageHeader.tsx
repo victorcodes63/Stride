@@ -197,7 +197,7 @@ function PanelPageHeader({
             ) : null}
             {title}
           </h1>
-          {description ? <div className="page-description max-w-2xl !mt-0">{description}</div> : null}
+          {description ? <div className="page-description max-w-4xl !mt-0">{description}</div> : null}
           {meta ? (
             <div
               className="text-xs text-[var(--dash-text-muted)]"
@@ -283,7 +283,7 @@ export function DashboardPageHeader({
                 {title}
               </h1>
               {description ? (
-                <div className="mt-2 max-w-2xl text-sm leading-relaxed text-white/90">{description}</div>
+                <div className="mt-2 max-w-4xl text-sm leading-relaxed text-white/90">{description}</div>
               ) : null}
             </div>
             {meta ? (

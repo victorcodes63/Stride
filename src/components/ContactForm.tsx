@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Send, AlertCircle, CheckCircle } from 'lucide-react';
 import { ContactFormData } from '@/types';
+import { StrideSelect } from '@/components/ui/stride-select';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 
 const ContactForm = () => {
@@ -15,6 +16,7 @@ const ContactForm = () => {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     reset
   } = useForm<ContactFormData>();
@@ -142,21 +144,30 @@ const ContactForm = () => {
           <label htmlFor="subject" className="block text-sm font-medium text-primary-900 mb-2">
             Subject *
           </label>
-          <select
-            id="subject"
-            {...register('subject', { required: 'Please select a subject' })}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-500 transition-colors duration-200 ${
-              errors.subject ? 'border-red-300 bg-red-50' : 'border-neutral-300 hover:border-neutral-400'
-            }`}
-          >
-            <option value="">Select a service</option>
-            <option value="recruitment">Recruitment & Executive Search</option>
-            <option value="outsourcing">HR Outsourcing</option>
-            <option value="training">Training & Development</option>
-            <option value="advisory">HR Advisory & Policy</option>
-            <option value="payroll">Payroll Management</option>
-            <option value="general">General Inquiry</option>
-          </select>
+          <Controller
+            name="subject"
+            control={control}
+            rules={{ required: 'Please select a subject' }}
+            render={({ field }) => (
+              <StrideSelect
+                surface="public"
+                id="subject"
+                ariaLabel="Subject"
+                placeholder="Select a service"
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                options={[
+                  { value: '', label: 'Select a service' },
+                  { value: 'recruitment', label: 'Recruitment & Executive Search' },
+                  { value: 'outsourcing', label: 'HR Outsourcing' },
+                  { value: 'training', label: 'Training & Development' },
+                  { value: 'advisory', label: 'HR Advisory & Policy' },
+                  { value: 'payroll', label: 'Payroll Management' },
+                  { value: 'general', label: 'General Inquiry' },
+                ]}
+              />
+            )}
+          />
           {errors.subject && (
             <p className="mt-1 text-sm text-red-600">{errors.subject.message}</p>
           )}

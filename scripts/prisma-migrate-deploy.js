@@ -75,6 +75,10 @@ const LOGIN_RLS_HOTFIX_FILES = [
 const SCHEMA_HOTFIX_FILES = [
   '20260715160000_sales_phase2_forecast_leads/migration.sql',
   '20260715180000_onboarding_task_start_date_document_fk/migration.sql',
+  '20260718190000_staff_department_cost_centre/migration.sql',
+  '20260718200000_onboarding_forms_signatures/migration.sql',
+  '20260718210000_department_details/migration.sql',
+  '20260719000000_staff_time_attendance/migration.sql',
 ];
 
 function applySqlHotfix(migrateEnv, relativePaths, label) {

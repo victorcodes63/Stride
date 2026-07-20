@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { loadCompanySetupSettingsForOrg } from '@/lib/company-setup';
+import {
+  companySetupStorageKeyFromRequest,
+  loadCompanySetupForStorageKey,
+} from '@/lib/company-setup';
 import { getAuthProvidersSummary } from '@/lib/auth-providers';
 import { getDeploymentSummary } from '@/lib/deployment-config';
 import { reportApiError } from '@/lib/monitoring';
@@ -10,6 +13,9 @@ import {
   toPublicEntities,
 } from '@/lib/operating-entities';
 import { listLicensedModules, MODULE_DEFINITIONS, resolveEffectiveModules } from '@/lib/modules';
+import { getDemoModuleAdminFlags } from '@/lib/demo-vertical-module-packs';
+import { isMultiContextDemoEnabled, parseDemoEntitySlug } from '@/lib/demo-entity-slug';
+import { HRIS_ENTITY_COOKIE } from '@/lib/entity-constants';
 import { moduleAdminFlagsSetCookieHeader } from '@/lib/module-cookie';
 import { entitlementsSetCookieHeader } from '@/lib/entitlements-cookie';
 import { withTenant } from '@/lib/tenant-api';
@@ -39,9 +45,10 @@ export async function GET(request: NextRequest) {
     }
 
     try {
+      const storageKey = companySetupStorageKeyFromRequest(request);
       const [fullUser, setup, entitySettings, memberships, entitlements] = await Promise.all([
         ctx.run((tx) => tx.user.findUnique({ where: { id: ctx.staff.id } })),
-        loadCompanySetupSettingsForOrg(ctx.organizationId),
+        loadCompanySetupForStorageKey(storageKey, ctx.organizationId),
         loadOperatingEntitiesSettingsForOrg(ctx.organizationId),
         ctx.run((tx) => listActiveMemberships(ctx.staff.id, tx as typeof prisma)),
         resolveSessionEntitlements(ctx.organizationId),
@@ -52,7 +59,18 @@ export async function GET(request: NextRequest) {
       }
 
       const licensed = listLicensedModules();
-      const moduleAdminFlags = setup.moduleAdminFlags;
+      let moduleAdminFlags = setup.moduleAdminFlags;
+      // Multi-vertical demo: nav packs come from the entity cookie (or default company).
+      if (isMultiContextDemoEnabled()) {
+        const entitySlug =
+          request.cookies.get(HRIS_ENTITY_COOKIE)?.value ??
+          entitySettings.defaultEntityId ??
+          null;
+        if (entitySlug?.includes('__')) {
+          const { contextId } = parseDemoEntitySlug(entitySlug);
+          moduleAdminFlags = getDemoModuleAdminFlags(contextId);
+        }
+      }
 
       const subscription = subscriptionFromEntitlements(entitlements);
 

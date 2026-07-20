@@ -10,7 +10,32 @@ export async function seedConstructionVerticalDemo(
 ) {
   const existing = await db.constructionSite.count({ where: { outsourcingClientId } });
   if (existing > 0) {
-    console.log('  Construction vertical demo already seeded — skipping');
+    // Sites may have been created before projects existed — try to link now.
+    const unlinked = await db.constructionSite.findMany({
+      where: { outsourcingClientId, projectId: null },
+      select: { id: true, name: true },
+    });
+    const projects = await db.project.findMany({
+      where: { outsourcingClientId },
+      select: { id: true, name: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    let linked = 0;
+    for (const site of unlinked) {
+      const match =
+        projects.find((p) => p.name === site.name) ??
+        projects.find((p) => p.name.includes('Westlands') && site.name.includes('Westlands')) ??
+        projects[0];
+      if (!match) continue;
+      await db.constructionSite.update({
+        where: { id: site.id },
+        data: { projectId: match.id },
+      });
+      linked += 1;
+    }
+    console.log(
+      `  Construction vertical demo already seeded — skipped create${linked ? `, linked ${linked} sites→projects` : ''}`,
+    );
     return;
   }
 

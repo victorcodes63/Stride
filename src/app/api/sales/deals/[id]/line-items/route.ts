@@ -85,6 +85,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               body.termMonths != null && Number.isFinite(Number(body.termMonths))
                 ? Math.round(Number(body.termMonths))
                 : null,
+            productId:
+              typeof body.productId === 'string' ? body.productId.trim() || null : null,
             sortOrder: deal.lineItems.length,
           },
         });

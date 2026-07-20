@@ -20,6 +20,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { JobListing } from '@/types/ats';
+import { StrideSelect } from '@/components/ui/stride-select';
 import { useATS } from '@/lib/use-ats';
 import { yearsBetweenEmploymentDates } from '@/lib/employment-sort';
 import type {
@@ -807,18 +808,13 @@ export default function JobApplicationForm({ job, onSuccess, onClose }: JobAppli
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-1">Gender *</label>
-                  <select
+                  <StrideSelect
+                    surface="public"
                     value={profile.gender}
-                    onChange={(e) => setProfile((p) => ({ ...p, gender: e.target.value }))}
-                    className={inputClass('gender')}
-                    aria-label="Gender"
-                  >
-                    {GENDER_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => setProfile((p) => ({ ...p, gender: value }))}
+                    options={GENDER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                    ariaLabel="Gender"
+                  />
                   {showError('gender')}
                 </div>
                 <div>
@@ -853,27 +849,24 @@ export default function JobApplicationForm({ job, onSuccess, onClose }: JobAppli
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-1">Nationality *</label>
-                    <select
+                    <StrideSelect
+                      surface="public"
                       value={profile.nationality}
-                      onChange={(e) => setProfile((p) => ({ ...p, nationality: e.target.value }))}
-                      className={inputClass('nationality')}
-                      aria-label="Nationality"
-                    >
-                      <option value="">Select nationality</option>
-                      {NATIONALITIES.map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => setProfile((p) => ({ ...p, nationality: value }))}
+                      options={[
+                        { value: '', label: 'Select nationality' },
+                        ...NATIONALITIES.map((n) => ({ value: n, label: n })),
+                      ]}
+                      ariaLabel="Nationality"
+                    />
                     {showError('nationality')}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-1">Home county *</label>
-                    <select
+                    <StrideSelect
+                      surface="public"
                       value={isHomeCountyOther ? HOME_COUNTY_OTHER_VALUE : selectedCounty}
-                      onChange={(e) => {
-                        const value = e.target.value;
+                      onChange={(value) => {
                         if (value === HOME_COUNTY_OTHER_VALUE) {
                           setIsHomeCountyOther(true);
                           setProfile((p) => ({ ...p, homeCounty: homeCountyOther.trim() }));
@@ -883,17 +876,13 @@ export default function JobApplicationForm({ job, onSuccess, onClose }: JobAppli
                         setHomeCountyOther('');
                         setProfile((p) => ({ ...p, homeCounty: value }));
                       }}
-                      className={inputClass('homeCounty')}
-                      aria-label="Home county"
-                    >
-                      <option value="">Select home county</option>
-                      {KENYA_HOME_COUNTIES.map((county) => (
-                        <option key={county} value={county}>
-                          {county}
-                        </option>
-                      ))}
-                      <option value={HOME_COUNTY_OTHER_VALUE}>Other (specify)</option>
-                    </select>
+                      options={[
+                        { value: '', label: 'Select home county' },
+                        ...KENYA_HOME_COUNTIES.map((county) => ({ value: county, label: county })),
+                        { value: HOME_COUNTY_OTHER_VALUE, label: 'Other (specify)' },
+                      ]}
+                      ariaLabel="Home county"
+                    />
                     {isHomeCountyOther && (
                       <div className="mt-2">
                         <input
@@ -1154,19 +1143,15 @@ export default function JobApplicationForm({ job, onSuccess, onClose }: JobAppli
                       </div>
                       <div>
                         <label className="block text-xs text-neutral-600 mb-1">Employment type</label>
-                        <select
+                        <StrideSelect
+                          surface="public"
                           value={entry.employmentType}
-                          onChange={(e) =>
-                            setEmploymentEntry(idx, 'employmentType', e.target.value as EmploymentType)
+                          onChange={(value) =>
+                            setEmploymentEntry(idx, 'employmentType', value as EmploymentType)
                           }
-                          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm"
-                        >
-                          {EMPLOYMENT_TYPES.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
+                          options={EMPLOYMENT_TYPES.map((t) => ({ value: t, label: t }))}
+                          ariaLabel="Employment type"
+                        />
                       </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">

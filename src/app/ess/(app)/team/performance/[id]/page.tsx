@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssStatusPill } from '@/components/ess/EssStatusPill';
 import { ratingLabel } from '@/lib/performance/rating-label';
+import { RatingInput, ScoreBadge, SelfVsManagerBars, type ComparisonRow } from '@/components/performance';
 
 type ReviewDetail = {
   id: string;
@@ -108,10 +109,40 @@ export default function EssTeamPerformanceReviewPage() {
     review.cycle.status === 'active' &&
     ['self_submitted', 'manager_in_progress'].includes(review.status);
 
+  const weightedManager = useMemo(() => {
+    if (goals.length === 0) return null;
+    const totalWeight = goals.reduce((s, g) => s + (g.weightPercent || 0), 0);
+    if (totalWeight <= 0) {
+      return goals.reduce((s, g) => s + (goalScores[g.id] ?? 0), 0) / goals.length;
+    }
+    return (
+      goals.reduce((s, g) => s + (goalScores[g.id] ?? g.managerScore ?? 0) * (g.weightPercent || 0), 0) /
+      totalWeight
+    );
+  }, [goals, goalScores]);
+
+  const comparisonRows: ComparisonRow[] = useMemo(() => {
+    if (!review) return [];
+    const goalRows: ComparisonRow[] = goals.map((g) => ({
+      label: g.title,
+      self: g.selfScore,
+      manager: canEdit ? (goalScores[g.id] ?? g.managerScore) : g.managerScore,
+      weightPercent: g.weightPercent,
+    }));
+    const dimRows: ComparisonRow[] = review.ratings.map((r) => ({
+      label: r.dimension,
+      self: r.selfScore,
+      manager: canEdit ? (ratings[r.dimension] ?? r.managerScore) : r.managerScore,
+    }));
+    return [...goalRows, ...dimRows];
+  }, [review, goals, goalScores, ratings, canEdit]);
+
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+      <div className="space-y-4">
+        <div className="h-16 animate-pulse rounded-2xl bg-[var(--dash-surface-muted)]" />
+        <div className="h-40 animate-pulse rounded-2xl bg-[var(--dash-surface-muted)]" />
+        <div className="h-64 animate-pulse rounded-2xl bg-[var(--dash-surface-muted)]" />
       </div>
     );
   }
@@ -123,7 +154,7 @@ export default function EssTeamPerformanceReviewPage() {
           <ArrowLeft className="h-4 w-4" />
           Team performance
         </Link>
-        <p className="text-sm text-zinc-600">{error ?? 'Review not found.'}</p>
+        <p className="text-sm text-[var(--dash-text-body)]">{error ?? 'Review not found.'}</p>
       </div>
     );
   }
@@ -132,11 +163,7 @@ export default function EssTeamPerformanceReviewPage() {
 
   return (
     <div className="space-y-4 pb-8">
-      <EssPageHeader
-        title={employeeName}
-        subtitle={review.cycle.name}
-        backHref="/ess/team/performance"
-      />
+      <EssPageHeader title={employeeName} subtitle={review.cycle.name} backHref="/ess/team/performance" />
       <div className="flex justify-end">
         <EssStatusPill status={review.status} />
       </div>
@@ -144,45 +171,57 @@ export default function EssTeamPerformanceReviewPage() {
       {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p> : null}
       {message ? <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{message}</p> : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-900">Self-assessment</h2>
-        {review.overallSelfRating ? (
-          <p className="mt-2 text-sm">
-            Overall: {review.overallSelfRating}/5 · {ratingLabel(review.overallSelfRating)}
-          </p>
-        ) : (
-          <p className="mt-2 text-sm text-zinc-500">Not submitted yet.</p>
-        )}
+      <section className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-[var(--dash-text-strong)]">Self-assessment</h2>
+          {review.overallSelfRating ? <ScoreBadge score={review.overallSelfRating} /> : null}
+        </div>
         {review.selfSummary ? (
-          <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{review.selfSummary}</p>
-        ) : null}
+          <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--dash-text-body)]">{review.selfSummary}</p>
+        ) : (
+          <p className="mt-2 text-sm text-[var(--dash-text-muted)]">Not submitted yet.</p>
+        )}
       </section>
 
+      {comparisonRows.length > 0 ? (
+        <section className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4 shadow-sm">
+          <h2 className="mb-3 text-sm font-semibold text-[var(--dash-text-strong)]">Self vs manager</h2>
+          <SelfVsManagerBars rows={comparisonRows} />
+        </section>
+      ) : null}
+
       {goals.length > 0 ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-zinc-900">Goals</h2>
+        <section className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-[var(--dash-text-strong)]">Goals</h2>
+            {weightedManager != null ? (
+              <span className="text-xs text-[var(--dash-text-muted)]">
+                Weighted: <strong className="text-[var(--dash-text-strong)]">{weightedManager.toFixed(1)}/5</strong>
+              </span>
+            ) : null}
+          </div>
           {goals.map((goal) => (
-            <div key={goal.id} className="rounded-xl bg-zinc-50 px-3 py-2 text-sm">
-              <p className="font-medium">{goal.title}</p>
-              <p className="text-xs text-zinc-500">Weight {goal.weightPercent}%</p>
+            <div
+              key={goal.id}
+              className="rounded-xl bg-[var(--dash-surface-muted)] px-3 py-2.5 text-sm"
+            >
+              <p className="font-medium text-[var(--dash-text-strong)]">{goal.title}</p>
+              <p className="text-xs text-[var(--dash-text-muted)]">
+                Weight {goal.weightPercent}% · Self {goal.selfScore ?? '—'}/5
+              </p>
               {canEdit ? (
-                <label className="mt-2 flex items-center justify-between gap-2 text-xs">
-                  <span>Your score</span>
-                  <input
-                    type="range"
-                    min={1}
-                    max={5}
-                    step={1}
+                <div className="mt-2">
+                  <RatingInput
                     value={goalScores[goal.id] ?? 3}
-                    onChange={(e) =>
-                      setGoalScores((prev) => ({ ...prev, [goal.id]: Number(e.target.value) }))
-                    }
+                    onChange={(v) => setGoalScores((prev) => ({ ...prev, [goal.id]: v }))}
+                    ariaLabel={`Your score for ${goal.title}`}
+                    size="sm"
+                    showLabel={false}
                   />
-                  <span>{goalScores[goal.id] ?? 3}/5</span>
-                </label>
+                </div>
               ) : (
-                <p className="mt-1 text-xs text-zinc-600">
-                  Self {goal.selfScore ?? '—'}/5 · Manager {goal.managerScore ?? '—'}/5
+                <p className="mt-1 text-xs text-[var(--dash-text-muted)]">
+                  Manager {goal.managerScore ?? '—'}/5
                 </p>
               )}
             </div>
@@ -190,10 +229,10 @@ export default function EssTeamPerformanceReviewPage() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-900">Manager review</h2>
+      <section className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold text-[var(--dash-text-strong)]">Manager review</h2>
         {!canEdit ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-[var(--dash-text-muted)]">
             {review.status === 'completed'
               ? 'This review is complete.'
               : 'Available after the employee submits their self-assessment.'}
@@ -201,47 +240,35 @@ export default function EssTeamPerformanceReviewPage() {
         ) : null}
 
         {review.ratings.map((rating) => (
-          <label key={rating.id} className="block text-sm">
-            <span className="text-zinc-700">{rating.dimension}</span>
-            <div className="mt-1 flex items-center gap-2">
-              <input
-                type="range"
-                min={1}
-                max={5}
-                step={1}
-                disabled={!canEdit}
+          <div key={rating.id} className="text-sm">
+            <span className="text-[var(--dash-text-body)]">{rating.dimension}</span>
+            <div className="mt-1.5">
+              <RatingInput
                 value={ratings[rating.dimension] ?? 3}
-                onChange={(e) =>
-                  setRatings((prev) => ({ ...prev, [rating.dimension]: Number(e.target.value) }))
-                }
-                className="flex-1"
+                onChange={(v) => setRatings((prev) => ({ ...prev, [rating.dimension]: v }))}
+                disabled={!canEdit}
+                ariaLabel={rating.dimension}
               />
-              <span className="text-xs text-zinc-600 w-20">{ratings[rating.dimension] ?? 3}/5</span>
             </div>
-          </label>
+          </div>
         ))}
 
-        <label className="block text-sm">
-          <span className="text-zinc-700">Overall rating</span>
-          <div className="mt-1 flex items-center gap-2">
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              disabled={!canEdit}
+        <div className="text-sm">
+          <span className="text-[var(--dash-text-body)]">Overall rating</span>
+          <div className="mt-1.5">
+            <RatingInput
               value={overallRating}
-              onChange={(e) => setOverallRating(Number(e.target.value))}
-              className="flex-1"
+              onChange={setOverallRating}
+              disabled={!canEdit}
+              ariaLabel="Overall rating"
             />
-            <span className="text-xs text-zinc-600 w-20">{overallRating}/5</span>
           </div>
-        </label>
+        </div>
 
         <label className="block text-sm">
-          <span className="text-zinc-700">Summary</span>
+          <span className="text-[var(--dash-text-body)]">Summary</span>
           <textarea
-            className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm disabled:bg-zinc-50"
+            className="mt-1 w-full rounded-xl border border-[var(--dash-input-border)] bg-[var(--dash-input-bg)] px-3 py-2 text-sm text-[var(--dash-text-body)] disabled:opacity-60"
             rows={4}
             disabled={!canEdit}
             value={managerSummary}
@@ -255,7 +282,7 @@ export default function EssTeamPerformanceReviewPage() {
             <button
               type="button"
               disabled={saving}
-              className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-50"
+              className="rounded-xl border border-[var(--dash-border)] px-4 py-2 text-sm font-medium text-[var(--dash-text-body)] disabled:opacity-50"
               onClick={() => void save(false)}
             >
               Save draft

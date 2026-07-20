@@ -2,10 +2,13 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { PlatformRouteLoading } from '@/components/platform/PlatformRouteLoading';
 import { GRIEVANCE_STATUSES, getJurisdictionPolicy } from '@/lib/east-africa-hr-policy';
+import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { toDisplayLabel } from '@/lib/format-label';
 
 type GrievanceDetail = {
  id: string;
@@ -22,9 +25,17 @@ type GrievanceDetail = {
  against: { firstName: string; lastName: string } | null;
 };
 
-export default function AdminGrievanceDetailPage() {
+export type AdminGrievanceDetailPageProps = {
+ /** Base path for back-links. Defaults to core HR; BPO passes its own hub. */
+ basePath?: string;
+};
+
+export default function AdminGrievanceDetailPage({ basePath = '/dashboard/disciplinary' }: AdminGrievanceDetailPageProps = {}) {
  const params = useParams<{ id: string }>();
  const router = useRouter();
+ const searchParams = useSearchParams();
+ const clientId = searchParams.get('clientId');
+ const backHref = withOutsourcingClientQuery(basePath, clientId);
  const [data, setData] = useState<GrievanceDetail | null>(null);
  const [status, setStatus] = useState('');
  const [investigationNotes, setInvestigationNotes] = useState('');
@@ -91,7 +102,7 @@ export default function AdminGrievanceDetailPage() {
  return (
  <div className="space-y-2 text-sm">
  <p className="text-red-600">{error}</p>
- <Link href="/dashboard/disciplinary" className="text-primary-700 underline">
+ <Link href={backHref} className="text-primary-700 underline">
  Back
  </Link>
  </div>
@@ -106,7 +117,7 @@ export default function AdminGrievanceDetailPage() {
  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
  <div className="space-y-4 lg:col-span-2">
  <div className="flex flex-wrap items-center gap-2 text-sm">
- <Link href="/dashboard/disciplinary" className="text-primary-700 hover:underline">
+ <Link href={backHref} className="text-primary-700 hover:underline">
  ← Disciplinary & grievances
  </Link>
  </div>
@@ -132,17 +143,13 @@ export default function AdminGrievanceDetailPage() {
  <p className="text-sm font-semibold text-primary-900">Investigation & outcome</p>
  <div className="mt-2 space-y-2">
  <label className="block text-xs font-medium text-neutral-600">Status</label>
- <select
- className="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+ <StrideSelect
  value={status}
- onChange={(e) => setStatus(e.target.value)}
- >
- {GRIEVANCE_STATUSES.map((s) => (
- <option key={s} value={s}>
- {s.replaceAll('_', ' ')}
- </option>
- ))}
- </select>
+ onChange={(value) => setStatus(value)}
+ options={GRIEVANCE_STATUSES.map((s) => ({ value: s, label: toDisplayLabel(s) }))}
+ ariaLabel="Status"
+ className="w-full"
+ />
  <label className="block text-xs font-medium text-neutral-600">Investigation notes (internal)</label>
  <textarea
  className="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
@@ -221,7 +228,7 @@ export default function AdminGrievanceDetailPage() {
  </div>
  <button
  type="button"
- onClick={() => router.push('/dashboard/disciplinary')}
+ onClick={() => router.push(backHref)}
  className="w-full rounded border border-neutral-300 py-2 text-sm text-neutral-700"
  >
  Close

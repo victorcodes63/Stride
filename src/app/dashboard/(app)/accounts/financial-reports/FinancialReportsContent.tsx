@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type FinancialReport = {
  year: number;
@@ -81,17 +82,12 @@ export default function FinancialReportsContent() {
  title="Financial Reports"
  description="Revenue, expenses, P&L, and budget overview."
  actions={
- <select
- value={year}
- onChange={(e) => setYear(Number(e.target.value))}
- className="px-3 py-2.5 rounded-lg border border-neutral-300 text-sm bg-white font-semibold"
- >
- {[2024, 2025, 2026, 2027].map((y) => (
- <option key={y} value={y}>
- FY {y}
- </option>
- ))}
- </select>
+ <StrideSelect
+ value={String(year)}
+ onChange={(value) => setYear(Number(value))}
+ ariaLabel="Fiscal year"
+ options={[2024, 2025, 2026, 2027].map((y) => ({ value: String(y), label: `FY ${y}` }))}
+ />
  }
  />
 

@@ -75,8 +75,10 @@ function prismaJobToListing(job: PrismaJobForListing): JobListing {
 }
 
 async function resolvePublicCareersOrganizationId(): Promise<string | null> {
-  const row = await prisma.recruitmentSettings.findUnique({
-    where: { id: 'default' },
+  // Public careers currently surfaces the earliest recruitment tenant. Per-tenant public
+  // careers (routing a visitor to a specific org by domain/slug) is a planned follow-up.
+  const row = await prisma.recruitmentSettings.findFirst({
+    orderBy: { createdAt: 'asc' },
     select: { organizationId: true },
   });
   return row?.organizationId ?? null;
@@ -94,7 +96,7 @@ async function listJobs(
   const category = searchParams.get('category');
   const outsourcingClientId = searchParams.get('outsourcingClientId')?.trim() || undefined;
   const now = new Date();
-  const recruitmentSettings = activeOnly ? await getOrCreateRecruitmentSettings(db) : null;
+  const recruitmentSettings = activeOnly ? await getOrCreateRecruitmentSettings(db, organizationId) : null;
   let employerCompany: string | undefined;
   if (isDemoMode()) {
     const entityId = await resolveEntityIdOrDefault(request);
@@ -216,7 +218,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const { company: resolvedName, clientId: linked } = await ctx.run((tx) =>
-      resolveJobCompanyAndClientId(tx, company || undefined),
+      resolveJobCompanyAndClientId(tx, company || undefined, ctx.organizationId),
     );
     company = resolvedName;
     resolvedClientId = linked;

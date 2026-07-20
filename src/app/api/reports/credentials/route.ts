@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toCSV } from '@/lib/report-export';
 import {
   assertReportsStaffRole,
-  downloadHeaders,
-  jsonOrPdf,
   parseFormat,
+  respondWithReport,
   ymd,
 } from '@/app/api/reports/_shared';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
 
 type DetailStatus = 'valid' | 'expiring' | 'expired';
 
@@ -93,30 +93,23 @@ export async function GET(request: NextRequest) {
       details,
     };
 
-    if (format === 'csv') {
-      const csv = toCSV(
-        ['Employee', 'Department', 'Credential', 'Issuing Body', 'Expiry Date', 'Status', 'Days Until Expiry'],
-        report.details.map((row) => [
-          row.employeeName,
-          row.department,
-          row.credentialType,
-          row.issuingBody,
-          row.expiryDate,
-          row.status,
-          row.daysUntilExpiry,
-        ]),
-      );
-      return new NextResponse(csv, {
-        headers: downloadHeaders('text/csv', `credentials-${ymd(now)}.csv`),
-      });
-    }
-
-    return jsonOrPdf(
+    return respondWithReport({
       format,
-      report,
-      'Credential Status Report',
-      `credentials-${ymd(now)}.pdf`,
-      [
+      json: report,
+      title: 'Credential Status Report',
+      sheetName: 'Credentials',
+      baseFilename: `credentials-${ymd(now)}`,
+      headers: ['Employee', 'Department', 'Credential', 'Issuing Body', 'Expiry Date', 'Status', 'Days Until Expiry'],
+      rows: report.details.map((row) => [
+        row.employeeName,
+        row.department,
+        row.credentialType,
+        row.issuingBody,
+        row.expiryDate,
+        row.status,
+        row.daysUntilExpiry,
+      ]),
+      summaryLines: [
         `Generated: ${ymd(now)}`,
         `Total credentials: ${report.totalCredentials}`,
         `Valid: ${report.valid}`,
@@ -124,6 +117,6 @@ export async function GET(request: NextRequest) {
         `Expiring in 90 days: ${report.expiringIn90Days}`,
         `Expired: ${report.expired}`,
       ],
-    );
+    });
   });
 }

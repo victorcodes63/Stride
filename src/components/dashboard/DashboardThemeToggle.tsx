@@ -14,10 +14,8 @@ type DashboardThemeToggleProps = {
   className?: string;
 };
 
-function nextAppearance(current: string | undefined): DashboardAppearance {
-  if (current === 'light') return 'dark';
-  if (current === 'dark') return 'system';
-  return 'light';
+function nextAppearance(resolved: string | undefined): DashboardAppearance {
+  return resolved === 'dark' ? 'light' : 'dark';
 }
 
 export function DashboardThemeToggle({ variant = 'icon', className = '' }: DashboardThemeToggleProps) {
@@ -84,7 +82,7 @@ export function DashboardThemeToggle({ variant = 'icon', className = '' }: Dashb
     <button
       type="button"
       className={`${iconBtnClass} ${className}`}
-      onClick={() => setTheme(nextAppearance(theme))}
+      onClick={() => setTheme(nextAppearance(resolved))}
       title={label}
       aria-label={label}
     >

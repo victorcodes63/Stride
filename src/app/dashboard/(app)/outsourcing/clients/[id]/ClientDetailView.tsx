@@ -21,12 +21,14 @@ import {
   X,
 } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 import {
   outsourcingClientStatusLabel,
   type OutsourcingClientJson,
   type OutsourcingRateCardJson,
 } from '@/lib/outsourcing-client';
 import { withOutsourcingClientQuery } from '@/lib/outsourcing-client-context';
+import { PayslipDomainCard } from '@/components/outsourcing/PayslipDomainCard';
 
 interface Department {
   id: string;
@@ -54,6 +56,10 @@ export default function ClientDetailView({ clientId }: ClientDetailViewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rateAmount, setRateAmount] = useState('');
+  const [ratePricingModel, setRatePricingModel] = useState<'per_head' | 'flat' | 'percentage'>('per_head');
+  const [ratePercentage, setRatePercentage] = useState('');
+  const [rateEffectiveFrom, setRateEffectiveFrom] = useState(new Date().toISOString().slice(0, 10));
+  const [rateEffectiveTo, setRateEffectiveTo] = useState('');
   const [rateSaving, setRateSaving] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
   const [billMonth, setBillMonth] = useState(String(new Date().getMonth() + 1));
@@ -177,28 +183,53 @@ export default function ClientDetailView({ clientId }: ClientDetailViewProps) {
 
   const addRateCard = async () => {
     const amount = Number(rateAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setRateError('Enter a valid per-head amount.');
+    if (!Number.isFinite(amount) || amount < 0) {
+      setRateError('Enter a valid amount.');
+      return;
+    }
+    if (ratePricingModel === 'percentage') {
+      const pct = Number(ratePercentage);
+      if (!Number.isFinite(pct) || pct <= 0) {
+        setRateError('Enter a valid percentage of payroll.');
+        return;
+      }
+    } else if (amount <= 0) {
+      setRateError('Enter a valid amount greater than zero.');
+      return;
+    }
+    if (!rateEffectiveFrom) {
+      setRateError('Effective from date is required.');
       return;
     }
     setRateError(null);
     setRateSaving(true);
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const percentageBps =
+        ratePricingModel === 'percentage'
+          ? Math.round(Number(ratePercentage) * 100)
+          : undefined;
+      const label =
+        ratePricingModel === 'per_head'
+          ? 'Per employee / month'
+          : ratePricingModel === 'flat'
+            ? 'Flat monthly fee'
+            : 'Percentage of payroll';
       const res = await fetch(`/api/outsourcing/clients/${clientId}/rate-cards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'Standard rate card',
-          effectiveFrom: today,
+          effectiveFrom: rateEffectiveFrom,
+          effectiveTo: rateEffectiveTo || null,
           currency: client?.currency ?? 'KES',
           isActive: true,
           lines: [
             {
-              serviceKey: 'per_head',
-              label: 'Per employee / month',
-              pricingModel: 'per_head',
-              unitAmount: amount,
+              serviceKey: ratePricingModel === 'flat' ? 'fixed_monthly' : 'per_head',
+              label,
+              pricingModel: ratePricingModel,
+              unitAmount: ratePricingModel === 'percentage' ? Number(ratePercentage) : amount,
+              percentageBps,
             },
           ],
         }),
@@ -206,6 +237,7 @@ export default function ClientDetailView({ clientId }: ClientDetailViewProps) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save rate card');
       setRateAmount('');
+      setRatePercentage('');
       if (data.client) setClient(data.client as OutsourcingClientJson);
       await fetchRateCards(clientId);
     } catch (e) {
@@ -431,6 +463,12 @@ export default function ClientDetailView({ clientId }: ClientDetailViewProps) {
           </div>
         </div>
 
+        <PayslipDomainCard
+          clientId={clientId}
+          client={client}
+          onUpdated={(updated) => setClient(updated)}
+        />
+
         <div className="dashboard-surface shadow-sm p-4 sm:p-6">
           <h2 className="text-base font-semibold text-primary-900 mb-4 flex items-center gap-2">
             <Receipt className="w-5 h-5 text-primary-600" />
@@ -456,28 +494,101 @@ export default function ClientDetailView({ clientId }: ClientDetailViewProps) {
               </ul>
             </div>
           ) : (
-            <p className="text-sm text-neutral-600 mb-4">No active rate card yet. Add a per-head monthly fee to enable OUT-07 billing later.</p>
+            <p className="text-sm text-neutral-600 mb-4">
+              No active rate card yet. Add a per-head, flat, or percentage-of-payroll fee to enable billing.
+            </p>
           )}
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-            <label className="flex-1">
-              <span className="mb-1.5 block text-sm font-medium text-neutral-800">Per employee / month ({currency})</span>
-              <input
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm"
-                value={rateAmount}
-                onChange={(e) => setRateAmount(e.target.value)}
-                placeholder="3500"
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <label>
+              <span className="mb-1.5 block text-sm font-medium text-neutral-800">Pricing model</span>
+              <StrideSelect
+                value={ratePricingModel}
+                onChange={(value) =>
+                  setRatePricingModel(value as 'per_head' | 'flat' | 'percentage')
+                }
+                options={[
+                  { value: 'per_head', label: 'Per employee / month' },
+                  { value: 'flat', label: 'Flat monthly fee' },
+                  { value: 'percentage', label: 'Percentage of payroll' },
+                ]}
+                ariaLabel="Pricing model"
+                className="w-full"
               />
             </label>
-            <button
-              type="button"
-              onClick={() => void addRateCard()}
-              disabled={rateSaving}
-              className="rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-800 disabled:opacity-60"
-            >
-              {rateSaving ? 'Saving…' : activeRateCard ? 'Replace active rate card' : 'Add rate card'}
-            </button>
+            {ratePricingModel === 'percentage' ? (
+              <label>
+                <span className="mb-1.5 block text-sm font-medium text-neutral-800">Percentage (%)</span>
+                <input
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm"
+                  value={ratePercentage}
+                  onChange={(e) => setRatePercentage(e.target.value)}
+                  placeholder="8.5"
+                />
+              </label>
+            ) : (
+              <label>
+                <span className="mb-1.5 block text-sm font-medium text-neutral-800">
+                  Amount ({currency})
+                </span>
+                <input
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm"
+                  value={rateAmount}
+                  onChange={(e) => setRateAmount(e.target.value)}
+                  placeholder={ratePricingModel === 'flat' ? '50000' : '3500'}
+                />
+              </label>
+            )}
+            <label>
+              <span className="mb-1.5 block text-sm font-medium text-neutral-800">Effective from</span>
+              <input
+                type="date"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm"
+                value={rateEffectiveFrom}
+                onChange={(e) => setRateEffectiveFrom(e.target.value)}
+              />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-sm font-medium text-neutral-800">Effective to (optional)</span>
+              <input
+                type="date"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm"
+                value={rateEffectiveTo}
+                onChange={(e) => setRateEffectiveTo(e.target.value)}
+              />
+            </label>
+            <div className="flex items-end sm:col-span-2 lg:col-span-1">
+              <button
+                type="button"
+                onClick={() => void addRateCard()}
+                disabled={rateSaving}
+                className="w-full rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-800 disabled:opacity-60"
+              >
+                {rateSaving ? 'Saving…' : activeRateCard ? 'Replace active rate card' : 'Add rate card'}
+              </button>
+            </div>
           </div>
           {rateError ? <p className="mt-2 text-sm text-red-700">{rateError}</p> : null}
+          {rateCards.length > 1 ? (
+            <div className="mt-4 border-t border-neutral-200 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">
+                Rate card history
+              </p>
+              <ul className="space-y-2 text-sm text-neutral-700">
+                {rateCards.map((card) => (
+                  <li key={card.id} className="flex items-center justify-between gap-3">
+                    <span>
+                      {card.name || 'Rate card'} · {card.effectiveFrom}
+                      {card.effectiveTo ? ` → ${card.effectiveTo}` : ''}
+                      {card.isActive ? ' (active)' : ''}
+                    </span>
+                    <span className="tabular-nums text-neutral-500">
+                      {card.lines.length} line{card.lines.length === 1 ? '' : 's'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <div className="dashboard-surface shadow-sm p-4 sm:p-6">
@@ -578,7 +689,7 @@ export default function ClientDetailView({ clientId }: ClientDetailViewProps) {
               </p>
             </div>
             <Link
-              href={`/dashboard/recruitment/jobs?outsourcingClientId=${encodeURIComponent(clientId)}`}
+              href={`/dashboard/outsourcing/jobs/new?clientId=${encodeURIComponent(clientId)}`}
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-primary-200 bg-primary-50 text-primary-900 rounded-xl font-semibold text-sm hover:bg-primary-100 shrink-0"
             >
               Post RPO job

@@ -152,7 +152,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: false,
     envVar: 'MODULE_ACCOUNTS',
     description: 'Expenses, approvals, reimbursements, invoicing, and core GL hooks.',
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     key: 'reports',
@@ -178,7 +178,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_DOCUMENTS',
     description: 'Company policies, SOPs, handbooks, and shared documents.',
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     key: 'communications',
@@ -247,7 +247,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_PROCUREMENT',
     description: 'Purchase requests, LPOs, vendor spend, and procurement workflows.',
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     key: 'legal',
@@ -260,7 +260,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_LEGAL',
     description: 'Contracts, credentials, obligations, and compliance tracking.',
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     key: 'projects',
@@ -273,7 +273,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_PROJECTS',
     description: 'Project register, kanban board, tasks, deliverables, and budget vs actual.',
-    readiness: 'planned',
+    readiness: 'live',
   },
   {
     key: 'operations',
@@ -286,7 +286,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_OPERATIONS',
     description: 'Assets, HSE, announcements, and operational reporting hub.',
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     key: 'outsourcing',
@@ -300,7 +300,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     envVar: 'MODULE_OUTSOURCING',
     description:
       'End-client register, outsourced workforce, and per-client payroll, attendance, and leave.',
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     key: 'sales',
@@ -314,7 +314,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_SALES',
     description: 'Sales pipeline KPIs and scorecard auto-measures for revenue roles.',
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     key: 'assessments',
@@ -356,7 +356,7 @@ export const MODULE_REGISTRY: readonly ModuleRegistryEntry[] = [
     canDisable: true,
     envVar: 'MODULE_ASSETS',
     description: 'Company asset registry, assignments, and lifecycle tracking.',
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     key: 'hse',

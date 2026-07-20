@@ -95,6 +95,13 @@ export function sanitizeStrideHexColor(value: unknown, fallback: string): string
   return HEX.test(withHash) ? withHash.toUpperCase() : fallback;
 }
 
+/** Comma-separated RGB channel triple (e.g. "255, 84, 54") for `rgba(var(--x), a)` tints. */
+export function strideHexToRgbTriple(hex: string, fallback: string = STRIDE_BRAND_PRIMARY): string {
+  const rgb = parseHex(sanitizeStrideHexColor(hex, fallback)) ?? parseHex(fallback);
+  if (!rgb) return '255, 84, 54';
+  return rgb.join(', ');
+}
+
 /** Tailwind primary/secondary scales — tenant company setup may override at runtime. */
 export function buildStrideBrandScaleCssVars(
   primaryHex: string = STRIDE_BRAND_PRIMARY,

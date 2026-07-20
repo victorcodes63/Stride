@@ -2,7 +2,7 @@
 
 import { Building2 } from 'lucide-react';
 import type { OutsourcingClientOption } from '@/lib/outsourcing-client-context';
-import { dashboardFilterSelectClass } from '@/components/dashboard/DashboardFilterBar';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type OutsourcingClientSwitcherProps = {
   clients: OutsourcingClientOption[];
@@ -33,20 +33,16 @@ export function OutsourcingClientSwitcher({
         <Building2 className="h-3.5 w-3.5" aria-hidden />
         End-client
       </span>
-      <select
+      <StrideSelect
         value={allowAll && value === '' ? 'all' : value}
-        onChange={(e) => onChange(e.target.value === 'all' ? 'all' : e.target.value)}
+        onChange={(next) => onChange(next === 'all' ? 'all' : next)}
         disabled={disabled || clients.length === 0}
-        className={dashboardFilterSelectClass}
-        aria-label={ariaLabel}
-      >
-        {allowAll ? <option value="all">{allLabel}</option> : null}
-        {clients.map((client) => (
-          <option key={client.id} value={client.id}>
-            {client.name}
-          </option>
-        ))}
-      </select>
+        ariaLabel={ariaLabel}
+        options={[
+          ...(allowAll ? [{ value: 'all', label: allLabel }] : []),
+          ...clients.map((client) => ({ value: client.id, label: client.name })),
+        ]}
+      />
     </label>
   );
 }

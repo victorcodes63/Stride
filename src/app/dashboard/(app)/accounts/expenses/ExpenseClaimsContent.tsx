@@ -7,6 +7,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { dashboardFilterInputClass } from '@/components/dashboard/DashboardFilterBar';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type ClaimRow = {
  id: string;
@@ -165,13 +166,12 @@ export default function ExpenseClaimsContent() {
  <input type="date" value={item.date} onChange={(e) => {
  const items = [...form.items]; items[idx] = { ...items[idx]!, date: e.target.value }; setForm({ ...form, items });
  }} className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />
- <select value={item.category} onChange={(e) => {
- const items = [...form.items]; items[idx] = { ...items[idx]!, category: e.target.value }; setForm({ ...form, items });
- }} className="px-3 py-2 rounded-lg border border-neutral-300 text-sm bg-white">
- {['travel','meals','accommodation','transport','office_supplies','communication','training','fuel','parking','medical','other'].map((c) => (
- <option key={c} value={c}>{c.replace('_', ' ')}</option>
- ))}
- </select>
+ <StrideSelect value={item.category} onChange={(value) => {
+ const items = [...form.items]; items[idx] = { ...items[idx]!, category: value }; setForm({ ...form, items });
+ }}
+ ariaLabel="Expense category"
+ options={['travel','meals','accommodation','transport','office_supplies','communication','training','fuel','parking','medical','other'].map((c) => ({ value: c, label: c.replace('_', ' ') }))}
+ />
  <input placeholder="Description" value={item.description} onChange={(e) => {
  const items = [...form.items]; items[idx] = { ...items[idx]!, description: e.target.value }; setForm({ ...form, items });
  }} className="px-3 py-2 rounded-lg border border-neutral-300 text-sm" />

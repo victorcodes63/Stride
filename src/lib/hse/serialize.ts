@@ -36,6 +36,22 @@ export const HSE_ACTION_STATUS_LABELS: Record<HseActionStatus, string> = {
   cancelled: 'Cancelled',
 };
 
+export const HSE_ROOT_CAUSE_CATEGORIES = [
+  { value: 'human_factor', label: 'Human factor' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'process', label: 'Process' },
+  { value: 'environment', label: 'Environment' },
+  { value: 'other', label: 'Other' },
+] as const;
+
+export const HSE_ROOT_CAUSE_CATEGORY_VALUES: readonly string[] = HSE_ROOT_CAUSE_CATEGORIES.map(
+  (c) => c.value,
+);
+
+export const HSE_ROOT_CAUSE_CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  HSE_ROOT_CAUSE_CATEGORIES.map((c) => [c.value, c.label]),
+);
+
 type IncidentRow = {
   id: string;
   incidentNumber: string;
@@ -52,6 +68,12 @@ type IncidentRow = {
   reportedAt: Date;
   resolvedAt: Date | null;
   closedAt: Date | null;
+  rootCause?: string | null;
+  rootCauseCategory?: string | null;
+  witnessNames?: string | null;
+  reportableToAuthority?: boolean;
+  lostTimeInjury?: boolean;
+  lostTimeDays?: number | null;
   reportedByUser: { name: string } | null;
   reportedByEmployee: { firstName: string; lastName: string } | null;
   actions?: { id: string; status: HseActionStatus }[];
@@ -86,8 +108,41 @@ export function serializeIncident(incident: IncidentRow) {
     reportedAt: incident.reportedAt.toISOString(),
     resolvedAt: incident.resolvedAt?.toISOString() ?? null,
     closedAt: incident.closedAt?.toISOString() ?? null,
+    rootCause: incident.rootCause ?? null,
+    rootCauseCategory: incident.rootCauseCategory ?? null,
+    rootCauseCategoryLabel: incident.rootCauseCategory
+      ? HSE_ROOT_CAUSE_CATEGORY_LABELS[incident.rootCauseCategory] ?? incident.rootCauseCategory
+      : null,
+    witnessNames: incident.witnessNames ?? null,
+    reportableToAuthority: incident.reportableToAuthority ?? false,
+    lostTimeInjury: incident.lostTimeInjury ?? false,
+    lostTimeDays: incident.lostTimeDays ?? null,
     reportedBy: reporter,
     openActionCount: openActions,
+  };
+}
+
+type AttachmentRow = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  contentType: string | null;
+  fileSize: number | null;
+  kind: string | null;
+  uploadedByUserId: string | null;
+  createdAt: Date;
+};
+
+export function serializeAttachment(attachment: AttachmentRow) {
+  return {
+    id: attachment.id,
+    fileName: attachment.fileName,
+    fileUrl: attachment.fileUrl,
+    contentType: attachment.contentType,
+    fileSize: attachment.fileSize,
+    kind: attachment.kind,
+    uploadedByUserId: attachment.uploadedByUserId,
+    createdAt: attachment.createdAt.toISOString(),
   };
 }
 

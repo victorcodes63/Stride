@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Briefcase, Loader2, Plus, AlertCircle } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Briefcase, Download, Loader2, Plus, AlertCircle } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { ProjectEmptyState } from '@/components/dashboard/projects/ProjectEmptyState';
+import { toast } from '@/components/ui/toast';
 
 type ProjectRow = {
   id: string;
@@ -27,12 +30,14 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function ProjectsAllContent() {
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<ProjectRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -59,6 +64,10 @@ export default function ProjectsAllContent() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (searchParams.get('new') === '1') setShowForm(true);
+  }, [searchParams]);
+
   async function createProject(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
@@ -81,11 +90,36 @@ export default function ProjectsAllContent() {
       setDepartment('');
       setDueDate('');
       setShowForm(false);
+      const id = data.project?.id as string | undefined;
+      if (id) {
+        window.location.href = `/dashboard/projects/${id}`;
+        return;
+      }
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function exportWorkbook() {
+    setExporting(true);
+    try {
+      const r = await fetch('/api/projects/export', { credentials: 'include' });
+      if (!r.ok) throw new Error('Export failed');
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stride-projects-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Export downloaded');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Export failed');
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -96,14 +130,25 @@ export default function ProjectsAllContent() {
         description="Project register with milestones and tasks — scoped to your current workspace."
         icon={Briefcase}
         actions={
-          <button
-            type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className="btn-primary dash-panel-cta inline-flex items-center gap-2 px-3 py-2 text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            New project
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void exportWorkbook()}
+              disabled={exporting || !projects?.length}
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] px-3 py-2 text-sm font-medium text-[var(--dash-text-strong)] hover:bg-[var(--dash-hover)] disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" />
+              {exporting ? 'Exporting…' : 'Export'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm((v) => !v)}
+              className="btn-primary dash-panel-cta inline-flex items-center gap-2 px-3 py-2 text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              New project
+            </button>
+          </div>
         }
       />
 
@@ -187,9 +232,21 @@ export default function ProjectsAllContent() {
           Loading projects…
         </div>
       ) : !projects?.length ? (
-        <p className="py-12 text-center text-sm text-[var(--dash-text-muted)]">
-          No projects yet. Create one to start tracking milestones and tasks.
-        </p>
+        <ProjectEmptyState
+          icon={Briefcase}
+          title="No projects yet"
+          description="Create one to start tracking milestones, tasks, budget, and delivery."
+          action={
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              New project
+            </button>
+          }
+        />
       ) : (
         <div className="overflow-hidden rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)]">
           <table className="min-w-full text-sm">
@@ -208,7 +265,7 @@ export default function ProjectsAllContent() {
                 <tr key={p.id} className="border-b border-[var(--dash-border-subtle)] last:border-0">
                   <td className="px-4 py-3 font-mono text-xs text-[var(--dash-text-muted)]">{p.projectCode}</td>
                   <td className="px-4 py-3">
-                    <Link href={`/dashboard/projects/all?highlight=${p.id}`} className="font-medium text-[var(--dash-text-strong)] hover:underline">
+                    <Link href={`/dashboard/projects/${p.id}`} className="font-medium text-[var(--dash-text-strong)] hover:underline">
                       {p.name}
                     </Link>
                     {p.department ? (

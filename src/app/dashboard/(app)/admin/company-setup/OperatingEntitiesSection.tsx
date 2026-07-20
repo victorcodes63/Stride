@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Globe, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import type { CountryCode, OperatingEntity, OperatingEntitiesSettings } from '@/lib/operating-entities-shared';
 import { COUNTRY_PROFILES } from '@/lib/operating-entities-shared';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type ApiResponse = OperatingEntitiesSettings & {
  envMultiEntityEnabled: boolean;
@@ -228,14 +229,15 @@ export function OperatingEntitiesSection() {
  </div>
  <div>
  <label className="block text-xs font-medium dash-setup-muted mb-1">Country</label>
- <select
+ <StrideSelect
  value={entity.countryCode}
- onChange={(e) => updateEntity(index, { countryCode: e.target.value as CountryCode })}
- className={inputClass}
- >
- <option value="KE">Kenya</option>
- <option value="UG">Uganda</option>
- </select>
+ onChange={(value) => updateEntity(index, { countryCode: value as CountryCode })}
+ options={[
+ { value: 'KE', label: 'Kenya' },
+ { value: 'UG', label: 'Uganda' },
+ ]}
+ ariaLabel="Country"
+ />
  </div>
  <div>
  <label className="block text-xs font-medium dash-setup-muted mb-1">Currency</label>

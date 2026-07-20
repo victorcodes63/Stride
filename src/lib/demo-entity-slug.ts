@@ -5,6 +5,7 @@ export const DEMO_CONTEXT_IDS = [
   'cargo-logistics',
   'hospital-healthcare',
   'travel-agency',
+  'construction',
 ] as const;
 export type DemoContextId = (typeof DEMO_CONTEXT_IDS)[number];
 

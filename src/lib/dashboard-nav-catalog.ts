@@ -57,6 +57,7 @@ import {
   TrendingUp,
   Handshake,
   Target,
+  Palette,
 } from 'lucide-react';
 import type { UserRole } from '@/types/dashboard';
 import { isDashboardNavItemVisible, isNavSectionVisible, type EnabledModulesMap } from '@/lib/nav-modules';
@@ -99,6 +100,7 @@ const primarySections: DashboardNavSection[] = [
       { href: '/dashboard/departments', label: 'Departments', icon: Building2 },
       { href: '/dashboard/people/tasks', label: 'Tasks', icon: ListTodo },
       { href: '/dashboard/onboarding', label: 'Onboarding', icon: ClipboardList },
+      { href: '/dashboard/onboarding/analytics', label: 'Onboarding analytics', icon: BarChart2 },
       { href: '/dashboard/performance', label: 'Performance', icon: BarChart2 },
       { href: '/dashboard/performance/jds', label: 'Job descriptions', icon: BarChart2 },
       { href: '/dashboard/disciplinary', label: 'Disciplinary', icon: Shield },
@@ -124,7 +126,7 @@ const primarySections: DashboardNavSection[] = [
     items: [
       { href: '/dashboard/rota', label: 'Rota & scheduling', icon: CalendarDays },
       { href: '/dashboard/attendance', label: 'Attendance', icon: Clock4 },
-      { href: '/dashboard/leave', label: 'Leave', icon: CalendarOff },
+      { href: '/dashboard/staff-leave', label: 'Leave', icon: CalendarOff },
       { href: '/dashboard/biometric-devices', label: 'Biometric devices', icon: Fingerprint },
     ],
   },
@@ -150,6 +152,8 @@ const procurementSection: DashboardNavSection = {
     { href: '/dashboard/procurement', label: 'Overview', icon: LayoutGrid },
     { href: '/dashboard/procurement/purchase-requests', label: 'Purchase requests', icon: ClipboardList },
     { href: '/dashboard/procurement/lpos', label: 'LPO register', icon: FileSignature },
+    { href: '/dashboard/procurement/receiving', label: 'Receiving', icon: Package },
+    { href: '/dashboard/procurement/vendors', label: 'Vendors', icon: Building2 },
     { href: '/dashboard/procurement/spend', label: 'Spend dashboard', icon: Scale },
   ],
 };
@@ -164,6 +168,8 @@ const legalDocumentsSection: DashboardNavSection = {
     { href: '/dashboard/credentials', label: 'Credentials', icon: BadgeCheck },
     { href: '/dashboard/company-documents', label: 'Company policies', icon: FolderOpen },
     { href: '/dashboard/legal/obligations', label: 'Obligations register', icon: Scale },
+    { href: '/dashboard/legal/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: '/dashboard/legal/calendar', label: 'Calendar', icon: CalendarClock },
   ],
 };
 
@@ -247,7 +253,7 @@ const outsourcingWorkforceSection: DashboardNavSection = {
   label: 'Workforce',
   icon: Users,
   items: [
-    { href: '/dashboard/outsourcing/employees', label: 'Employees', icon: Users },
+    { href: '/dashboard/outsourcing/employees', label: 'Outsourced employees', icon: Users },
     { href: '/dashboard/outsourcing/departments', label: 'Departments', icon: Building2 },
   ],
 };
@@ -259,8 +265,13 @@ const outsourcingServicesSection: DashboardNavSection = {
   items: [
     { href: '/dashboard/outsourcing/payroll', label: 'Payroll', icon: Banknote },
     { href: '/dashboard/outsourcing/attendance', label: 'Time & attendance', icon: Clock4 },
+    { href: '/dashboard/outsourcing/rota', label: 'Rota', icon: CalendarClock },
+    { href: '/dashboard/outsourcing/biometrics', label: 'Biometrics', icon: Fingerprint },
     { href: '/dashboard/outsourcing/leave', label: 'Leave', icon: CalendarOff },
     { href: '/dashboard/outsourcing/disciplinary', label: 'Disciplinary', icon: Shield },
+    { href: '/dashboard/outsourcing/jobs', label: 'Recruitment (RPO)', icon: Briefcase },
+    { href: '/dashboard/outsourcing/billing', label: 'Billing', icon: Receipt },
+    { href: '/dashboard/outsourcing/reports', label: 'Reports', icon: FileText },
   ],
 };
 
@@ -273,6 +284,10 @@ const salesSection: DashboardNavSection = {
     { href: '/dashboard/sales/targets', label: 'Sales targets', icon: Target },
     { href: '/dashboard/sales/deals', label: 'Pipeline', icon: Handshake },
     { href: '/dashboard/sales/leads', label: 'Leads', icon: UserSearch },
+    { href: '/dashboard/sales/tasks', label: 'Tasks', icon: ListTodo },
+    { href: '/dashboard/sales/contacts', label: 'Contacts', icon: Users },
+    { href: '/dashboard/sales/products', label: 'Products', icon: Package },
+    { href: '/dashboard/sales/quotes', label: 'Quotes', icon: FileText },
     { href: '/dashboard/sales/forecast', label: 'Forecast', icon: PieChart },
     { href: '/dashboard/sales/attainment', label: 'Attainment', icon: TrendingUp },
     { href: '/dashboard/sales/commissions', label: 'Commissions', icon: Coins },
@@ -370,6 +385,7 @@ const adminSection: DashboardNavSection = {
   icon: Shield,
   items: [
     { href: '/dashboard/admin/company-setup', label: 'Company setup', icon: Building2 },
+    { href: '/dashboard/admin/branding', label: 'Branding & white-label', icon: Palette },
     { href: '/dashboard/users/staff', label: 'System users', icon: Shield },
     { href: '/dashboard/admin/roles-permissions', label: 'Roles & permissions', icon: KeyRound },
     { href: '/dashboard/admin/holidays', label: 'Public holidays', icon: CalendarDays },
@@ -455,7 +471,10 @@ function filterSections(
       ...section,
       items: section.items.filter((item) => {
         if (item.href === '/dashboard/analytics') return options.canViewSystemAnalytics;
-        if (item.href === '/dashboard/admin/company-setup') {
+        if (
+          item.href === '/dashboard/admin/company-setup' ||
+          item.href === '/dashboard/admin/branding'
+        ) {
           return options.currentUserRole === 'admin';
         }
         return isDashboardNavItemVisible(item.href, section.id, enabled);

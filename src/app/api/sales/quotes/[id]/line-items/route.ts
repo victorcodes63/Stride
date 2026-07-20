@@ -1,0 +1,168 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { reportApiError } from '@/lib/monitoring';
+import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
+import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
+
+type RouteParams = { params: Promise<{ id: string }> };
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  return withTenant(request, async (ctx) => {
+    const moduleBlock = requireModule('sales', getEffectiveModulesFromRequest(request));
+    if (moduleBlock) return moduleBlock;
+
+    const { id: quoteId } = await params;
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    try {
+      const result = await ctx.run(async (tx) => {
+        const quote = await tx.salesQuote.findFirst({
+          where: { id: quoteId, organizationId: ctx.organizationId },
+          select: { id: true },
+        });
+        if (!quote) return { status: 'not_found' as const };
+
+        // A product selection prefills description + unit price (both editable).
+        let product = null;
+        const productId =
+          typeof body.productId === 'string' && body.productId.trim() ? body.productId.trim() : null;
+        if (productId) {
+          product = await tx.salesProduct.findFirst({
+            where: { id: productId, organizationId: ctx.organizationId },
+          });
+          if (!product) return { status: 'bad_product' as const };
+        }
+
+        const description =
+          (typeof body.description === 'string' && body.description.trim()) || product?.name || '';
+        if (!description) return { status: 'no_description' as const };
+
+        const qty = Number(body.quantity);
+        const quantity = Number.isFinite(qty) && qty > 0 ? qty : 1;
+        const rawUnit = Number(body.unitPrice);
+        const unitPrice =
+          Number.isFinite(rawUnit) && rawUnit >= 0
+            ? rawUnit
+            : product
+              ? Number(product.unitPrice)
+              : 0;
+        const rawDisc = Number(body.discountPct);
+        const discountPct = Number.isFinite(rawDisc) && rawDisc >= 0 ? Math.min(100, rawDisc) : 0;
+        const isRecurring =
+          body.isRecurring === true ||
+          (body.isRecurring === undefined && product?.isRecurring === true);
+        const rawTerm = Number(body.termMonths);
+        const termMonths =
+          isRecurring && Number.isFinite(rawTerm) && rawTerm > 0
+            ? Math.round(rawTerm)
+            : isRecurring
+              ? product?.defaultTermMonths ?? null
+              : null;
+
+        const maxSort = await tx.salesQuoteLineItem.aggregate({
+          where: { quoteId, organizationId: ctx.organizationId },
+          _max: { sortOrder: true },
+        });
+        const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
+
+        const line = await tx.salesQuoteLineItem.create({
+          data: {
+            organizationId: ctx.organizationId,
+            quoteId,
+            productId: product?.id ?? null,
+            description,
+            quantity,
+            unitPrice,
+            discountPct,
+            isRecurring,
+            termMonths,
+            sortOrder,
+          },
+          include: { product: { select: { id: true, name: true, sku: true } } },
+        });
+        // Bump the parent quote's updatedAt so caches/listings stay coherent.
+        await tx.salesQuote.update({ where: { id: quoteId }, data: { updatedAt: new Date() } });
+        return { status: 'ok' as const, line };
+      });
+
+      if (result.status === 'not_found') {
+        return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
+      }
+      if (result.status === 'bad_product') {
+        return NextResponse.json({ error: 'Product not found.' }, { status: 400 });
+      }
+      if (result.status === 'no_description') {
+        return NextResponse.json(
+          { error: 'A description or product is required.' },
+          { status: 400 },
+        );
+      }
+
+      const { line } = result;
+      return NextResponse.json(
+        {
+          lineItem: {
+            id: line.id,
+            productId: line.productId,
+            product: line.product,
+            description: line.description,
+            quantity: Number(line.quantity),
+            unitPrice: Number(line.unitPrice),
+            discountPct: Number(line.discountPct),
+            isRecurring: line.isRecurring,
+            termMonths: line.termMonths,
+            sortOrder: line.sortOrder,
+          },
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      await reportApiError({
+        route: 'POST /api/sales/quotes/[id]/line-items',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to add line item.' }, { status: 500 });
+    }
+  });
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  return withTenant(request, async (ctx) => {
+    const moduleBlock = requireModule('sales', getEffectiveModulesFromRequest(request));
+    if (moduleBlock) return moduleBlock;
+
+    const { id: quoteId } = await params;
+    const lineItemId = request.nextUrl.searchParams.get('lineItemId')?.trim();
+    if (!lineItemId) {
+      return NextResponse.json({ error: 'lineItemId is required.' }, { status: 400 });
+    }
+
+    try {
+      const deleted = await ctx.run(async (tx) => {
+        const existing = await tx.salesQuoteLineItem.findFirst({
+          where: { id: lineItemId, quoteId, organizationId: ctx.organizationId },
+        });
+        if (!existing) return null;
+        await tx.salesQuoteLineItem.delete({ where: { id: lineItemId } });
+        await tx.salesQuote.update({ where: { id: quoteId }, data: { updatedAt: new Date() } });
+        return existing;
+      });
+      if (!deleted) {
+        return NextResponse.json({ error: 'Line item not found.' }, { status: 404 });
+      }
+      return NextResponse.json({ ok: true, id: lineItemId });
+    } catch (error) {
+      await reportApiError({
+        route: 'DELETE /api/sales/quotes/[id]/line-items',
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: 'Failed to remove line item.' }, { status: 500 });
+    }
+  });
+}

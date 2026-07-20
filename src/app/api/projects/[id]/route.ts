@@ -26,9 +26,25 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               include: {
                 assignee: { select: { id: true, name: true, email: true } },
                 milestone: { select: { id: true, title: true } },
+                taskLabels: { include: { label: true } },
+                subtasks: {
+                  orderBy: [{ sortOrder: 'asc' as const }],
+                  include: {
+                    assignee: { select: { id: true, name: true, email: true } },
+                  },
+                },
+                _count: {
+                  select: {
+                    comments: true,
+                    attachments: true,
+                    blocking: true,
+                    blockedBy: true,
+                    subtasks: true,
+                  },
+                },
               },
             },
-            _count: { select: { tasks: true, milestones: true } },
+            _count: { select: { tasks: true, milestones: true, members: true, comments: true, attachments: true } },
           },
         });
       });
@@ -66,6 +82,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (typeof body.name === 'string' && body.name.trim()) data.name = body.name.trim();
     if (typeof body.description === 'string') data.description = body.description.trim() || null;
     if (typeof body.department === 'string') data.department = body.department.trim() || null;
+    if (typeof body.color === 'string') data.color = body.color.trim() || null;
+    if (
+      typeof body.health === 'string' &&
+      ['on_track', 'at_risk', 'off_track'].includes(body.health)
+    ) {
+      data.health = body.health;
+    }
+    if (body.archivedAt === null) {
+      data.archivedAt = null;
+    } else if (typeof body.archivedAt === 'string' && body.archivedAt.trim()) {
+      data.archivedAt = new Date(body.archivedAt);
+    } else if (body.archived === true) {
+      data.archivedAt = new Date();
+    } else if (body.archived === false) {
+      data.archivedAt = null;
+    }
     if (
       typeof body.status === 'string' &&
       ['planning', 'active', 'on_hold', 'completed', 'cancelled'].includes(body.status)

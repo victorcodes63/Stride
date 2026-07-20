@@ -44,6 +44,7 @@ export function isDashboardNavItemVisible(
 
   if (sectionId === 'legal-documents') {
     if (href.startsWith('/dashboard/company-documents')) return enabled.documents;
+    if (enabled.legal) return enabled.legal;
     return enabled.core;
   }
 
@@ -84,7 +85,7 @@ export function isDashboardNavItemVisible(
   }
 
   if (sectionId === 'projects') {
-    return true;
+    return enabled.projects === true;
   }
 
   return sectionModules.some((module) => enabled[module]);

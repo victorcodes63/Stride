@@ -40,7 +40,7 @@ export function EssTabBar() {
       className="fixed inset-x-0 bottom-0 z-30 px-3 ess-tab-bar"
       aria-label="Primary"
     >
-      <div className="ess-glass pointer-events-auto mx-auto mb-2 flex w-full max-w-lg justify-around rounded-[1.75rem] p-1.5 shadow-[var(--ess-shadow-float)]">
+      <div className="ess-glass pointer-events-auto mx-auto flex w-full max-w-lg justify-around rounded-[1.75rem] p-1.5 shadow-[var(--ess-shadow-float)]">
         {tabs.map((tab) => {
           const active = tab.match(pathname);
           const Icon = tab.icon;

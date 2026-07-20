@@ -3,19 +3,24 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, ClipboardList, Loader2, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ClipboardList, Loader2 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { dashStatusChip } from '@/lib/dashboard-status-chips';
+import { dashStatusChip, type DashStatusTone } from '@/lib/dashboard-status-chips';
 import { deriveOffboardingCheckpointState } from '@/lib/onboarding-checkpoints';
+import { WorkflowProgressRing, type ProgressRingTone } from '@/components/onboarding/WorkflowProgressRing';
+import { WorkflowOwners, type WorkflowOwner } from '@/components/onboarding/WorkflowOwners';
+import { WorkflowTimeline, type TimelineTask } from '@/components/onboarding/WorkflowTimeline';
 
-function taskStatusTone(status: string): 'success' | 'warning' | 'info' | 'danger' | 'neutral' {
+function workflowStatusTone(status: string): DashStatusTone {
   if (status === 'COMPLETED') return 'success';
-  if (status === 'OVERDUE') return 'danger';
-  if (status === 'IN_PROGRESS') return 'info';
-  if (status === 'SKIPPED') return 'neutral';
-  return 'warning';
+  if (status === 'CANCELLED') return 'neutral';
+  return 'info';
 }
+
+const FORM_SUBMISSION_HREF = (submissionId: string) =>
+  `/dashboard/onboarding/forms/submissions/${submissionId}`;
+const SIGNATURE_HREF = (signatureId: string) => `/dashboard/onboarding/signatures/${signatureId}`;
 
 type WorkflowDetail = {
   id: string;
@@ -23,21 +28,7 @@ type WorkflowDetail = {
   status: string;
   startedAt: string;
   employee: { firstName: string; lastName: string; department?: { name: string | null } | null };
-  tasks: Array<{
-    id: string;
-    title: string;
-    description?: string | null;
-    assignedRole: string;
-    category?: string | null;
-    startDate?: string | null;
-    dueDate?: string | null;
-    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED' | 'OVERDUE';
-    isRequired: boolean;
-    notes?: string | null;
-    documentId?: string | null;
-    assignedTo?: { id: string; name: string; email: string } | null;
-    document?: { id: string; fileName: string; title: string } | null;
-  }>;
+  tasks: TimelineTask[];
 };
 
 export default function OnboardingDetailPage() {
@@ -66,16 +57,6 @@ export default function OnboardingDetailPage() {
     setLoading(true);
     void loadWorkflow().finally(() => setLoading(false));
   }, [id]);
-
-  const grouped = useMemo(() => {
-    const source = data?.tasks ?? [];
-    return source.reduce<Record<string, WorkflowDetail['tasks']>>((acc, task) => {
-      const key = (task.category || 'Other').toUpperCase();
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(task);
-      return acc;
-    }, {});
-  }, [data?.tasks]);
 
   async function updateTask(taskId: string, status: string) {
     setTaskError(null);
@@ -156,11 +137,26 @@ export default function OnboardingDetailPage() {
         )
       : null;
 
-  const progress = useMemo(() => {
+  const summary = useMemo(() => {
     const tasks = data?.tasks ?? [];
-    if (tasks.length === 0) return 0;
+    const total = tasks.length;
     const done = tasks.filter((t) => t.status === 'COMPLETED' || t.status === 'SKIPPED').length;
-    return Math.round((done / tasks.length) * 100);
+    const overdue = tasks.filter(
+      (t) =>
+        t.status !== 'COMPLETED' &&
+        t.status !== 'SKIPPED' &&
+        (t.status === 'OVERDUE' || (t.dueDate ? new Date(t.dueDate) < new Date() : false)),
+    ).length;
+    const requiredRemaining = tasks.filter(
+      (t) => t.isRequired && t.status !== 'COMPLETED' && t.status !== 'SKIPPED',
+    ).length;
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    const owners = new Map<string, WorkflowOwner>();
+    for (const task of tasks) {
+      if (task.assignedTo?.id) owners.set(task.assignedTo.id, { id: task.assignedTo.id, name: task.assignedTo.name });
+    }
+    return { total, done, overdue, requiredRemaining, pct, owners: Array.from(owners.values()) };
   }, [data?.tasks]);
 
   if (loading) {
@@ -184,6 +180,13 @@ export default function OnboardingDetailPage() {
       </DashboardPage>
     );
   }
+
+  const ringTone: ProgressRingTone =
+    summary.total > 0 && summary.done === summary.total
+      ? 'success'
+      : summary.overdue > 0
+        ? 'warning'
+        : 'primary';
 
   return (
     <DashboardPage>
@@ -221,20 +224,68 @@ export default function OnboardingDetailPage() {
         }
       />
 
+      <div className="mb-4 dashboard-surface shadow-sm p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-4">
+            <WorkflowProgressRing
+              value={summary.done}
+              total={summary.total}
+              size={76}
+              tone={ringTone}
+            />
+            <div>
+              <p className="text-2xl font-bold tabular-nums text-[var(--dash-text-strong)]">
+                {summary.done}
+                <span className="text-base font-medium text-[var(--dash-text-muted)]">/{summary.total}</span>
+              </p>
+              <p className="text-xs text-[var(--dash-text-muted)]">tasks complete</p>
+              <span className={`mt-1 inline-flex ${dashStatusChip(workflowStatusTone(data.status))}`}>
+                {data.status.replace('_', ' ')}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3">
+            <SummaryTile
+              label="Overdue"
+              value={summary.overdue}
+              tone={summary.overdue > 0 ? 'danger' : 'neutral'}
+              icon={summary.overdue > 0}
+            />
+            <SummaryTile
+              label="Required left"
+              value={summary.requiredRemaining}
+              tone={summary.requiredRemaining > 0 ? 'warning' : 'success'}
+            />
+            <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] px-3 py-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--dash-text-muted)]">Owners</p>
+              <div className="mt-1.5">
+                <WorkflowOwners owners={summary.owners} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {checkpoints ? (
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
           {Object.entries(checkpoints).map(([key, state]) => (
-            <div key={key} className={`rounded-lg border px-3 py-2 text-xs ${state.satisfied ? 'border-emerald-200 bg-emerald-50' : state.present ? 'border-amber-200 bg-amber-50' : 'border-neutral-200 bg-neutral-50'}`}>
-              <p className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</p>
-              <p className="text-neutral-600">{!state.present ? 'N/A' : state.satisfied ? 'Done' : 'Pending'}</p>
+            <div
+              key={key}
+              className={`rounded-xl border px-3 py-2 text-xs ${
+                state.satisfied
+                  ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10'
+                  : state.present
+                    ? 'border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10'
+                    : 'border-[var(--dash-border)] bg-[var(--dash-surface-muted)]'
+              }`}
+            >
+              <p className="font-medium capitalize text-[var(--dash-text-strong)]">{key.replace(/([A-Z])/g, ' $1')}</p>
+              <p className="text-[var(--dash-text-muted)]">{!state.present ? 'N/A' : state.satisfied ? 'Done' : 'Pending'}</p>
             </div>
           ))}
         </div>
       ) : null}
-
-      <div className="mb-4 h-2 rounded-full bg-neutral-200">
-        <div className="h-2 rounded-full bg-primary-600 transition-all" style={{ width: `${progress}%` }} />
-      </div>
 
       {taskError ? (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -242,95 +293,49 @@ export default function OnboardingDetailPage() {
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        {Object.entries(grouped).map(([category, tasks]) => (
-          <div key={category} className="dashboard-surface shadow-sm p-4 sm:p-5">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">{category}</h2>
-            <div className="space-y-3">
-              {tasks.map((task) => {
-                const isDocuments = (task.category ?? '').toLowerCase() === 'documents';
-                const open = task.status !== 'COMPLETED' && task.status !== 'SKIPPED';
-                return (
-                  <div key={task.id} className="rounded-lg border border-neutral-200/80 p-3">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-neutral-900">{task.title}</p>
-                        {task.description ? (
-                          <p className="mt-0.5 text-xs text-neutral-500">{task.description}</p>
-                        ) : null}
-                        <p className="mt-1 text-xs text-neutral-500">
-                          {task.assignedTo?.name
-                            ? `${task.assignedTo.name} · ${task.assignedRole}`
-                            : `Role pool · ${task.assignedRole}`}
-                          {task.dueDate ? ` · due ${task.dueDate.slice(0, 10)}` : ''}
-                          {task.isRequired ? ' · required' : ''}
-                        </p>
-                        {task.document ? (
-                          <p className="mt-1 text-xs text-emerald-700">Evidence: {task.document.fileName}</p>
-                        ) : isDocuments && open ? (
-                          <p className="mt-1 text-xs text-amber-700">Evidence required before complete</p>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={dashStatusChip(taskStatusTone(task.status))}>
-                          {task.status.replace('_', ' ')}
-                        </span>
-                        {open ? (
-                          <>
-                            <label className="btn-secondary inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs">
-                              {uploadingTaskId === task.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Upload className="h-3 w-3" />
-                              )}
-                              Upload
-                              <input
-                                type="file"
-                                accept="application/pdf"
-                                className="hidden"
-                                disabled={uploadingTaskId === task.id}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) void uploadEvidence(task.id, file);
-                                  e.target.value = '';
-                                }}
-                              />
-                            </label>
-                            <button
-                              type="button"
-                              disabled={busyTaskId === task.id}
-                              className="btn-primary px-2 py-1 text-xs disabled:opacity-50"
-                              onClick={() => void updateTask(task.id, 'COMPLETED')}
-                            >
-                              Complete
-                            </button>
-                            {!task.isRequired ? (
-                              <button
-                                type="button"
-                                disabled={busyTaskId === task.id}
-                                className="btn-secondary px-2 py-1 text-xs disabled:opacity-50"
-                                onClick={() => void updateTask(task.id, 'SKIPPED')}
-                              >
-                                Skip
-                              </button>
-                            ) : null}
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                    <textarea
-                      className="mt-2 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30"
-                      placeholder="Add notes"
-                      value={notes[task.id] ?? task.notes ?? ''}
-                      onChange={(e) => setNotes((prev) => ({ ...prev, [task.id]: e.target.value }))}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+      <WorkflowTimeline
+        tasks={data.tasks}
+        notes={notes}
+        onNoteChange={(taskId, value) => setNotes((prev) => ({ ...prev, [taskId]: value }))}
+        onUpdate={(taskId, status) => void updateTask(taskId, status)}
+        onUpload={(taskId, file) => void uploadEvidence(taskId, file)}
+        busyTaskId={busyTaskId}
+        uploadingTaskId={uploadingTaskId}
+        readOnly={data.status === 'CANCELLED'}
+        formSubmissionHref={FORM_SUBMISSION_HREF}
+        signatureHref={SIGNATURE_HREF}
+      />
     </DashboardPage>
+  );
+}
+
+function SummaryTile({
+  label,
+  value,
+  tone,
+  icon = false,
+}: {
+  label: string;
+  value: number;
+  tone: 'danger' | 'warning' | 'success' | 'neutral';
+  icon?: boolean;
+}) {
+  const toneColor: Record<'danger' | 'warning' | 'success' | 'neutral', string> = {
+    danger: 'var(--swatch-rose-fg)',
+    warning: 'var(--swatch-amber-fg)',
+    success: 'var(--swatch-emerald-fg)',
+    neutral: 'var(--dash-text-strong)',
+  };
+  return (
+    <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] px-3 py-2.5">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--dash-text-muted)]">{label}</p>
+      <p
+        className="mt-1 inline-flex items-center gap-1 text-xl font-bold tabular-nums"
+        style={{ color: toneColor[tone] }}
+      >
+        {icon ? <AlertTriangle className="h-4 w-4" aria-hidden /> : null}
+        {value}
+      </p>
+    </div>
   );
 }

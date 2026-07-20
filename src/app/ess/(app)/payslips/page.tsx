@@ -5,6 +5,7 @@ import { Download, Receipt } from 'lucide-react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssPullRefresh } from '@/components/ess/EssPullRefresh';
 import { EssEmptyState, essInputClass, essSecondaryButtonClass } from '@/components/ess/EssUi';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type PayslipRow = {
   id: string;
@@ -179,34 +180,34 @@ export default function EssPayslipsPage() {
             placeholder="Year"
             className={essInputClass}
           />
-          <select
+          <StrideSelect
+            surface="ess"
             value={month}
-            onChange={(e) => {
-              setMonth(e.target.value);
+            onChange={(value) => {
+              setMonth(value);
               setPage(1);
             }}
-            className={essInputClass}
-          >
-            <option value="">All months</option>
-            {Array.from({ length: 12 }).map((_, i) => (
-              <option key={i + 1} value={String(i + 1)}>
-                {MONTH_NAMES[i]}
-              </option>
-            ))}
-          </select>
-          <select
+            options={[
+              { value: '', label: 'All months' },
+              ...Array.from({ length: 12 }).map((_, i) => ({ value: String(i + 1), label: MONTH_NAMES[i]! })),
+            ]}
+            ariaLabel="Month"
+          />
+          <StrideSelect
+            surface="ess"
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
+            onChange={(value) => {
+              setStatus(value);
               setPage(1);
             }}
-            className={essInputClass}
-          >
-            <option value="">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="approved">Approved</option>
-            <option value="paid">Paid</option>
-          </select>
+            options={[
+              { value: '', label: 'All statuses' },
+              { value: 'draft', label: 'Draft' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'paid', label: 'Paid' },
+            ]}
+            ariaLabel="Status"
+          />
           <button
             type="button"
             onClick={() => {

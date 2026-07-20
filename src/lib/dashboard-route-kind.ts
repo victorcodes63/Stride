@@ -88,12 +88,15 @@ export function isDeepDashboardPath(pathname: string, itemHref: string | null): 
   const last = segments[segments.length - 1] ?? '';
 
   if (DEEP_PATH_SEGMENTS.has(last)) return true;
+
+  // A path that exactly matches a sidebar route is a top-level page, even when
+  // its slug is long enough to trip the ID heuristic below (e.g. "employees",
+  // "departments", "onboarding", "performance"). Check this before looksLikeId.
+  if (itemHref && path === itemHref) return false;
+
   if (looksLikeId(last)) return true;
 
-  if (itemHref) {
-    if (path === itemHref) return false;
-    if (path.startsWith(`${itemHref}/`)) return true;
-  }
+  if (itemHref && path.startsWith(`${itemHref}/`)) return true;
 
   return false;
 }

@@ -5,6 +5,7 @@ import { Loader2, Plus, RefreshCw, UserCog } from 'lucide-react';
 import type { EssPortalRole, EssPortalUserSummary } from '@/types/dashboard';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 const ROLE_OPTIONS: { value: EssPortalRole; label: string }[] = [
  { value: 'employee', label: 'Employee' },
@@ -242,13 +243,13 @@ export default function EssPortalUsersPage() {
  </div>
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Role</label>
- <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as EssPortalRole }))} className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm">
- {ROLE_OPTIONS.map((opt) => (
- <option key={opt.value} value={opt.value}>
- {opt.label}
- </option>
- ))}
- </select>
+ <StrideSelect
+ value={form.role}
+ onChange={(value) => setForm((f) => ({ ...f, role: value as EssPortalRole }))}
+ options={ROLE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+ ariaLabel="Role"
+ className="w-full"
+ />
  </div>
  </div>
  <div>

@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CalendarDays, Check, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronRight, Download, Loader2, X } from 'lucide-react';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 import { DashboardAsyncState, DashboardInlineLoading } from '@/components/dashboard/DashboardAsyncState';
 import {
@@ -17,6 +18,8 @@ import { dashStatusChip } from '@/lib/dashboard-status-chips';
 import useEntityConfig, { useCurrencyFormatter } from '@/hooks/useEntityConfig';
 import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
 import { DASHBOARD_STAT_CARD_CLASS } from '@/lib/dashboard-layout';
+import { LeavePersonDetail, type LeavePersonDetailData } from '@/components/dashboard/leave/LeavePersonDetail';
+import { LeaveExportDialog } from '@/components/dashboard/leave/LeaveExportDialog';
 
 type LeaveRow = {
   id: string;
@@ -34,8 +37,19 @@ type LeaveRow = {
 
 const QUEUE_TABS = ['', 'pending', 'approved', 'rejected'] as const;
 type QueueTab = (typeof QUEUE_TABS)[number];
-const SECTION_TABS = ['queue', 'calendar', 'accrual', 'liability'] as const;
+const SECTION_TABS = ['queue', 'directory', 'calendar', 'accrual', 'liability'] as const;
 type SectionTab = (typeof SECTION_TABS)[number];
+
+type RosterRow = {
+  employeeId: string;
+  employeeName: string;
+  employeeNumber: string | null;
+  annualEntitled: number;
+  annualUsed: number;
+  annualRemaining: number;
+};
+
+type DetailState = LeavePersonDetailData | 'loading' | 'error' | undefined;
 
 function statusBadge(status: string) {
   if (status === 'pending') return dashStatusChip('warning');
@@ -67,6 +81,9 @@ export function EmployeeLeavePanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [details, setDetails] = useState<Record<string, DetailState>>({});
+  const [exportOpen, setExportOpen] = useState(false);
 
   const loadQueue = useCallback(async () => {
     if (!clientId) {
@@ -120,6 +137,63 @@ export function EmployeeLeavePanel() {
 
   const pendingCount = useMemo(() => rows.filter((r) => r.status === 'pending').length, [rows]);
 
+  const roster = useMemo<RosterRow[]>(() => {
+    if (!overview) return [];
+    const byEmployee = new Map<string, RosterRow>();
+    for (const row of overview.accrual) {
+      let entry = byEmployee.get(row.employeeId);
+      if (!entry) {
+        entry = {
+          employeeId: row.employeeId,
+          employeeName: row.employeeName,
+          employeeNumber: row.employeeNumber,
+          annualEntitled: 0,
+          annualUsed: 0,
+          annualRemaining: 0,
+        };
+        byEmployee.set(row.employeeId, entry);
+      }
+      if (/annual/i.test(row.leaveTypeName)) {
+        entry.annualEntitled = row.entitledDays;
+        entry.annualUsed = row.usedDays;
+        entry.annualRemaining = row.remainingDays;
+      }
+    }
+    return Array.from(byEmployee.values()).sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+  }, [overview]);
+
+  const loadDetail = useCallback(
+    async (employeeId: string) => {
+      if (!clientId) return;
+      setDetails((prev) => ({ ...prev, [employeeId]: 'loading' }));
+      try {
+        const res = await fetch(
+          `/api/outsourcing/leave/person?employeeId=${encodeURIComponent(employeeId)}&year=${year}&clientId=${encodeURIComponent(clientId)}`,
+          { cache: 'no-store' },
+        );
+        if (!res.ok) throw new Error('failed');
+        const detail = (await res.json()) as LeavePersonDetailData;
+        setDetails((prev) => ({ ...prev, [employeeId]: detail }));
+      } catch {
+        setDetails((prev) => ({ ...prev, [employeeId]: 'error' }));
+      }
+    },
+    [clientId, year],
+  );
+
+  const toggleExpanded = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        if (!details[id] || details[id] === 'error') void loadDetail(id);
+      }
+      return next;
+    });
+  };
+
   async function review(id: string, status: 'approved' | 'rejected') {
     if (!clientId) return;
     setActingId(id);
@@ -147,45 +221,53 @@ export function EmployeeLeavePanel() {
 
   return (
     <div className="space-y-4">
-      <DashboardTabs
-        embedded
-        value={section}
-        onChange={(v) => setSection(v as SectionTab)}
-        items={[
-          { value: 'queue', label: 'Approval queue' },
-          { value: 'calendar', label: 'Team calendar' },
-          { value: 'accrual', label: 'Accrual balances' },
-          { value: 'liability', label: 'Liability report' },
-        ]}
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <DashboardTabs
+          embedded
+          value={section}
+          onChange={(v) => setSection(v as SectionTab)}
+          items={[
+            { value: 'queue', label: 'Approval queue' },
+            { value: 'directory', label: 'Employee directory' },
+            { value: 'calendar', label: 'Team calendar' },
+            { value: 'accrual', label: 'Accrual balances' },
+            { value: 'liability', label: 'Liability report' },
+          ]}
+        />
+        <button
+          type="button"
+          onClick={() => setExportOpen(true)}
+          disabled={!clientId}
+          className="btn-primary inline-flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50"
+        >
+          <Download className="h-4 w-4" /> Export
+        </button>
+      </div>
 
       {section !== 'queue' ? (
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
             <span className="text-zinc-500">Year</span>
-            <select
-              className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2"
-              value={year}
-              onChange={(e) => setYear(parseInt(e.target.value, 10))}
-            >
-              {[year - 1, year, year + 1].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+            <StrideSelect
+              value={String(year)}
+              onChange={(value) => setYear(parseInt(value, 10))}
+              options={[year - 1, year, year + 1].map((y) => ({ value: String(y), label: String(y) }))}
+              ariaLabel="Year"
+              className="mt-1"
+            />
           </label>
           <label className="text-sm">
             <span className="text-zinc-500">Month</span>
-            <select
-              className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2"
-              value={month}
-              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-            >
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <option key={m} value={m}>
-                  {new Date(2000, m - 1, 1).toLocaleString('en', { month: 'long' })}
-                </option>
-              ))}
-            </select>
+            <StrideSelect
+              value={String(month)}
+              onChange={(value) => setMonth(parseInt(value, 10))}
+              options={Array.from({ length: 12 }, (_, i) => i + 1).map((m) => ({
+                value: String(m),
+                label: new Date(2000, m - 1, 1).toLocaleString('en', { month: 'long' }),
+              }))}
+              ariaLabel="Month"
+              className="mt-1"
+            />
           </label>
         </div>
       ) : null}
@@ -307,6 +389,109 @@ export function EmployeeLeavePanel() {
         </>
       ) : null}
 
+      {section === 'directory' ? (
+        <DashboardTableCard>
+          <DashboardAsyncState
+            status={loading ? 'loading' : roster.length === 0 ? 'empty' : 'success'}
+            error={error}
+            onRetry={load}
+            loading={<DashboardInlineLoading label="Loading employees…" />}
+            empty={
+              <DashboardTableEmpty
+                icon={<CalendarDays className="h-8 w-8 text-neutral-300" aria-hidden />}
+                title="No employees with leave balances"
+                description="Employees appear here once leave balances exist for the selected year."
+              />
+            }
+          >
+            <DashboardTableViewport>
+              <DashboardTable className="text-sm">
+                <thead className="bg-neutral-50 text-left text-neutral-600">
+                  <tr>
+                    <th className="w-8 px-2 py-3" />
+                    <th className="px-4 py-3">Employee</th>
+                    <th className="px-4 py-3">Annual leave</th>
+                    <th className="px-4 py-3 text-right">Used</th>
+                    <th className="px-4 py-3 text-right">Remaining</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roster.map((row) => {
+                    const isOpen = expanded.has(row.employeeId);
+                    const pct =
+                      row.annualEntitled > 0
+                        ? Math.min(100, Math.round((row.annualUsed / row.annualEntitled) * 100))
+                        : 0;
+                    const detail = details[row.employeeId];
+                    return (
+                      <Fragment key={row.employeeId}>
+                        <tr
+                          className="border-t border-neutral-100 hover:bg-neutral-50/50 cursor-pointer"
+                          onClick={() => toggleExpanded(row.employeeId)}
+                        >
+                          <td className="px-2 py-3">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpanded(row.employeeId);
+                              }}
+                              className="rounded p-1 text-neutral-500 hover:bg-neutral-100"
+                              aria-expanded={isOpen}
+                            >
+                              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-neutral-900">{row.employeeName}</div>
+                            <div className="text-xs text-neutral-500">{row.employeeNumber ?? '—'}</div>
+                          </td>
+                          <td className="px-4 py-3 min-w-[150px]">
+                            <div className="font-semibold text-primary-900 tabular-nums">
+                              {row.annualRemaining}{' '}
+                              <span className="text-xs font-normal text-neutral-400">left</span>
+                            </div>
+                            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+                              <div className="h-full rounded-full bg-primary-600" style={{ width: `${pct}%` }} />
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-neutral-700">{row.annualUsed}</td>
+                          <td className="px-4 py-3 text-right tabular-nums text-neutral-700">{row.annualRemaining}</td>
+                        </tr>
+                        {isOpen ? (
+                          <tr className="border-t border-neutral-50 bg-neutral-50/40">
+                            <td colSpan={5} className="px-4 py-4">
+                              {detail === 'loading' || detail === undefined ? (
+                                <div className="flex items-center gap-2 py-6 text-sm text-neutral-500">
+                                  <Loader2 className="h-4 w-4 animate-spin" /> Loading leave detail…
+                                </div>
+                              ) : detail === 'error' ? (
+                                <div className="py-6 text-sm text-red-600">
+                                  Could not load detail.{' '}
+                                  <button
+                                    type="button"
+                                    onClick={() => void loadDetail(row.employeeId)}
+                                    className="underline"
+                                  >
+                                    Retry
+                                  </button>
+                                </div>
+                              ) : (
+                                <LeavePersonDetail data={detail} />
+                              )}
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </DashboardTable>
+            </DashboardTableViewport>
+          </DashboardAsyncState>
+        </DashboardTableCard>
+      ) : null}
+
       {section === 'calendar' && overview ? (
         <DashboardTableCard>
           {loading ? (
@@ -418,6 +603,17 @@ export function EmployeeLeavePanel() {
           )}
         </DashboardTableCard>
       ) : null}
+
+      <LeaveExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        endpoint="/api/outsourcing/leave/export"
+        year={year}
+        groupLabel="Department"
+        supportsCostCentre
+        people={roster.map((r) => ({ id: r.employeeId, name: r.employeeName }))}
+        extraParams={clientId ? { clientId } : undefined}
+      />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 /**
- * Bulk download CVs for shortlisted applications.
+ * Bulk download CVs for the selected applications.
  * POST { applicationIds: string[] }
- * Returns a zip of CVs. Only includes applications that are shortlisted and have a resume.
+ * Returns a zip of CVs for every selected application that has a resume on file,
+ * regardless of status.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import archiver from 'archiver';
@@ -114,13 +115,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch applications.' }, { status: 500 });
   }
 
-  const shortlistedWithResume = applications.filter(
-    (a) => a.status === 'shortlisted' && getResumePath(a)
-  );
+  const withResume = applications.filter((a) => getResumePath(a));
 
-  if (shortlistedWithResume.length === 0) {
+  if (withResume.length === 0) {
     return NextResponse.json(
-      { error: 'No shortlisted applications with CVs found in the selection.' },
+      { error: 'None of the selected applications have a CV on file.' },
       { status: 400 }
     );
   }
@@ -135,7 +134,7 @@ export async function POST(request: NextRequest) {
   });
 
   const usedNames = new Set<string>();
-  for (const app of shortlistedWithResume) {
+  for (const app of withResume) {
     const path = getResumePath(app);
     if (!path) continue;
     const buffer = await fetchResumeBuffer(path, baseUrl);
@@ -159,7 +158,7 @@ export async function POST(request: NextRequest) {
     status: 200,
     headers: {
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="shortlisted-cvs-${date}.zip"`,
+      'Content-Disposition': `attachment; filename="candidate-cvs-${date}.zip"`,
       'Content-Length': String(zipBuffer.length),
     },
   });

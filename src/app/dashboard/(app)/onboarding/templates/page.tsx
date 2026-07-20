@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { dashboardFilterSelectClass } from '@/components/dashboard/DashboardFilterBar';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type TemplateRow = {
   id: string;
@@ -24,10 +25,22 @@ type TemplateDetail = TemplateRow & {
     order: number;
     dueDaysOffset: number;
     isRequired: boolean;
+    taskType?: string;
+    formTemplateId?: string | null;
+    signatureDocumentTitle?: string | null;
   }>;
 };
 
+type FormTemplateOption = { id: string; name: string; isActive: boolean };
+
 const ROLES = ['hr', 'it', 'department_head', 'employee', 'admin'];
+
+const TASK_TYPE_OPTIONS = [
+  { value: 'CHECKLIST', label: 'Checklist' },
+  { value: 'FORM', label: 'Form (data collection)' },
+  { value: 'SIGNATURE', label: 'Signature (e-sign)' },
+  { value: 'DOCUMENT', label: 'Document (upload)' },
+];
 
 export default function OnboardingTemplatesPage() {
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
@@ -43,7 +56,11 @@ export default function OnboardingTemplatesPage() {
     assignedRole: 'hr',
     category: 'documents',
     dueDaysOffset: 3,
+    taskType: 'CHECKLIST',
+    formTemplateId: '',
+    signatureDocumentTitle: '',
   });
+  const [formTemplates, setFormTemplates] = useState<FormTemplateOption[]>([]);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -68,6 +85,24 @@ export default function OnboardingTemplatesPage() {
   useEffect(() => {
     void loadList();
   }, [loadList]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/onboarding/forms?active=true');
+        const data = await res.json();
+        if (!cancelled && res.ok && Array.isArray(data)) {
+          setFormTemplates(data.map((f: FormTemplateOption) => ({ id: f.id, name: f.name, isActive: f.isActive })));
+        }
+      } catch {
+        // Non-fatal: form selector simply stays empty.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedId) void loadDetail(selectedId);
@@ -98,13 +133,25 @@ export default function OnboardingTemplatesPage() {
 
   async function addStep() {
     if (!selectedId || !stepForm.title.trim()) return;
+    if (stepForm.taskType === 'FORM' && !stepForm.formTemplateId) {
+      setError('Choose a form template for FORM steps.');
+      return;
+    }
     setBusy(true);
+    setError(null);
     try {
       const res = await fetch(`/api/onboarding/templates/${selectedId}/steps`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...stepForm,
+          title: stepForm.title,
+          assignedRole: stepForm.assignedRole,
+          category: stepForm.category,
+          dueDaysOffset: stepForm.dueDaysOffset,
+          taskType: stepForm.taskType,
+          formTemplateId: stepForm.taskType === 'FORM' ? stepForm.formTemplateId : undefined,
+          signatureDocumentTitle:
+            stepForm.taskType === 'SIGNATURE' ? stepForm.signatureDocumentTitle || stepForm.title : undefined,
           order: (detail?.steps.length ?? 0) + 1,
         }),
       });
@@ -112,7 +159,7 @@ export default function OnboardingTemplatesPage() {
         const data = await res.json();
         throw new Error(data.error || 'Failed to add step');
       }
-      setStepForm((f) => ({ ...f, title: '' }));
+      setStepForm((f) => ({ ...f, title: '', formTemplateId: '', signatureDocumentTitle: '' }));
       await loadDetail(selectedId);
       await loadList();
     } catch (e) {
@@ -218,10 +265,16 @@ export default function OnboardingTemplatesPage() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
-            <select className={`${dashboardFilterSelectClass} w-full`} value={newType} onChange={(e) => setNewType(e.target.value)}>
-              <option value="ONBOARDING">Onboarding</option>
-              <option value="OFFBOARDING">Offboarding</option>
-            </select>
+            <StrideSelect
+              value={newType}
+              onChange={(value) => setNewType(value)}
+              options={[
+                { value: 'ONBOARDING', label: 'Onboarding' },
+                { value: 'OFFBOARDING', label: 'Offboarding' },
+              ]}
+              ariaLabel="Template type"
+              className="w-full"
+            />
             <button type="button" disabled={busy} className="btn-primary w-full" onClick={() => void createTemplate()}>
               <Plus className="mr-1 inline h-4 w-4" />
               Create template
@@ -266,7 +319,14 @@ export default function OnboardingTemplatesPage() {
                 {detail.steps.map((step) => (
                   <li key={step.id} className="flex items-start justify-between gap-2 rounded-lg border border-neutral-100 px-3 py-2 text-sm">
                     <div>
-                      <div className="font-medium">{step.order}. {step.title}</div>
+                      <div className="font-medium">
+                        {step.order}. {step.title}
+                        {step.taskType && step.taskType !== 'CHECKLIST' ? (
+                          <span className="ml-2 rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-700">
+                            {step.taskType}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="text-xs text-neutral-500">
                         {step.assignedRole} · {step.category ?? '—'} · due +{step.dueDaysOffset}d
                         {step.isRequired ? ' · required' : ''}
@@ -292,15 +352,12 @@ export default function OnboardingTemplatesPage() {
                   onChange={(e) => setStepForm((f) => ({ ...f, title: e.target.value }))}
                 />
                 <div className="grid grid-cols-2 gap-2">
-                  <select
-                    className={dashboardFilterSelectClass}
+                  <StrideSelect
                     value={stepForm.assignedRole}
-                    onChange={(e) => setStepForm((f) => ({ ...f, assignedRole: e.target.value }))}
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
+                    onChange={(value) => setStepForm((f) => ({ ...f, assignedRole: value }))}
+                    options={ROLES.map((r) => ({ value: r, label: r }))}
+                    ariaLabel="Assigned role"
+                  />
                   <input
                     className={dashboardFilterSelectClass}
                     placeholder="Category"
@@ -308,6 +365,31 @@ export default function OnboardingTemplatesPage() {
                     onChange={(e) => setStepForm((f) => ({ ...f, category: e.target.value }))}
                   />
                 </div>
+                <StrideSelect
+                  value={stepForm.taskType}
+                  onChange={(value) => setStepForm((f) => ({ ...f, taskType: value }))}
+                  options={TASK_TYPE_OPTIONS}
+                  ariaLabel="Task type"
+                  className="w-full"
+                />
+                {stepForm.taskType === 'FORM' ? (
+                  <StrideSelect
+                    value={stepForm.formTemplateId}
+                    onChange={(value) => setStepForm((f) => ({ ...f, formTemplateId: value }))}
+                    options={formTemplates.map((t) => ({ value: t.id, label: t.name }))}
+                    placeholder={formTemplates.length ? 'Choose a form template…' : 'No active forms — create one first'}
+                    ariaLabel="Form template"
+                    className="w-full"
+                  />
+                ) : null}
+                {stepForm.taskType === 'SIGNATURE' ? (
+                  <input
+                    className={`${dashboardFilterSelectClass} w-full`}
+                    placeholder="Document title to sign (defaults to step title)"
+                    value={stepForm.signatureDocumentTitle}
+                    onChange={(e) => setStepForm((f) => ({ ...f, signatureDocumentTitle: e.target.value }))}
+                  />
+                ) : null}
                 <button type="button" disabled={busy} className="btn-secondary w-full" onClick={() => void addStep()}>
                   {busy ? <Loader2 className="inline h-4 w-4 animate-spin" /> : 'Add step'}
                 </button>

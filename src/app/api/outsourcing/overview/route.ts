@@ -20,6 +20,12 @@ export async function GET(request: NextRequest) {
       const todayStr = now.toISOString().slice(0, 10);
       const startToday = new Date(`${todayStr}T00:00:00.000Z`);
       const endToday = new Date(`${todayStr}T23:59:59.999Z`);
+      const monthStart = new Date(Date.UTC(year, month - 1, 1));
+      const monthEnd = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+
+      const outsourcedEmployee = {
+        client: { organizationId: ctx.organizationId },
+      } as const;
 
       const [
         endClientCount,
@@ -29,31 +35,33 @@ export async function GET(request: NextRequest) {
         pendingLeaveApprovals,
         onLeaveToday,
         payrollRunsThisMonth,
+        openAttendanceExceptions,
+        openDisciplinaryCases,
+        invoicesThisMonth,
+        openRpoJobs,
       ] = await ctx.run((tx) =>
         Promise.all([
           tx.outsourcingClient.count({ where: { organizationId: ctx.organizationId } }),
           tx.outsourcingClient.count({
             where: { organizationId: ctx.organizationId, status: 'active' },
           }),
-          tx.employee.count({
-            where: { client: { organizationId: ctx.organizationId } },
-          }),
+          tx.employee.count({ where: outsourcedEmployee }),
           tx.employee.count({
             where: {
-              client: { organizationId: ctx.organizationId },
+              ...outsourcedEmployee,
               employmentStatus: 'active',
             },
           }),
           tx.leaveApplication.count({
             where: {
               status: 'pending',
-              employee: { client: { organizationId: ctx.organizationId } },
+              employee: outsourcedEmployee,
             },
           }),
           tx.leaveApplication.count({
             where: {
               status: 'approved',
-              employee: { client: { organizationId: ctx.organizationId } },
+              employee: outsourcedEmployee,
               startDate: { lte: endToday },
               endDate: { gte: startToday },
             },
@@ -62,7 +70,34 @@ export async function GET(request: NextRequest) {
             where: {
               month,
               year,
-              employee: { client: { organizationId: ctx.organizationId } },
+              employee: outsourcedEmployee,
+            },
+          }),
+          tx.attendanceException.count({
+            where: {
+              status: 'open',
+              employee: outsourcedEmployee,
+            },
+          }),
+          tx.disciplinaryCase.count({
+            where: {
+              organizationId: ctx.organizationId,
+              status: { notIn: ['RESOLVED', 'CLOSED'] },
+              employee: outsourcedEmployee,
+            },
+          }),
+          tx.accountsInvoice.count({
+            where: {
+              organizationId: ctx.organizationId,
+              issueDate: { gte: monthStart, lte: monthEnd },
+              accountsClient: { outsourcingClientId: { not: null } },
+            },
+          }),
+          tx.job.count({
+            where: {
+              organizationId: ctx.organizationId,
+              outsourcingClientId: { not: null },
+              isActive: true,
             },
           }),
         ]),
@@ -73,6 +108,10 @@ export async function GET(request: NextRequest) {
         workforce: { total: workforceTotal, active: activeWorkforce },
         leave: { pendingApprovals: pendingLeaveApprovals, onLeaveToday },
         payroll: { runsThisMonth: payrollRunsThisMonth, month, year },
+        attendance: { openExceptions: openAttendanceExceptions },
+        disciplinary: { openCases: openDisciplinaryCases },
+        billing: { invoicesThisMonth },
+        rpo: { openJobs: openRpoJobs },
       });
     } catch (error) {
       await reportApiError({

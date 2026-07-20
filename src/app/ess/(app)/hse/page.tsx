@@ -32,7 +32,7 @@ export default function EssHsePage() {
     <div className="space-y-5">
       <EssPageHeader
         title="Health & safety"
-        subtitle="Report incidents, near-misses, and workplace hazards for HR/HSE follow-up."
+        subtitle="Report incidents, near-misses, and hazards."
         backHref="/ess/more"
       />
       <Link

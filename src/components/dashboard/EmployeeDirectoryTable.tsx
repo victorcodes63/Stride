@@ -102,9 +102,11 @@ function formatJoinDate(iso: string | null) {
 function RowActionsMenu({
   employee,
   onCopyEmail,
+  editBasePath,
 }: {
   employee: EmployeeDirectoryRecord;
   onCopyEmail: () => void;
+  editBasePath: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -132,7 +134,7 @@ function RowActionsMenu({
       {open ? (
         <div className="absolute right-0 top-full z-30 mt-1 w-48 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
           <Link
-            href={`/dashboard/employees/${employee.id}/edit`}
+            href={`${editBasePath}/${employee.id}/edit`}
             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
             onClick={() => setOpen(false)}
           >
@@ -270,6 +272,8 @@ type EmployeeDirectoryTableProps = {
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: () => void;
   showClientColumn?: boolean;
+  /** Profile/edit path prefix. Defaults to core HR; BPO passes `/dashboard/outsourcing/employees`. */
+  editBasePath?: string;
 };
 
 export default function EmployeeDirectoryTable({
@@ -278,6 +282,7 @@ export default function EmployeeDirectoryTable({
   onToggleSelect,
   onToggleSelectAll,
   showClientColumn = false,
+  editBasePath = '/dashboard/employees',
 }: EmployeeDirectoryTableProps) {
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -393,7 +398,7 @@ export default function EmployeeDirectoryTable({
                         </div>
                         <div className="min-w-0">
                           <Link
-                            href={`/dashboard/employees/${employee.id}/edit`}
+                            href={`${editBasePath}/${employee.id}/edit`}
                             className="block truncate font-medium text-ink hover:text-primary-700"
                           >
                             {fullName}
@@ -474,7 +479,11 @@ export default function EmployeeDirectoryTable({
                       </div>
                     </td>
                     <td className="col-actions px-3 py-3 align-middle">
-                      <RowActionsMenu employee={employee} onCopyEmail={() => void copyEmail(employee)} />
+                      <RowActionsMenu
+                        employee={employee}
+                        onCopyEmail={() => void copyEmail(employee)}
+                        editBasePath={editBasePath}
+                      />
                     </td>
                   </tr>
                   {expanded ? (

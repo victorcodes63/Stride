@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toCSV } from '@/lib/report-export';
 import {
   assertReportsStaffRole,
-  downloadHeaders,
-  jsonOrPdf,
   parseFormat,
   parsePeriod,
+  respondWithReport,
 } from '@/app/api/reports/_shared';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
 
 function asNumber(value: unknown): number {
   return Number(value ?? 0);
@@ -104,22 +104,15 @@ export async function GET(request: NextRequest) {
       averageSalary: payrollRows.length > 0 ? Math.round((totalGross / payrollRows.length) * 100) / 100 : 0,
     };
 
-    if (format === 'csv') {
-      const csv = toCSV(
-        ['Department', 'Gross', 'Net'],
-        report.byDepartment.map((row) => [row.department, row.gross.toFixed(2), row.net.toFixed(2)]),
-      );
-      return new NextResponse(csv, {
-        headers: downloadHeaders('text/csv', `payroll-cost-${periodLabel}.csv`),
-      });
-    }
-
-    return jsonOrPdf(
+    return respondWithReport({
       format,
-      report,
-      'Payroll Cost Report',
-      `payroll-cost-${periodLabel}.pdf`,
-      [
+      json: report,
+      title: 'Payroll Cost Report',
+      sheetName: 'Payroll cost',
+      baseFilename: `payroll-cost-${periodLabel}`,
+      headers: ['Department', 'Gross', 'Net'],
+      rows: report.byDepartment.map((row) => [row.department, row.gross.toFixed(2), row.net.toFixed(2)]),
+      summaryLines: [
         `Period: ${periodLabel}`,
         `Headcount: ${report.headcount}`,
         `Total gross: ${report.totalGross.toFixed(2)}`,
@@ -130,6 +123,6 @@ export async function GET(request: NextRequest) {
         `AHL: ${report.totalAHL.toFixed(2)}`,
         `NITA: ${report.totalNITA.toFixed(2)}`,
       ],
-    );
+    });
   });
 }

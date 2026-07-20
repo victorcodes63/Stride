@@ -9,6 +9,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTableToolbar } from '@/components/dashboard/DashboardDataTable';
 import { dashboardFilterInputClass, dashboardFilterSelectClass } from '@/components/dashboard/DashboardFilterBar';
+import { StrideSelect } from '@/components/ui/stride-select';
 import { AttendanceWorkSitesPanel } from '@/components/dashboard/AttendanceWorkSitesPanel';
 import { dashStatusChip } from '@/lib/dashboard-status-chips';
 
@@ -62,6 +63,9 @@ function OutsourcingAttendancePageInner() {
  const [kind, setKind] = useState<'check_in' | 'check_out'>('check_in');
  const [summaries, setSummaries] = useState<Summary[]>([]);
  const [exceptions, setExceptions] = useState<Exception[]>([]);
+ const [employees, setEmployees] = useState<
+  Array<{ id: string; firstName: string; lastName: string; employeeNumber: string | null }>
+ >([]);
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
 
@@ -97,6 +101,33 @@ function OutsourcingAttendancePageInner() {
  useEffect(() => {
  void load();
  }, [clientId, from, to, region, activeEntity.id]);
+
+ useEffect(() => {
+  if (!clientId) {
+   setEmployees([]);
+   return;
+  }
+  let cancelled = false;
+  void fetch(`/api/outsourcing/employees?clientId=${encodeURIComponent(clientId)}`)
+   .then((r) => r.json())
+   .then((data) => {
+    if (cancelled || !Array.isArray(data)) return;
+    setEmployees(
+     data.map((e: { id: string; firstName: string; lastName: string; employeeNumber: string | null }) => ({
+      id: e.id,
+      firstName: e.firstName,
+      lastName: e.lastName,
+      employeeNumber: e.employeeNumber,
+     })),
+    );
+   })
+   .catch(() => {
+    if (!cancelled) setEmployees([]);
+   });
+  return () => {
+   cancelled = true;
+  };
+ }, [clientId]);
 
  const openExceptions = useMemo(() => exceptions.filter((item) => item.status === 'open').length, [exceptions]);
  const exceptionByEmployeeDate = useMemo(() => {
@@ -156,16 +187,16 @@ function OutsourcingAttendancePageInner() {
   onChange={setClientId}
   className={dashboardFilterSelectClass}
  />
- <select
+ <StrideSelect
  value={region}
- onChange={(e) => setRegion(e.target.value as 'all' | 'uganda' | 'kenya')}
- className={dashboardFilterSelectClass}
- aria-label="Country / operation"
- >
- <option value="all">All countries (Uganda & Kenya)</option>
- <option value="uganda">Uganda operations (STB-UG…)</option>
- <option value="kenya">Kenya operations (STB-KE…)</option>
- </select>
+ onChange={(value) => setRegion(value as 'all' | 'uganda' | 'kenya')}
+ options={[
+ { value: 'all', label: 'All countries (Uganda & Kenya)' },
+ { value: 'uganda', label: 'Uganda operations (STB-UG…)' },
+ { value: 'kenya', label: 'Kenya operations (STB-KE…)' },
+ ]}
+ ariaLabel="Country / operation"
+ />
  <input
  type="date"
  value={from}
@@ -193,11 +224,17 @@ function OutsourcingAttendancePageInner() {
  Manual attendance override
  </h2>
  <div className="grid gap-2 sm:grid-cols-4">
- <input
+ <StrideSelect
  value={employeeId}
- onChange={(e) => setEmployeeId(e.target.value)}
- placeholder="Employee ID"
- className={dashboardFilterInputClass}
+ onChange={(value) => setEmployeeId(value)}
+ options={[
+ { value: '', label: 'Select employee…' },
+ ...employees.map((emp) => ({
+ value: emp.id,
+ label: `${emp.employeeNumber ? `${emp.employeeNumber} — ` : ''}${emp.firstName} ${emp.lastName}`,
+ })),
+ ]}
+ ariaLabel="Employee"
  />
  <input
  type="datetime-local"
@@ -205,14 +242,15 @@ function OutsourcingAttendancePageInner() {
  onChange={(e) => setObservedAt(e.target.value)}
  className={dashboardFilterInputClass}
  />
- <select
+ <StrideSelect
  value={kind}
- onChange={(e) => setKind(e.target.value as 'check_in' | 'check_out')}
- className={dashboardFilterSelectClass}
- >
- <option value="check_in">Check in</option>
- <option value="check_out">Check out</option>
- </select>
+ onChange={(value) => setKind(value as 'check_in' | 'check_out')}
+ options={[
+ { value: 'check_in', label: 'Check in' },
+ { value: 'check_out', label: 'Check out' },
+ ]}
+ ariaLabel="Event type"
+ />
  <button
  type="button"
  onClick={() => void addManualEvent()}

@@ -13,7 +13,6 @@ describe('outsourcing-billing (OUT-07)', () => {
         lines: [
           {
             label: 'Per employee / month',
-            serviceKey: 'per_head',
             pricingModel: 'per_head',
             unitAmount: '3500',
             percentageBps: null,

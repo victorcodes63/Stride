@@ -6,9 +6,9 @@
 :root {
   /* Canvas & surfaces — Stride Paper (warm cream) */
   --dash-canvas: var(--stride-paper, #fbf8f4);
-  --dash-canvas-gradient-1: rgba(255, 84, 54, 0.1);
+  --dash-canvas-gradient-1: rgba(var(--stride-coral-rgb), 0.1);
   --dash-canvas-gradient-2: rgba(26, 23, 20, 0.06);
-  --dash-canvas-gradient-3: rgba(255, 84, 54, 0.05);
+  --dash-canvas-gradient-3: rgba(var(--stride-coral-rgb), 0.05);
   --dash-surface: rgba(255, 255, 255, 0.92);
   --dash-surface-solid: #ffffff;
   --dash-surface-raised: rgba(255, 255, 255, 0.97);
@@ -42,7 +42,7 @@
   --dash-hover: #f4efe8;
   --dash-input-bg: rgba(255, 255, 255, 0.9);
   --dash-input-border: #e6ded4;
-  --dash-focus-ring: rgba(255, 84, 54, 0.3);
+  --dash-focus-ring: rgba(var(--stride-coral-rgb), 0.3);
 
   /* Elevation — ink shadows */
   --dash-shadow-sm: 0 1px 2px rgba(26, 23, 20, 0.04);
@@ -87,32 +87,32 @@
   --swatch-yellow-border: #fef08a;
   --swatch-coral-bg: var(--brand-primary-subtle, #ffe9e4);
   --swatch-coral-fg: var(--color-primary-800, #ad3925);
-  --swatch-coral-accent: var(--brand-primary, #ff5436);
+  --swatch-coral-accent: var(--brand-primary, var(--stride-coral));
   --swatch-coral-border: var(--color-primary-200, #ffcfc7);
 
   /* Hero banner — flat Stride coral (matches btn-primary) */
   --dash-hero-border: rgba(255, 255, 255, 0.2);
-  --dash-hero-gradient: var(--brand-primary, #ff5436);
+  --dash-hero-gradient: var(--brand-primary, var(--stride-coral));
   --dash-hero-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 12px 32px rgba(255, 84, 54, 0.35);
+    0 12px 32px rgba(var(--stride-coral-rgb), 0.35);
   --dash-hero-glow-tr: transparent;
   --dash-hero-glow-bl: transparent;
   --dash-hero-radial: none;
   --dash-hero-vignette: none;
 
   /* Table zebra — light surfaces */
-  --dashboard-table-stripe-primary: color-mix(in srgb, var(--brand-primary, #ff5436) 7%, var(--dash-surface-solid));
+  --dashboard-table-stripe-primary: color-mix(in srgb, var(--brand-primary, var(--stride-coral)) 7%, var(--dash-surface-solid));
   --dashboard-table-stripe-secondary: color-mix(in srgb, var(--brand-navy, #1a1714) 4%, var(--dash-surface-solid));
-  --dashboard-table-stripe-hover: color-mix(in srgb, var(--brand-primary, #ff5436) 13%, var(--dash-surface-solid));
+  --dashboard-table-stripe-hover: color-mix(in srgb, var(--brand-primary, var(--stride-coral)) 13%, var(--dash-surface-solid));
 }
 
 html.dark {
   color-scheme: dark;
 
-  /* Stride dark = ink black + coral only */
+  /* Stride dark = ink black + brand accent (tenant-overridable) */
   --stride-ink: #1a1714;
-  --stride-coral: #ff5436;
+  --stride-coral: var(--brand-primary);
   --stride-paper: #0a0908;
 
   --brand-canvas: #000000;
@@ -125,9 +125,9 @@ html.dark {
   --neutral-900: #ffffff;
 
   --dash-canvas: #000000;
-  --dash-canvas-gradient-1: rgba(255, 84, 54, 0.1);
-  --dash-canvas-gradient-2: rgba(255, 84, 54, 0.03);
-  --dash-canvas-gradient-3: rgba(255, 84, 54, 0.06);
+  --dash-canvas-gradient-1: rgba(var(--stride-coral-rgb), 0.1);
+  --dash-canvas-gradient-2: rgba(var(--stride-coral-rgb), 0.03);
+  --dash-canvas-gradient-3: rgba(var(--stride-coral-rgb), 0.06);
   /* Elevation: canvas (0) → panel → nested card → inset well */
   --dash-surface: #141210;
   --dash-surface-solid: #141210;
@@ -156,7 +156,7 @@ html.dark {
   --dash-hover: #1a1714;
   --dash-input-bg: #0a0908;
   --dash-input-border: rgba(255, 255, 255, 0.1);
-  --dash-focus-ring: rgba(255, 84, 54, 0.45);
+  --dash-focus-ring: rgba(var(--stride-coral-rgb), 0.45);
 
   --dash-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05);
   --dash-shadow-md:
@@ -171,60 +171,60 @@ html.dark {
     0 10px 36px rgba(0, 0, 0, 0.55);
 
   /* Status = coral tint on black (no green/amber/blue) */
-  --dash-success-bg: rgba(255, 84, 54, 0.08);
-  --dash-success-fg: #ff8a72;
-  --dash-success-border: rgba(255, 84, 54, 0.22);
-  --dash-warning-bg: rgba(255, 84, 54, 0.12);
-  --dash-warning-fg: #ff5436;
-  --dash-warning-border: rgba(255, 84, 54, 0.35);
-  --dash-danger-bg: rgba(255, 84, 54, 0.14);
-  --dash-danger-fg: #ff5436;
-  --dash-danger-border: rgba(255, 84, 54, 0.4);
+  --dash-success-bg: rgba(var(--stride-coral-rgb), 0.08);
+  --dash-success-fg: color-mix(in srgb, var(--stride-coral) 62%, #ffffff);
+  --dash-success-border: rgba(var(--stride-coral-rgb), 0.22);
+  --dash-warning-bg: rgba(var(--stride-coral-rgb), 0.12);
+  --dash-warning-fg: var(--stride-coral);
+  --dash-warning-border: rgba(var(--stride-coral-rgb), 0.35);
+  --dash-danger-bg: rgba(var(--stride-coral-rgb), 0.14);
+  --dash-danger-fg: var(--stride-coral);
+  --dash-danger-border: rgba(var(--stride-coral-rgb), 0.4);
 
   /* All KPI swatches → coral on black */
-  --swatch-sky-bg: rgba(255, 84, 54, 0.06);
+  --swatch-sky-bg: rgba(var(--stride-coral-rgb), 0.06);
   --swatch-sky-fg: rgba(255, 255, 255, 0.85);
-  --swatch-sky-accent: #ff5436;
-  --swatch-sky-border: rgba(255, 84, 54, 0.2);
-  --swatch-emerald-bg: rgba(255, 84, 54, 0.06);
+  --swatch-sky-accent: var(--stride-coral);
+  --swatch-sky-border: rgba(var(--stride-coral-rgb), 0.2);
+  --swatch-emerald-bg: rgba(var(--stride-coral-rgb), 0.06);
   --swatch-emerald-fg: rgba(255, 255, 255, 0.85);
-  --swatch-emerald-accent: #ff5436;
-  --swatch-emerald-border: rgba(255, 84, 54, 0.2);
-  --swatch-amber-bg: rgba(255, 84, 54, 0.08);
+  --swatch-emerald-accent: var(--stride-coral);
+  --swatch-emerald-border: rgba(var(--stride-coral-rgb), 0.2);
+  --swatch-amber-bg: rgba(var(--stride-coral-rgb), 0.08);
   --swatch-amber-fg: rgba(255, 255, 255, 0.72);
-  --swatch-amber-accent: #ff5436;
-  --swatch-amber-border: rgba(255, 84, 54, 0.28);
-  --swatch-violet-bg: rgba(255, 84, 54, 0.06);
+  --swatch-amber-accent: var(--stride-coral);
+  --swatch-amber-border: rgba(var(--stride-coral-rgb), 0.28);
+  --swatch-violet-bg: rgba(var(--stride-coral-rgb), 0.06);
   --swatch-violet-fg: rgba(255, 255, 255, 0.85);
-  --swatch-violet-accent: #ff5436;
-  --swatch-violet-border: rgba(255, 84, 54, 0.2);
-  --swatch-rose-bg: rgba(255, 84, 54, 0.08);
+  --swatch-violet-accent: var(--stride-coral);
+  --swatch-violet-border: rgba(var(--stride-coral-rgb), 0.2);
+  --swatch-rose-bg: rgba(var(--stride-coral-rgb), 0.08);
   --swatch-rose-fg: rgba(255, 255, 255, 0.85);
-  --swatch-rose-accent: #ff5436;
-  --swatch-rose-border: rgba(255, 84, 54, 0.25);
-  --swatch-yellow-bg: rgba(255, 84, 54, 0.08);
+  --swatch-rose-accent: var(--stride-coral);
+  --swatch-rose-border: rgba(var(--stride-coral-rgb), 0.25);
+  --swatch-yellow-bg: rgba(var(--stride-coral-rgb), 0.08);
   --swatch-yellow-fg: rgba(255, 255, 255, 0.72);
-  --swatch-yellow-accent: #ff5436;
-  --swatch-yellow-border: rgba(255, 84, 54, 0.22);
-  --swatch-coral-bg: rgba(255, 84, 54, 0.1);
+  --swatch-yellow-accent: var(--stride-coral);
+  --swatch-yellow-border: rgba(var(--stride-coral-rgb), 0.22);
+  --swatch-coral-bg: rgba(var(--stride-coral-rgb), 0.1);
   --swatch-coral-fg: #ffffff;
-  --swatch-coral-accent: #ff5436;
-  --swatch-coral-border: rgba(255, 84, 54, 0.3);
+  --swatch-coral-accent: var(--stride-coral);
+  --swatch-coral-border: rgba(var(--stride-coral-rgb), 0.3);
 
-  --brand-primary-subtle: rgba(255, 84, 54, 0.12);
+  --brand-primary-subtle: rgba(var(--stride-coral-rgb), 0.12);
   --brand-navy-subtle: #111111;
 
   /* Table zebra — subtle tints on dark surfaces (readable with white text) */
-  --dashboard-table-stripe-primary: color-mix(in srgb, var(--brand-primary, #ff5436) 11%, var(--dash-surface-solid));
+  --dashboard-table-stripe-primary: color-mix(in srgb, var(--brand-primary, var(--stride-coral)) 11%, var(--dash-surface-solid));
   --dashboard-table-stripe-secondary: color-mix(in srgb, #ffffff 5%, var(--dash-surface-solid));
-  --dashboard-table-stripe-hover: color-mix(in srgb, var(--brand-primary, #ff5436) 17%, var(--dash-surface-raised));
+  --dashboard-table-stripe-hover: color-mix(in srgb, var(--brand-primary, var(--stride-coral)) 17%, var(--dash-surface-raised));
 
   /* Hero — flat Stride coral (matches btn-primary) */
   --dash-hero-border: rgba(255, 255, 255, 0.16);
-  --dash-hero-gradient: var(--brand-primary, #ff5436);
+  --dash-hero-gradient: var(--brand-primary, var(--stride-coral));
   --dash-hero-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 12px 36px rgba(255, 84, 54, 0.4);
+    0 12px 36px rgba(var(--stride-coral-rgb), 0.4);
   --dash-hero-glow-tr: transparent;
   --dash-hero-glow-bl: transparent;
   --dash-hero-radial: none;
@@ -247,13 +247,21 @@ html.dark {
   overflow: hidden;
   border-radius: 1rem;
   border: 1px solid var(--dash-border-glass);
-  background: var(--dash-surface);
+  /* Solid background instead of a translucent + backdrop-filter surface.
+     Large backdrop-filtered cards fail to repaint in Chromium after being
+     scrolled out of and back into view, leaving them blank until a forced
+     redraw. The surface was ~92% opaque anyway, so this looks essentially
+     identical and matches the dark theme, which is already solid + blur-free. */
+  background: var(--dash-surface-solid);
   box-shadow: var(--dash-shadow-sm), var(--dash-shadow-md);
-  backdrop-filter: blur(8px);
 }
 
-/* Page header cards expose action menus that must not clip dropdowns. */
+/* Page header cards expose action menus that must not clip dropdowns.
+   Raise the header above sibling surfaces (stat cards, tables) so its
+   dropdowns render on top, while staying below the sticky top bar (z-30). */
 .dashboard-page-header-surface {
+  position: relative;
+  z-index: 20;
   overflow: visible;
 }
 
@@ -594,7 +602,7 @@ html.dark .skeleton {
 }
 
 .dash-workspace-link:hover {
-  border-color: rgba(255, 84, 54, 0.35);
+  border-color: rgba(var(--stride-coral-rgb), 0.35);
   background: var(--dash-hover);
 }
 
@@ -607,7 +615,7 @@ html.dark .skeleton {
 
 .dash-workspace-link:hover .dash-workspace-icon {
   color: var(--stride-coral);
-  border-color: rgba(255, 84, 54, 0.3);
+  border-color: rgba(var(--stride-coral-rgb), 0.3);
 }
 
 html.dark .dash-workspace-link {
@@ -634,9 +642,9 @@ html.dark .dash-workspace-icon {
 }
 
 html.dark .dash-icon-well {
-  background: rgba(255, 84, 54, 0.12);
-  color: #ff5436;
-  box-shadow: 0 0 0 1px rgba(255, 84, 54, 0.24);
+  background: rgba(var(--stride-coral-rgb), 0.12);
+  color: var(--stride-coral);
+  box-shadow: 0 0 0 1px rgba(var(--stride-coral-rgb), 0.24);
 }
 
 /* Workspace shortcuts — muted icons/chevrons at rest, coral on hover */
@@ -653,7 +661,7 @@ html.dark .dash-workspace-link .dash-icon-well {
 }
 
 html.dark .dash-workspace-link:hover .dash-icon-well {
-  color: #ff5436;
+  color: var(--stride-coral);
 }
 
 .dash-workspace-chevron {
@@ -676,28 +684,28 @@ html.dark .dash-shortcut-pin {
 }
 
 .dash-coral-cta {
-  border-color: rgba(255, 84, 54, 0.4);
+  border-color: rgba(var(--stride-coral-rgb), 0.4);
   background: transparent;
   color: var(--dash-text-strong);
 }
 
 .dash-coral-cta:hover {
-  background: rgba(255, 84, 54, 0.12);
+  background: rgba(var(--stride-coral-rgb), 0.12);
   color: #ffffff;
-  border-color: rgba(255, 84, 54, 0.55);
+  border-color: rgba(var(--stride-coral-rgb), 0.55);
 }
 
 .dash-coral-icon-wrap {
-  border: 1px solid rgba(255, 84, 54, 0.3);
-  background: rgba(255, 84, 54, 0.1);
-  color: #ff5436;
+  border: 1px solid rgba(var(--stride-coral-rgb), 0.3);
+  background: rgba(var(--stride-coral-rgb), 0.1);
+  color: var(--stride-coral);
   box-shadow: none;
 }
 
 html.dark .dash-coral-icon-wrap {
-  border-color: rgba(255, 84, 54, 0.35);
-  background: rgba(255, 84, 54, 0.12);
-  color: #ff5436;
+  border-color: rgba(var(--stride-coral-rgb), 0.35);
+  background: rgba(var(--stride-coral-rgb), 0.12);
+  color: var(--stride-coral);
 }
 
 
@@ -705,9 +713,8 @@ html.dark .dash-coral-icon-wrap {
   border-radius: 1rem;
   padding: 1rem;
   border: 1px solid var(--dash-border);
-  background: var(--dash-surface-raised);
+  background: var(--dash-surface-solid);
   box-shadow: var(--dash-shadow-sm), 0 6px 16px rgba(26, 23, 20, 0.04);
-  backdrop-filter: blur(8px);
 }
 
 .dashboard-inline-form {
@@ -796,9 +803,8 @@ html.dark .dashboard-canvas .from-primary-50\/40 {
   overflow: hidden;
   border: 1px solid var(--dash-border-glass);
   border-radius: var(--radius-xl);
-  background: var(--dash-surface);
+  background: var(--dash-surface-solid);
   box-shadow: var(--dash-shadow-sm), var(--dash-shadow-md);
-  backdrop-filter: blur(8px);
 }
 
 .dashboard-canvas .data-table thead th,
@@ -824,6 +830,32 @@ html[data-table-zebra='false'] .dashboard-data-table tbody tr:hover,
 html:not([data-table-zebra]) .data-table tbody tr:hover,
 html:not([data-table-zebra]) .dashboard-data-table tbody tr:hover {
   background: var(--dash-hover);
+}
+
+/* Payroll grouped view — solid, distinct department header + subtotal bands.
+   Driven by theme-aware --dash-surface-solid so they stay opaque and correct
+   across light, dark, and the zebra-off ("white & gray") table mode. Painting
+   the background on the <td> (not the <tr>) keeps it above zebra striping. */
+.payroll-group-header td {
+  background: color-mix(in srgb, var(--brand-primary) 15%, var(--dash-surface-solid));
+  color: var(--dash-text-strong);
+  box-shadow: inset 3px 0 0 var(--brand-primary);
+  border-top: 1px solid var(--dash-border);
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.payroll-subtotal-row td {
+  background: color-mix(in srgb, var(--brand-primary) 7%, var(--dash-surface-solid));
+  color: var(--dash-text-strong);
+  border-top: 1px solid var(--dash-border);
+}
+
+html.dark .payroll-group-header td {
+  background: color-mix(in srgb, var(--brand-primary) 26%, var(--dash-surface-solid));
+}
+
+html.dark .payroll-subtotal-row td {
+  background: color-mix(in srgb, #ffffff 8%, var(--dash-surface-solid));
 }
 
 .skeleton {
@@ -1282,13 +1314,13 @@ html.dark .dash-popover .text-primary-600,
 html.dark .dash-popover .text-primary-700,
 html.dark .dash-popover .text-primary-800,
 html.dark .dash-popover .text-primary-900 {
-  color: var(--brand-primary, #ff5436);
+  color: var(--brand-primary, var(--stride-coral));
 }
 
 html.dark .dash-popover a.text-primary-700,
 html.dark .dash-popover a.text-primary-800,
 html.dark .dash-popover a.hover\:text-primary-800:hover {
-  color: var(--brand-primary, #ff5436);
+  color: var(--brand-primary, var(--stride-coral));
 }
 
 html.dark .dash-popover .bg-neutral-50,
@@ -1513,7 +1545,7 @@ html.dark .dashboard-canvas .ring-1 {
 }
 
 html.dark .dashboard-canvas .ring-primary-200\/50 {
-  --tw-ring-color: rgba(255, 84, 54, 0.28);
+  --tw-ring-color: rgba(var(--stride-coral-rgb), 0.28);
 }
 
 .dashboard-canvas .shadow-sm,
@@ -1691,13 +1723,13 @@ html.dark .dashboard-canvas .ring-primary-200\/50 {
   font-size: 0.875rem;
   font-weight: 600;
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(255, 84, 54, 0.22);
+  box-shadow: 0 2px 6px rgba(var(--stride-coral-rgb), 0.22);
   transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
 .dash-auth-submit:hover:not(:disabled) {
   background: var(--brand-primary-hover);
-  box-shadow: 0 4px 10px rgba(255, 84, 54, 0.28);
+  box-shadow: 0 4px 10px rgba(var(--stride-coral-rgb), 0.28);
 }
 
 .dash-auth-submit:focus-visible {
@@ -1789,7 +1821,7 @@ html:not(.dark) .public-app .auth-split-form {
 
 html:not(.dark) .public-app .auth-split-form-mesh {
   background:
-    radial-gradient(ellipse 65% 50% at 92% 6%, rgba(255, 84, 54, 0.1) 0%, transparent 58%),
+    radial-gradient(ellipse 65% 50% at 92% 6%, rgba(var(--stride-coral-rgb), 0.1) 0%, transparent 58%),
     radial-gradient(ellipse 55% 45% at 8% 88%, rgba(26, 23, 20, 0.05) 0%, transparent 52%);
 }
 
@@ -1822,8 +1854,8 @@ html.dark .public-app:has(.auth-split-form) .auth-split-form {
 
 html.dark .public-app .auth-split-form-mesh {
   background:
-    radial-gradient(ellipse 65% 50% at 92% 6%, rgba(255, 84, 54, 0.08) 0%, transparent 58%),
-    radial-gradient(ellipse 55% 45% at 8% 88%, rgba(255, 84, 54, 0.05) 0%, transparent 52%);
+    radial-gradient(ellipse 65% 50% at 92% 6%, rgba(var(--stride-coral-rgb), 0.08) 0%, transparent 58%),
+    radial-gradient(ellipse 55% 45% at 8% 88%, rgba(var(--stride-coral-rgb), 0.05) 0%, transparent 52%);
 }
 
 html.dark .public-app .auth-split-form-glow {
@@ -1879,7 +1911,7 @@ html.dark .public-app .dash-auth-oauth-btn {
 
 html.dark .public-app .dash-auth-oauth-btn:hover {
   background: var(--dash-hover);
-  border-color: rgba(255, 84, 54, 0.28);
+  border-color: rgba(var(--stride-coral-rgb), 0.28);
 }
 
 html.dark .public-app .dash-auth-divider-label {
@@ -1961,7 +1993,7 @@ html.dark .dashboard-canvas .text-amber-800 {
 
 /* Nav active rail */
 html.dark .dashboard-canvas .bg-primary-200 {
-  background-color: rgba(255, 84, 54, 0.35);
+  background-color: rgba(var(--stride-coral-rgb), 0.35);
 }
 
 html.dark body:has(.dashboard-canvas),
@@ -1972,7 +2004,7 @@ html.dark body:has(.auth-split-form) {
 
 html.dark .dashboard-canvas .bg-emerald-500,
 html.dark .dashboard-canvas .bg-amber-500 {
-  background-color: #ff5436;
+  background-color: var(--stride-coral);
 }
 
 html.dark .dashboard-canvas .text-neutral-400 {
@@ -2237,6 +2269,120 @@ html.dark .dash-readiness-badge {
 .dash-setup-notice--info {
   border-color: color-mix(in srgb, var(--brand-primary) 28%, var(--dash-border));
   background: color-mix(in srgb, var(--brand-primary) 8%, var(--dash-surface-muted));
+}
+
+/* Branding & white-label surface --------------------------------------- */
+.dash-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-muted);
+  color: var(--dash-text-muted);
+  white-space: nowrap;
+}
+
+.dash-brand-badge--included {
+  border-color: color-mix(in srgb, var(--brand-primary) 30%, var(--dash-border));
+  background: color-mix(in srgb, var(--brand-primary) 12%, var(--dash-surface-raised));
+  color: var(--dash-text-strong);
+}
+
+.dash-brand-badge--addon {
+  border-color: color-mix(in srgb, #7c3aed 40%, var(--dash-border));
+  background: color-mix(in srgb, #7c3aed 12%, var(--dash-surface-raised));
+  color: color-mix(in srgb, #7c3aed 70%, var(--dash-text-strong));
+}
+
+.dash-brand-badge--locked {
+  opacity: 0.85;
+}
+
+/* Read-only "what your plan unlocks" boundary strip. */
+.dash-brand-boundary {
+  border-radius: 0.75rem;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-raised);
+  padding: 1rem 1.25rem;
+}
+
+.dash-brand-boundary-managed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--dash-text-muted);
+}
+
+.dash-brand-entitlement-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.dash-brand-entitlement-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-muted);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* Live preview pane. */
+.dash-brand-preview {
+  position: sticky;
+  top: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--dash-border);
+  overflow: hidden;
+  background: var(--dash-surface-raised);
+}
+
+.dash-brand-preview-chrome {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: color-mix(in srgb, var(--stride-coral) 10%, var(--dash-surface-raised));
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.dash-brand-preview-body {
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.dash-brand-preview-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--stride-coral);
+  color: #fff;
+}
+
+.dash-brand-contrast-warn {
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--dash-warning-fg) 40%, var(--dash-border));
+  background: color-mix(in srgb, var(--dash-warning-fg) 10%, var(--dash-surface-muted));
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--dash-text-body);
 }
 
 .dash-setup-alert {

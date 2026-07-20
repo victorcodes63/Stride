@@ -1,4 +1,4 @@
-import { type Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { canAccessCredentials, canAccessPayroll } from '@/lib/demo-route-access';
 import type { ModuleKey } from '@/lib/modules';
 import { whereExcludeSeedStaffNotifications } from '@/lib/staff-notification-seed-filter';
@@ -21,6 +21,16 @@ export type OverviewCrossModuleMetrics = {
   salesClosingThisWeek: number;
   /** Weighted open pipeline (KES), rounded */
   salesWeightedPipelineKes: number;
+  /** Assets currently assigned to employees */
+  assetsAssigned: number;
+  /** Assigned assets awaiting ESS handover acknowledgement */
+  assetsPendingHandoverAck: number;
+  /** Assets with warranty expiring within 30 days */
+  assetsWarrantyExpiring: number;
+  /** HSE incidents not yet closed */
+  openHseIncidents: number;
+  /** HSE corrective actions still open */
+  openHseActions: number;
 };
 
 export type OverviewCoreMetrics = {
@@ -41,50 +51,41 @@ export type OverviewCoreMetrics = {
   crossModule: OverviewCrossModuleMetrics;
 };
 
-function isMissingTableError(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2021';
-}
-
-async function safeCount(query: () => Promise<number>): Promise<number> {
-  try {
-    return await query();
-  } catch (error) {
-    if (isMissingTableError(error)) return 0;
-    throw error;
-  }
-}
-
-async function countScopedCredentials(
-  tx: Prisma.TransactionClient,
-  employeeScope: { outsourcingClientId: string; client: { organizationId: string } },
-) {
-  const now = new Date();
-  const horizon = new Date(now);
-  horizon.setDate(horizon.getDate() + 90);
-
-  const [expired, expiring] = await Promise.all([
-    tx.employeeCredential.count({
-      where: {
-        employee: employeeScope,
-        status: { notIn: ['suspended', 'revoked'] },
-        expiryDate: { lt: now },
-      },
-    }),
-    tx.employeeCredential.count({
-      where: {
-        employee: employeeScope,
-        status: { notIn: ['suspended', 'revoked'] },
-        expiryDate: { gte: now, lte: horizon },
-      },
-    }),
-  ]);
-
-  return { expired, expiring };
-}
-
 function moduleEnabled(modules: Record<ModuleKey, boolean>, key: ModuleKey) {
   return modules[key] === true;
 }
+
+/** Row shape returned by the single combined overview-core aggregate query. */
+type OverviewCoreRow = {
+  totalStaff: number;
+  onDuty: number;
+  openAttendanceExceptions: number;
+  leavePending: number;
+  leaveOnToday: number;
+  staffLeavePending: number;
+  staffLeaveOnToday: number;
+  credentialsExpired: number;
+  credentialsExpiring: number;
+  unreadNotifications: number;
+  grossTotal: number;
+  netTotal: number;
+  deductionsTotal: number;
+  hasFinanceClient: boolean;
+  invoicesOutstanding: number;
+  vendorBillsOutstanding: number;
+  activeFleetTrips: number;
+  openFleetIncidents: number;
+  pendingPurchaseRequests: number;
+  salesStalledDeals: number;
+  salesPastDueCloses: number;
+  salesClosingThisWeek: number;
+  salesWeightedPipelineKes: number;
+  assetsAssigned: number;
+  assetsPendingHandoverAck: number;
+  assetsWarrantyExpiring: number;
+  openHseIncidents: number;
+  openHseActions: number;
+};
 
 export async function loadOverviewCoreMetrics(
   tx: Prisma.TransactionClient,
@@ -102,247 +103,112 @@ export async function loadOverviewCoreMetrics(
   const todayStr = now.toISOString().slice(0, 10);
   const startToday = new Date(`${todayStr}T00:00:00.000Z`);
   const endToday = new Date(`${todayStr}T23:59:59.999Z`);
+  const weekEndStr = new Date(startToday.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+  const horizon30 = new Date(now);
+  horizon30.setDate(horizon30.getDate() + 30);
+  const horizon90 = new Date(now);
+  horizon90.setDate(horizon90.getDate() + 90);
+  const stalledBefore = new Date(now.getTime() - 14 * 86400000);
   const modules = params.enabledModules;
-  const employeeScope = {
-    outsourcingClientId: params.clientId,
-    client: { organizationId: params.organizationId },
-  };
-  const attendanceWhere = {
-    outsourcingClientId: params.clientId,
-    workDate: { gte: startToday, lte: startToday },
-  };
 
-  const [
-    totalStaff,
-    onDuty,
-    openAttendanceExceptions,
-    outsourcingLeave,
-    staffLeave,
-    payrollAgg,
-    payrollDenied,
-    credentialCounts,
-    unreadNotifications,
-    accountsClientRow,
-    invoicesOutstanding,
-    vendorBillsOutstanding,
-    activeFleetTrips,
-    openFleetIncidents,
-    pendingPurchaseRequests,
-    salesStalledDeals,
-    salesPastDueCloses,
-    salesClosingThisWeek,
-    salesWeightedPipelineKes,
-  ] = await Promise.all([
-    moduleEnabled(modules, 'core')
-      ? tx.employee.count({ where: employeeScope })
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'time')
-      ? tx.attendanceDaySummary.count({
-          where: { ...attendanceWhere, firstInAt: { not: null } },
-        })
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'time')
-      ? tx.attendanceException.count({
-          where: {
-            status: 'open',
-            employee: employeeScope,
-            workDate: { gte: startToday, lte: startToday },
-          },
-        })
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'leave')
-      ? Promise.all([
-          tx.leaveApplication.count({
-            where: { status: 'pending', employee: employeeScope },
-          }),
-          tx.leaveApplication.count({
-            where: {
-              status: 'approved',
-              employee: employeeScope,
-              startDate: { lte: endToday },
-              endDate: { gte: startToday },
-            },
-          }),
-        ]).then(([pending, onLeaveToday]) => ({ pending, onLeaveToday }))
-      : Promise.resolve({ pending: 0, onLeaveToday: 0 }),
-    moduleEnabled(modules, 'leave')
-      ? Promise.all([
-          tx.staffLeaveApplication.count({
-            where: { organizationId: params.organizationId, status: 'pending' as const },
-          }),
-          tx.staffLeaveApplication.count({
-            where: {
-              organizationId: params.organizationId,
-              status: 'approved' as const,
-              startDate: { lte: endToday },
-              endDate: { gte: startToday },
-            },
-          }),
-        ]).then(([pending, onLeaveToday]) => ({ pending, onLeaveToday }))
-      : Promise.resolve({ pending: 0, onLeaveToday: 0 }),
-    moduleEnabled(modules, 'payroll') && canAccessPayroll(params.staff)
-      ? tx.payroll.aggregate({
-          where: { month, year, employee: employeeScope },
-          _sum: {
-            grossPay: true,
-            netPay: true,
-            paye: true,
-            nssf: true,
-            nhif: true,
-            ahl: true,
-          },
-        })
-      : Promise.resolve(null),
-    moduleEnabled(modules, 'payroll') ? Promise.resolve(!canAccessPayroll(params.staff)) : Promise.resolve(true),
-    moduleEnabled(modules, 'core') && canAccessCredentials(params.staff)
-      ? countScopedCredentials(tx, employeeScope)
-      : Promise.resolve({ expiring: 0, expired: 0 }),
-    tx.staffNotification.count({
-      where: {
-        userId: params.staff.id,
-        readAt: null,
-        ...whereExcludeSeedStaffNotifications(),
-      },
-    }),
-    moduleEnabled(modules, 'accounts')
-      ? tx.accountsClient.findFirst({
-          where: { outsourcingClientId: params.clientId },
-          select: { id: true },
-        })
-      : Promise.resolve(null),
-    moduleEnabled(modules, 'accounts')
-      ? safeCount(() =>
-          tx.accountsInvoice.count({
-            where: {
-              status: { in: ['unpaid', 'partial'] },
-              accountsClient: { outsourcingClientId: params.clientId },
-            },
-          }),
-        )
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'accounts')
-      ? safeCount(() =>
-          tx.accountsVendorBill.count({
-            where: { status: { in: ['unpaid', 'partial'] } },
-          }),
-        )
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'fleet')
-      ? safeCount(() =>
-          tx.fleetTrip.count({
-            where: {
-              outsourcingClientId: params.clientId,
-              status: { in: ['allocated', 'compliance_check', 'loaded', 'in_transit'] },
-            },
-          }),
-        )
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'fleet')
-      ? safeCount(() =>
-          tx.fleetIncident.count({
-            where: {
-              outsourcingClientId: params.clientId,
-              status: { in: ['open', 'investigating'] },
-            },
-          }),
-        )
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'core')
-      ? safeCount(() =>
-          tx.purchaseRequest.count({
-            where: {
-              outsourcingClientId: params.clientId,
-              status: 'submitted',
-            },
-          }),
-        )
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'sales')
-      ? safeCount(async () => {
-          const stalledBefore = new Date(now.getTime() - 14 * 86400000);
-          return tx.salesDeal.count({
-            where: {
-              organizationId: params.organizationId,
-              stage: { in: ['lead', 'qualified', 'proposal', 'negotiation'] },
-              updatedAt: { lt: stalledBefore },
-            },
-          });
-        })
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'sales')
-      ? safeCount(() =>
-          tx.salesDeal.count({
-            where: {
-              organizationId: params.organizationId,
-              stage: { in: ['lead', 'qualified', 'proposal', 'negotiation'] },
-              expectedCloseDate: { lt: startToday },
-            },
-          }),
-        )
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'sales')
-      ? safeCount(() => {
-          const weekEnd = new Date(startToday.getTime() + 7 * 86400000);
-          return tx.salesDeal.count({
-            where: {
-              organizationId: params.organizationId,
-              stage: { in: ['lead', 'qualified', 'proposal', 'negotiation'] },
-              expectedCloseDate: { gte: startToday, lte: weekEnd },
-            },
-          });
-        })
-      : Promise.resolve(0),
-    moduleEnabled(modules, 'sales')
-      ? tx.salesDeal
-          .findMany({
-            where: {
-              organizationId: params.organizationId,
-              stage: { in: ['lead', 'qualified', 'proposal', 'negotiation'] },
-            },
-            select: { value: true, probability: true },
-          })
-          .then((rows) =>
-            Math.round(
-              rows.reduce((sum, d) => sum + Number(d.value) * (d.probability / 100), 0),
-            ),
-          )
-      : Promise.resolve(0),
-  ]);
+  const clientId = params.clientId;
+  const userId = params.staff.id;
+  const payrollDenied = moduleEnabled(modules, 'payroll') ? !canAccessPayroll(params.staff) : true;
 
-  const grossTotal = Number(payrollAgg?._sum.grossPay ?? 0);
-  const netTotal = Number(payrollAgg?._sum.netPay ?? 0);
-  const deductionsTotal =
-    Number(payrollAgg?._sum.paye ?? 0) +
-    Number(payrollAgg?._sum.nssf ?? 0) +
-    Number(payrollAgg?._sum.nhif ?? 0) +
-    Number(payrollAgg?._sum.ahl ?? 0);
+  // Employees belonging to the active workspace client — used to scope the
+  // employee-linked tables. RLS (app.current_org) enforces org isolation on top.
+  const scopedEmployeeIds = Prisma.sql`SELECT "id" FROM "Employee" WHERE "outsourcingClientId" = ${clientId}`;
+  const openStages = Prisma.sql`('lead','qualified','proposal','negotiation')`;
+
+  // A metric column: run the subquery when its module/access gate is on,
+  // otherwise select a constant so the result row shape stays stable and no
+  // needless work hits the database.
+  const col = (enabled: boolean, expr: Prisma.Sql, fallback: Prisma.Sql, name: string) =>
+    Prisma.sql`${enabled ? expr : fallback} AS ${Prisma.raw(`"${name}"`)}`;
+  const zero = Prisma.sql`0`;
+  const falseVal = Prisma.sql`FALSE`;
+
+  const core = moduleEnabled(modules, 'core');
+  const time = moduleEnabled(modules, 'time');
+  const leave = moduleEnabled(modules, 'leave');
+  const payroll = moduleEnabled(modules, 'payroll') && canAccessPayroll(params.staff);
+  const credentials = core && canAccessCredentials(params.staff);
+  const accounts = moduleEnabled(modules, 'accounts');
+  const fleet = moduleEnabled(modules, 'fleet');
+  const sales = moduleEnabled(modules, 'sales');
+  const assets = moduleEnabled(modules, 'assets');
+  const hse = moduleEnabled(modules, 'hse');
+
+  const columns: Prisma.Sql[] = [
+    col(core, Prisma.sql`(SELECT COUNT(*)::int FROM "Employee" WHERE "outsourcingClientId" = ${clientId})`, zero, 'totalStaff'),
+    col(time, Prisma.sql`(SELECT COUNT(*)::int FROM "AttendanceDaySummary" WHERE "outsourcingClientId" = ${clientId} AND "workDate" = ${todayStr}::date AND "firstInAt" IS NOT NULL)`, zero, 'onDuty'),
+    col(time, Prisma.sql`(SELECT COUNT(*)::int FROM "AttendanceException" WHERE "status"::text = 'open' AND "workDate" = ${todayStr}::date AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'openAttendanceExceptions'),
+    col(leave, Prisma.sql`(SELECT COUNT(*)::int FROM "LeaveApplication" WHERE "status"::text = 'pending' AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'leavePending'),
+    col(leave, Prisma.sql`(SELECT COUNT(*)::int FROM "LeaveApplication" WHERE "status"::text = 'approved' AND "startDate" <= ${endToday} AND "endDate" >= ${startToday} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'leaveOnToday'),
+    col(leave, Prisma.sql`(SELECT COUNT(*)::int FROM "StaffLeaveApplication" WHERE "status"::text = 'pending')`, zero, 'staffLeavePending'),
+    col(leave, Prisma.sql`(SELECT COUNT(*)::int FROM "StaffLeaveApplication" WHERE "status"::text = 'approved' AND "startDate" <= ${endToday} AND "endDate" >= ${startToday})`, zero, 'staffLeaveOnToday'),
+    col(credentials, Prisma.sql`(SELECT COUNT(*)::int FROM "EmployeeCredential" WHERE "status"::text NOT IN ('suspended','revoked') AND "expiryDate" < ${now} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'credentialsExpired'),
+    col(credentials, Prisma.sql`(SELECT COUNT(*)::int FROM "EmployeeCredential" WHERE "status"::text NOT IN ('suspended','revoked') AND "expiryDate" >= ${now} AND "expiryDate" <= ${horizon90} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'credentialsExpiring'),
+    col(true, Prisma.sql`(SELECT COUNT(*)::int FROM "StaffNotification" WHERE "userId" = ${userId} AND "readAt" IS NULL AND "title" NOT LIKE '[SEED_ACCOUNTS]%' AND "title" NOT LIKE '[SEED_INVOICE]%')`, zero, 'unreadNotifications'),
+    col(payroll, Prisma.sql`(SELECT COALESCE(SUM("grossPay"),0)::float8 FROM "Payroll" WHERE "month" = ${month} AND "year" = ${year} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'grossTotal'),
+    col(payroll, Prisma.sql`(SELECT COALESCE(SUM("netPay"),0)::float8 FROM "Payroll" WHERE "month" = ${month} AND "year" = ${year} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'netTotal'),
+    col(payroll, Prisma.sql`(SELECT COALESCE(SUM("paye" + "nssf" + "nhif" + "ahl"),0)::float8 FROM "Payroll" WHERE "month" = ${month} AND "year" = ${year} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'deductionsTotal'),
+    col(accounts, Prisma.sql`(SELECT EXISTS(SELECT 1 FROM "AccountsClient" WHERE "outsourcingClientId" = ${clientId}))`, falseVal, 'hasFinanceClient'),
+    col(accounts, Prisma.sql`(SELECT COUNT(*)::int FROM "AccountsInvoice" WHERE "status"::text IN ('unpaid','partial') AND "clientId" IN (SELECT "id" FROM "AccountsClient" WHERE "outsourcingClientId" = ${clientId}))`, zero, 'invoicesOutstanding'),
+    col(accounts, Prisma.sql`(SELECT COUNT(*)::int FROM "AccountsVendorBill" WHERE "status"::text IN ('unpaid','partial'))`, zero, 'vendorBillsOutstanding'),
+    col(fleet, Prisma.sql`(SELECT COUNT(*)::int FROM "FleetTrip" WHERE "outsourcingClientId" = ${clientId} AND "status"::text IN ('allocated','compliance_check','loaded','in_transit'))`, zero, 'activeFleetTrips'),
+    col(fleet, Prisma.sql`(SELECT COUNT(*)::int FROM "FleetIncident" WHERE "outsourcingClientId" = ${clientId} AND "status"::text IN ('open','investigating'))`, zero, 'openFleetIncidents'),
+    col(core, Prisma.sql`(SELECT COUNT(*)::int FROM "PurchaseRequest" WHERE "outsourcingClientId" = ${clientId} AND "status"::text = 'submitted')`, zero, 'pendingPurchaseRequests'),
+    col(sales, Prisma.sql`(SELECT COUNT(*)::int FROM "SalesDeal" WHERE "stage"::text IN ${openStages} AND "updatedAt" < ${stalledBefore})`, zero, 'salesStalledDeals'),
+    col(sales, Prisma.sql`(SELECT COUNT(*)::int FROM "SalesDeal" WHERE "stage"::text IN ${openStages} AND "expectedCloseDate" < ${todayStr}::date)`, zero, 'salesPastDueCloses'),
+    col(sales, Prisma.sql`(SELECT COUNT(*)::int FROM "SalesDeal" WHERE "stage"::text IN ${openStages} AND "expectedCloseDate" >= ${todayStr}::date AND "expectedCloseDate" <= ${weekEndStr}::date)`, zero, 'salesClosingThisWeek'),
+    col(sales, Prisma.sql`(SELECT COALESCE(ROUND(SUM("value" * "probability" / 100.0)),0)::float8 FROM "SalesDeal" WHERE "stage"::text IN ${openStages})`, zero, 'salesWeightedPipelineKes'),
+    col(assets, Prisma.sql`(SELECT COUNT(*)::int FROM "CompanyAsset" WHERE "outsourcingClientId" = ${clientId} AND "status"::text = 'assigned')`, zero, 'assetsAssigned'),
+    col(assets, Prisma.sql`(SELECT COUNT(*)::int FROM "CompanyAsset" WHERE "outsourcingClientId" = ${clientId} AND "status"::text = 'assigned' AND "assignedEmployeeId" IS NOT NULL AND "handoverAcknowledgedAt" IS NULL)`, zero, 'assetsPendingHandoverAck'),
+    col(assets, Prisma.sql`(SELECT COUNT(*)::int FROM "CompanyAsset" WHERE "outsourcingClientId" = ${clientId} AND "warrantyExpiry" >= ${now} AND "warrantyExpiry" <= ${horizon30} AND "status"::text NOT IN ('retired','lost'))`, zero, 'assetsWarrantyExpiring'),
+    col(hse, Prisma.sql`(SELECT COUNT(*)::int FROM "HseIncident" WHERE "outsourcingClientId" = ${clientId} AND "status"::text IN ('open','investigating'))`, zero, 'openHseIncidents'),
+    col(hse, Prisma.sql`(SELECT COUNT(*)::int FROM "HseAction" WHERE "outsourcingClientId" = ${clientId} AND "status"::text IN ('open','in_progress'))`, zero, 'openHseActions'),
+  ];
+
+  // One round-trip computes every metric on the caller's tenant transaction,
+  // instead of ~25 serial count queries — critical when the database is far
+  // from the app.
+  const rows = await tx.$queryRaw<OverviewCoreRow[]>(
+    Prisma.sql`SELECT ${Prisma.join(columns, ', ')}`,
+  );
+  const r = rows[0];
 
   return {
-    totalStaff,
-    onDuty,
-    onLeave: outsourcingLeave.onLeaveToday + staffLeave.onLeaveToday,
-    pendingApprovals: outsourcingLeave.pending + staffLeave.pending,
-    openAttendanceExceptions,
+    totalStaff: r.totalStaff,
+    onDuty: r.onDuty,
+    onLeave: r.leaveOnToday + r.staffLeaveOnToday,
+    pendingApprovals: r.leavePending + r.staffLeavePending,
+    openAttendanceExceptions: r.openAttendanceExceptions,
     payroll: {
       denied: payrollDenied,
-      grossTotal,
-      netTotal,
-      deductionsTotal,
+      grossTotal: r.grossTotal,
+      netTotal: r.netTotal,
+      deductionsTotal: r.deductionsTotal,
     },
-    credentialsExpiring: credentialCounts.expiring,
-    credentialsExpired: credentialCounts.expired,
-    unreadNotifications,
+    credentialsExpiring: r.credentialsExpiring,
+    credentialsExpired: r.credentialsExpired,
+    unreadNotifications: r.unreadNotifications,
     crossModule: {
-      invoicesOutstanding,
-      vendorBillsOutstanding,
-      activeFleetTrips,
-      openFleetIncidents,
-      pendingPurchaseRequests,
-      hasFinanceClient: Boolean(accountsClientRow),
-      salesStalledDeals,
-      salesPastDueCloses,
-      salesClosingThisWeek,
-      salesWeightedPipelineKes,
+      invoicesOutstanding: r.invoicesOutstanding,
+      vendorBillsOutstanding: r.vendorBillsOutstanding,
+      activeFleetTrips: r.activeFleetTrips,
+      openFleetIncidents: r.openFleetIncidents,
+      pendingPurchaseRequests: r.pendingPurchaseRequests,
+      hasFinanceClient: r.hasFinanceClient,
+      salesStalledDeals: r.salesStalledDeals,
+      salesPastDueCloses: r.salesPastDueCloses,
+      salesClosingThisWeek: r.salesClosingThisWeek,
+      salesWeightedPipelineKes: r.salesWeightedPipelineKes,
+      assetsAssigned: r.assetsAssigned,
+      assetsPendingHandoverAck: r.assetsPendingHandoverAck,
+      assetsWarrantyExpiring: r.assetsWarrantyExpiring,
+      openHseIncidents: r.openHseIncidents,
+      openHseActions: r.openHseActions,
     },
   };
 }
@@ -437,8 +303,8 @@ export async function loadOverviewDetailsMetrics(
       status: task.status,
       workflow: {
         employee: {
-          firstName: task.workflow.employee.firstName,
-          lastName: task.workflow.employee.lastName,
+          firstName: task.workflow.employee?.firstName ?? '',
+          lastName: task.workflow.employee?.lastName ?? '',
         },
       },
     })),

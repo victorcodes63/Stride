@@ -15,7 +15,7 @@ export const byoJdParserProvider: JdParserProvider = {
       };
     }
 
-    if (!ctx.apiKeyRef || !ctx.provider) {
+    if (!ctx.apiKeyRef || !ctx.providerId) {
       return {
         ok: false,
         error: 'Configure BYO provider and encrypted API key reference in Company Setup before parsing.',

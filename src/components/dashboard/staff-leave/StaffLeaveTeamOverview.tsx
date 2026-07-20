@@ -1,9 +1,12 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, Loader2, Search } from 'lucide-react';
 import { STAFF_USER_TYPE_LABELS } from '@/lib/staff-permissions';
 import type { StaffUserType } from '@/types/dashboard';
+import { StrideSelect } from '@/components/ui/stride-select';
+import { LeavePersonDetail, type LeavePersonDetailData } from '@/components/dashboard/leave/LeavePersonDetail';
+import { LeaveExportDialog } from '@/components/dashboard/leave/LeaveExportDialog';
 
 export type TeamOverviewData = {
   year: number;
@@ -22,6 +25,7 @@ export type TeamOverviewData = {
     annualEntitled: number;
     annualUsed: number;
     annualRemaining: number;
+    ytdTaken?: number;
     pendingCount: number;
     lastLeave: { startDate: string; endDate: string; totalDays: number } | null;
     balances: Array<{
@@ -77,26 +81,60 @@ function activityLabel(action: string): string {
   }
 }
 
+type DetailState = LeavePersonDetailData | 'loading' | 'error' | undefined;
+
 export function StaffLeaveTeamOverview({ data }: Props) {
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [details, setDetails] = useState<Record<string, DetailState>>({});
+  const [exportOpen, setExportOpen] = useState(false);
+
+  const roleOptions = useMemo(() => {
+    const seen = new Set<StaffUserType>();
+    for (const s of data.staff) seen.add(s.staffUserType);
+    return [
+      { value: 'all', label: 'All roles' },
+      ...Array.from(seen).map((r) => ({ value: r, label: STAFF_USER_TYPE_LABELS[r] ?? r })),
+    ];
+  }, [data.staff]);
 
   const filteredStaff = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return data.staff;
-    return data.staff.filter(
-      (s) =>
+    return data.staff.filter((s) => {
+      if (roleFilter !== 'all' && s.staffUserType !== roleFilter) return false;
+      if (!q) return true;
+      return (
         s.name.toLowerCase().includes(q) ||
         s.email.toLowerCase().includes(q) ||
-        (STAFF_USER_TYPE_LABELS[s.staffUserType] ?? '').toLowerCase().includes(q),
-    );
-  }, [data.staff, search]);
+        (STAFF_USER_TYPE_LABELS[s.staffUserType] ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [data.staff, search, roleFilter]);
+
+  const loadDetail = async (userId: string) => {
+    setDetails((prev) => ({ ...prev, [userId]: 'loading' }));
+    try {
+      const res = await fetch(`/api/staff/leave/person?userId=${encodeURIComponent(userId)}&year=${data.year}`, {
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error('failed');
+      const detail = (await res.json()) as LeavePersonDetailData;
+      setDetails((prev) => ({ ...prev, [userId]: detail }));
+    } catch {
+      setDetails((prev) => ({ ...prev, [userId]: 'error' }));
+    }
+  };
 
   const toggleExpanded = (id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        if (!details[id] || details[id] === 'error') void loadDetail(id);
+      }
       return next;
     });
   };
@@ -122,15 +160,31 @@ export function StaffLeaveTeamOverview({ data }: Props) {
           ))}
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search staff by name, email, or role…"
-            className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-3 text-sm"
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search staff by name, email, or role…"
+              className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-3 text-sm"
+            />
+          </div>
+          <StrideSelect
+            value={roleFilter}
+            onChange={setRoleFilter}
+            options={roleOptions}
+            ariaLabel="Filter by role"
+            className="sm:w-52"
           />
+          <button
+            type="button"
+            onClick={() => setExportOpen(true)}
+            className="btn-primary inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          >
+            <Download className="h-4 w-4" /> Export
+          </button>
         </div>
 
         <div className="dashboard-surface overflow-hidden shadow-sm rounded-xl">
@@ -138,24 +192,32 @@ export function StaffLeaveTeamOverview({ data }: Props) {
             <thead className="bg-neutral-50 text-left text-neutral-600">
               <tr>
                 <th className="w-8 px-2 py-3" />
-                <th className="px-4 py-3">Staff</th>
-                <th className="px-4 py-3">Role</th>
-                <th className="px-4 py-3">Annual usage</th>
+                <th className="px-4 py-3">Staff member</th>
+                <th className="px-4 py-3">Annual leave</th>
+                <th className="px-4 py-3 text-right">Used</th>
+                <th className="px-4 py-3 text-right">Pending</th>
+                <th className="px-4 py-3 text-right">YTD taken</th>
                 <th className="px-4 py-3">Last leave</th>
-                <th className="px-4 py-3">Pending</th>
               </tr>
             </thead>
             <tbody>
               {filteredStaff.map((row) => {
                 const isOpen = expanded.has(row.id);
                 const pct = usagePct(row.annualUsed, row.annualEntitled);
+                const detail = details[row.id];
                 return (
                   <Fragment key={row.id}>
-                    <tr className="border-t border-neutral-100 hover:bg-neutral-50/50">
+                    <tr
+                      className="border-t border-neutral-100 hover:bg-neutral-50/50 cursor-pointer"
+                      onClick={() => toggleExpanded(row.id)}
+                    >
                       <td className="px-2 py-3">
                         <button
                           type="button"
-                          onClick={() => toggleExpanded(row.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpanded(row.id);
+                          }}
                           className="rounded p-1 text-neutral-500 hover:bg-neutral-100"
                           aria-expanded={isOpen}
                         >
@@ -164,60 +226,53 @@ export function StaffLeaveTeamOverview({ data }: Props) {
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-ink">{row.name}</div>
-                      </td>
-                      <td className="px-4 py-3 text-neutral-600">
-                        {STAFF_USER_TYPE_LABELS[row.staffUserType] ?? row.staffUserType}
-                      </td>
-                      <td className="px-4 py-3 min-w-[140px]">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 flex-1 rounded-full bg-neutral-100 overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-primary-600"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <span className="text-xs tabular-nums text-neutral-600 whitespace-nowrap">
-                            {row.annualUsed}/{row.annualEntitled || '—'}
-                          </span>
+                        <div className="text-xs text-neutral-500">{row.email}</div>
+                        <div className="text-[11px] text-neutral-400">
+                          {STAFF_USER_TYPE_LABELS[row.staffUserType] ?? row.staffUserType}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-neutral-600 text-xs">
-                        {row.lastLeave
-                          ? `${fmtDate(row.lastLeave.startDate)} (${row.lastLeave.totalDays}d)`
-                          : '—'}
+                      <td className="px-4 py-3 min-w-[150px]">
+                        <div className="font-semibold text-primary-900 tabular-nums">
+                          {row.annualRemaining} <span className="text-xs font-normal text-neutral-400">left</span>
+                        </div>
+                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+                          <div className="h-full rounded-full bg-primary-600" style={{ width: `${pct}%` }} />
+                        </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-right tabular-nums text-neutral-700">{row.annualUsed}</td>
+                      <td className="px-4 py-3 text-right">
                         {row.pendingCount > 0 ? (
                           <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                             {row.pendingCount}
                           </span>
                         ) : (
-                          <span className="text-neutral-400">—</span>
+                          <span className="text-neutral-300">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-neutral-700">{row.ytdTaken ?? 0}</td>
+                      <td className="px-4 py-3 text-neutral-600 text-xs">
+                        {row.lastLeave
+                          ? `${fmtDate(row.lastLeave.startDate)} · ${row.lastLeave.totalDays}d`
+                          : '—'}
                       </td>
                     </tr>
                     {isOpen ? (
                       <tr className="border-t border-neutral-50 bg-neutral-50/40">
-                        <td colSpan={6} className="px-4 py-3">
-                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                            {row.balances.map((b) => (
-                              <div
-                                key={b.leaveTypeId}
-                                className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs"
-                                style={{ borderLeftWidth: 3, borderLeftColor: b.color || '#043d4a' }}
-                              >
-                                <div className="font-semibold text-neutral-800">{b.name}</div>
-                                <div className="mt-1 grid grid-cols-2 gap-x-2 text-neutral-600">
-                                  <span>Used</span>
-                                  <span className="text-right tabular-nums">{b.usedDays}</span>
-                                  <span>Remaining</span>
-                                  <span className="text-right tabular-nums font-medium text-primary-800">
-                                    {b.remaining}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                        <td colSpan={7} className="px-4 py-4">
+                          {detail === 'loading' || detail === undefined ? (
+                            <div className="flex items-center gap-2 py-6 text-sm text-neutral-500">
+                              <Loader2 className="h-4 w-4 animate-spin" /> Loading leave detail…
+                            </div>
+                          ) : detail === 'error' ? (
+                            <div className="py-6 text-sm text-red-600">
+                              Could not load detail.{' '}
+                              <button type="button" onClick={() => void loadDetail(row.id)} className="underline">
+                                Retry
+                              </button>
+                            </div>
+                          ) : (
+                            <LeavePersonDetail data={detail} />
+                          )}
                         </td>
                       </tr>
                     ) : null}
@@ -277,6 +332,16 @@ export function StaffLeaveTeamOverview({ data }: Props) {
           )}
         </div>
       </div>
+
+      <LeaveExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        endpoint="/api/staff/leave/export"
+        year={data.year}
+        groupLabel="Department"
+        supportsCostCentre
+        people={data.staff.map((s) => ({ id: s.id, name: s.name }))}
+      />
     </div>
   );
 }

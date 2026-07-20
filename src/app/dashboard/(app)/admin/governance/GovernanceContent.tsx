@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Tab = 'meetings' | 'resolutions' | 'actions';
 
@@ -387,12 +388,16 @@ export default function GovernanceContent() {
           {showResolutionForm ? (
             <form onSubmit={createResolution} className="mb-4 space-y-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4">
               <input value={resolutionTitle} onChange={(e) => setResolutionTitle(e.target.value)} placeholder="Resolution title" className="dash-auth-input w-full" required />
-              <select value={resolutionMeetingId} onChange={(e) => setResolutionMeetingId(e.target.value)} className="dash-auth-input w-full">
-                <option value="">Link to meeting (optional)</option>
-                {meetings.map((m) => (
-                  <option key={m.id} value={m.id}>{m.meetingCode} — {m.title}</option>
-                ))}
-              </select>
+              <StrideSelect
+                value={resolutionMeetingId}
+                onChange={(value) => setResolutionMeetingId(value)}
+                options={[
+                  { value: '', label: 'Link to meeting (optional)' },
+                  ...meetings.map((m) => ({ value: m.id, label: `${m.meetingCode} — ${m.title}` })),
+                ]}
+                ariaLabel="Link to meeting"
+                className="w-full"
+              />
               <textarea value={resolutionDesc} onChange={(e) => setResolutionDesc(e.target.value)} placeholder="Description" rows={2} className="dash-auth-input w-full resize-y" />
               <button type="submit" disabled={saving} className="dash-auth-submit max-w-[8rem]">
                 {saving ? 'Saving…' : 'Save'}
@@ -448,12 +453,16 @@ export default function GovernanceContent() {
             <form onSubmit={createAction} className="mb-4 space-y-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] p-4">
               <input value={actionTitle} onChange={(e) => setActionTitle(e.target.value)} placeholder="Action title" className="dash-auth-input w-full" required />
               <div className="flex flex-wrap gap-2">
-                <select value={actionResolutionId} onChange={(e) => setActionResolutionId(e.target.value)} className="dash-auth-input min-w-[14rem]">
-                  <option value="">Link to resolution (optional)</option>
-                  {resolutions.map((r) => (
-                    <option key={r.id} value={r.id}>{r.resolutionCode} — {r.title}</option>
-                  ))}
-                </select>
+                <StrideSelect
+                  value={actionResolutionId}
+                  onChange={(value) => setActionResolutionId(value)}
+                  options={[
+                    { value: '', label: 'Link to resolution (optional)' },
+                    ...resolutions.map((r) => ({ value: r.id, label: `${r.resolutionCode} — ${r.title}` })),
+                  ]}
+                  ariaLabel="Link to resolution"
+                  className="min-w-[14rem]"
+                />
                 <input type="date" value={actionDueDate} onChange={(e) => setActionDueDate(e.target.value)} className="dash-auth-input" />
               </div>
               <button type="submit" disabled={saving} className="dash-auth-submit max-w-[8rem]">

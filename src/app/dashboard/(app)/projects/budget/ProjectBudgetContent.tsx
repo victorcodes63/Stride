@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { BarChart3, Loader2, AlertCircle } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type BudgetReport = {
   projectId: string;
@@ -108,7 +109,7 @@ export default function ProjectBudgetContent() {
     <DashboardPage>
       <DashboardPageHeader
         title="Budget vs actual"
-        description="Project burn from payroll (by department), procurement AP, and expense claims — linked to Finance budgets."
+        description="Project burn from payroll, procurement, and expense claims."
         icon={BarChart3}
       />
 
@@ -220,18 +221,16 @@ export default function ProjectBudgetContent() {
                   <div className="border-t border-[var(--dash-border)] pt-4">
                     <p className="mb-2 text-sm font-medium">Link Finance budget</p>
                     <div className="flex flex-wrap gap-2">
-                      <select
+                      <StrideSelect
                         value={linkBudgetId}
-                        onChange={(e) => setLinkBudgetId(e.target.value)}
-                        className="dash-auth-input min-w-[12rem]"
-                      >
-                        <option value="">Select budget…</option>
-                        {budgets.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(value) => setLinkBudgetId(value)}
+                        options={[
+                          { value: '', label: 'Select budget…' },
+                          ...budgets.map((b) => ({ value: b.id, label: b.name })),
+                        ]}
+                        ariaLabel="Link Finance budget"
+                        className="min-w-[12rem]"
+                      />
                       <button
                         type="button"
                         disabled={!linkBudgetId || linking}

@@ -175,18 +175,18 @@ const MARKETING_AREA_COPY: Record<
   projects: {
     headline: 'Deliverables tied to real people and budgets.',
     description:
-      'Project register, kanban board, tasks and budget vs actual — workspaces exist but full delivery tracking is not GA yet.',
+      'Project register, kanban board, milestones, tasks, and budget vs actual — linked to Finance budgets and your people master.',
     features: [
       'Project register and milestone tracking',
       'Kanban board and task assignment',
       'Budget vs actual against finance',
-      'Client billing hooks into invoicing',
+      'Workspace-scoped delivery dashboard',
     ],
   },
   'admin-operations': {
     headline: 'Assets, HSE and operational reporting — not a junk drawer.',
     description:
-      'Company asset registry, HSE incident tracking, announcements and workforce analytics. The operations hub ties assets and safety together; advanced facilities workflows are still maturing.',
+      'Company asset registry, HSE incident tracking, announcements and workforce analytics. Assignment lifecycle, handover acknowledgement, and warranty alerts are live in the operations hub.',
     features: [
       'Asset register with assignments and lifecycle',
       'HSE incident logging and actions',

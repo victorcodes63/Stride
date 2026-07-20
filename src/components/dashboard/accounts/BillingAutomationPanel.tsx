@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Zap } from 'lucide-react';
 
 export function BillingAutomationPanel({ clientId }: { clientId?: string }) {
   const [month, setMonth] = useState(String(new Date().getUTCMonth() + 1));
@@ -37,7 +37,7 @@ export function BillingAutomationPanel({ clientId }: { clientId?: string }) {
   return (
     <div className="dashboard-surface p-4 mb-6 border border-primary-100">
       <div className="flex items-center gap-2 mb-2">
-        <Sparkles className="w-4 h-4 text-primary-700" />
+        <Zap className="w-4 h-4 text-primary-700" />
         <h2 className="text-sm font-semibold text-primary-900">Billing automation</h2>
       </div>
       <p className="text-xs text-neutral-600 mb-3">

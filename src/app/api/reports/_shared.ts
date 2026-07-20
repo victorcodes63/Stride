@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireStaffUser, type StaffUser } from '@/lib/staff-api-auth';
-import { toSimplePdf } from '@/lib/report-export';
+import { toCSV, toSimplePdf, toTablePdf } from '@/lib/report-export';
+import { toXlsx, XLSX_CONTENT_TYPE, type Cell } from '@/lib/excel-export';
+
+export type ReportFormat = 'json' | 'csv' | 'xlsx' | 'pdf';
 
 export async function requireReportsUser(request: NextRequest) {
   const user = await requireStaffUser(request);
@@ -19,9 +22,9 @@ export function assertReportsStaffRole(staff: StaffUser): NextResponse | null {
   return null;
 }
 
-export function parseFormat(request: NextRequest): 'json' | 'csv' | 'pdf' {
+export function parseFormat(request: NextRequest): ReportFormat {
   const format = request.nextUrl.searchParams.get('format');
-  return format === 'csv' || format === 'pdf' ? format : 'json';
+  return format === 'csv' || format === 'pdf' || format === 'xlsx' ? format : 'json';
 }
 
 export function downloadHeaders(contentType: string, filename: string): HeadersInit {
@@ -70,7 +73,7 @@ export function parsePeriod(periodRaw: string | null): { year: number; month: nu
 }
 
 export async function jsonOrPdf(
-  format: 'json' | 'csv' | 'pdf',
+  format: ReportFormat,
   payload: unknown,
   title: string,
   filename: string,
@@ -81,4 +84,52 @@ export async function jsonOrPdf(
   return new NextResponse(new Uint8Array(pdf), {
     headers: downloadHeaders('application/pdf', filename),
   });
+}
+
+export type ReportResponseOptions = {
+  format: ReportFormat;
+  /** JSON body returned for `format=json` (default). */
+  json: unknown;
+  /** Human title used for the PDF heading. */
+  title: string;
+  /** Excel worksheet name (trimmed to 31 chars downstream). */
+  sheetName: string;
+  /** Filename without extension — the extension is derived from the format. */
+  baseFilename: string;
+  /** Tabular headers reused across CSV/Excel/PDF. */
+  headers: string[];
+  /** Tabular rows reused across CSV/Excel/PDF. */
+  rows: Cell[][];
+  /** Optional summary lines rendered above the PDF table. */
+  summaryLines?: string[];
+};
+
+/**
+ * Single entry point for report downloads. Emits JSON, CSV, Excel (.xlsx), or a
+ * tabular PDF from one shared header/row dataset so every format stays in sync.
+ */
+export async function respondWithReport(options: ReportResponseOptions): Promise<NextResponse> {
+  const { format, json, title, sheetName, baseFilename, headers, rows, summaryLines } = options;
+
+  if (format === 'csv') {
+    return new NextResponse(toCSV(headers, rows), {
+      headers: downloadHeaders('text/csv; charset=utf-8', `${baseFilename}.csv`),
+    });
+  }
+
+  if (format === 'xlsx') {
+    const bytes = await toXlsx(sheetName, headers, rows);
+    return new NextResponse(new Uint8Array(bytes), {
+      headers: downloadHeaders(XLSX_CONTENT_TYPE, `${baseFilename}.xlsx`),
+    });
+  }
+
+  if (format === 'pdf') {
+    const bytes = await toTablePdf(title, headers, rows, { summaryLines });
+    return new NextResponse(new Uint8Array(bytes), {
+      headers: downloadHeaders('application/pdf', `${baseFilename}.pdf`),
+    });
+  }
+
+  return NextResponse.json(json);
 }

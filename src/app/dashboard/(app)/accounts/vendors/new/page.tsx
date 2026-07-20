@@ -77,7 +77,7 @@ export default function NewVendorPage() {
  </nav>
  <DashboardPageHeader
  title="New vendor"
- description="Add a supplier or an internal creditor profile (e.g. petty cash). Bills and payments are created from the vendor page or the bills list."
+ description="Add a supplier or internal creditor profile."
  className="mb-6"
  />
 

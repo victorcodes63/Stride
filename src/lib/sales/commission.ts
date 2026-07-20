@@ -7,6 +7,7 @@ export type CommissionTier = {
   ratePct: number;
 };
 
+/** Canonical commission rule config stored on SalesCommissionRule.config (SALES-05). */
 export type CommissionRuleConfig = {
   tiers: CommissionTier[];
   capAmount?: number;
@@ -22,6 +23,42 @@ export type CommissionEstimate = {
   currency: string;
   ruleName: string;
 };
+
+function asFiniteNumber(value: unknown): number | null {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Validate / normalize commission rule JSON from API or DB.
+ * Returns null when the payload is not a usable tier schedule.
+ */
+export function parseCommissionRuleConfig(raw: unknown): CommissionRuleConfig | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  if (!Array.isArray(obj.tiers) || obj.tiers.length === 0) return null;
+
+  const tiers: CommissionTier[] = [];
+  for (const row of obj.tiers) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return null;
+    const t = row as Record<string, unknown>;
+    const minAttainmentPct = asFiniteNumber(t.minAttainmentPct);
+    const ratePct = asFiniteNumber(t.ratePct);
+    if (minAttainmentPct == null || ratePct == null || ratePct < 0) return null;
+    tiers.push({ minAttainmentPct, ratePct });
+  }
+
+  const config: CommissionRuleConfig = { tiers };
+  const capAmount = asFiniteNumber(obj.capAmount);
+  if (capAmount != null && capAmount > 0) config.capAmount = capAmount;
+  const acceleratorAbovePct = asFiniteNumber(obj.acceleratorAbovePct);
+  const acceleratorMultiplier = asFiniteNumber(obj.acceleratorMultiplier);
+  if (acceleratorAbovePct != null && acceleratorMultiplier != null && acceleratorMultiplier > 0) {
+    config.acceleratorAbovePct = acceleratorAbovePct;
+    config.acceleratorMultiplier = acceleratorMultiplier;
+  }
+  return config;
+}
 
 /** Estimate commission from attainment tiers. */
 export function computeCommissionFromAttainment(
@@ -57,7 +94,9 @@ export async function estimateCommissionsForPeriod(
   });
   if (!rule) return [];
 
-  const config = rule.config as CommissionRuleConfig;
+  const config = parseCommissionRuleConfig(rule.config);
+  if (!config) return [];
+
   const metrics = await db.salesRepPeriodMetric.findMany({
     where: {
       organizationId: params.organizationId,

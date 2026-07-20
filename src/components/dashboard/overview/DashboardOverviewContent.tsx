@@ -154,6 +154,11 @@ export default function DashboardOverviewContent() {
     salesPastDueCloses: 0,
     salesClosingThisWeek: 0,
     salesWeightedPipelineKes: 0,
+    assetsAssigned: 0,
+    assetsPendingHandoverAck: 0,
+    assetsWarrantyExpiring: 0,
+    openHseIncidents: 0,
+    openHseActions: 0,
   });
 
   useLayoutEffect(() => {

@@ -113,6 +113,9 @@ const SENSITIVE = new Set([
 addEnv('DATABASE_URL', pooled, { sensitive: true });
 addEnv('DIRECT_DATABASE_URL', direct, { sensitive: true });
 addEnv('POSTGRES_PRISMA_URL', pooled, { sensitive: true });
+addEnv('STAFF_PASSWORD', profile.get('STAFF_PASSWORD') || profile.get('NEXT_PUBLIC_DEMO_PASSWORD') || 'Demo@2026!', {
+  sensitive: true,
+});
 
 for (const [key, value] of profile.entries()) {
   if (SENSITIVE.has(key)) continue;

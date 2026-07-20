@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { DashboardPage, DashboardPageSection } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 import { PlatformContentLoader } from '@/components/platform/PlatformContentLoader';
 import {
   HELP_ARTICLE_CATEGORIES,
@@ -138,31 +139,23 @@ function CreateTicketForm({ onCreated }: { onCreated: (ticket: TicketSummary) =>
         </label>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-medium text-[var(--dash-text-muted)]">Category</span>
-          <select
+          <StrideSelect
             value={category}
-            onChange={(e) => setCategory(e.target.value as SupportTicketCategory)}
-            className="dash-filter-select w-full"
-          >
-            {Object.entries(SUPPORT_TICKET_CATEGORY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setCategory(value as SupportTicketCategory)}
+            options={Object.entries(SUPPORT_TICKET_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))}
+            ariaLabel="Category"
+            className="w-full"
+          />
         </label>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-medium text-[var(--dash-text-muted)]">Priority</span>
-          <select
+          <StrideSelect
             value={priority}
-            onChange={(e) => setPriority(e.target.value as SupportTicketPriority)}
-            className="dash-filter-select w-full"
-          >
-            {Object.entries(SUPPORT_TICKET_PRIORITY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setPriority(value as SupportTicketPriority)}
+            options={Object.entries(SUPPORT_TICKET_PRIORITY_LABELS).map(([value, label]) => ({ value, label }))}
+            ariaLabel="Priority"
+            className="w-full"
+          />
         </label>
         <label className="block text-sm sm:col-span-2">
           <span className="mb-1 block text-xs font-medium text-[var(--dash-text-muted)]">Description</span>

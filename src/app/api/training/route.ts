@@ -3,7 +3,10 @@ import { reportApiError } from '@/lib/monitoring';
 import { isDemoMode } from '@/lib/deployment-config';
 import { resolveEntityIdOrDefault } from '@/lib/entity-request';
 import { demoEntityNote } from '@/lib/demo-entity-content';
-import { withTenant } from '@/lib/tenant-api';
+import type { TrainingProgram } from '@prisma/client';
+import { withTenant, withTenantAudit } from '@/lib/tenant-api';
+import { mapProgramSummary } from '@/lib/training/service';
+import type { TrainingProgramInput, TrainingStatus } from '@/lib/training/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,12 +14,24 @@ export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
     try {
       const status = request.nextUrl.searchParams.get('status')?.trim() || undefined;
+      const q = request.nextUrl.searchParams.get('q')?.trim() || undefined;
+      const category = request.nextUrl.searchParams.get('category')?.trim() || undefined;
       const entityScope = isDemoMode() ? await resolveEntityIdOrDefault(request) : null;
       const programs = await ctx.run((tx) =>
         tx.trainingProgram.findMany({
           where: {
             ...ctx.where(),
-            ...(status ? { status: status as any } : {}),
+            ...(status ? { status: status as TrainingStatus } : {}),
+            ...(category ? { category: { equals: category, mode: 'insensitive' } } : {}),
+            ...(q
+              ? {
+                  OR: [
+                    { title: { contains: q, mode: 'insensitive' } },
+                    { provider: { contains: q, mode: 'insensitive' } },
+                    { category: { contains: q, mode: 'insensitive' } },
+                  ],
+                }
+              : {}),
             ...(entityScope ? { notes: demoEntityNote(entityScope) } : {}),
           },
           include: {
@@ -32,26 +47,7 @@ export async function GET(request: NextRequest) {
       );
 
       return NextResponse.json({
-        programs: programs.map((p) => ({
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          category: p.category,
-          provider: p.provider,
-          location: p.location,
-          isOnline: p.isOnline,
-          startDate: p.startDate?.toISOString().split('T')[0] ?? null,
-          endDate: p.endDate?.toISOString().split('T')[0] ?? null,
-          durationHours: p.durationHours,
-          maxParticipants: p.maxParticipants,
-          cost: p.cost ? Number(p.cost) : null,
-          currency: p.currency,
-          status: p.status,
-          enrollmentCount: p._count.enrollments,
-          completedCount: p.enrollments.filter((e) => e.status === 'completed').length,
-          materialCount: p._count.materials,
-          createdAt: p.createdAt.toISOString(),
-        })),
+        programs: programs.map(mapProgramSummary),
       });
     } catch (error) {
       await reportApiError({
@@ -65,39 +61,48 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   return withTenant(request, async (ctx) => {
-    let body: any;
+    let body: Partial<TrainingProgramInput>;
     try {
-      body = await request.json();
+      body = (await request.json()) as Partial<TrainingProgramInput>;
     } catch {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    const { title, description, category, provider, location, isOnline, startDate, endDate, durationHours, maxParticipants, cost, currency, status } = body;
+    const { title, description, category, provider, location, isOnline, startDate, endDate, durationHours, maxParticipants, cost, currency, status, notes } = body;
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required.' }, { status: 400 });
     }
 
     try {
-      const program = await ctx.run((tx) =>
-        tx.trainingProgram.create({
-          data: {
-            organizationId: ctx.organizationId,
-            title: title.trim(),
-            description: description?.trim() || null,
-            category: category?.trim() || null,
-            provider: provider?.trim() || null,
-            location: location?.trim() || null,
-            isOnline: isOnline ?? false,
-            startDate: startDate ? new Date(startDate) : null,
-            endDate: endDate ? new Date(endDate) : null,
-            durationHours: durationHours ? Number(durationHours) : null,
-            maxParticipants: maxParticipants ? Number(maxParticipants) : null,
-            cost: cost ? Number(cost) : null,
-            currency: currency || 'KES',
-            status: status || 'scheduled',
-            createdByUserId: ctx.staff.id,
-          },
-        }),
+      const program = await withTenantAudit<TrainingProgram>(
+        ctx,
+        {
+          action: 'training.program.created',
+          entityType: 'TrainingProgram',
+          route: 'POST /api/training',
+          entityIdFromResult: (p) => p.id,
+        },
+        (tx) =>
+          tx.trainingProgram.create({
+            data: {
+              organizationId: ctx.organizationId,
+              title: title.trim(),
+              description: description?.trim() || null,
+              category: category?.trim() || null,
+              provider: provider?.trim() || null,
+              location: location?.trim() || null,
+              isOnline: isOnline ?? false,
+              startDate: startDate ? new Date(startDate) : null,
+              endDate: endDate ? new Date(endDate) : null,
+              durationHours: durationHours ? Number(durationHours) : null,
+              maxParticipants: maxParticipants ? Number(maxParticipants) : null,
+              cost: cost ? Number(cost) : null,
+              currency: currency || 'KES',
+              status: status || 'scheduled',
+              notes: notes?.trim() || null,
+              createdByUserId: ctx.staff.id,
+            },
+          }),
       );
 
       return NextResponse.json({ id: program.id }, { status: 201 });

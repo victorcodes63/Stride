@@ -5,11 +5,13 @@ import { BOOTSTRAP_PENDING_MODULES } from '@/lib/bootstrap-pending-modules';
 import type { ModuleKey } from '@/lib/modules';
 import type { OverviewCoreMetrics } from '@/lib/dashboard-overview-metrics';
 import type { DashboardOverviewLayout } from '@/lib/dashboard-overview-layout';
+import type { DeploymentTier } from '@/lib/deployment-tier-shared';
 import type { UserSummary } from '@/types/dashboard';
 
 type DashboardSessionValue = {
   user: UserSummary | null;
   modules: Record<ModuleKey, boolean>;
+  deploymentTier: DeploymentTier;
   overviewCore: OverviewCoreMetrics | null;
   overviewLayout: DashboardOverviewLayout | null;
   overviewLayoutIsCustom: boolean;
@@ -18,6 +20,7 @@ type DashboardSessionValue = {
 const DashboardSessionContext = createContext<DashboardSessionValue>({
   user: null,
   modules: BOOTSTRAP_PENDING_MODULES,
+  deploymentTier: 'growth',
   overviewCore: null,
   overviewLayout: null,
   overviewLayoutIsCustom: false,
@@ -26,6 +29,7 @@ const DashboardSessionContext = createContext<DashboardSessionValue>({
 export function DashboardSessionProvider({
   user,
   modules,
+  deploymentTier = 'growth',
   overviewCore = null,
   overviewLayout = null,
   overviewLayoutIsCustom = false,
@@ -33,6 +37,7 @@ export function DashboardSessionProvider({
 }: {
   user: UserSummary | null;
   modules: Record<ModuleKey, boolean>;
+  deploymentTier?: DeploymentTier;
   overviewCore?: OverviewCoreMetrics | null;
   overviewLayout?: DashboardOverviewLayout | null;
   overviewLayoutIsCustom?: boolean;
@@ -40,7 +45,7 @@ export function DashboardSessionProvider({
 }) {
   return (
     <DashboardSessionContext.Provider
-      value={{ user, modules, overviewCore, overviewLayout, overviewLayoutIsCustom }}
+      value={{ user, modules, deploymentTier, overviewCore, overviewLayout, overviewLayoutIsCustom }}
     >
       {children}
     </DashboardSessionContext.Provider>

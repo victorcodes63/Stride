@@ -1,574 +1,453 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import {
- BarChart3,
- FileCheck,
- Briefcase,
- CalendarCheck,
- Loader2,
- TrendingUp,
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import {
+  Briefcase,
+  CalendarCheck,
+  CheckCircle2,
+  ClipboardCheck,
+  FileCheck,
+  Loader2,
+  TrendingUp,
 } from 'lucide-react';
-import { DashboardPage } from '@/components/dashboard/DashboardPage';
+import { DashboardPage, DashboardPageSection } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardStatGrid, DashboardMetricCard } from '@/components/dashboard/DashboardStatGrid';
 import {
- DashboardAsyncState,
- DashboardPageSkeleton,
+  DashboardAsyncState,
+  DashboardEmptyState,
+  DashboardPageSkeleton,
 } from '@/components/dashboard/DashboardAsyncState';
-import type { ApplicationWithDetails, ApplicationStatus, UserSummary } from '@/types/dashboard';
-import type { InterviewWithDetails } from '@/types/dashboard';
+import { useApiResource } from '@/hooks/useApiResource';
+import { STRIDE_DASHBOARD_SWATCHES } from '@/lib/platform-swatches';
+import type { UserSummary } from '@/types/dashboard';
 
-type JobItem = { id: string; title: string; company: string; isActive: boolean; applicationCount?: number };
-type Application = ApplicationWithDetails;
+type StatusDatum = { status: string; label: string; count: number };
+type TimeDatum = { month: string; label: string; count: number };
+type TopJobDatum = { jobId: string; title: string; company: string; count: number };
+
 type ReportsOverview = {
- recruitment: {
- jobs: JobItem[];
- applications: Application[];
- interviews: InterviewWithDetails[];
- };
- operations: {
- employees: number;
- departments: number;
- credentials: number;
- expiringCredentials: number;
- attendanceRecordsThisMonth: number;
- payrollRunsThisMonth: number;
- payrollRunsTotal: number;
- };
- leave: {
- pending: number;
- approved: number;
- };
- finance: {
- invoicesOutstanding: number;
- vendors: number;
- vendorBillsOutstanding: number;
- };
- governance: {
- activeUsers: number;
- essUsers: number;
- auditEvents: number;
- };
+  recruitmentAnalytics: {
+    totalApplications: number;
+    activeJobs: number;
+    totalJobs: number;
+    totalInterviews: number;
+    scheduledInterviews: number;
+    hired: number;
+    conversionRate: number;
+    requisitionApprovalsPending: number;
+    offerApprovalsPending: number;
+    hiresConverted: number;
+    hireConversionRate: number;
+  };
+  applicationsByStatus: StatusDatum[];
+  applicationsOverTime: TimeDatum[];
+  topJobs: TopJobDatum[];
+  interviewsByStatus: StatusDatum[];
+  operations: {
+    employees: number;
+    departments: number;
+    credentials: number;
+    expiringCredentials: number;
+    attendanceRecordsThisMonth: number;
+    payrollRunsThisMonth: number;
+    payrollRunsTotal: number;
+  };
+  leave: { pending: number; approved: number };
+  finance: { invoicesOutstanding: number; vendors: number; vendorBillsOutstanding: number };
+  governance: { activeUsers: number; essUsers: number; auditEvents: number };
 };
 
-function getMonthKey(iso: string) {
- const d = new Date(iso);
- return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+const APPLICATION_STATUS_COLOR: Record<string, string> = {
+  pending: STRIDE_DASHBOARD_SWATCHES.amber.accent,
+  reviewed: STRIDE_DASHBOARD_SWATCHES.sky.accent,
+  shortlisted: STRIDE_DASHBOARD_SWATCHES.violet.accent,
+  rejected: STRIDE_DASHBOARD_SWATCHES.rose.accent,
+  hired: STRIDE_DASHBOARD_SWATCHES.emerald.accent,
+};
+
+const INTERVIEW_STATUS_COLOR: Record<string, string> = {
+  scheduled: STRIDE_DASHBOARD_SWATCHES.sky.accent,
+  completed: STRIDE_DASHBOARD_SWATCHES.emerald.accent,
+  cancelled: STRIDE_DASHBOARD_SWATCHES.rose.accent,
+};
+
+const AXIS_TICK = { fill: 'var(--dash-text-muted)', fontSize: 12 } as const;
+const GRID_STROKE = 'var(--dash-border)';
+
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name?: string; value?: number | string; color?: string; payload?: Record<string, unknown> }>;
+  label?: string | number;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const heading = label ?? (payload[0]?.payload?.label as string | undefined) ?? payload[0]?.name;
+  return (
+    <div className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-solid)] px-3 py-2 text-xs shadow-lg">
+      {heading ? <p className="mb-1 font-semibold text-[var(--dash-text-strong)]">{heading}</p> : null}
+      {payload.map((entry, index) => (
+        <p key={index} className="flex items-center gap-1.5 text-[var(--dash-text-body)]">
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ backgroundColor: entry.color ?? 'var(--brand-primary)' }}
+          />
+          <span className="tabular-nums font-medium text-[var(--dash-text-strong)]">{entry.value}</span>
+          <span className="text-[var(--dash-text-muted)]">{entry.name}</span>
+        </p>
+      ))}
+    </div>
+  );
 }
 
-function formatMonth(monthKey: string) {
- const [y, m] = monthKey.split('-').map(Number);
- const d = new Date(y, m - 1, 1);
- return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+function ChartCard({
+  title,
+  icon: Icon,
+  isEmpty,
+  emptyLabel,
+  children,
+}: {
+  title: string;
+  icon: typeof FileCheck;
+  isEmpty: boolean;
+  emptyLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="dashboard-surface min-w-0 p-4 shadow-sm sm:p-5">
+      <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--dash-text-strong)]">
+        <Icon className="h-4 w-4 text-primary-600" strokeWidth={1.75} />
+        {title}
+      </h2>
+      {isEmpty ? (
+        <div className="flex h-[240px] items-center justify-center">
+          <p className="text-sm text-[var(--dash-text-muted)]">{emptyLabel}</p>
+        </div>
+      ) : (
+        children
+      )}
+    </section>
+  );
 }
 
-const STATUS_LABELS: Record<ApplicationStatus, string> = {
- pending: 'Pending',
- reviewed: 'Reviewed',
- shortlisted: 'Shortlisted',
- rejected: 'Rejected',
- hired: 'Hired',
-};
+function ModuleSnapshot({ overview }: { overview: ReportsOverview }) {
+  const blocks: Array<{ title: string; rows: Array<{ label: string; value: number; warn?: boolean }> }> = [
+    {
+      title: 'People & compliance',
+      rows: [
+        { label: 'Employees', value: overview.operations.employees },
+        { label: 'Departments', value: overview.operations.departments },
+        { label: 'Credentials', value: overview.operations.credentials },
+        { label: 'Expiring (30d)', value: overview.operations.expiringCredentials, warn: true },
+      ],
+    },
+    {
+      title: 'Payroll & attendance',
+      rows: [
+        { label: 'Payroll runs (month)', value: overview.operations.payrollRunsThisMonth },
+        { label: 'Payroll runs (total)', value: overview.operations.payrollRunsTotal },
+        { label: 'Attendance (month)', value: overview.operations.attendanceRecordsThisMonth },
+        { label: 'Leave pending', value: overview.leave.pending, warn: true },
+      ],
+    },
+    {
+      title: 'Finance',
+      rows: [
+        { label: 'Open invoices', value: overview.finance.invoicesOutstanding, warn: true },
+        { label: 'Vendors', value: overview.finance.vendors },
+        { label: 'Open vendor bills', value: overview.finance.vendorBillsOutstanding, warn: true },
+        { label: 'Leave approved', value: overview.leave.approved },
+      ],
+    },
+    {
+      title: 'Governance',
+      rows: [
+        { label: 'Active staff users', value: overview.governance.activeUsers },
+        { label: 'ESS users', value: overview.governance.essUsers },
+        { label: 'Audit events', value: overview.governance.auditEvents },
+      ],
+    },
+  ];
 
-const STATUS_COLORS: Record<ApplicationStatus, string> = {
- pending: 'bg-amber-500',
- reviewed: 'bg-blue-500',
- shortlisted: 'bg-indigo-500',
- rejected: 'bg-red-500',
- hired: 'bg-emerald-500',
-};
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {blocks.map((block) => (
+        <div key={block.title} className="dashboard-surface p-4 shadow-sm">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
+            {block.title}
+          </p>
+          <dl className="space-y-1">
+            {block.rows.map((row) => (
+              <div key={row.label} className="flex items-center justify-between gap-2">
+                <dt className="text-sm text-[var(--dash-text-body)]">{row.label}</dt>
+                <dd
+                  className={`text-sm font-semibold tabular-nums ${
+                    row.warn && row.value > 0 ? 'text-[var(--swatch-amber-fg)]' : 'text-[var(--dash-text-strong)]'
+                  }`}
+                >
+                  {row.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function DashboardAnalyticsPage() {
- const router = useRouter();
- const [access, setAccess] = useState<'unknown' | 'allowed' | 'denied'>('unknown');
- const [jobs, setJobs] = useState<JobItem[]>([]);
- const [applications, setApplications] = useState<Application[]>([]);
- const [interviews, setInterviews] = useState<InterviewWithDetails[]>([]);
- const [moduleStats, setModuleStats] = useState<ReportsOverview['operations'] & ReportsOverview['leave'] & ReportsOverview['finance'] & ReportsOverview['governance']>({
- employees: 0,
- departments: 0,
- credentials: 0,
- expiringCredentials: 0,
- attendanceRecordsThisMonth: 0,
- payrollRunsThisMonth: 0,
- payrollRunsTotal: 0,
- pending: 0,
- approved: 0,
- invoicesOutstanding: 0,
- vendors: 0,
- vendorBillsOutstanding: 0,
- activeUsers: 0,
- essUsers: 0,
- auditEvents: 0,
- });
- const [loading, setLoading] = useState(true);
- const [error, setError] = useState<string | null>(null);
- const [reloadNonce, setReloadNonce] = useState(0);
+  const router = useRouter();
+  const [access, setAccess] = useState<'unknown' | 'allowed' | 'denied'>('unknown');
 
- useEffect(() => {
- let cancelled = false;
- fetch('/api/auth/me')
- .then((r) => (r.ok ? r.json() : null))
- .then((me: UserSummary | null) => {
- if (cancelled) return;
- if (!me?.canViewSystemAnalytics) {
- setAccess('denied');
- router.replace('/dashboard');
- return;
- }
- setAccess('allowed');
- });
- return () => {
- cancelled = true;
- };
- }, [router]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((me: UserSummary | null) => {
+        if (cancelled) return;
+        if (!me?.canViewSystemAnalytics) {
+          setAccess('denied');
+          router.replace('/dashboard');
+          return;
+        }
+        setAccess('allowed');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
- useEffect(() => {
- if (access !== 'allowed') return;
- let cancelled = false;
- fetch('/api/reports/overview')
- .then(async (r) => {
- const data = await r.json().catch(() => null);
- if (!r.ok) {
- throw new Error(data?.error || 'Failed to load analytics data.');
- }
- return data as ReportsOverview;
- })
- .then((data) => {
- if (cancelled) return;
- setJobs(Array.isArray(data.recruitment?.jobs) ? data.recruitment.jobs : []);
- setApplications(Array.isArray(data.recruitment?.applications) ? data.recruitment.applications : []);
- setInterviews(Array.isArray(data.recruitment?.interviews) ? data.recruitment.interviews : []);
- setModuleStats({
- employees: data.operations?.employees ?? 0,
- departments: data.operations?.departments ?? 0,
- credentials: data.operations?.credentials ?? 0,
- expiringCredentials: data.operations?.expiringCredentials ?? 0,
- attendanceRecordsThisMonth: data.operations?.attendanceRecordsThisMonth ?? 0,
- payrollRunsThisMonth: data.operations?.payrollRunsThisMonth ?? 0,
- payrollRunsTotal: data.operations?.payrollRunsTotal ?? 0,
- pending: data.leave?.pending ?? 0,
- approved: data.leave?.approved ?? 0,
- invoicesOutstanding: data.finance?.invoicesOutstanding ?? 0,
- vendors: data.finance?.vendors ?? 0,
- vendorBillsOutstanding: data.finance?.vendorBillsOutstanding ?? 0,
- activeUsers: data.governance?.activeUsers ?? 0,
- essUsers: data.governance?.essUsers ?? 0,
- auditEvents: data.governance?.auditEvents ?? 0,
- });
- })
- .catch(() => {
- if (!cancelled) setError('Failed to load analytics data.');
- })
- .finally(() => {
- if (!cancelled) setLoading(false);
- });
- return () => { cancelled = true; };
- }, [access, reloadNonce]);
+  const query = useApiResource<ReportsOverview>(['reports-overview'], '/api/reports/overview', {
+    enabled: access === 'allowed',
+  });
 
- const statusBreakdown = useMemo(() => {
- const counts: Record<ApplicationStatus, number> = {
- pending: 0,
- reviewed: 0,
- shortlisted: 0,
- rejected: 0,
- hired: 0,
- };
- applications.forEach((a) => {
- counts[a.status]++;
- });
- const total = applications.length;
- return (Object.entries(counts) as [ApplicationStatus, number][]).map(([status, count]) => ({
- status,
- label: STATUS_LABELS[status],
- count,
- pct: total > 0 ? (count / total) * 100 : 0,
- }));
- }, [applications]);
+  if (access === 'unknown') {
+    return (
+      <div className="flex w-full min-w-0 items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
 
- const applicationsByMonth = useMemo(() => {
- const map: Record<string, number> = {};
- applications.forEach((a) => {
- const key = getMonthKey(a.appliedDate);
- map[key] = (map[key] || 0) + 1;
- });
- const now = new Date();
- const last12: string[] = [];
- for (let i = 11; i >= 0; i--) {
- const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
- last12.push(
- `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
- );
- }
- return last12.map((key) => ({
- month: key,
- label: formatMonth(key),
- count: map[key] || 0,
- }));
- }, [applications]);
+  if (access === 'denied') {
+    return (
+      <div className="mx-auto w-full min-w-0 max-w-lg space-y-4 py-16 text-center">
+        <p className="text-sm text-[var(--dash-text-muted)]">Redirecting…</p>
+        <Link href="/dashboard" className="text-sm font-medium text-primary-700 underline">
+          Back to overview
+        </Link>
+      </div>
+    );
+  }
 
- const maxByMonth = useMemo(
- () => Math.max(1, ...applicationsByMonth.map((m) => m.count)),
- [applicationsByMonth]
- );
+  const overview = query.data;
 
- const topJobsByApplications = useMemo(() => {
- const byJob: Record<string, { jobId: string; title: string; company: string; count: number }> = {};
- applications.forEach((a) => {
- if (!byJob[a.jobId]) {
- byJob[a.jobId] = {
- jobId: a.jobId,
- title: a.job.title,
- company: a.job.company,
- count: 0,
- };
- }
- byJob[a.jobId].count++;
- });
- return Object.values(byJob)
- .sort((a, b) => b.count - a.count)
- .slice(0, 10);
- }, [applications]);
+  return (
+    <DashboardPage>
+      <DashboardPageHeader
+        eyebrow="Executive analytics"
+        title="Analytics"
+        description="System-wide recruitment and operations performance, aggregated in real time."
+      />
 
- const interviewBreakdown = useMemo(() => {
- const scheduled = interviews.filter((i) => i.status === 'scheduled').length;
- const completed = interviews.filter((i) => i.status === 'completed').length;
- const cancelled = interviews.filter((i) => i.status === 'cancelled').length;
- return [
- { status: 'scheduled', label: 'Scheduled', count: scheduled, color: 'bg-indigo-500' },
- { status: 'completed', label: 'Completed', count: completed, color: 'bg-emerald-500' },
- { status: 'cancelled', label: 'Cancelled', count: cancelled, color: 'bg-neutral-400' },
- ];
- }, [interviews]);
+      <DashboardAsyncState
+        status={query.isLoading ? 'loading' : query.isError ? 'error' : 'success'}
+        error={query.error?.message}
+        onRetry={() => void query.refetch()}
+        loading={<DashboardPageSkeleton variant="stats" />}
+      >
+        {overview ? (
+          <>
+            <DashboardStatGrid columns={6}>
+              <DashboardMetricCard
+                label="Applications"
+                value={overview.recruitmentAnalytics.totalApplications}
+                icon={FileCheck}
+                tone="primary"
+              />
+              <DashboardMetricCard
+                label="Conversion rate"
+                value={`${overview.recruitmentAnalytics.conversionRate}%`}
+                hint={`${overview.recruitmentAnalytics.hired} hired`}
+                icon={TrendingUp}
+                tone="emerald"
+              />
+              <DashboardMetricCard
+                label="Hires converted"
+                value={overview.recruitmentAnalytics.hiresConverted}
+                hint={`${overview.recruitmentAnalytics.hireConversionRate}% of applications`}
+                icon={CheckCircle2}
+                tone="emerald"
+              />
+              <DashboardMetricCard
+                label="Approvals pending"
+                value={
+                  overview.recruitmentAnalytics.requisitionApprovalsPending +
+                  overview.recruitmentAnalytics.offerApprovalsPending
+                }
+                hint={`${overview.recruitmentAnalytics.requisitionApprovalsPending} req · ${overview.recruitmentAnalytics.offerApprovalsPending} offer`}
+                icon={ClipboardCheck}
+                tone="amber"
+              />
+              <DashboardMetricCard
+                label="Active jobs"
+                value={overview.recruitmentAnalytics.activeJobs}
+                hint={`${overview.recruitmentAnalytics.totalJobs} total`}
+                icon={Briefcase}
+                tone="violet"
+              />
+              <DashboardMetricCard
+                label="Interviews"
+                value={overview.recruitmentAnalytics.totalInterviews}
+                hint={`${overview.recruitmentAnalytics.scheduledInterviews} scheduled`}
+                icon={CalendarCheck}
+                tone="violet"
+              />
+            </DashboardStatGrid>
 
- const summary = useMemo(() => {
- const hired = applications.filter((a) => a.status === 'hired').length;
- const pending = applications.filter((a) => a.status === 'pending').length;
- const scheduledInterviews = interviews.filter((i) => i.status === 'scheduled').length;
- const activeJobs = jobs.filter((j) => j.isActive).length;
- return {
- totalApplications: applications.length,
- hired,
- pending,
- scheduledInterviews,
- activeJobs,
- totalInterviews: interviews.length,
- };
- }, [applications, interviews, jobs]);
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <ChartCard
+                title="Applications by status"
+                icon={FileCheck}
+                isEmpty={overview.recruitmentAnalytics.totalApplications === 0}
+                emptyLabel="No applications yet."
+              >
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={overview.applicationsByStatus} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                    <XAxis dataKey="label" tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: GRID_STROKE }} />
+                    <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: GRID_STROKE }} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--dash-hover)' }} />
+                    <Bar dataKey="count" name="Applications" radius={[6, 6, 0, 0]} maxBarSize={64}>
+                      {overview.applicationsByStatus.map((entry) => (
+                        <Cell key={entry.status} fill={APPLICATION_STATUS_COLOR[entry.status] ?? 'var(--brand-primary)'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
 
- if (access === 'unknown') {
- return (
- <div className="w-full min-w-0 flex items-center justify-center py-24">
- <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
- </div>
- );
- }
+              <ChartCard
+                title="Applications over time (12 months)"
+                icon={TrendingUp}
+                isEmpty={overview.applicationsOverTime.every((m) => m.count === 0)}
+                emptyLabel="No application activity in this period."
+              >
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={overview.applicationsOverTime} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="appsOverTime" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={STRIDE_DASHBOARD_SWATCHES.sky.accent} stopOpacity={0.4} />
+                        <stop offset="95%" stopColor={STRIDE_DASHBOARD_SWATCHES.sky.accent} stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="label" tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: GRID_STROKE }} />
+                    <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: GRID_STROKE }} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ stroke: GRID_STROKE }} />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      name="Applications"
+                      stroke={STRIDE_DASHBOARD_SWATCHES.sky.accent}
+                      strokeWidth={2}
+                      fill="url(#appsOverTime)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartCard>
 
- if (access === 'denied') {
- return (
- <div className="w-full min-w-0 max-w-lg mx-auto py-16 text-center space-y-4">
- <p className="text-neutral-600 text-sm">Redirecting…</p>
- <Link href="/dashboard" className="text-primary-700 font-medium text-sm underline">
- Back to overview
- </Link>
- </div>
- );
- }
+              <ChartCard
+                title="Top jobs by applications"
+                icon={Briefcase}
+                isEmpty={overview.topJobs.length === 0}
+                emptyLabel="No applications yet."
+              >
+                <ResponsiveContainer width="100%" height={Math.max(240, overview.topJobs.length * 34)}>
+                  <BarChart
+                    data={overview.topJobs}
+                    layout="vertical"
+                    margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
+                  >
+                    <XAxis type="number" allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: GRID_STROKE }} />
+                    <YAxis
+                      type="category"
+                      dataKey="title"
+                      width={140}
+                      tick={AXIS_TICK}
+                      tickLine={false}
+                      axisLine={{ stroke: GRID_STROKE }}
+                    />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--dash-hover)' }} />
+                    <Bar
+                      dataKey="count"
+                      name="Applications"
+                      radius={[0, 6, 6, 0]}
+                      maxBarSize={26}
+                      fill={STRIDE_DASHBOARD_SWATCHES.violet.accent}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
 
- if (loading || error) {
- return (
- <DashboardPage>
- <DashboardPageHeader title="Reports" />
- <DashboardAsyncState
- status={loading ? 'loading' : 'error'}
- error={error}
- onRetry={() => {
- setError(null);
- setLoading(true);
- setReloadNonce((n) => n + 1);
- }}
- loading={<DashboardPageSkeleton variant="stats" />}
- />
- </DashboardPage>
- );
- }
+              <ChartCard
+                title="Interviews by status"
+                icon={CalendarCheck}
+                isEmpty={overview.recruitmentAnalytics.totalInterviews === 0}
+                emptyLabel="No interviews scheduled yet."
+              >
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={overview.interviewsByStatus.filter((d) => d.count > 0)}
+                      dataKey="count"
+                      nameKey="label"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={2}
+                    >
+                      {overview.interviewsByStatus
+                        .filter((d) => d.count > 0)
+                        .map((entry) => (
+                          <Cell key={entry.status} fill={INTERVIEW_STATUS_COLOR[entry.status] ?? 'var(--brand-primary)'} />
+                        ))}
+                    </Pie>
+                    <Tooltip content={<ChartTooltip />} />
+                    <Legend
+                      iconType="circle"
+                      formatter={(value) => <span className="text-xs text-[var(--dash-text-body)]">{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            </div>
 
- return (
- <DashboardPage>
- <DashboardPageHeader
- title="Reports"
- description="Executive summary: application and hiring metrics across the system."
- />
-
- {/* Summary cards */}
- <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- className="dashboard-surface p-4 sm:p-5 shadow-sm min-w-0"
- >
- <div className="flex items-center justify-between gap-2 min-w-0">
- <div className="min-w-0">
- <p className="text-xs sm:text-sm font-medium text-neutral-600 truncate">
- Total applications
- </p>
- <p className="text-xl sm:text-2xl font-bold text-primary-900">
- {summary.totalApplications}
- </p>
- </div>
- <FileCheck className="w-8 h-8 sm:w-10 sm:h-10 text-primary-600 opacity-80 shrink-0" />
- </div>
- </motion.div>
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.03 }}
- className="dashboard-surface p-4 sm:p-5 shadow-sm min-w-0"
- >
- <div className="flex items-center justify-between gap-2 min-w-0">
- <div className="min-w-0">
- <p className="text-xs sm:text-sm font-medium text-neutral-600 truncate">Hired</p>
- <p className="text-xl sm:text-2xl font-bold text-emerald-600">{summary.hired}</p>
- </div>
- <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-600 opacity-80 shrink-0" />
- </div>
- </motion.div>
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.06 }}
- className="dashboard-surface p-4 sm:p-5 shadow-sm min-w-0"
- >
- <div className="flex items-center justify-between gap-2 min-w-0">
- <div className="min-w-0">
- <p className="text-xs sm:text-sm font-medium text-neutral-600 truncate">Pending</p>
- <p className="text-xl sm:text-2xl font-bold text-amber-600">{summary.pending}</p>
- </div>
- </div>
- </motion.div>
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.09 }}
- className="dashboard-surface p-4 sm:p-5 shadow-sm min-w-0"
- >
- <div className="flex items-center justify-between gap-2 min-w-0">
- <div className="min-w-0">
- <p className="text-xs sm:text-sm font-medium text-neutral-600 truncate">
- Active jobs
- </p>
- <p className="text-xl sm:text-2xl font-bold text-primary-900">{summary.activeJobs}</p>
- </div>
- <Briefcase className="w-8 h-8 sm:w-10 sm:h-10 text-primary-600 opacity-80 shrink-0" />
- </div>
- </motion.div>
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.12 }}
- className="dashboard-surface p-4 sm:p-5 shadow-sm min-w-0"
- >
- <div className="flex items-center justify-between gap-2 min-w-0">
- <div className="min-w-0">
- <p className="text-xs sm:text-sm font-medium text-neutral-600 truncate">
- Interviews
- </p>
- <p className="text-xl sm:text-2xl font-bold text-indigo-600">
- {summary.totalInterviews}
- <span className="text-sm font-normal text-neutral-500">
- {' '}({summary.scheduledInterviews} scheduled)
- </span>
- </p>
- </div>
- <CalendarCheck className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 opacity-80 shrink-0" />
- </div>
- </motion.div>
- </div>
-
- <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 sm:gap-4 mb-8">
- <div className="dashboard-surface p-4 shadow-sm">
- <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">People & Compliance</p>
- <p className="text-sm text-neutral-700">Employees: <span className="font-semibold text-primary-900">{moduleStats.employees}</span></p>
- <p className="text-sm text-neutral-700">Departments: <span className="font-semibold text-primary-900">{moduleStats.departments}</span></p>
- <p className="text-sm text-neutral-700">Credentials: <span className="font-semibold text-primary-900">{moduleStats.credentials}</span></p>
- <p className="text-sm text-neutral-700">Expiring (30d): <span className="font-semibold text-amber-700">{moduleStats.expiringCredentials}</span></p>
- </div>
- <div className="dashboard-surface p-4 shadow-sm">
- <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">Payroll & Attendance</p>
- <p className="text-sm text-neutral-700">Payroll runs (month): <span className="font-semibold text-primary-900">{moduleStats.payrollRunsThisMonth}</span></p>
- <p className="text-sm text-neutral-700">Payroll runs (total): <span className="font-semibold text-primary-900">{moduleStats.payrollRunsTotal}</span></p>
- <p className="text-sm text-neutral-700">Attendance records (month): <span className="font-semibold text-primary-900">{moduleStats.attendanceRecordsThisMonth}</span></p>
- <p className="text-sm text-neutral-700">Leave pending: <span className="font-semibold text-amber-700">{moduleStats.pending}</span></p>
- </div>
- <div className="dashboard-surface p-4 shadow-sm">
- <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">Finance</p>
- <p className="text-sm text-neutral-700">Open invoices: <span className="font-semibold text-red-700">{moduleStats.invoicesOutstanding}</span></p>
- <p className="text-sm text-neutral-700">Vendors: <span className="font-semibold text-primary-900">{moduleStats.vendors}</span></p>
- <p className="text-sm text-neutral-700">Open vendor bills: <span className="font-semibold text-red-700">{moduleStats.vendorBillsOutstanding}</span></p>
- </div>
- <div className="dashboard-surface p-4 shadow-sm">
- <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">Governance</p>
- <p className="text-sm text-neutral-700">Active staff users: <span className="font-semibold text-primary-900">{moduleStats.activeUsers}</span></p>
- <p className="text-sm text-neutral-700">ESS users: <span className="font-semibold text-primary-900">{moduleStats.essUsers}</span></p>
- <p className="text-sm text-neutral-700">Audit events: <span className="font-semibold text-primary-900">{moduleStats.auditEvents}</span></p>
- <p className="text-sm text-neutral-700">Leave approved: <span className="font-semibold text-emerald-700">{moduleStats.approved}</span></p>
- </div>
- </div>
-
- <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
- {/* Application status breakdown */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.1 }}
- className="dashboard-surface shadow-sm p-4 sm:p-6"
- >
- <h2 className="text-base sm:text-lg font-semibold text-primary-900 mb-4 flex items-center gap-2">
- <BarChart3 className="w-5 h-5 text-primary-600" />
- Applications by status
- </h2>
- {applications.length === 0 ? (
- <p className="text-neutral-500 text-sm">No applications yet.</p>
- ) : (
- <div className="space-y-3">
- {statusBreakdown.map(({ status, label, count, pct }) => (
- <div key={status} className="flex items-center gap-3">
- <div className="w-24 sm:w-28 text-sm text-neutral-700 shrink-0">{label}</div>
- <div className="flex-1 h-8 bg-neutral-100 rounded-lg overflow-hidden min-w-0">
- <div
- className={`h-full rounded-lg ${STATUS_COLORS[status]} transition-all duration-500`}
- style={{ width: `${Math.max(0, pct)}%` }}
- />
- </div>
- <div className="w-12 text-right text-sm font-medium text-neutral-900 shrink-0">
- {count}
- </div>
- </div>
- ))}
- </div>
- )}
- </motion.div>
-
- {/* Applications over time (last 12 months) */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.15 }}
- className="dashboard-surface shadow-sm p-4 sm:p-6"
- >
- <h2 className="text-base sm:text-lg font-semibold text-primary-900 mb-4 flex items-center gap-2">
- <TrendingUp className="w-5 h-5 text-primary-600" />
- Applications over time (last 12 months)
- </h2>
- {applicationsByMonth.every((m) => m.count === 0) ? (
- <p className="text-neutral-500 text-sm">No application data in this period.</p>
- ) : (
- <div className="space-y-2">
- {applicationsByMonth.map(({ month, label, count }) => (
- <div key={month} className="flex items-center gap-3">
- <div className="w-14 sm:w-16 text-xs text-neutral-600 shrink-0">{label}</div>
- <div className="flex-1 h-6 bg-neutral-100 rounded overflow-hidden min-w-0">
- <motion.div
- initial={{ width: 0 }}
- animate={{ width: `${maxByMonth > 0 ? (count / maxByMonth) * 100 : 0}%` }}
- transition={{ duration: 0.5, delay: 0.2 }}
- className="h-full bg-primary-500 rounded"
- />
- </div>
- <div className="w-8 text-right text-sm font-medium text-neutral-700 shrink-0">
- {count}
- </div>
- </div>
- ))}
- </div>
- )}
- </motion.div>
-
- {/* Top jobs by applications */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.2 }}
- className="dashboard-surface shadow-sm p-4 sm:p-6"
- >
- <h2 className="text-base sm:text-lg font-semibold text-primary-900 mb-4 flex items-center gap-2">
- <Briefcase className="w-5 h-5 text-primary-600" />
- Top jobs by applications
- </h2>
- {topJobsByApplications.length === 0 ? (
- <p className="text-neutral-500 text-sm">No applications yet.</p>
- ) : (
- <div className="space-y-2">
- {topJobsByApplications.map((job, idx) => {
- const maxCount = topJobsByApplications[0]?.count ?? 1;
- const pct = (job.count / maxCount) * 100;
- return (
- <div key={job.jobId} className="flex items-center gap-3">
- <div className="w-6 text-sm text-neutral-500 shrink-0">{idx + 1}</div>
- <div className="flex-1 min-w-0">
- <p className="text-sm font-medium text-primary-900 truncate">{job.title}</p>
- <p className="text-xs text-neutral-500 truncate">{job.company}</p>
- </div>
- <div className="w-24 sm:w-32 h-6 bg-neutral-100 rounded overflow-hidden shrink-0">
- <motion.div
- initial={{ width: 0 }}
- animate={{ width: `${pct}%` }}
- transition={{ duration: 0.4, delay: 0.25 + idx * 0.03 }}
- className="h-full bg-primary-500 rounded"
- />
- </div>
- <div className="w-8 text-right text-sm font-medium text-neutral-900 shrink-0">
- {job.count}
- </div>
- </div>
- );
- })}
- </div>
- )}
- </motion.div>
-
- {/* Interview breakdown */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.25 }}
- className="dashboard-surface shadow-sm p-4 sm:p-6"
- >
- <h2 className="text-base sm:text-lg font-semibold text-primary-900 mb-4 flex items-center gap-2">
- <CalendarCheck className="w-5 h-5 text-indigo-600" />
- Interviews by status
- </h2>
- {interviews.length === 0 ? (
- <p className="text-neutral-500 text-sm">No interviews scheduled yet.</p>
- ) : (
- <div className="space-y-3">
- {interviewBreakdown.map(({ status, label, count, color }) => {
- const total = interviews.length;
- const pct = total > 0 ? (count / total) * 100 : 0;
- return (
- <div key={status} className="flex items-center gap-3">
- <div className="w-24 sm:w-28 text-sm text-neutral-700 shrink-0">{label}</div>
- <div className="flex-1 h-8 bg-neutral-100 rounded-lg overflow-hidden min-w-0">
- <motion.div
- initial={{ width: 0 }}
- animate={{ width: `${pct}%` }}
- transition={{ duration: 0.5 }}
- className={`h-full rounded-lg ${color}`}
- />
- </div>
- <div className="w-12 text-right text-sm font-medium text-neutral-900 shrink-0">
- {count}
- </div>
- </div>
- );
- })}
- </div>
- )}
- </motion.div>
- </div>
- </DashboardPage>
- );
+            <DashboardPageSection title="Operations snapshot" className="mt-2">
+              <ModuleSnapshot overview={overview} />
+            </DashboardPageSection>
+          </>
+        ) : (
+          <DashboardEmptyState title="No analytics data" description="There is nothing to report yet." />
+        )}
+      </DashboardAsyncState>
+    </DashboardPage>
+  );
 }

@@ -94,7 +94,7 @@ const EXTRA_ROUTE_LABELS: Record<string, string> = {
   '/dashboard/clients': 'Clients',
   '/dashboard/insights': 'Insights',
   '/dashboard/outsourcing': 'HR Outsourcing',
-  '/dashboard/outsourcing/employees': 'Employees',
+  '/dashboard/outsourcing/employees': 'Outsourced employees',
   '/dashboard/outsourcing/departments': 'Departments',
   '/dashboard/outsourcing/attendance': 'Attendance',
   '/dashboard/outsourcing/payroll': 'Payroll',

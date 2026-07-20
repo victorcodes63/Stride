@@ -29,7 +29,7 @@ export const DEMO_VERTICAL_CATALOG: Record<VerticalShowcasePackId, DemoVerticalM
   },
   'cargo-logistics': {
     id: 'cargo-logistics',
-    label: 'SwiftFreight East Africa',
+    label: 'Savannah Freight',
     sector: 'Cargo & logistics',
     emoji: '🚛',
   },

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type ClientRow = { id: string; name: string; currency: string };
 
@@ -281,7 +282,7 @@ function ReceiptsPageInner() {
  <DashboardPageHeader
  icon={Wallet}
  title="Receipts & allocations"
- description="Record money received from billing clients and split it across one or more invoices. Invoice status updates from allocated amounts."
+ description="Record client payments and allocate them across invoices."
  />
 
  {listError && (
@@ -322,20 +323,17 @@ function ReceiptsPageInner() {
  Billing client *
  </label>
  <div className="flex gap-2 items-start">
- <select
+ <StrideSelect
  id="client"
- required
- className={inputClass}
+ ariaLabel="Billing client"
+ className="w-full"
  value={receiptClientId}
- onChange={(e) => setReceiptClientId(e.target.value)}
- >
- <option value="">Select…</option>
- {clientsSorted.map((c) => (
- <option key={c.id} value={c.id}>
- {c.name} · {c.currency}
- </option>
- ))}
- </select>
+ onChange={(value) => setReceiptClientId(value)}
+ options={[
+ { value: '', label: 'Select…' },
+ ...clientsSorted.map((c) => ({ value: c.id, label: `${c.name} · ${c.currency}` })),
+ ]}
+ />
  </div>
  <p className="text-xs text-[var(--dash-text-muted)] mt-1.5">
  <Link
@@ -449,21 +447,23 @@ function ReceiptsPageInner() {
  >
  <div className="md:col-span-7">
  <label className="block text-xs font-medium text-[var(--dash-text-muted)] mb-1">Invoice</label>
- <select
- className={inputClass}
+ <StrideSelect
+ className="w-full"
+ ariaLabel="Invoice"
  value={row.invoiceId}
- onChange={(e) => updateAlloc(index, { invoiceId: e.target.value })}
- >
- <option value="">Select…</option>
- {(openInvoices ?? []).map((inv) => (
- <option key={inv.id} value={inv.id}>
- #{inv.invoiceNumber} · {inv.issueDate} · balance{' '}
- {inv.balanceDue != null
+ onChange={(value) => updateAlloc(index, { invoiceId: value })}
+ options={[
+ { value: '', label: 'Select…' },
+ ...(openInvoices ?? []).map((inv) => ({
+ value: inv.id,
+ label: `#${inv.invoiceNumber} · ${inv.issueDate} · balance ${
+ inv.balanceDue != null
  ? money(Math.max(0, inv.balanceDue), inv.currency)
- : money(inv.totalIncVat, inv.currency)}
- </option>
- ))}
- </select>
+ : money(inv.totalIncVat, inv.currency)
+ }`,
+ })),
+ ]}
+ />
  </div>
  <div className="md:col-span-4">
  <label className="block text-xs font-medium text-[var(--dash-text-muted)] mb-1">Amount</label>
@@ -531,19 +531,17 @@ function ReceiptsPageInner() {
  <label htmlFor="filterClient" className="text-xs text-[var(--dash-text-muted)] whitespace-nowrap">
  Filter by client
  </label>
- <select
+ <StrideSelect
  id="filterClient"
- className={`dash-filter-select rounded-lg px-3 py-2 text-sm max-w-[220px]`}
+ ariaLabel="Filter by client"
+ className="max-w-[220px]"
  value={listFilterClientId}
- onChange={(e) => setListFilterClientId(e.target.value)}
- >
- <option value="">All clients</option>
- {clientsSorted.map((c) => (
- <option key={c.id} value={c.id}>
- {c.name}
- </option>
- ))}
- </select>
+ onChange={(value) => setListFilterClientId(value)}
+ options={[
+ { value: '', label: 'All clients' },
+ ...clientsSorted.map((c) => ({ value: c.id, label: c.name })),
+ ]}
+ />
  </div>
  </div>
  <p className="px-4 py-2 text-xs text-[var(--dash-text-subtle)] border-b border-[var(--dash-border-subtle)]">

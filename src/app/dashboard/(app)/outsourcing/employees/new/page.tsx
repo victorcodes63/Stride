@@ -1,16 +1,80 @@
 'use client';
 
 import { useEffect, useRef, useState, Suspense } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Download, Upload } from 'lucide-react';
+import {
+ Banknote,
+ ChevronLeft,
+ Download,
+ FileSpreadsheet,
+ IdCard,
+ Loader2,
+ Upload,
+ UserPlus,
+ UserRound,
+} from 'lucide-react';
 import { OutsourcingClientSwitcher } from '@/components/outsourcing/OutsourcingClientSwitcher';
 import { useOutsourcingClient } from '@/hooks/use-outsourcing-client';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
-const inputClass =
- 'w-full min-w-0 px-4 py-2.5 sm:py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base bg-white';
+const inputClass = 'dash-setup-input';
+
+function SectionCard({
+ title,
+ description,
+ icon: Icon,
+ children,
+}: {
+ title: string;
+ description?: string;
+ icon?: React.ComponentType<{ className?: string }>;
+ children: ReactNode;
+}) {
+ return (
+ <section className="dashboard-surface space-y-5 p-5 shadow-sm sm:p-6">
+ <div>
+ <h2 className="flex items-center gap-2 text-lg font-semibold dash-setup-heading">
+ {Icon ? <Icon className="h-5 w-5 dash-setup-heading-icon" /> : null}
+ {title}
+ </h2>
+ {description ? <p className="mt-1 text-sm dash-setup-muted">{description}</p> : null}
+ </div>
+ {children}
+ </section>
+ );
+}
+
+function Field({
+ label,
+ hint,
+ optional,
+ required,
+ htmlFor,
+ children,
+}: {
+ label: string;
+ hint?: string;
+ optional?: boolean;
+ required?: boolean;
+ htmlFor?: string;
+ children: ReactNode;
+}) {
+ return (
+ <div>
+ <label htmlFor={htmlFor} className="mb-1 block text-sm font-medium dash-setup-label">
+ {label}
+ {required ? <span className="ml-0.5 text-[var(--brand-primary)]">*</span> : null}
+ {optional ? <span className="ml-1 font-normal dash-setup-muted">(optional)</span> : null}
+ </label>
+ {children}
+ {hint ? <p className="mt-1 text-xs dash-setup-muted">{hint}</p> : null}
+ </div>
+ );
+}
 
 type ImportResponse = {
  needsDepartmentCreation?: boolean;
@@ -172,7 +236,7 @@ function NewEmployeeForm() {
  });
  const data = await res.json().catch(() => ({}));
  if (!res.ok) throw new Error(data.error || 'Failed to add employee.');
- router.push('/dashboard/employees');
+ router.push('/dashboard/outsourcing/employees');
  router.refresh();
  } catch (e) {
  setError(e instanceof Error ? e.message : 'Something went wrong.');
@@ -183,26 +247,26 @@ function NewEmployeeForm() {
 
  return (
  <DashboardPage>
- <nav className="mb-4" aria-label="Breadcrumb">
- <ol className="flex items-center gap-1.5 text-sm text-neutral-500">
+ <div className="flex flex-col gap-3">
+ <nav aria-label="Breadcrumb">
+ <ol className="flex items-center gap-1.5 text-sm dash-setup-muted">
  <li>
- <Link href="/dashboard/employees" className="hover:text-primary-700">
+ <Link
+ href="/dashboard/outsourcing/employees"
+ className="inline-flex items-center gap-1 dash-setup-link"
+ >
+ <ChevronLeft className="h-4 w-4" />
  Employees
  </Link>
  </li>
  <li aria-hidden="true">/</li>
- <li className="text-neutral-900 font-medium">Add employee</li>
+ <li className="font-medium dash-setup-heading">Add employee</li>
  </ol>
  </nav>
 
- <div className="mb-6 flex items-start gap-3">
- <Link href="/dashboard/employees" className="mt-1 shrink-0 text-neutral-500 hover:text-primary-700" aria-label="Back">
- <ChevronLeft className="h-5 w-5" />
- </Link>
  <DashboardPageHeader
  title="Add employee"
  description="Add one person below, or import many at once with Excel."
- className="min-w-0 flex-1 !mb-0"
  />
  </div>
 
@@ -212,19 +276,13 @@ function NewEmployeeForm() {
  </div>
  ) : null}
 
- <form onSubmit={handleSubmit} className="space-y-6">
- {error ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div> : null}
-
- <div className="space-y-6 dashboard-surface p-5 shadow-sm sm:p-6 lg:p-8">
- <div className="rounded-xl border border-dashed border-primary-200 bg-primary-50/40 p-4 sm:p-5">
- <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
- <div>
- <h2 className="text-sm font-bold uppercase tracking-wide text-primary-900">Import multiple (Excel)</h2>
- <p className="mt-1 max-w-2xl text-sm text-neutral-600">
- Download the template, fill rows, and import. Department names must match existing departments or be left blank.
- </p>
- </div>
- <div className="flex shrink-0 flex-wrap gap-2">
+ <div className="space-y-6">
+ <SectionCard
+ title="Import multiple (Excel)"
+ description="Download the template, fill in the rows, and import."
+ icon={FileSpreadsheet}
+ >
+ <div className="flex flex-wrap gap-2">
  <button
  type="button"
  onClick={() =>
@@ -235,7 +293,7 @@ function NewEmployeeForm() {
  '_blank',
  )
  }
- className="inline-flex items-center gap-2 rounded-lg border border-primary-300 bg-white px-4 py-2.5 text-sm font-medium text-primary-900 hover:bg-primary-50"
+ className="btn-secondary inline-flex items-center gap-2"
  >
  <Download className="h-4 w-4" />
  Download template
@@ -245,21 +303,26 @@ function NewEmployeeForm() {
  type="button"
  onClick={() => fileInputRef.current?.click()}
  disabled={importing}
- className="inline-flex items-center gap-2 rounded-lg bg-primary-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-800 disabled:opacity-50"
+ className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
  >
- <Upload className="h-4 w-4" />
- {importing ? 'Importing...' : 'Import Excel'}
+ {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+ {importing ? 'Importing…' : 'Import Excel'}
  </button>
  </div>
+
+ {importError ? (
+ <div className="rounded-lg border border-[var(--dash-danger-border)] bg-[var(--dash-danger-bg)] p-3 text-sm text-[var(--dash-danger-fg)]">
+ {importError}
  </div>
- {importError ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{importError}</div> : null}
+ ) : null}
+
  {importResult ? (
- <div className="rounded-lg border border-primary-100 bg-white p-4 text-sm">
+ <div className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] p-4 text-sm dash-setup-label">
  Created: <strong>{importResult.created ?? 0}</strong>
  {importResult.skipped ? <> · Skipped: <strong>{importResult.skipped}</strong></> : null}
  {importResult.errors ? <> · Errors: <strong>{importResult.errors}</strong></> : null}
  {importResult.errorDetails?.length ? (
- <ul className="mt-2 list-inside list-disc space-y-0.5 text-xs text-red-800">
+ <ul className="mt-2 list-inside list-disc space-y-0.5 text-xs text-[var(--dash-danger-fg)]">
  {importResult.errorDetails.map((rowErr, i) => (
  <li key={i}>
  Row {rowErr.row}: {rowErr.reason}
@@ -268,126 +331,160 @@ function NewEmployeeForm() {
  </ul>
  ) : null}
  <div className="mt-3">
- <Link href="/dashboard/employees" className="text-sm font-medium text-primary-700 hover:underline">
+ <Link href="/dashboard/outsourcing/employees" className="dash-setup-link text-sm font-medium">
  View employees
  </Link>
  </div>
  </div>
  ) : null}
- </div>
 
  {departmentPrompt ? (
- <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
- <p className="font-medium text-amber-900">Missing departments found in file</p>
- <ul className="mt-2 list-inside list-disc text-amber-800">
+ <div className="rounded-lg border border-[var(--dash-warning-border)] bg-[var(--dash-warning-bg)] p-4 text-sm">
+ <p className="font-medium text-[var(--dash-warning-fg)]">Missing departments found in file</p>
+ <ul className="mt-2 list-inside list-disc text-[var(--dash-warning-fg)]">
  {departmentPrompt.map((d, i) => (
  <li key={`${d}-${i}`}>{d}</li>
  ))}
  </ul>
- <div className="mt-3 flex gap-2">
+ <div className="mt-3 flex flex-wrap gap-2">
  <button
  type="button"
  onClick={handleCreateMissingDepartmentsAndImport}
  disabled={importing}
- className="rounded-lg bg-primary-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+ className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
  >
+ {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
  Create departments and continue
  </button>
- <button
- type="button"
- onClick={() => setDepartmentPrompt(null)}
- className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm"
- >
+ <button type="button" onClick={() => setDepartmentPrompt(null)} className="btn-secondary">
  Cancel
  </button>
  </div>
  </div>
  ) : null}
+ </SectionCard>
 
- <div className="grid grid-cols-1 gap-8 border-t border-neutral-100 pt-8 lg:grid-cols-2 lg:gap-12">
- <div className="space-y-4">
- <h2 className="border-b border-neutral-100 pb-2 text-xs font-bold uppercase tracking-wider text-neutral-500">Person</h2>
+ <form onSubmit={handleSubmit} className="space-y-6">
+ {error ? (
+ <div className="rounded-xl border border-[var(--dash-danger-border)] bg-[var(--dash-danger-bg)] p-4 text-sm text-[var(--dash-danger-fg)]">
+ {error}
+ </div>
+ ) : null}
+
+ <SectionCard title="Personal details" icon={UserRound}>
  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
- <div>
- <label htmlFor="firstName" className="mb-1.5 block text-sm font-medium text-neutral-800">First name <span className="text-red-600">*</span></label>
+ <Field label="First name" required htmlFor="firstName">
  <input id="firstName" value={form.firstName} onChange={update('firstName')} className={inputClass} required />
- </div>
- <div>
- <label htmlFor="lastName" className="mb-1.5 block text-sm font-medium text-neutral-800">Last name <span className="text-red-600">*</span></label>
+ </Field>
+ <Field label="Last name" required htmlFor="lastName">
  <input id="lastName" value={form.lastName} onChange={update('lastName')} className={inputClass} required />
- </div>
- </div>
- <div>
- <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-neutral-800">Email <span className="font-normal text-neutral-400">(optional)</span></label>
+ </Field>
+ <Field label="Email" optional htmlFor="email">
  <input id="email" type="email" value={form.email} onChange={update('email')} className={inputClass} />
- </div>
- <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
- <div>
- <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-neutral-800">Phone</label>
+ </Field>
+ <Field label="Phone" htmlFor="phone">
  <input id="phone" type="tel" value={form.phone} onChange={update('phone')} className={inputClass} />
+ </Field>
  </div>
- <div>
- <label htmlFor="jobTitle" className="mb-1.5 block text-sm font-medium text-neutral-800">Job title</label>
+ </SectionCard>
+
+ <SectionCard title="Role & assignment" icon={UserPlus}>
+ <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+ <Field label="Job title" htmlFor="jobTitle">
  <input id="jobTitle" value={form.jobTitle} onChange={update('jobTitle')} className={inputClass} />
- </div>
- </div>
- </div>
-
- <div className="space-y-4 lg:border-l lg:border-neutral-100 lg:pl-10">
- <h2 className="border-b border-neutral-100 pb-2 text-xs font-bold uppercase tracking-wider text-neutral-500">Assignment</h2>
- <div>
- <label htmlFor="departmentId" className="mb-1.5 block text-sm font-medium text-neutral-800">Department</label>
- <select id="departmentId" value={form.departmentId} onChange={update('departmentId')} className={inputClass}>
- <option value="">— None (assign later) —</option>
- {departments.map((d) => (
- <option key={d.id} value={d.id}>{d.name}</option>
- ))}
- </select>
- </div>
- <div>
- <label htmlFor="employeeNumber" className="mb-1.5 block text-sm font-medium text-neutral-800">EMP No. <span className="font-normal text-neutral-400">(optional)</span></label>
+ </Field>
+ <Field label="Department" htmlFor="departmentId">
+ <StrideSelect
+ id="departmentId"
+ ariaLabel="Department"
+ value={form.departmentId}
+ onChange={(value) => setForm((f) => ({ ...f, departmentId: value }))}
+ options={[
+ { value: '', label: '— None (assign later) —' },
+ ...departments.map((d) => ({ value: d.id, label: d.name })),
+ ]}
+ />
+ </Field>
+ <Field label="Employee number" optional htmlFor="employeeNumber">
  <input id="employeeNumber" value={form.employeeNumber} onChange={update('employeeNumber')} className={inputClass} />
- </div>
- <div>
- <label htmlFor="dateOfJoining" className="mb-1.5 block text-sm font-medium text-neutral-800">Date of joining</label>
+ </Field>
+ <Field label="Date of joining" htmlFor="dateOfJoining">
  <input id="dateOfJoining" type="date" value={form.dateOfJoining} onChange={update('dateOfJoining')} className={inputClass} />
- </div>
- <div>
- <label htmlFor="baseSalary" className="mb-1.5 block text-sm font-medium text-neutral-800">Monthly basic salary (KES)</label>
+ </Field>
+ <Field label="Monthly basic salary (KES)" htmlFor="baseSalary">
  <input id="baseSalary" type="number" min={0} step={1} value={form.baseSalary} onChange={update('baseSalary')} className={inputClass} />
- </div>
- <div>
- <label htmlFor="costCenterCode" className="mb-1.5 block text-sm font-medium text-neutral-800">Cost centre code</label>
+ </Field>
+ <div className="hidden sm:block" aria-hidden />
+ <Field label="Cost centre code" htmlFor="costCenterCode">
  <input id="costCenterCode" value={form.costCenterCode} onChange={update('costCenterCode')} className={inputClass} />
- </div>
- <div>
- <label htmlFor="costCenterName" className="mb-1.5 block text-sm font-medium text-neutral-800">Cost centre name</label>
+ </Field>
+ <Field label="Cost centre name" htmlFor="costCenterName">
  <input id="costCenterName" value={form.costCenterName} onChange={update('costCenterName')} className={inputClass} />
+ </Field>
  </div>
- </div>
- </div>
- </div>
+ </SectionCard>
 
- <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
- <Link href="/dashboard/employees" className="inline-flex justify-center rounded-xl border border-neutral-300 px-6 py-3 font-medium text-neutral-700 hover:bg-neutral-50">
+ <SectionCard
+ title="Statutory details"
+ description="Optional now — you can complete these later before running payroll."
+ icon={IdCard}
+ >
+ <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+ <Field label="National ID number" optional htmlFor="idNumber">
+ <input id="idNumber" value={form.idNumber} onChange={update('idNumber')} className={inputClass} />
+ </Field>
+ <Field label="KRA PIN" optional htmlFor="kraPin">
+ <input id="kraPin" value={form.kraPin} onChange={update('kraPin')} className={`${inputClass} uppercase`} />
+ </Field>
+ <Field label="NSSF number" optional htmlFor="nssfNumber">
+ <input id="nssfNumber" value={form.nssfNumber} onChange={update('nssfNumber')} className={inputClass} />
+ </Field>
+ <Field label="NHIF / SHIF number" optional htmlFor="nhifNumber">
+ <input id="nhifNumber" value={form.nhifNumber} onChange={update('nhifNumber')} className={inputClass} />
+ </Field>
+ </div>
+ </SectionCard>
+
+ <SectionCard
+ title="Bank details"
+ description="Optional — used for salary disbursement."
+ icon={Banknote}
+ >
+ <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+ <Field label="Bank name" optional htmlFor="bankName">
+ <input id="bankName" value={form.bankName} onChange={update('bankName')} className={inputClass} />
+ </Field>
+ <Field label="Branch" optional htmlFor="bankBranch">
+ <input id="bankBranch" value={form.bankBranch} onChange={update('bankBranch')} className={inputClass} />
+ </Field>
+ <Field label="Account number" optional htmlFor="bankAccountNumber">
+ <input id="bankAccountNumber" value={form.bankAccountNumber} onChange={update('bankAccountNumber')} className={inputClass} />
+ </Field>
+ </div>
+ </SectionCard>
+
+ <div className="sticky bottom-4 z-10 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+ <Link href="/dashboard/outsourcing/employees" className="btn-secondary inline-flex items-center justify-center">
  Cancel
  </Link>
  <button
  type="submit"
  disabled={submitting}
- className="inline-flex justify-center rounded-xl bg-primary-900 px-6 py-3 font-semibold text-white hover:bg-primary-800 disabled:opacity-50"
+ className="btn-primary dash-panel-cta inline-flex items-center justify-center gap-2 disabled:opacity-60"
  >
- {submitting ? 'Saving...' : 'Add employee'}
+ {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+ {submitting ? 'Saving…' : 'Add employee'}
  </button>
  </div>
  </form>
+ </div>
  </DashboardPage>
  );
 }
 
 export default function NewEmployeePage() {
  return (
- <Suspense fallback={<div className="h-40 w-full animate-pulse rounded-2xl bg-neutral-100" />}>
+ <Suspense fallback={<div className="h-40 w-full animate-pulse rounded-2xl bg-[var(--dash-surface-muted)]" />}>
  <NewEmployeeForm />
  </Suspense>
  );

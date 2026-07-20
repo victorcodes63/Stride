@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import type { FleetTripDetail, FleetTripDocumentRow } from '@/lib/fleet-api';
 import { FLEET_TRIP_DOCUMENT_LABELS, FLEET_TRIP_DOCUMENT_TYPES } from '@/lib/fleet-documents';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Props = {
   tripId: string;
@@ -137,18 +138,18 @@ export function FleetTripDocumentsSection({ tripId, documents, onUpdated }: Prop
             <label htmlFor="fleet-doc-type" className="mb-1 block text-xs font-medium text-neutral-600">
               Type
             </label>
-            <select
+            <StrideSelect
               id="fleet-doc-type"
               value={docType}
-              onChange={(e) => setDocType(e.target.value)}
-              className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm"
-            >
-              {FLEET_TRIP_DOCUMENT_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {FLEET_TRIP_DOCUMENT_LABELS[type]}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setDocType(value)}
+              options={FLEET_TRIP_DOCUMENT_TYPES.map((type) => ({
+                value: type,
+                label: FLEET_TRIP_DOCUMENT_LABELS[type],
+              }))}
+              ariaLabel="Type"
+              className="w-full"
+              size="sm"
+            />
           </div>
           <div>
             <label htmlFor="fleet-doc-title" className="mb-1 block text-xs font-medium text-neutral-600">

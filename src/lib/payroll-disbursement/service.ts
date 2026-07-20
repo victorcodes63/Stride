@@ -4,7 +4,7 @@ import { formatBankExportPaymentReference } from '@/lib/payroll-bank-export';
 import { normalizeKenyanMsisdn } from '@/lib/payroll-disbursement/phone';
 import { aggregateDarajaLinePoll } from '@/lib/payroll-disbursement/daraja-mpesa-provider';
 import { getPayrollDisbursementProvider } from '@/lib/payroll-disbursement/provider';
-import type { DisbursementRecipient } from '@/lib/payroll-disbursement/types';
+import type { DisbursementRecipient, PayrollDisbursementProvider } from '@/lib/payroll-disbursement/types';
 
 export type CreateDisbursementInput = {
   organizationId: string;

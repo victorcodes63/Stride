@@ -31,6 +31,23 @@ export function canAccessCompanySetup(_tier?: DeploymentTier): boolean {
   return true;
 }
 
+/**
+ * Env-based per-customer feature overrides (add-ons) pushed by the control plane alongside
+ * `DEPLOYMENT_TIER`. Used by render-time surfaces (root layout, ESS layout, brand resolution)
+ * so an add-on granted to a specific client is honored everywhere, not just in the admin form.
+ * The admin API prefers the live entitlements payload; this env fallback keeps SSR consistent.
+ */
+export function getDeploymentFeatureOverrides(): Record<string, boolean> {
+  if (isDemoMode()) {
+    return { whitelabel: true, custom_domain: true, multi_entity: true };
+  }
+  return {
+    whitelabel: trimEnv('DEPLOYMENT_FEATURE_WHITELABEL') === 'true',
+    custom_domain: trimEnv('DEPLOYMENT_FEATURE_CUSTOM_DOMAIN') === 'true',
+    multi_entity: trimEnv('DEPLOYMENT_FEATURE_MULTI_ENTITY') === 'true',
+  };
+}
+
 export function companySetupTierLabel(tier: DeploymentTier = getDeploymentTier()): string {
   switch (tier) {
     case 'starter':

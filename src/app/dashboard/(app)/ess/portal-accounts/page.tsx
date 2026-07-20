@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type PortalRole = 'employee' | 'manager' | 'hr';
 type PortalAccount = {
@@ -252,25 +253,25 @@ export default function PortalAccountsPage() {
  className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
  />
  </div>
- <select
+ <StrideSelect
  value={roleFilter}
- onChange={(e) => setRoleFilter(e.target.value)}
- className="h-10 px-3 border border-neutral-300 rounded-lg text-sm bg-white"
- >
- <option value="">All roles</option>
- {ROLE_OPTIONS.map((opt) => (
- <option key={opt.value} value={opt.value}>{opt.label}</option>
- ))}
- </select>
- <select
+ onChange={(value) => setRoleFilter(value)}
+ options={[
+ { value: '', label: 'All roles' },
+ ...ROLE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
+ ]}
+ ariaLabel="Filter by role"
+ />
+ <StrideSelect
  value={statusFilter}
- onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
- className="h-10 px-3 border border-neutral-300 rounded-lg text-sm bg-white"
- >
- <option value="all">All statuses</option>
- <option value="active">Active</option>
- <option value="inactive">Inactive</option>
- </select>
+ onChange={(value) => setStatusFilter(value as 'all' | 'active' | 'inactive')}
+ options={[
+ { value: 'all', label: 'All statuses' },
+ { value: 'active', label: 'Active' },
+ { value: 'inactive', label: 'Inactive' },
+ ]}
+ ariaLabel="Filter by status"
+ />
  </div>
  <p className="mt-2 text-xs text-neutral-500">
  Showing {filtered.length} of {accounts.length} accounts
@@ -434,15 +435,13 @@ export default function PortalAccountsPage() {
  </div>
  <div>
  <label className="block text-sm font-medium text-neutral-700 mb-1">Portal role</label>
- <select
+ <StrideSelect
  value={form.role}
- onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as PortalRole }))}
- className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
- >
- {ROLE_OPTIONS.map((opt) => (
- <option key={opt.value} value={opt.value}>{opt.label}</option>
- ))}
- </select>
+ onChange={(value) => setForm((f) => ({ ...f, role: value as PortalRole }))}
+ options={ROLE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+ ariaLabel="Portal role"
+ className="w-full"
+ />
  <p className="text-xs text-neutral-500 mt-1">
  {ROLE_OPTIONS.find((o) => o.value === form.role)?.description}
  </p>

@@ -70,7 +70,7 @@ export default function NewAccountsClientPage() {
 
  <DashboardPageHeader
  title="New billing client"
- description="Add a party your company invoices — a subsidiary, inter-company entity, or external customer."
+ description="Add a party your company invoices."
  />
 
  <form onSubmit={submit} className="space-y-6 mt-6">

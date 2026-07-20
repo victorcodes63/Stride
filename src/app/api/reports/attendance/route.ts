@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toCSV } from '@/lib/report-export';
 import {
   assertReportsStaffRole,
-  downloadHeaders,
-  jsonOrPdf,
   parseDateParam,
   parseFormat,
+  respondWithReport,
   startOfDayUtc,
   ymd,
 } from '@/app/api/reports/_shared';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
 
 function toHours(minutes: number): number {
   return Math.round((minutes / 60) * 100) / 100;
@@ -152,29 +152,22 @@ export async function GET(request: NextRequest) {
       byEmployee: Array.from(employeeMap.values()).sort((a, b) => b.hoursWorked - a.hoursWorked),
     };
 
-    if (format === 'csv') {
-      const csv = toCSV(
-        ['Employee', 'Department', 'Hours Worked', 'Overtime Hours', 'Late Count', 'Absent Count'],
-        report.byEmployee.map((row) => [
-          row.name,
-          row.department,
-          row.hoursWorked.toFixed(2),
-          row.overtimeHours.toFixed(2),
-          row.lateCount,
-          row.absentCount,
-        ]),
-      );
-      return new NextResponse(csv, {
-        headers: downloadHeaders('text/csv', `attendance-${ymd(from)}-to-${ymd(to)}.csv`),
-      });
-    }
-
-    return jsonOrPdf(
+    return respondWithReport({
       format,
-      report,
-      'Attendance Summary Report',
-      `attendance-${ymd(from)}-to-${ymd(to)}.pdf`,
-      [
+      json: report,
+      title: 'Attendance Summary Report',
+      sheetName: 'Attendance',
+      baseFilename: `attendance-${ymd(from)}-to-${ymd(to)}`,
+      headers: ['Employee', 'Department', 'Hours Worked', 'Overtime Hours', 'Late Count', 'Absent Count'],
+      rows: report.byEmployee.map((row) => [
+        row.name,
+        row.department,
+        row.hoursWorked.toFixed(2),
+        row.overtimeHours.toFixed(2),
+        row.lateCount,
+        row.absentCount,
+      ]),
+      summaryLines: [
         `From: ${ymd(from)} To: ${ymd(to)}`,
         `Shifts scheduled: ${report.totalShiftsScheduled}`,
         `Shifts worked: ${report.totalShiftsWorked}`,
@@ -183,6 +176,6 @@ export async function GET(request: NextRequest) {
         `Late arrivals: ${report.lateArrivals}`,
         `Missed clock-outs: ${report.missedClockOuts}`,
       ],
-    );
+    });
   });
 }

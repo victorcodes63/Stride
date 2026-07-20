@@ -20,12 +20,19 @@ export async function POST(
     const review = await ctx.run((tx) =>
       tx.performanceReview.findFirst({
         where: ctx.where({ id }),
-        include: { goals: true, ratings: true },
+        include: { ratings: true },
       }),
     );
     if (!review) {
       return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
+
+    // Goals are keyed by cycle + employee (no direct relation on PerformanceReview).
+    const goals = await ctx.run((tx) =>
+      tx.performanceGoal.findMany({
+        where: { organizationId: ctx.organizationId, cycleId: review.cycleId, employeeId: review.employeeId },
+      }),
+    );
 
     const parserConfig = await ctx.run((tx) =>
       tx.jdParserConfig.findUnique({ where: { organizationId: ctx.organizationId } }),
@@ -35,6 +42,7 @@ export async function POST(
       const suggestions = await buildAiEvaluationSuggestions({
         organizationId: ctx.organizationId,
         review,
+        goals,
         parserConfig: parserConfig
           ? {
               mode: parserConfig.mode,

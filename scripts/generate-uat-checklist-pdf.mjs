@@ -383,15 +383,20 @@ ${section('07 — Operations (Assets & HSE)', 'partial', [
   { path: '/dashboard/analytics', label: 'Analytics (admin)', ready: 'live' },
 ])}
 
-${section('08 — HR Outsourcing', 'partial', [
-  { path: '/dashboard/outsourcing', label: 'Outsourcing overview', ready: 'partial' },
-  { path: '/dashboard/outsourcing/clients', label: 'Client register', ready: 'partial' },
-  { path: '/dashboard/outsourcing/employees', label: 'Outsourced employees', ready: 'partial' },
-  { path: '/dashboard/outsourcing/departments', label: 'Departments', ready: 'partial' },
-  { path: '/dashboard/outsourcing/payroll', label: 'Client payroll', ready: 'partial' },
-  { path: '/dashboard/outsourcing/attendance', label: 'Client attendance', ready: 'partial' },
-  { path: '/dashboard/outsourcing/leave', label: 'Client leave', ready: 'partial' },
-  { path: '/dashboard/outsourcing/disciplinary', label: 'Client disciplinary', ready: 'partial' },
+${section('08 — HR Outsourcing', 'live', [
+  { path: '/dashboard/outsourcing', label: 'Outsourcing overview', ready: 'live' },
+  { path: '/dashboard/outsourcing/clients', label: 'Client register', ready: 'live' },
+  { path: '/dashboard/outsourcing/employees', label: 'Outsourced employees', ready: 'live' },
+  { path: '/dashboard/outsourcing/departments', label: 'Departments', ready: 'live' },
+  { path: '/dashboard/outsourcing/payroll', label: 'Client payroll', ready: 'live' },
+  { path: '/dashboard/outsourcing/attendance', label: 'Client attendance', ready: 'live' },
+  { path: '/dashboard/outsourcing/rota', label: 'Client rota', ready: 'live' },
+  { path: '/dashboard/outsourcing/biometrics', label: 'Client biometrics', ready: 'live' },
+  { path: '/dashboard/outsourcing/leave', label: 'Client leave', ready: 'live' },
+  { path: '/dashboard/outsourcing/disciplinary', label: 'Client disciplinary', ready: 'live' },
+  { path: '/dashboard/outsourcing/jobs', label: 'Recruitment (RPO)', ready: 'live' },
+  { path: '/dashboard/outsourcing/billing', label: 'Client billing', ready: 'live' },
+  { path: '/dashboard/outsourcing/reports', label: 'White-label reports', ready: 'live' },
 ])}
 
 ${section('09 — Sales', 'partial', [

@@ -8,9 +8,11 @@ import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   Banknote,
+  BarChart3,
   Briefcase,
   Building2,
   CalendarCheck,
+  CalendarClock,
   FileSignature,
   FileText,
   Gavel,
@@ -110,7 +112,7 @@ export function getDomainQuickActions(
           label: 'Purchase request',
           href: '/dashboard/procurement/purchase-requests',
           icon: ShoppingCart,
-          description: 'Raise a new PR (roadmap)',
+          description: 'Raise and track a new purchase request',
         },
         more: [
           { label: 'Procurement overview', href: '/dashboard/procurement', icon: ShoppingCart },
@@ -128,9 +130,11 @@ export function getDomainQuickActions(
           description: 'Track licence or certification',
         },
         more: [
+          { label: 'Compliance hub', href: '/dashboard/legal', icon: Gavel },
+          { label: 'Compliance analytics', href: '/dashboard/legal/analytics', icon: BarChart3 },
+          { label: 'Compliance calendar', href: '/dashboard/legal/calendar', icon: CalendarClock },
           { label: 'Contracts register', href: '/dashboard/people/contracts', icon: FileSignature },
           { label: 'Company policies', href: '/dashboard/company-documents', icon: FileText },
-          { label: 'Compliance hub', href: '/dashboard/legal', icon: Gavel },
         ],
       };
 
@@ -138,14 +142,16 @@ export function getDomainQuickActions(
       return {
         primary: {
           label: 'New project',
-          href: '/dashboard/projects/board',
+          href: '/dashboard/projects/all?new=1',
           icon: Briefcase,
-          description: 'Project workspace (roadmap)',
+          description: 'Create a project in the register',
         },
         more: [
           { label: 'Projects overview', href: '/dashboard/projects', icon: Briefcase },
+          { label: 'All projects', href: '/dashboard/projects/all', icon: Briefcase },
+          { label: 'Project board', href: '/dashboard/projects/board', icon: Briefcase },
           { label: 'Tasks & deliverables', href: '/dashboard/projects/tasks', icon: Plus },
-          { label: 'Budgets', href: '/dashboard/accounts/budgets', icon: Wallet },
+          { label: 'Budget vs actual', href: '/dashboard/projects/budget', icon: Wallet },
         ],
       };
 
@@ -166,11 +172,27 @@ export function getDomainQuickActions(
         ],
       };
 
+    case 'sales':
+      return {
+        primary: {
+          label: 'New deal',
+          href: '/dashboard/sales/deals?new=1',
+          icon: Handshake,
+          description: 'Add an opportunity to the pipeline',
+        },
+        more: [
+          { label: 'Pipeline', href: '/dashboard/sales/deals', icon: Handshake },
+          { label: 'Targets & quotas', href: '/dashboard/sales/targets', icon: CalendarCheck },
+          { label: 'Leads', href: '/dashboard/sales/leads', icon: UserPlus },
+          { label: 'Commissions', href: '/dashboard/sales/commissions', icon: Wallet },
+        ],
+      };
+
     case 'hr-outsourcing':
       return {
         primary: {
           label: 'Add client',
-          href: '/dashboard/outsourcing/clients',
+          href: '/dashboard/outsourcing/clients/new',
           icon: Handshake,
           description: 'Register an outsourcing client',
         },
@@ -178,6 +200,8 @@ export function getDomainQuickActions(
           { label: 'Outsourcing overview', href: '/dashboard/outsourcing', icon: Handshake },
           { label: 'Workforce', href: '/dashboard/outsourcing/employees', icon: UserPlus },
           { label: 'Payroll runs', href: '/dashboard/outsourcing/payroll', icon: Banknote },
+          { label: 'Billing', href: '/dashboard/outsourcing/billing', icon: Banknote },
+          { label: 'RPO jobs', href: '/dashboard/outsourcing/jobs', icon: Briefcase },
         ],
       };
 

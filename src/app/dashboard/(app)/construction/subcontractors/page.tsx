@@ -5,6 +5,7 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardTable, DashboardTableCard, DashboardTableEmpty, DashboardTableViewport } from '@/components/dashboard/DashboardDataTable';
 import { DashboardAsyncState, DashboardPageSkeleton } from '@/components/dashboard/DashboardAsyncState';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type Site = { id: string; code: string };
 type Subcontractor = {
@@ -84,12 +85,15 @@ export default function ConstructionSubcontractorsPage() {
     <DashboardPage>
       <DashboardPageHeader eyebrow="Construction" title="Subcontractors" description="Subcontractor register with retention and accounts payable exposure." />
       <form onSubmit={handleCreate} className="mb-6 grid gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 sm:grid-cols-6">
-        <select value={form.siteId} onChange={(e) => setForm((f) => ({ ...f, siteId: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm">
-          <option value="">Site (optional)</option>
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>{s.code}</option>
-          ))}
-        </select>
+        <StrideSelect
+          value={form.siteId}
+          onChange={(value) => setForm((f) => ({ ...f, siteId: value }))}
+          options={[
+            { value: '', label: 'Site (optional)' },
+            ...sites.map((s) => ({ value: s.id, label: s.code })),
+          ]}
+          ariaLabel="Site"
+        />
         <input required placeholder="Company name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />
         <input placeholder="Trade" value={form.trade} onChange={(e) => setForm((f) => ({ ...f, trade: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />
         <input required type="number" placeholder="Contract value" value={form.contractValue} onChange={(e) => setForm((f) => ({ ...f, contractValue: e.target.value }))} className="h-10 rounded-lg border px-3 text-sm" />

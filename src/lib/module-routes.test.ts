@@ -4,7 +4,21 @@ import { resolveModuleForPath } from '@/lib/module-routes';
 describe('module-routes', () => {
   it('resolves nested payroll paths', () => {
     expect(resolveModuleForPath('/dashboard/payroll/payslips')).toBe('payroll');
-    expect(resolveModuleForPath('/api/outsourcing/payroll/generate')).toBe('payroll');
+  });
+
+  it('gates the internal payroll API + pages by the payroll module', () => {
+    expect(resolveModuleForPath('/dashboard/payroll')).toBe('payroll');
+    expect(resolveModuleForPath('/dashboard/payroll/statutory')).toBe('payroll');
+    expect(resolveModuleForPath('/dashboard/payroll/disbursements')).toBe('payroll');
+    expect(resolveModuleForPath('/api/payroll')).toBe('payroll');
+    expect(resolveModuleForPath('/api/payroll/generate')).toBe('payroll');
+    expect(resolveModuleForPath('/api/payroll/statutory')).toBe('payroll');
+  });
+
+  it('gates outsourcing client payroll by the outsourcing module, not payroll', () => {
+    expect(resolveModuleForPath('/dashboard/outsourcing/payroll')).toBe('outsourcing');
+    expect(resolveModuleForPath('/api/outsourcing/payroll')).toBe('outsourcing');
+    expect(resolveModuleForPath('/api/outsourcing/payroll/generate')).toBe('outsourcing');
   });
 
   it('resolves outsourcing paths to their functional modules', () => {

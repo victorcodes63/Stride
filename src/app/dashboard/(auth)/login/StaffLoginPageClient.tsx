@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { brandConfig } from '@/lib/brand.config';
@@ -66,6 +67,34 @@ export function StaffLoginContent({ initialError, welcomeCopy }: StaffLoginConte
   const [mfaChallenge, setMfaChallenge] = useState('');
   const [resolved, setResolved] = useState<ResolvedSignIn | null>(null);
   const [rememberMe, setRememberMe] = useState(true);
+  // +1 = advancing to the credentials step, -1 = going back via "Change".
+  const [direction, setDirection] = useState(1);
+  const reduceMotion = useReducedMotion();
+
+  const stepVariants: Variants = {
+    initial: (d: number) => ({ opacity: 0, x: reduceMotion ? 0 : d * 24 }),
+    animate: {
+      opacity: 1,
+      x: 0,
+      transition: {
+        duration: 0.3,
+        ease: 'easeOut',
+        when: 'beforeChildren',
+        staggerChildren: reduceMotion ? 0 : 0.06,
+      },
+    },
+    exit: (d: number) => ({
+      opacity: 0,
+      x: reduceMotion ? 0 : d * -24,
+      transition: { duration: 0.18, ease: 'easeIn' },
+    }),
+  };
+
+  const itemVariants: Variants = {
+    initial: { opacity: 0, y: reduceMotion ? 0 : 8 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+    exit: { opacity: 0 },
+  };
 
   useEffect(() => {
     document.title = getMetadataTitle('Login');
@@ -92,6 +121,7 @@ export function StaffLoginContent({ initialError, welcomeCopy }: StaffLoginConte
         setResolved(null);
         return;
       }
+      setDirection(1);
       setResolved({
         email: data.email,
         organizationName: data.organizationName,
@@ -195,146 +225,208 @@ export function StaffLoginContent({ initialError, welcomeCopy }: StaffLoginConte
       >
         <h2 className="dash-auth-title">Sign in to your account</h2>
 
-        {error && (
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[0.8125rem] leading-snug text-red-700">
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-red-400" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {!resolved ? (
-          <form onSubmit={handleEmailContinue} className={`space-y-4 ${error ? 'mt-4' : 'mt-6'}`}>
-            <div>
-              <label htmlFor="email" className="mb-1.5 block dash-auth-label">
-                Work email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="dash-auth-input"
-              />
-            </div>
-            <button type="submit" disabled={resolving} className="dash-auth-submit">
-              {resolving ? (
-                <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                'Continue'
-              )}
-            </button>
-          </form>
-        ) : (
-          <div className={`space-y-4 ${error ? 'mt-4' : 'mt-6'}`}>
-            <p className="text-sm dash-auth-muted">
-              Signing in to <span className="font-medium text-[var(--dash-text-strong)]">{resolved.organizationName}</span>
-              {' '}as {resolved.email}
-              {' '}
-              <button
-                type="button"
-                className="dash-auth-link text-sm"
-                onClick={() => {
-                  setResolved(null);
-                  setPassword('');
-                  setError('');
-                }}
+        <motion.div layout className="mt-6 space-y-4">
+          <AnimatePresence initial={false}>
+            {error ? (
+              <motion.div
+                key="auth-error"
+                initial={{ opacity: 0, y: reduceMotion ? 0 : -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: reduceMotion ? 0 : -6 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="flex items-start gap-2 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-[0.8125rem] leading-snug text-red-200"
               >
-                Change
-              </button>
-            </p>
-
-            {showOAuth ? (
-              <div className="space-y-3">
-                {resolved.showMicrosoft ? <MicrosoftSignInButton email={resolved.email} /> : null}
-                {resolved.showGoogle ? <GoogleSignInButton email={resolved.email} /> : null}
-              </div>
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-red-300" />
+                <span>{error}</span>
+              </motion.div>
             ) : null}
+          </AnimatePresence>
 
-            {showOAuth && showPasswordForm ? <OAuthEmailDivider /> : null}
-
-            {showPasswordForm ? (
-              <form onSubmit={mfaChallenge ? handleMfaSubmit : handleSubmit} className="space-y-4">
-                {!mfaChallenge ? (
-                  <div>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label htmlFor="password" className="dash-auth-label">
-                        Password
-                      </label>
-                      <Link href="/dashboard/forgot-password" className="dash-auth-link text-[0.8125rem]">
-                        Forgot?
-                      </Link>
-                    </div>
-                    <div className="relative">
-                      <input
-                        id="password"
-                        type={showPassword ? 'text' : 'password'}
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="dash-auth-input pr-9"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((s) => !s)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 dash-auth-muted transition-colors hover:text-[var(--dash-text-strong)]"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label htmlFor="mfaCode" className="mb-1.5 block dash-auth-label">
-                      Authentication code
-                    </label>
-                    <input
-                      id="mfaCode"
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value)}
-                      required
-                      className="dash-auth-input"
-                    />
-                  </div>
-                )}
-
-                {!mfaChallenge && (
-                  <label className="flex cursor-pointer select-none items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="dash-auth-checkbox focus:ring-2 focus:ring-[var(--dash-focus-ring)] focus:ring-offset-0"
-                    />
-                    <span className="text-[0.8125rem] dash-auth-body">Remember me</span>
+          <AnimatePresence mode="wait" custom={direction} initial={false}>
+            {!resolved ? (
+              <motion.form
+                key="email-step"
+                custom={direction}
+                variants={stepVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                onSubmit={handleEmailContinue}
+                className="space-y-4"
+              >
+                <motion.div variants={itemVariants}>
+                  <label htmlFor="email" className="mb-1.5 block dash-auth-label">
+                    Work email
                   </label>
-                )}
-
-                <button type="submit" disabled={loading} className="dash-auth-submit">
-                  {loading ? (
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="dash-auth-input"
+                  />
+                </motion.div>
+                <motion.button
+                  variants={itemVariants}
+                  type="submit"
+                  disabled={resolving}
+                  className="dash-auth-submit"
+                  whileTap={reduceMotion ? undefined : { scale: 0.985 }}
+                >
+                  {resolving ? (
                     <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ) : mfaChallenge ? (
-                    'Verify'
                   ) : (
-                    'Sign in with password'
+                    'Continue'
                   )}
-                </button>
-              </form>
-            ) : null}
+                </motion.button>
+              </motion.form>
+            ) : (
+              <motion.div
+                key="resolved-step"
+                custom={direction}
+                variants={stepVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="space-y-4"
+              >
+                <motion.div
+                  variants={itemVariants}
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5"
+                >
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-coral)]/15 text-sm font-semibold text-[var(--sc-coral)]"
+                    aria-hidden
+                  >
+                    {(resolved.organizationName?.trim() || 'O').charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-[var(--dash-text-strong)]">
+                      {resolved.organizationName?.trim() || 'your organization'}
+                    </p>
+                    <p className="truncate text-[0.8125rem] dash-auth-muted">{resolved.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="dash-auth-link shrink-0 text-[0.8125rem] font-medium"
+                    onClick={() => {
+                      setDirection(-1);
+                      setResolved(null);
+                      setPassword('');
+                      setError('');
+                    }}
+                  >
+                    Change
+                  </button>
+                </motion.div>
 
-            {!showOAuth && !showPasswordForm ? (
-              <p className="text-sm dash-auth-muted">
-                No sign-in methods are enabled for your organization. Contact your administrator.
-              </p>
-            ) : null}
-          </div>
-        )}
+                {showOAuth ? (
+                  <motion.div variants={itemVariants} className="space-y-3">
+                    {resolved.showMicrosoft ? <MicrosoftSignInButton email={resolved.email} /> : null}
+                    {resolved.showGoogle ? <GoogleSignInButton email={resolved.email} /> : null}
+                  </motion.div>
+                ) : null}
+
+                {showOAuth && showPasswordForm ? (
+                  <motion.div variants={itemVariants}>
+                    <OAuthEmailDivider />
+                  </motion.div>
+                ) : null}
+
+                {showPasswordForm ? (
+                  <motion.form
+                    variants={itemVariants}
+                    onSubmit={mfaChallenge ? handleMfaSubmit : handleSubmit}
+                    className="space-y-4"
+                  >
+                    {!mfaChallenge ? (
+                      <div>
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <label htmlFor="password" className="dash-auth-label">
+                            Password
+                          </label>
+                          <Link href="/dashboard/forgot-password" className="dash-auth-link text-[0.8125rem]">
+                            Forgot?
+                          </Link>
+                        </div>
+                        <div className="relative">
+                          <input
+                            id="password"
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className="dash-auth-input pr-9"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((s) => !s)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 dash-auth-muted transition-colors hover:text-[var(--dash-text-strong)]"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <label htmlFor="mfaCode" className="mb-1.5 block dash-auth-label">
+                          Authentication code
+                        </label>
+                        <input
+                          id="mfaCode"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          value={mfaCode}
+                          onChange={(e) => setMfaCode(e.target.value)}
+                          required
+                          className="dash-auth-input"
+                        />
+                      </div>
+                    )}
+
+                    {!mfaChallenge && (
+                      <label className="flex cursor-pointer select-none items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="dash-auth-checkbox focus:ring-2 focus:ring-[var(--dash-focus-ring)] focus:ring-offset-0"
+                        />
+                        <span className="text-[0.8125rem] dash-auth-body">Remember me</span>
+                      </label>
+                    )}
+
+                    <motion.button
+                      type="submit"
+                      disabled={loading}
+                      className="dash-auth-submit"
+                      whileTap={reduceMotion ? undefined : { scale: 0.985 }}
+                    >
+                      {loading ? (
+                        <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      ) : mfaChallenge ? (
+                        'Verify'
+                      ) : (
+                        'Sign in with password'
+                      )}
+                    </motion.button>
+                  </motion.form>
+                ) : null}
+
+                {!showOAuth && !showPasswordForm ? (
+                  <motion.p variants={itemVariants} className="text-sm dash-auth-muted">
+                    No sign-in methods are enabled for your organization. Contact your administrator.
+                  </motion.p>
+                ) : null}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </LoginCard>
     </LoginPageShell>
   );

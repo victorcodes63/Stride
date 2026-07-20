@@ -28,10 +28,39 @@ import {
   EMAIL_WORDMARK_CID,
 } from '@/lib/email-template';
 import { STRIDE_PALETTE } from '@/lib/stride-palette';
+import {
+  resolvePayslipSender,
+  type PayslipSenderClient,
+  type ResolvedPayslipSender,
+} from '@/lib/payslip-sender';
 
 const FROM_EMAIL = 'no-reply@getstride.co.ke';
 const REPLY_TO = 'hello@raventechgroup.com';
 const FROM_NAME = mailFromName;
+
+/** Platform sender defaults — the ultimate fallback for every tenant. */
+export const PLATFORM_SENDER_DEFAULTS = {
+  fromEmail: FROM_EMAIL,
+  fromName: FROM_NAME,
+  replyTo: REPLY_TO,
+} as const;
+
+/** Sender identity override for a single send (per-client From name / domain / Reply-To). */
+export type EmailSender = {
+  fromName: string;
+  fromEmail: string;
+  replyTo: string;
+};
+
+/**
+ * Resolve the effective payslip sender for a client, injecting platform defaults.
+ * Returns a usable sender even when the client has no overrides configured.
+ */
+export function resolveClientPayslipSender(
+  client: PayslipSenderClient | null | undefined,
+): ResolvedPayslipSender {
+  return resolvePayslipSender(client, PLATFORM_SENDER_DEFAULTS);
+}
 
 const BASE_URL = getSiteUrl().replace(/\/$/, '');
 const INVITE_LINK_BASE =
@@ -68,6 +97,7 @@ function logDevEmail(params: {
   html: string;
   cc?: string;
   attachments?: EmailAttachment[];
+  sender?: EmailSender;
 }): EmailSendResult {
   const isProd = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
   if (isProd) {
@@ -78,7 +108,18 @@ function logDevEmail(params: {
     };
   }
   console.log('[email] RESEND_API_KEY not set — logging email instead of sending:');
-  console.log(JSON.stringify({ from: FROM_EMAIL, replyTo: REPLY_TO, ...params, html: `[${params.html.length} chars]` }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        from: `${params.sender?.fromName ?? FROM_NAME} <${params.sender?.fromEmail ?? FROM_EMAIL}>`,
+        replyTo: params.sender?.replyTo ?? REPLY_TO,
+        ...params,
+        html: `[${params.html.length} chars]`,
+      },
+      null,
+      2,
+    ),
+  );
   return { sent: true, messageId: 'dev-console-log' };
 }
 
@@ -89,15 +130,21 @@ export async function sendEmail(params: {
   html: string;
   cc?: string;
   attachments?: EmailAttachment[];
+  /** Optional per-send sender identity (per-client From name / domain / Reply-To). */
+  sender?: EmailSender;
 }): Promise<EmailSendResult> {
   const resend = getResendClient();
   if (!resend) return logDevEmail(params);
 
+  const fromName = params.sender?.fromName ?? FROM_NAME;
+  const fromEmail = params.sender?.fromEmail ?? FROM_EMAIL;
+  const replyTo = params.sender?.replyTo ?? REPLY_TO;
+
   const { data, error } = await resend.emails.send({
-    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    from: `${fromName} <${fromEmail}>`,
     to: params.to,
     cc: params.cc?.trim() || undefined,
-    replyTo: REPLY_TO,
+    replyTo,
     subject: params.subject,
     html: params.html,
     attachments: params.attachments?.map((a) => ({
@@ -454,6 +501,8 @@ export async function sendPayslipEmail(params: {
   month: number;
   year: number;
   data: PayslipEmailData;
+  /** Per-client sender identity; falls back to the platform sender when omitted. */
+  sender?: EmailSender;
 }): Promise<EmailSendResult> {
   const monthName = MONTH_NAMES[(params.month || 1) - 1];
   const subject = `${emailSubjectTag} Payslip — ${monthName} ${params.year}`;
@@ -472,7 +521,7 @@ export async function sendPayslipEmail(params: {
     console.warn('[sendPayslipEmail] PDF generation failed, sending without attachment:', pdfErr);
   }
 
-  return sendEmail({ to: params.to, subject, html, attachments });
+  return sendEmail({ to: params.to, subject, html, attachments, sender: params.sender });
 }
 
 export async function sendAccountStatementEmail(params: {

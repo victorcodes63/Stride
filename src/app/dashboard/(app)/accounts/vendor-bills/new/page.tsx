@@ -10,6 +10,7 @@ import { computeInvoiceVatFromLines } from '@/lib/accounts-invoice-totals';
 import useEntityConfig, { useDisplayMoney } from '@/hooks/useEntityConfig';
 import { getEntityConfig } from '@/lib/entityConfig';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type VendorRow = { id: string; name: string; currency: string };
 
@@ -234,20 +235,16 @@ function NewVendorBillForm() {
  <label htmlFor="vendor" className="block text-sm font-medium text-neutral-800 mb-1.5">
  Vendor *
  </label>
- <select
+ <StrideSelect
  id="vendor"
- required
- className={inputClass}
+ ariaLabel="Vendor"
  value={vendorId}
- onChange={(e) => setVendorId(e.target.value)}
- >
- <option value="">Select…</option>
- {(vendors ?? []).map((v) => (
- <option key={v.id} value={v.id}>
- {v.name} · {v.currency}
- </option>
- ))}
- </select>
+ onChange={(value) => setVendorId(value)}
+ options={[
+ { value: '', label: 'Select…' },
+ ...(vendors ?? []).map((v) => ({ value: v.id, label: `${v.name} · ${v.currency}` })),
+ ]}
+ />
  <p className="text-xs text-neutral-500 mt-1.5">
  <Link href="/dashboard/accounts/vendors/new" className="text-primary-800 font-medium hover:underline">
  Add vendor
@@ -270,16 +267,17 @@ function NewVendorBillForm() {
  <label htmlFor="vat" className="block text-sm font-medium text-neutral-800 mb-1.5">
  {entityConfig.tax.vatLabel} rate
  </label>
- <select
+ <StrideSelect
  id="vat"
- className={inputClass}
- value={vatRateBps}
- onChange={(e) => setVatRateBps(parseInt(e.target.value, 10))}
- >
- <option value={1600}>{getEntityConfig('ke').tax.vatRate} (standard)</option>
- <option value={1800}>{getEntityConfig('ug').tax.vatRate} (standard)</option>
- <option value={0}>0% (zero-rated / exempt)</option>
- </select>
+ ariaLabel="VAT rate"
+ value={String(vatRateBps)}
+ onChange={(value) => setVatRateBps(parseInt(value, 10))}
+ options={[
+ { value: '1600', label: `${getEntityConfig('ke').tax.vatRate} (standard)` },
+ { value: '1800', label: `${getEntityConfig('ug').tax.vatRate} (standard)` },
+ { value: '0', label: '0% (zero-rated / exempt)' },
+ ]}
+ />
  </div>
  <div>
  <label htmlFor="issue" className="block text-sm font-medium text-neutral-800 mb-1.5">

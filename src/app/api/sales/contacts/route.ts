@@ -40,10 +40,15 @@ export async function GET(request: NextRequest) {
     const moduleBlock = requireModule('sales', getEffectiveModulesFromRequest(request));
     if (moduleBlock) return moduleBlock;
 
+    const params = request.nextUrl.searchParams;
     const clientId =
-      request.nextUrl.searchParams.get('clientId')?.trim() ||
-      request.nextUrl.searchParams.get('accountsClientId')?.trim() ||
+      params.get('clientId')?.trim() ||
+      params.get('accountsClientId')?.trim() ||
       undefined;
+    const q = params.get('q')?.trim() || undefined;
+    const decisionMakerParam = params.get('decisionMaker')?.trim().toLowerCase();
+    const decisionMakerOnly =
+      decisionMakerParam === '1' || decisionMakerParam === 'true' || decisionMakerParam === 'yes';
 
     try {
       const contacts = await ctx.run((tx) =>
@@ -51,6 +56,18 @@ export async function GET(request: NextRequest) {
           where: {
             ...ctx.where(),
             ...(clientId ? { accountsClientId: clientId } : {}),
+            ...(decisionMakerOnly ? { isDecisionMaker: true } : {}),
+            ...(q
+              ? {
+                  OR: [
+                    { name: { contains: q, mode: 'insensitive' } },
+                    { title: { contains: q, mode: 'insensitive' } },
+                    { email: { contains: q, mode: 'insensitive' } },
+                    { phone: { contains: q, mode: 'insensitive' } },
+                    { accountsClient: { name: { contains: q, mode: 'insensitive' } } },
+                  ],
+                }
+              : {}),
           },
           include: {
             accountsClient: { select: { id: true, name: true } },

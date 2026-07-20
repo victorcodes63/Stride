@@ -320,6 +320,7 @@ async function seedContractsForEntity(
 
 async function seedDisciplinaryForEntity(
   entityCode: string,
+  organizationId: string,
   employees: Array<{ id: string; firstName: string; lastName: string }>,
   hrUserId: string,
 ) {
@@ -337,6 +338,7 @@ async function seedDisciplinaryForEntity(
 
   await prisma.disciplinaryCase.create({
     data: {
+      organizationId,
       employeeId: employees[0]!.id,
       caseNumber,
       type: 'ABSENTEEISM',
@@ -350,6 +352,7 @@ async function seedDisciplinaryForEntity(
       reportedById: hrUserId,
       actions: {
         create: {
+          organizationId,
           type: 'VERBAL_WARNING',
           description: 'Verbal warning issued with 14-day improvement window.',
           actionDate: daysFromNow(-7),
@@ -364,6 +367,7 @@ async function seedDisciplinaryForEntity(
   if (employees.length > 1) {
     await prisma.grievance.create({
       data: {
+        organizationId,
         employeeId: employees[1]!.id,
         grievanceNumber,
         status: 'INVESTIGATING',
@@ -380,12 +384,24 @@ async function seedDisciplinaryForEntity(
 async function seedOnboardingForEntity(
   employees: Array<{ id: string; firstName: string; lastName: string }>,
 ) {
+  // Interactive onboarding workflows time out on remote Neon (5s default). Skip unless forced.
+  if (process.env.DEMO_SKIP_ONBOARDING_WORKFLOWS !== 'false') {
+    console.log('  · onboarding workflows skipped (set DEMO_SKIP_ONBOARDING_WORKFLOWS=false to force)');
+    return;
+  }
   for (const employee of employees.slice(0, 2)) {
     const existing = await prisma.onboardingWorkflow.findFirst({
       where: { employeeId: employee.id, type: WorkflowType.ONBOARDING, status: WorkflowStatus.IN_PROGRESS },
     });
     if (!existing) {
-      await startWorkflowForEmployee({ employeeId: employee.id, type: WorkflowType.ONBOARDING });
+      try {
+        await startWorkflowForEmployee({ employeeId: employee.id, type: WorkflowType.ONBOARDING });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(
+          `  · onboarding skip for ${employee.firstName} ${employee.lastName}: ${message.slice(0, 160)}`,
+        );
+      }
     }
   }
 }
@@ -478,47 +494,81 @@ async function enrichShowcaseVerticals() {
       continue;
     }
 
-    await seedOnboardingForEntity(employees);
-    await seedDisciplinaryForEntity(entityCode, employees, hrUser.id);
-    await backfillPayrollForEntity(client.id);
-    await seedSectorContent(entityCode, client.name, employees, hrUser.id);
-    await seedBiometricForClient(client.id, entityCode);
+    try {
+      await runStep('onboarding', () => seedOnboardingForEntity(employees));
+      await runStep('disciplinary', () =>
+        seedDisciplinaryForEntity(entityCode, client.organizationId, employees, hrUser.id),
+      );
+      await runStep('payroll', () => backfillPayrollForEntity(client.id));
+      await runStep('sector content', () =>
+        seedSectorContent(entityCode, client.name, employees, hrUser.id),
+      );
+      await runStep('biometrics', () => seedBiometricForClient(client.id, entityCode));
 
-    if (entityCode.startsWith('imara-sacco')) {
-      const { seedSaccoDemo } = await import('../scripts/seed-sacco-demo');
-      await seedSaccoDemo(prisma, client.organizationId, client.id);
+      if (entityCode.startsWith('imara-sacco')) {
+        await runStep('sacco engine', async () => {
+          const { seedSaccoDemo } = await import('../scripts/seed-sacco-demo');
+          await seedSaccoDemo(prisma, client.organizationId, client.id);
+        });
+      }
+
+      if (entityCode.startsWith('hospital-healthcare')) {
+        await runStep('healthcare engine', async () => {
+          const { seedHealthcareDemo } = await import('../scripts/seed-healthcare-demo');
+          await seedHealthcareDemo(prisma, client.organizationId, client.id);
+        });
+      }
+
+      if (entityCode.startsWith('petroleum-retail')) {
+        await runStep('energy engine', async () => {
+          const { seedEnergyDemo } = await import('../scripts/seed-energy-demo');
+          await seedEnergyDemo(prisma, client.organizationId, client.id);
+        });
+      }
+
+      if (entityCode.startsWith('construction')) {
+        await runStep('construction engine', async () => {
+          const { seedConstructionVerticalDemo } = await import('../scripts/seed-construction-demo');
+          await seedConstructionVerticalDemo(prisma, client.organizationId, client.id);
+        });
+      }
+
+      const accountsClient = await prisma.accountsClient.findUnique({
+        where: { outsourcingClientId: client.id },
+      });
+      if (accountsClient) {
+        await runStep('contracts', () =>
+          seedContractsForEntity(accountsClient.id, hrUser.id, entityPrefix(entityCode)),
+        );
+      }
+
+      console.log(
+        `  ✓ ${client.name} — ${employees.length} staff, training, docs, payroll, contracts`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(`  ✗ ${client.name} enrichment partial failure: ${message.slice(0, 200)}`);
     }
+  }
+}
 
-    if (entityCode.startsWith('hospital-healthcare')) {
-      const { seedHealthcareDemo } = await import('../scripts/seed-healthcare-demo');
-      await seedHealthcareDemo(prisma, client.organizationId, client.id);
-    }
-
-    if (entityCode.startsWith('petroleum-retail')) {
-      const { seedEnergyDemo } = await import('../scripts/seed-energy-demo');
-      await seedEnergyDemo(prisma, client.organizationId, client.id);
-    }
-
-    if (entityCode.startsWith('construction')) {
-      const { seedConstructionVerticalDemo } = await import('../scripts/seed-construction-demo');
-      await seedConstructionVerticalDemo(prisma, client.organizationId, client.id);
-    }
-
-    const accountsClient = await prisma.accountsClient.findUnique({
-      where: { outsourcingClientId: client.id },
-    });
-    if (accountsClient) {
-      await seedContractsForEntity(accountsClient.id, hrUser.id, entityPrefix(entityCode));
-    }
-
-    console.log(
-      `  ✓ ${client.name} — ${employees.length} staff, training, docs, onboarding, payroll, contracts`,
-    );
+async function runStep(label: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`  · ${label} skipped: ${message.slice(0, 160)}`);
   }
 }
 
 async function seedStaffLeaveDemo() {
-  execSync('node prisma/seed-staff-leave.js', { cwd: root, stdio: 'inherit', env: process.env });
+  try {
+    execSync('node prisma/seed-staff-leave.js', { cwd: root, stdio: 'inherit', env: process.env });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`→ Staff leave seed skipped: ${message.slice(0, 160)}`);
+    return;
+  }
 
   const annualType = await prisma.staffLeaveType.findFirst({
     where: { name: { contains: 'Annual', mode: 'insensitive' } },
@@ -535,18 +585,24 @@ async function seedStaffLeaveDemo() {
   });
   if (existing) return;
 
-  await prisma.staffLeaveApplication.create({
-    data: {
-      userId: applicant.id,
-      leaveTypeId: annualType.id,
-      startDate: daysFromNow(14),
-      endDate: daysFromNow(18),
-      totalDays: 5,
-      reason: 'Family event — demo pending approval',
-      status: 'pending',
-    },
-  });
-  console.log(`→ Staff leave: pending request for ${applicant.email}`);
+  try {
+    await prisma.staffLeaveApplication.create({
+      data: {
+        organizationId: annualType.organizationId,
+        userId: applicant.id,
+        leaveTypeId: annualType.id,
+        startDate: daysFromNow(14),
+        endDate: daysFromNow(18),
+        totalDays: 5,
+        reason: 'Family event — demo pending approval',
+        status: 'pending',
+      },
+    });
+    console.log(`→ Staff leave: pending request for ${applicant.email}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`→ Staff leave application skipped: ${message.slice(0, 160)}`);
+  }
 }
 
 async function main() {
@@ -556,8 +612,31 @@ async function main() {
 
   execSync('npx tsx prisma/seed-onboarding-templates.ts', { cwd: root, stdio: 'inherit', env: process.env });
   await ensureAccountsClients();
-  await enrichShowcaseVerticals();
+
+  // Projects before construction engine so sites can attach projectId.
   execSync('npx tsx prisma/seed-projects-demo.ts', { cwd: root, stdio: 'inherit', env: process.env });
+  await enrichShowcaseVerticals();
+
+  console.log('\n→ Fleet demo for Savannah Freight (cargo-logistics)…');
+  execSync('npx tsx prisma/seed-fleet-demo.ts', {
+    cwd: root,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      FLEET_CLIENT_NAME: 'Savannah Freight & Logistics Ltd',
+    },
+  });
+
+  console.log('\n→ Sales demo (cargo + travel pipeline)…');
+  execSync('npx tsx prisma/seed-sales-demo.ts', {
+    cwd: root,
+    stdio: 'inherit',
+    env: { ...process.env, SALES_THEME: 'both' },
+  });
+
+  console.log('\n→ Industry depth (assets, HSE, procurement, performance per company)…');
+  execSync('npx tsx prisma/seed-demo-industry-depth.ts', { cwd: root, stdio: 'inherit', env: process.env });
+
   await seedStaffLeaveDemo();
 
   console.log('\nAll vertical demos enriched.\n');

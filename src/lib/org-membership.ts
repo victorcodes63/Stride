@@ -179,7 +179,7 @@ export async function membershipForLogin(
     if (resolved) return resolved;
 
     if (verifiedDomainOrgId) {
-      const emailDomain = normalizedEmail.split('@')[1] ?? '';
+      const emailDomain = normalizedEmail?.split('@')[1] ?? '';
       const rows = await listActiveMemberships(userId, db);
       for (const row of rows) {
         if (await isEmailDomainVerifiedForOrg(row.organizationId, emailDomain)) {

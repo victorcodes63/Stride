@@ -25,6 +25,8 @@ import {
  Download,
  Send,
  Loader2,
+ LayoutGrid,
+ List,
 } from 'lucide-react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
@@ -38,10 +40,25 @@ import type {
  ApplicationWithDetails,
  ApplicationListItem,
  ApplicationStatus,
- ApplicationFormData,
 } from '@/types/dashboard';
-import { sortEmploymentByRecency, yearsBetweenEmploymentDates } from '@/lib/employment-sort';
 import { ApplicationAssessmentsPanel } from '@/components/dashboard/ApplicationAssessmentsPanel';
+import {
+ WorkExperienceTab,
+ EducationTab,
+ CertificationsTab,
+} from '@/components/dashboard/CandidateDetailTabs';
+import { ApplicationActivityPanel } from '@/components/dashboard/ApplicationActivityPanel';
+import { ApplicationScorecardsPanel } from '@/components/dashboard/ApplicationScorecardsPanel';
+import { ApplicationCommentsPanel } from '@/components/dashboard/ApplicationCommentsPanel';
+import { ApplicationsKanban } from '@/components/dashboard/ApplicationsKanban';
+import { RejectionDialog } from '@/components/dashboard/RejectionDialog';
+import { toast } from '@/components/ui/toast';
+import {
+ APPLICATION_STATUS_ORDER,
+ APPLICATION_STATUS_META,
+ DESTRUCTIVE_STATUSES,
+} from '@/lib/ats-status';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 /** Bundled demo PDF — used when an application has no uploaded CV yet. */
 const STANDARD_DEMO_CV_URL = '/uploads/resumes/amara_njoroge_cv.pdf';
@@ -88,13 +105,6 @@ function formatDate(iso: string) {
  return d.toLocaleDateString();
 }
 
-function formatDateRange(start: string, end: string) {
- if (!start?.trim()) return '—';
- const endStr = (end || '').trim().toLowerCase();
- const endLabel = !endStr || endStr === 'present' || endStr === 'current' ? 'Present' : end;
- return `${start} – ${endLabel}`;
-}
-
 type ApplicantDetailTab = 'general' | 'preview' | 'experience' | 'education' | 'certifications';
 
 const APPLICANT_TABS: { id: ApplicantDetailTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -104,168 +114,6 @@ const APPLICANT_TABS: { id: ApplicantDetailTab; label: string; icon: React.Compo
  { id: 'education', label: 'Education', icon: GraduationCap },
  { id: 'certifications', label: 'Certifications', icon: Award },
 ];
-
-function WorkExperienceTab({ formData }: { formData: ApplicationFormData | null }) {
- const raw = formData?.employmentHistory?.filter(
- (e) => e.jobTitle?.trim() || e.companyName?.trim()
- ) ?? [];
- const entries = sortEmploymentByRecency(raw);
- const totalYears = entries.reduce(
- (sum, e) => {
- const end = e.isCurrentJob ? 'Present' : (e.endDate ?? '');
- return sum + yearsBetweenEmploymentDates(e.startDate ?? '', end);
- },
- 0
- );
- return (
- <div className="space-y-4">
- {entries.length > 0 && (
- <div className="rounded-lg bg-primary-50/50 border border-primary-100 px-3 py-2">
- <p className="text-sm font-medium text-primary-900">
- Total relevant experience: <span className="tabular-nums">{totalYears}</span> years
- </p>
- </div>
- )}
- {entries.length === 0 ? (
- <p className="text-sm text-neutral-500">No work experience provided.</p>
- ) : (
- <ul className="space-y-4">
- {entries.map((e, i) => (
- <li key={i} className="border border-neutral-200 rounded-lg p-4 bg-neutral-50/50">
- <p className="font-medium text-primary-900">{e.jobTitle || '—'}</p>
- <p className="text-sm text-neutral-600">{e.companyName || '—'}</p>
- <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-neutral-500">
- <span>{e.industry || '—'}</span>
- <span>{e.employmentType}</span>
- <span className="tabular-nums">
- {formatDateRange(e.startDate, e.isCurrentJob ? 'Present' : (e.endDate || ''))}
- {' · '}
- {yearsBetweenEmploymentDates(e.startDate ?? '', e.isCurrentJob ? 'Present' : (e.endDate ?? ''))} yrs
- </span>
- {e.isCurrentJob && <span className="text-primary-600">Current job</span>}
- </div>
- </li>
- ))}
- </ul>
- )}
- </div>
- );
-}
-
-function EducationTab({ formData }: { formData: ApplicationFormData | null }) {
- const entries = formData?.education?.filter(
- (e) => e.institution?.trim() || e.grade?.trim() || (e.discipline ?? '').trim() || e.level
- ) ?? [];
- const levelLabel = (level: string) =>
- level.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
- return (
- <div className="space-y-4">
- {entries.length === 0 ? (
- <p className="text-sm text-neutral-500">No education details provided.</p>
- ) : (
- <ul className="space-y-4">
- {entries.map((e, i) => (
- <li key={i} className="border border-neutral-200 rounded-lg p-4 bg-neutral-50/50">
- <p className="font-medium text-primary-900">{levelLabel(e.level)}</p>
- <p className="text-sm text-neutral-600">{e.institution || '—'}</p>
- {e.grade && (
- <p className="text-sm text-neutral-600 mt-0.5">Grade: {e.grade}</p>
- )}
- {(e.discipline ?? '').trim() && (
- <p className="text-sm text-neutral-600 mt-0.5">Discipline: {e.discipline}</p>
- )}
- {e.certificatePath && (
- <div className="mt-2">
- <a
- href={e.certificatePath}
- target="_blank"
- rel="noopener noreferrer"
- className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-800"
- >
- <FileText className="w-4 h-4" />
- View certificate
- </a>
- <div className="mt-2 rounded border border-neutral-200 bg-white overflow-hidden min-h-[200px] max-h-[320px]">
- <iframe
- title={`Certificate ${e.level}`}
- src={e.certificatePath}
- className="w-full h-[280px] border-0"
- />
- </div>
- </div>
- )}
- </li>
- ))}
- </ul>
- )}
- </div>
- );
-}
-
-function CertificationsTab({ formData }: { formData: ApplicationFormData | null }) {
- const list = formData?.professionalCertificationsList ?? [];
- const memberships = formData?.professionalMemberships ?? [];
- const hasList = list.length > 0;
- const hasMemberships = memberships.length > 0;
- const hasAny = hasList || hasMemberships;
- return (
- <div className="space-y-4">
- {!hasAny ? (
- <p className="text-sm text-neutral-500">No professional certifications or memberships provided.</p>
- ) : (
- <>
- {list.length > 0 && (
- <div>
- <h3 className="text-sm font-medium text-neutral-700 mb-2">Professional certifications</h3>
- <ul className="space-y-3">
- {list.map((c, i) => (
- <li key={i} className="rounded-lg bg-neutral-50 p-4 border border-neutral-200">
- <p className="font-medium text-neutral-800">{c.name}</p>
- {c.certificatePath && (
- <a
- href={c.certificatePath}
- target="_blank"
- rel="noopener noreferrer"
- className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:underline mt-2"
- >
- <ExternalLink className="w-4 h-4" />
- View certificate
- </a>
- )}
- </li>
- ))}
- </ul>
- </div>
- )}
- {memberships.length > 0 && (
- <div>
- <h3 className="text-sm font-medium text-neutral-700 mb-2">Professional memberships</h3>
- <ul className="space-y-3">
- {memberships.map((m, i) => (
- <li key={i} className="rounded-lg bg-neutral-50 p-4 border border-neutral-200">
- <p className="font-medium text-neutral-800">{m.name || '—'}</p>
- <p className="text-sm text-neutral-600">Membership no.: {m.membershipNo || '—'}</p>
- {m.certificatePath && (
- <a
- href={m.certificatePath}
- target="_blank"
- rel="noopener noreferrer"
- className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:underline mt-2"
- >
- <ExternalLink className="w-4 h-4" />
- View certificate
- </a>
- )}
- </li>
- ))}
- </ul>
- </div>
- )}
- </>
- )}
- </div>
- );
-}
 
 const EDUCATION_LEVEL_OPTIONS = [
  { value: '', label: 'All education levels' },
@@ -341,8 +189,13 @@ export default function DashboardApplicationsPage() {
  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
  const [downloadingCvs, setDownloadingCvs] = useState(false);
  const [sendingRejections, setSendingRejections] = useState(false);
+ const [updatingBulkStatus, setUpdatingBulkStatus] = useState(false);
+ const [bulkStatusMenuOpen, setBulkStatusMenuOpen] = useState(false);
  const [bulkResult, setBulkResult] = useState<string | null>(null);
  const [qualificationsExpanded, setQualificationsExpanded] = useState(false);
+ const [viewMode, setViewMode] = useState<'table' | 'board'>('table');
+ const [rejectionTarget, setRejectionTarget] = useState<{ id: string; name: string } | null>(null);
+ const [activityRefreshKey, setActivityRefreshKey] = useState(0);
 
  const markAsViewed = (appId: string) => {
  setApplications((prev) =>
@@ -573,12 +426,11 @@ export default function DashboardApplicationsPage() {
  () => filteredApplications.filter((a) => selectedIds.has(a.id)),
  [filteredApplications, selectedIds]
  );
+ // All selected applicants that have a CV on file — any status, not just shortlisted.
  const selectedForDownload = useMemo(
  () =>
  selectedApplications.filter(
- (a) =>
- a.status === 'shortlisted' &&
- (a.resumePath || a.candidate.resumePath)
+ (a) => a.resumePath || a.candidate.resumePath
  ),
  [selectedApplications]
  );
@@ -626,7 +478,7 @@ export default function DashboardApplicationsPage() {
  const url = URL.createObjectURL(blob);
  const a = document.createElement('a');
  a.href = url;
- a.download = `shortlisted-cvs-${new Date().toISOString().slice(0, 10)}.zip`;
+ a.download = `candidate-cvs-${new Date().toISOString().slice(0, 10)}.zip`;
  a.click();
  URL.revokeObjectURL(url);
  setBulkResult(`Downloaded ${selectedForDownload.length} CV(s).`);
@@ -665,33 +517,228 @@ export default function DashboardApplicationsPage() {
  }
  };
 
- const handleStatusChange = async (
+ const handleBulkStatusChange = async (newStatus: ApplicationStatus) => {
+ setBulkStatusMenuOpen(false);
+ const ids = selectedApplications.map((a) => a.id);
+ if (ids.length === 0) return;
+
+ let sendRejectionEmail = false;
+ if (DESTRUCTIVE_STATUSES.includes(newStatus)) {
+ if (!confirm(`Move ${ids.length} application(s) to "${APPLICATION_STATUS_META[newStatus].label}"?`)) return;
+ if (newStatus === 'rejected') {
+ sendRejectionEmail = confirm('Also send rejection emails to these candidates now?');
+ }
+ }
+
+ setUpdatingBulkStatus(true);
+ setBulkResult(null);
+ try {
+ const res = await fetch('/api/applications/bulk-update-status', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ applicationIds: ids, status: newStatus, sendRejectionEmail }),
+ });
+ const data = await res.json().catch(() => ({}));
+ if (!res.ok) {
+ setBulkResult(data.error || 'Failed to update status.');
+ toast.error(data.error || 'Failed to update status.');
+ return;
+ }
+ const label = APPLICATION_STATUS_META[newStatus].label;
+ let msg = `Moved ${data.updated ?? ids.length} application(s) to ${label}.`;
+ if (data.emailsSent) msg += ` ${data.emailsSent} email(s) sent.`;
+ if (data.emailsFailed) msg += ` ${data.emailsFailed} failed.`;
+ setBulkResult(msg);
+ toast.success(msg);
+ setSelectedIds(new Set());
+ setRefreshNonce((n) => n + 1);
+ setActivityRefreshKey((n) => n + 1);
+ } catch {
+ setBulkResult('Failed to update status.');
+ toast.error('Failed to update status.');
+ } finally {
+ setUpdatingBulkStatus(false);
+ }
+ };
+
+ // Optimistically apply a status change, roll back + toast on failure.
+ const applyStatus = async (
  applicationId: string,
- newStatus: ApplicationStatus
+ newStatus: ApplicationStatus,
+ opts?: { reason?: string; sendRejectionEmail?: boolean }
  ) => {
  setStatusDropdownOpen(null);
+ const previousList = applications;
+ const previousSelectedStatus =
+ selectedApp?.id === applicationId ? selectedApp.status : undefined;
+
+ setApplications((prev) =>
+ prev.map((a) => (a.id === applicationId ? { ...a, status: newStatus } : a))
+ );
+ setSelectedApp((prev) =>
+ prev && prev.id === applicationId ? { ...prev, status: newStatus } : prev
+ );
+
  try {
  const res = await fetch(`/api/applications/${applicationId}`, {
  method: 'PATCH',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ status: newStatus }),
+ body: JSON.stringify({
+ status: newStatus,
+ ...(opts?.reason ? { reason: opts.reason } : {}),
+ ...(opts?.sendRejectionEmail ? { sendRejectionEmail: true } : {}),
+ }),
  });
- if (!res.ok) return;
+ if (!res.ok) throw new Error('Request failed');
  const updated = await res.json();
  setApplications((prev) =>
  prev.map((a) => (a.id === applicationId ? { ...a, status: updated.status } : a))
  );
  setSelectedApp((prev) =>
- prev && prev.id === applicationId
- ? { ...prev, status: newStatus }
+ prev && prev.id === applicationId ? { ...prev, status: updated.status } : prev
+ );
+ setRefreshNonce((n) => n + 1);
+ setActivityRefreshKey((n) => n + 1);
+
+ const label = APPLICATION_STATUS_META[newStatus].label;
+ if (updated.rejectionEmail) {
+ if (updated.rejectionEmail.sent) {
+ toast.success(`Marked as ${label} · rejection email sent`);
+ } else {
+ toast.warning(`Marked as ${label}, but the rejection email failed to send`);
+ }
+ } else {
+ toast.success(`Status updated to ${label}`);
+ }
+ } catch {
+ setApplications(previousList);
+ setSelectedApp((prev) =>
+ prev && prev.id === applicationId && previousSelectedStatus
+ ? { ...prev, status: previousSelectedStatus }
  : prev
  );
- // Force a fast re-fetch so counters and filtered list stay accurate.
- setRefreshNonce((n) => n + 1);
- } catch (_e) {
- // keep UI state
+ toast.error('Could not update status. Please try again.');
  }
  };
+
+ // Route status changes; destructive transitions (rejected) go through a confirm dialog.
+ const requestStatusChange = (
+ app: { id: string; candidateName: string; status: ApplicationStatus },
+ newStatus: ApplicationStatus
+ ) => {
+ setStatusDropdownOpen(null);
+ if (app.status === newStatus) return;
+ if (DESTRUCTIVE_STATUSES.includes(newStatus)) {
+ setRejectionTarget({ id: app.id, name: app.candidateName });
+ return;
+ }
+ void applyStatus(app.id, newStatus);
+ };
+
+ // Back-compat helper used by the table row dropdown.
+ const handleStatusChange = (applicationId: string, newStatus: ApplicationStatus) => {
+ const app = applications.find((a) => a.id === applicationId);
+ const candidateName = app
+ ? `${app.candidate.firstName} ${app.candidate.lastName}`.trim()
+ : '';
+ const currentStatus = app?.status ?? selectedApp?.status ?? 'pending';
+ requestStatusChange({ id: applicationId, candidateName, status: currentStatus }, newStatus);
+ };
+
+ const openApplicationById = async (id: string) => {
+ markAsViewed(id);
+ setLoadingDetails(true);
+ try {
+ const res = await fetch(`/api/applications/${id}`);
+ if (res.ok) setSelectedApp(await res.json());
+ } finally {
+ setLoadingDetails(false);
+ }
+ };
+
+ const navigateCandidate = async (direction: 'prev' | 'next') => {
+ if (!selectedApp) return;
+ const idx = filteredApplications.findIndex((a) => a.id === selectedApp.id);
+ if (idx < 0) return;
+ const target =
+ direction === 'next'
+ ? filteredApplications[idx + 1]
+ : filteredApplications[idx - 1];
+ if (!target) return;
+ await saveNotesIfDirty();
+ setLoadingDetails(true);
+ try {
+ const res = await fetch(`/api/applications/${target.id}`);
+ if (res.ok) {
+ markAsViewed(target.id);
+ setSelectedApp(await res.json());
+ }
+ } finally {
+ setLoadingDetails(false);
+ }
+ };
+
+ // Reviewer keyboard shortcuts while the detail drawer is open:
+ // J/K = next/prev candidate, 1–5 = set status, Esc = close.
+ useEffect(() => {
+ if (!selectedApp) return;
+ const handler = (e: KeyboardEvent) => {
+ if (rejectionTarget) return; // dialog owns the keyboard
+ if (e.metaKey || e.ctrlKey || e.altKey) return;
+ const el = document.activeElement as HTMLElement | null;
+ const typing =
+ !!el &&
+ (el.tagName === 'INPUT' ||
+ el.tagName === 'TEXTAREA' ||
+ el.tagName === 'SELECT' ||
+ el.isContentEditable);
+ if (typing) {
+ if (e.key === 'Escape') (el as HTMLElement).blur();
+ return;
+ }
+ if (e.key === 'Escape') {
+ e.preventDefault();
+ void saveNotesIfDirty().then(() => setSelectedApp(null));
+ } else if (e.key === 'j' || e.key === 'J') {
+ e.preventDefault();
+ void navigateCandidate('next');
+ } else if (e.key === 'k' || e.key === 'K') {
+ e.preventDefault();
+ void navigateCandidate('prev');
+ } else if (['1', '2', '3', '4', '5'].includes(e.key)) {
+ const status = APPLICATION_STATUS_ORDER[Number(e.key) - 1];
+ if (status) {
+ e.preventDefault();
+ requestStatusChange(
+ {
+ id: selectedApp.id,
+ candidateName:
+ `${selectedApp.candidate.firstName} ${selectedApp.candidate.lastName}`.trim(),
+ status: selectedApp.status,
+ },
+ status
+ );
+ }
+ }
+ };
+ window.addEventListener('keydown', handler);
+ return () => window.removeEventListener('keydown', handler);
+ }, [selectedApp, rejectionTarget, filteredApplications]);
+
+ // Deep-link from @mention notifications: /dashboard/applications?applicationId=…
+ useEffect(() => {
+ const params = new URLSearchParams(window.location.search);
+ const appId = params.get('applicationId');
+ if (!appId) return;
+ void openApplicationById(appId);
+ params.delete('applicationId');
+ const qs = params.toString();
+ window.history.replaceState(
+ null,
+ '',
+ `${window.location.pathname}${qs ? `?${qs}` : ''}`
+ );
+ }, []);
 
  const filterInputClass = dashboardFilterSelectClass;
 
@@ -699,7 +746,7 @@ export default function DashboardApplicationsPage() {
  <DashboardPage>
  <DashboardPageHeader
  title="Applications"
- description="Review and manage job applications. Status updates can notify applicants by email."
+ description="Review and manage job applications."
  actions={
  <a
  href={exportParams ? `/api/applications/export?${exportParams}` : '/api/applications/export'}
@@ -734,31 +781,23 @@ export default function DashboardApplicationsPage() {
  aria-label="Search applications"
  />
  </div>
- <select
+ <StrideSelect
  value={statusFilter}
- onChange={(e) => setStatusFilter(e.target.value)}
- className={`${filterInputClass} lg:col-span-2`}
- aria-label="Status"
- >
- {STATUS_OPTIONS.map((o) => (
- <option key={o.value} value={o.value}>
- {o.label}
- </option>
- ))}
- </select>
- <select
+ onChange={(value) => setStatusFilter(value)}
+ options={STATUS_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+ ariaLabel="Status"
+ className="lg:col-span-2"
+ />
+ <StrideSelect
  value={jobFilter}
- onChange={(e) => setJobFilter(e.target.value)}
- className={`${filterInputClass} lg:col-span-5 truncate min-w-0`}
- aria-label="Job"
- >
- <option value="">All jobs</option>
- {filteredJobOptions.map((j) => (
- <option key={j.id} value={j.id}>
- {j.title} · {j.company}
- </option>
- ))}
- </select>
+ onChange={(value) => setJobFilter(value)}
+ options={[
+ { value: '', label: 'All jobs' },
+ ...filteredJobOptions.map((j) => ({ value: j.id, label: `${j.title} · ${j.company}` })),
+ ]}
+ ariaLabel="Job"
+ className="lg:col-span-5 min-w-0"
+ />
  </div>
  <div className="flex flex-wrap justify-end items-center gap-2 mt-4 pt-3 border-t border-neutral-100/80">
  {hasActiveFilters && (
@@ -779,12 +818,55 @@ export default function DashboardApplicationsPage() {
  onClick={handleBulkDownloadCvs}
  disabled={downloadingCvs}
  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100 text-sm font-medium transition-colors disabled:opacity-50"
- title="Download CVs for shortlisted candidates"
+ title="Download CVs for all selected candidates that have one on file"
  >
  {downloadingCvs ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
  Download CVs ({selectedForDownload.length})
  </button>
  )}
+ <div className="relative">
+ <button
+ type="button"
+ onClick={() => setBulkStatusMenuOpen((v) => !v)}
+ disabled={updatingBulkStatus}
+ className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 text-sm font-medium transition-colors disabled:opacity-50"
+ title="Change the status of all selected applications"
+ aria-haspopup="menu"
+ aria-expanded={bulkStatusMenuOpen}
+ >
+ {updatingBulkStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+ Change status
+ <ChevronDown className="w-4 h-4" />
+ </button>
+ {bulkStatusMenuOpen && (
+ <>
+ <button
+ type="button"
+ aria-hidden
+ tabIndex={-1}
+ className="fixed inset-0 z-10 cursor-default"
+ onClick={() => setBulkStatusMenuOpen(false)}
+ />
+ <div
+ role="menu"
+ className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg"
+ >
+ {APPLICATION_STATUS_ORDER.map((s) => (
+ <button
+ key={s}
+ type="button"
+ role="menuitem"
+ onClick={() => handleBulkStatusChange(s)}
+ className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
+ >
+ <span className={`h-2 w-2 rounded-full ${APPLICATION_STATUS_META[s].dot}`} />
+ {APPLICATION_STATUS_META[s].label}
+ </button>
+ ))}
+ </div>
+ </>
+ )}
+ </div>
  {selectedForRejection.length > 0 && (
  <button
  type="button"
@@ -799,7 +881,7 @@ export default function DashboardApplicationsPage() {
  )}
  <button
  type="button"
- onClick={() => { setSelectedIds(new Set()); setBulkResult(null); }}
+ onClick={() => { setSelectedIds(new Set()); setBulkResult(null); setBulkStatusMenuOpen(false); }}
  className="inline-flex items-center px-3 py-2 rounded-lg border border-neutral-300 bg-white text-neutral-600 hover:bg-neutral-50 text-sm font-medium transition-colors"
  >
  Clear selection
@@ -830,19 +912,12 @@ export default function DashboardApplicationsPage() {
  )}
  </div>
  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
- <select
+ <StrideSelect
  value={educationLevelFilter}
- onChange={(e) => setEducationLevelFilter(e.target.value)}
- className={filterInputClass}
- aria-label="Education level"
- title="Education level (e.g. Masters)"
- >
- {EDUCATION_LEVEL_OPTIONS.map((o) => (
- <option key={o.value} value={o.value}>
- {o.label}
- </option>
- ))}
- </select>
+ onChange={(value) => setEducationLevelFilter(value)}
+ options={EDUCATION_LEVEL_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+ ariaLabel="Education level"
+ />
  <input
  type="text"
  value={disciplineFilter}
@@ -904,18 +979,12 @@ export default function DashboardApplicationsPage() {
  className={filterInputClass}
  aria-label="Home county"
  />
- <select
+ <StrideSelect
  value={employmentTypeFilter}
- onChange={(e) => setEmploymentTypeFilter(e.target.value)}
- className={filterInputClass}
- aria-label="Employment type"
- >
- {EMPLOYMENT_TYPE_OPTIONS.map((o) => (
- <option key={o.value} value={o.value}>
- {o.label}
- </option>
- ))}
- </select>
+ onChange={(value) => setEmploymentTypeFilter(value)}
+ options={EMPLOYMENT_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+ ariaLabel="Employment type"
+ />
  <input
  type="number"
  value={minExperienceFilter}
@@ -947,6 +1016,43 @@ export default function DashboardApplicationsPage() {
  </div>
  </div>
 
+ <div className="mb-3 flex items-center justify-between gap-2">
+ <p className="text-sm text-neutral-500">
+ {stats.total} application{stats.total === 1 ? '' : 's'}
+ {viewMode === 'board' && (
+ <span className="ml-1 text-neutral-400">· board shows the current page</span>
+ )}
+ </p>
+ <div className="inline-flex rounded-lg border border-neutral-200 bg-white p-0.5">
+ <button
+ type="button"
+ onClick={() => setViewMode('table')}
+ aria-pressed={viewMode === 'table'}
+ className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+ viewMode === 'table'
+ ? 'bg-primary-600 text-white shadow-sm'
+ : 'text-neutral-600 hover:bg-neutral-100'
+ }`}
+ >
+ <List className="h-4 w-4" />
+ List
+ </button>
+ <button
+ type="button"
+ onClick={() => setViewMode('board')}
+ aria-pressed={viewMode === 'board'}
+ className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+ viewMode === 'board'
+ ? 'bg-primary-600 text-white shadow-sm'
+ : 'text-neutral-600 hover:bg-neutral-100'
+ }`}
+ >
+ <LayoutGrid className="h-4 w-4" />
+ Board
+ </button>
+ </div>
+ </div>
+
  {loading ? (
  <div className="dashboard-surface shadow-sm p-8 sm:p-12 text-center">
  <p className="text-neutral-600">Loading applications...</p>
@@ -961,6 +1067,23 @@ export default function DashboardApplicationsPage() {
  <p className="text-neutral-600">
  No applications match your filters.
  </p>
+ </div>
+ ) : viewMode === 'board' ? (
+ <div className="dashboard-surface shadow-sm p-4 min-w-0">
+ <ApplicationsKanban
+ applications={filteredApplications}
+ onCardClick={(id) => void openApplicationById(id)}
+ onStatusChange={(app, status) =>
+ requestStatusChange(
+ {
+ id: app.id,
+ candidateName: `${app.candidate.firstName} ${app.candidate.lastName}`.trim(),
+ status: app.status,
+ },
+ status
+ )
+ }
+ />
  </div>
  ) : (
  <div className="dashboard-surface shadow-sm overflow-visible min-w-0">
@@ -1357,6 +1480,8 @@ export default function DashboardApplicationsPage() {
 
  <ApplicationAssessmentsPanel applicationId={selectedApp.id} />
 
+ <ApplicationScorecardsPanel applicationId={selectedApp.id} />
+
  <div>
  <h3 className="text-sm font-medium text-neutral-500 uppercase tracking-wider mb-2">
  Internal notes
@@ -1370,37 +1495,12 @@ export default function DashboardApplicationsPage() {
  />
  </div>
 
- <div className="pt-4 border-t border-neutral-200">
- <p className="text-xs text-neutral-500 mb-3">
- Update status
- </p>
- <div className="flex flex-wrap gap-2">
- {(STATUS_OPTIONS.filter(
- (o) => o.value !== 'all'
- ) as { value: ApplicationStatus; label: string }[]).map(
- (o) => (
- <button
- key={o.value}
- type="button"
- onClick={() => {
- handleStatusChange(selectedApp.id, o.value);
- setSelectedApp({
- ...selectedApp,
- status: o.value,
- });
- }}
- className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
- selectedApp.status === o.value
- ? 'bg-primary-900 text-white'
- : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
- }`}
- >
- {o.label}
- </button>
- )
- )}
- </div>
- </div>
+ <ApplicationCommentsPanel applicationId={selectedApp.id} />
+
+ <ApplicationActivityPanel
+ applicationId={selectedApp.id}
+ refreshKey={activityRefreshKey}
+ />
  </div>
  )}
 
@@ -1505,10 +1605,65 @@ export default function DashboardApplicationsPage() {
  </>
  )}
  </div>
+
+ <div className="shrink-0 border-t border-neutral-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 px-4 py-3 rounded-bl-xl">
+ <div className="flex items-center gap-3">
+ <span className="hidden sm:inline text-xs font-medium uppercase tracking-wider text-neutral-500 shrink-0">
+ Set status
+ </span>
+ <div className="flex flex-wrap items-center gap-1.5">
+ {APPLICATION_STATUS_ORDER.map((value) => {
+ const meta = APPLICATION_STATUS_META[value];
+ const isActive = selectedApp.status === value;
+ return (
+ <button
+ key={value}
+ type="button"
+ onClick={() =>
+ requestStatusChange(
+ {
+ id: selectedApp.id,
+ candidateName:
+ `${selectedApp.candidate.firstName} ${selectedApp.candidate.lastName}`.trim(),
+ status: selectedApp.status,
+ },
+ value
+ )
+ }
+ aria-pressed={isActive}
+ title={`Set to ${meta.label} · press ${meta.hotkey}`}
+ className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+ isActive
+ ? meta.activeButton
+ : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+ }`}
+ >
+ {meta.label}
+ </button>
+ );
+ })}
+ </div>
+ </div>
+ </div>
  </div>
  </>
  );
  })()}
+
+ {rejectionTarget && (
+ <RejectionDialog
+ candidateName={rejectionTarget.name}
+ onCancel={() => setRejectionTarget(null)}
+ onConfirm={(reason, sendEmail) => {
+ const id = rejectionTarget.id;
+ setRejectionTarget(null);
+ void applyStatus(id, 'rejected', {
+ reason,
+ sendRejectionEmail: sendEmail,
+ });
+ }}
+ />
+ )}
  </DashboardPage>
  );
 }

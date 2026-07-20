@@ -31,6 +31,9 @@ export type NotificationEvent =
   | 'grievance_status_changed'
   | 'onboarding_task_overdue'
   | 'onboarding_task_assigned'
+  | 'onboarding_preboarding_welcome'
+  | 'onboarding_starting_soon'
+  | 'legal_obligation_due'
   | 'mfa_enabled';
 
 type TemplateResult = { subject: string; html: string };
@@ -116,11 +119,79 @@ export function buildNotificationEmail(
         cta: d.href ? { label: 'View task', href: `${appUrl}${String(d.href)}`, variant: 'primary' } : undefined,
       }),
     }),
+    onboarding_task_assigned: (d) => ({
+      subject: `${emailSubjectTag} New task assigned: ${escapeHtml(String(d.taskTitle || 'Onboarding task'))}`,
+      html: buildBrandedEmailHtml({
+        title: 'A task was assigned to you',
+        content: [
+          `<p style="margin:0 0 12px;">${escapeHtml(String(d.body || 'A new task has been assigned to you.'))}</p>`,
+          d.participantName
+            ? `<p style="margin:0 0 6px;"><strong>Participant:</strong> ${escapeHtml(String(d.participantName))}</p>`
+            : '',
+          d.workflowLabel
+            ? `<p style="margin:0 0 6px;"><strong>Workflow:</strong> ${escapeHtml(String(d.workflowLabel))}</p>`
+            : '',
+          d.dueLabel
+            ? `<p style="margin:0;"><strong>Due:</strong> ${escapeHtml(String(d.dueLabel))}</p>`
+            : '',
+        ].join(''),
+        cta: d.href && appUrl ? { label: 'Open task', href: `${appUrl}${String(d.href)}`, variant: 'primary' } : undefined,
+      }),
+    }),
+    onboarding_preboarding_welcome: (d) => ({
+      subject: `${emailSubjectTag} Welcome to ${escapeHtml(String(d.companyName || brand.appName))} — let’s get you ready`,
+      html: buildBrandedEmailHtml({
+        title: `Welcome aboard${d.employeeName ? `, ${escapeHtml(String(d.employeeName))}` : ''}!`,
+        content: [
+          `<p style="margin:0 0 16px;">We’re thrilled you’re joining ${escapeHtml(String(d.companyName || 'the team'))}${d.startDate ? ` on <strong>${escapeHtml(String(d.startDate))}</strong>` : ' soon'}. To make your first day smooth, we’ve opened your onboarding hub so you can get a head start before you arrive.</p>`,
+          `<p style="margin:0 0 8px;font-weight:600;">Before day one, please:</p>`,
+          `<ul style="margin:0 0 16px;padding-left:20px;color:${STRIDE_PALETTE.ink};">
+            <li style="margin:0 0 6px;">Complete your personal details and upload any required documents.</li>
+            <li style="margin:0 0 6px;">Review and sign any pending forms in your onboarding checklist.</li>
+            <li style="margin:0 0 6px;">Note anything you’d like to ask on your first day.</li>
+          </ul>`,
+          `<p style="margin:0;font-size:14px;color:${STRIDE_PALETTE.warmSubtle};">It only takes a few minutes and helps us welcome you properly.</p>`,
+        ].join(''),
+        cta: appUrl
+          ? { label: 'Open your onboarding hub', href: `${appUrl}/ess/onboarding`, variant: 'primary' }
+          : undefined,
+      }),
+    }),
+    onboarding_starting_soon: (d) => {
+      const openTasks = Number(d.openTaskCount ?? 0);
+      const taskLine =
+        openTasks > 0
+          ? `You still have <strong>${openTasks} open onboarding task${openTasks === 1 ? '' : 's'}</strong> to complete.`
+          : 'Your onboarding checklist is almost ready.';
+      return {
+        subject: `${emailSubjectTag} Your start date is coming up${d.startDate ? ` — ${escapeHtml(String(d.startDate))}` : ''}`,
+        html: buildBrandedEmailHtml({
+          title: 'Your first day is almost here',
+          content: [
+            `<p style="margin:0 0 16px;">Hi${d.employeeName ? ` ${escapeHtml(String(d.employeeName))}` : ''}, this is a friendly reminder that your start date${d.startDate ? ` (<strong>${escapeHtml(String(d.startDate))}</strong>)` : ''} is coming up soon.</p>`,
+            `<p style="margin:0 0 16px;">${taskLine} Wrapping these up now means you can focus on settling in when you arrive.</p>`,
+          ].join(''),
+          cta: appUrl
+            ? { label: 'Finish onboarding tasks', href: `${appUrl}/ess/onboarding`, variant: 'primary' }
+            : undefined,
+        }),
+      };
+    },
     mfa_enabled: () => ({
       subject: `${emailSubjectTag} Two-factor authentication enabled`,
       html: buildBrandedEmailHtml({
         title: 'Two-factor authentication enabled',
         content: `<p style="margin:0 0 12px;">Two-factor authentication (MFA) was enabled on your ${escapeHtml(brand.appName)} account.</p><p style="margin:0;">If you did not enable this, contact your administrator immediately.</p>`,
+      }),
+    }),
+    legal_obligation_due: (d) => ({
+      subject: `${emailSubjectTag} ${String(d.title || 'Compliance obligation due')}`,
+      html: buildBrandedEmailHtml({
+        title: String(d.title || 'Compliance obligation due'),
+        content: `<p style="margin:0;">${escapeHtml(String(d.body || 'A compliance obligation is due soon.'))}</p>`,
+        cta: appUrl
+          ? { label: 'Open obligations register', href: `${appUrl}${String(d.href || '/dashboard/legal/obligations')}`, variant: 'primary' }
+          : undefined,
       }),
     }),
     credential_expiring: (d) => ({

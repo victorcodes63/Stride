@@ -15,6 +15,7 @@ import {
 import { motion } from 'framer-motion';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type VendorOption = { id: string; name: string; currency: string };
 
@@ -180,7 +181,7 @@ export default function PurchaseRequestsContent() {
       <DashboardPageHeader
         icon={ClipboardList}
         title="Purchase requests"
-        description="Raise, approve, and track purchase requests before LPO and vendor bill creation in Finance."
+        description="Raise, approve, and track purchase requests."
         actions={
           <button
             type="button"
@@ -240,18 +241,15 @@ export default function PurchaseRequestsContent() {
               onChange={(e) => setForm({ ...form, department: e.target.value })}
               className="px-3 py-2 rounded-lg border border-neutral-300 text-sm"
             />
-            <select
+            <StrideSelect
               value={form.vendorId}
-              onChange={(e) => setForm({ ...form, vendorId: e.target.value })}
-              className="px-3 py-2 rounded-lg border border-neutral-300 text-sm bg-white"
-            >
-              <option value="">Preferred vendor (optional)</option>
-              {vendors.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setForm({ ...form, vendorId: value })}
+              options={[
+                { value: '', label: 'Preferred vendor (optional)' },
+                ...vendors.map((v) => ({ value: v.id, label: v.name })),
+              ]}
+              ariaLabel="Preferred vendor"
+            />
             <input
               placeholder="Justification *"
               value={form.justification}

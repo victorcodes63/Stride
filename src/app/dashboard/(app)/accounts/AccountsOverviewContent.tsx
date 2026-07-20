@@ -1,321 +1,122 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
- ArrowRight,
- Building2,
- FileText,
- Landmark,
- LayoutGrid,
- Users,
-} from 'lucide-react';
-import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
-import { DashboardInlineLoading } from '@/components/dashboard/DashboardAsyncState';
-import { useDashboardNavBuildOptions } from '@/hooks/use-dashboard-nav-build-options';
-import { getDomainNavModuleItems } from '@/lib/dashboard-domain-nav';
-
-const FINANCE_HIGHLIGHT_HREFS = new Set([
-  '/dashboard/accounts/invoices',
-  '/dashboard/accounts/invoicing-setup',
-  '/dashboard/accounts/financial-reports',
-]);
-
-type ClientRow = {
- id: string;
- type: string;
-};
+import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { ModuleHomeContent } from '@/components/dashboard/module-home/ModuleHomeContent';
+import { DashboardPageSection } from '@/components/dashboard/DashboardPage';
 
 type InvoiceRow = {
- id: string;
- invoiceNumber: number;
- clientName: string;
- issueDate: string;
- status: string;
- totalIncVat: number;
- currency: string;
+  id: string;
+  invoiceNumber: number;
+  clientName: string;
+  issueDate: string;
+  status: string;
+  totalIncVat: number;
+  currency: string;
 };
 
 export default function AccountsOverviewContent() {
- const navOptions = useDashboardNavBuildOptions();
- const modules = useMemo(
-   () =>
-     getDomainNavModuleItems(navOptions, 'finance').map((item) => ({
-       href: item.href,
-       title: item.label,
-       desc: item.sectionLabel,
-       icon: item.icon,
-       highlight: FINANCE_HIGHLIGHT_HREFS.has(item.href),
-     })),
-   [navOptions],
- );
- const [clients, setClients] = useState<ClientRow[] | null>(null);
- const [invoices, setInvoices] = useState<InvoiceRow[] | null>(null);
- const [loading, setLoading] = useState(true);
- const [clientsError, setClientsError] = useState<string | null>(null);
- const [invoicesError, setInvoicesError] = useState<string | null>(null);
+  const [invoices, setInvoices] = useState<InvoiceRow[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
- const load = useCallback(() => {
- setLoading(true);
- setClientsError(null);
- setInvoicesError(null);
- Promise.allSettled([
- fetch('/api/accounts/clients', { credentials: 'include' }).then(async (r) => {
- const data = await r.json().catch(() => ({}));
- if (!r.ok) throw new Error(data.error || 'Failed to load clients');
- return data as { clients?: ClientRow[] };
- }),
- fetch('/api/accounts/invoices', { credentials: 'include' }).then(async (r) => {
- const data = await r.json().catch(() => ({}));
- if (!r.ok) throw new Error(data.error || 'Failed to load invoices');
- return data as { invoices?: InvoiceRow[] };
- }),
- ])
- .then(([clientsResult, invoicesResult]) => {
- if (clientsResult.status === 'fulfilled') {
- setClients(Array.isArray(clientsResult.value.clients) ? clientsResult.value.clients : []);
- } else {
- setClients([]);
- setClientsError(
- clientsResult.reason instanceof Error
- ? clientsResult.reason.message
- : 'Failed to load clients',
- );
- }
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    fetch('/api/accounts/invoices', { credentials: 'include' })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'Failed to load invoices');
+        return data as { invoices?: InvoiceRow[] };
+      })
+      .then((data) => setInvoices(Array.isArray(data.invoices) ? data.invoices : []))
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'Failed to load invoices');
+        setInvoices([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
- if (invoicesResult.status === 'fulfilled') {
- setInvoices(Array.isArray(invoicesResult.value.invoices) ? invoicesResult.value.invoices : []);
- } else {
- setInvoices([]);
- setInvoicesError(
- invoicesResult.reason instanceof Error
- ? invoicesResult.reason.message
- : 'Failed to load invoices',
- );
- }
- })
- .finally(() => setLoading(false));
- }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
- useEffect(() => {
- load();
- }, [load]);
+  const recentInvoices = useMemo(() => (invoices ?? []).slice(0, 6), [invoices]);
 
- const stats = useMemo(() => {
- const c = clients ?? [];
- const inv = invoices ?? [];
- const open = inv.filter((i) => i.status === 'unpaid' || i.status === 'partial').length;
- const paid = inv.filter((i) => i.status === 'paid').length;
- return {
- clientsTotal: c.length,
- invoicesTotal: inv.length,
- openInvoices: open,
- paidInvoices: paid,
- };
- }, [clients, invoices]);
+  return (
+    <div className="space-y-0">
+      <ModuleHomeContent domainId="finance" />
 
- const recentInvoices = useMemo(() => (invoices ?? []).slice(0, 6), [invoices]);
+      <DashboardPageSection className="mt-8 border-t border-[var(--dash-border)] pt-8">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-[var(--dash-text-strong)]">Recent invoices</h2>
+            <p className="mt-0.5 text-sm text-[var(--dash-text-muted)]">
+              Latest billing activity across your clients.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/accounts/invoices"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-[var(--stride-coral)] hover:underline"
+          >
+            View all <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
 
- const statCards = [
- {
- label: 'Billing clients',
- value: stats.clientsTotal,
- sub: 'Subsidiaries, entities & customers',
- icon: Users,
- tone: 'primary' as const,
- },
- {
- label: 'Invoices (loaded)',
- value: stats.invoicesTotal,
- sub: 'Latest 200 in system',
- icon: FileText,
- tone: 'primary' as const,
- },
- {
- label: 'Open invoices',
- value: stats.openInvoices,
- sub: 'Unpaid or partial',
- icon: Landmark,
- tone: 'primary' as const,
- },
- {
- label: 'Paid invoices',
- value: stats.paidInvoices,
- sub: 'Fully settled',
- icon: Building2,
- tone: 'primary' as const,
- },
- ];
+        {error ? (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+            <button type="button" onClick={load} className="ml-1 font-medium underline">
+              Retry
+            </button>
+          </div>
+        ) : null}
 
- if (loading) {
- return <DashboardInlineLoading label="Loading accounts overview…" />;
- }
-
- const blockingError =
- clientsError && invoicesError ? `${clientsError} ${invoicesError}` : null;
-
- if (blockingError) {
- return (
- <div className="w-full min-w-0 space-y-4">
-      <DashboardPageHeader
-        eyebrow="Finance & payroll"
-        title="Accounts"
-        description="Manage billing clients, invoices, receipts, vendors, statements, and payroll from one place."
-      />
- <div className="rounded-2xl border border-red-100 bg-red-50/80 p-5 text-red-800 text-sm max-w-2xl">
- {blockingError}
- <button type="button" onClick={load} className="mt-3 font-medium text-red-900 underline">
- Retry
- </button>
- </div>
- </div>
- );
- }
-
- return (
- <div className="w-full min-w-0 space-y-8 sm:space-y-10">
-      <DashboardPageHeader
-        eyebrow="Finance & payroll"
-        title="Accounts"
-        description="Manage billing clients, invoices, receipts, vendors, statements, and payroll from one place."
-        actions={[
-          { href: '/dashboard/accounts/clients', label: 'Billing clients', icon: Building2, variant: 'primary' },
-          { href: '/dashboard/accounts/invoices', label: 'All invoices', icon: LayoutGrid, variant: 'secondary' },
-        ]}
-      />
-
- {clientsError || invoicesError ? (
- <div className="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
- {clientsError ? <p>{clientsError}</p> : null}
- {invoicesError ? <p>{invoicesError}</p> : null}
- <button type="button" onClick={load} className="mt-2 font-medium text-amber-950 underline">
- Retry
- </button>
- </div>
- ) : null}
-
- {/* Snapshot */}
- <section className="space-y-4">
- <h2 className="text-lg font-bold text-[var(--dash-text-strong)] pb-1 border-b border-[var(--dash-border)]">Live snapshot</h2>
- <DashboardStatGrid columns={4}>
- {statCards.map((s) => (
- <DashboardStatCard
- key={s.label}
- label={s.label}
- value={s.value}
- hint={s.sub}
- tone={s.tone}
- />
- ))}
- </DashboardStatGrid>
- </section>
-
- {/* Modules — Quick entry style */}
- <section className="space-y-4">
- <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 border-b border-neutral-200 pb-4">
- <div>
- <h2 className="text-lg font-bold text-neutral-900">Accounts modules</h2>
- <p className="text-sm text-neutral-500 mt-1 max-w-2xl">
- Same destinations as the sidebar—open the area you need.
- </p>
- </div>
- </div>
- <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
- {modules.map((tile, idx) => {
- const Icon = tile.icon;
- return (
- <motion.div
- key={tile.href}
- initial={{ opacity: 0, y: 8 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.08 + idx * 0.03 }}
- >
- <Link
- href={tile.href}
- className={`flex items-center gap-4 p-4 rounded-2xl border transition-all hover:shadow-md h-full ${
- tile.highlight
- ? 'dash-feature-link'
- : 'bg-white border-neutral-200 hover:border-primary-300 hover:bg-primary-50/40'
- }`}
- >
- <div
- className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
- tile.highlight ? 'dash-feature-link-icon' : 'bg-primary-50 text-primary-700'
- }`}
- >
- <Icon className={`w-5 h-5 ${tile.highlight ? 'text-white' : ''}`} />
- </div>
- <div className="min-w-0 flex-1">
- <p
- className={`font-bold text-sm ${tile.highlight ? 'text-white' : 'text-primary-900'}`}
- >
- {tile.title}
- </p>
- <p
- className={`text-xs line-clamp-2 ${tile.highlight ? 'dash-feature-link-desc' : 'text-neutral-500'}`}
- >
- {tile.desc}
- </p>
- </div>
- <ArrowRight
- className={`w-4 h-4 shrink-0 ${tile.highlight ? 'text-white' : 'text-neutral-300'}`}
- />
- </Link>
- </motion.div>
- );
- })}
- </div>
- </section>
-
- {/* Recent invoices */}
- <section className="space-y-4 pb-2">
- <div className="dashboard-surface overflow-hidden min-w-0 shadow-sm">
- <div className="px-5 py-4 dashboard-toolbar flex items-center justify-between gap-3">
- <h2 className="font-bold text-neutral-900">Recent invoices</h2>
- <Link
- href="/dashboard/accounts/invoices"
- className="text-sm font-semibold text-primary-600 hover:text-primary-800 flex items-center gap-1"
- >
- View all <ArrowRight className="w-4 h-4" />
- </Link>
- </div>
- <div className="divide-y divide-neutral-100">
- {recentInvoices.length === 0 ? (
- <div className="px-5 py-10 text-center text-sm text-neutral-500">
- No invoices yet. Create one from a billing client or use the sample seed in development.
- </div>
- ) : (
- recentInvoices.map((inv) => (
- <Link
- key={inv.id}
- href={`/dashboard/accounts/invoices/${inv.id}`}
- className="flex items-center gap-3 px-5 py-3.5 hover:bg-primary-50/40 transition-colors"
- >
- <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center shrink-0 ring-2 ring-white shadow-sm">
- <span className="text-sm font-bold text-primary-800 tabular-nums">#{inv.invoiceNumber}</span>
- </div>
- <div className="flex-1 min-w-0">
- <p className="font-semibold text-sm text-primary-900 truncate">{inv.clientName}</p>
- <p className="text-xs text-neutral-500 truncate">
- {inv.issueDate} ·{' '}
- {inv.totalIncVat.toLocaleString('en-KE', {
- minimumFractionDigits: 2,
- maximumFractionDigits: 2,
- })}{' '}
- {inv.currency}
- </p>
- </div>
- <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500 shrink-0 px-2 py-0.5 rounded-lg bg-neutral-100">
- {inv.status}
- </span>
- </Link>
- ))
- )}
- </div>
- </div>
- </section>
- </div>
- );
+        {loading ? (
+          <div className="flex items-center justify-center py-12 text-[var(--dash-text-muted)]">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Loading invoices…
+          </div>
+        ) : (
+          <div className="dashboard-panel overflow-hidden">
+            {recentInvoices.length === 0 ? (
+              <div className="px-5 py-10 text-center text-sm text-[var(--dash-text-muted)]">
+                No invoices yet. Create one from a billing client or use the sample seed in development.
+              </div>
+            ) : (
+              <div className="divide-y divide-[var(--dash-border)]">
+                {recentInvoices.map((inv) => (
+                  <Link
+                    key={inv.id}
+                    href={`/dashboard/accounts/invoices/${inv.id}`}
+                    className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[var(--dash-hover)]"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-100 shadow-sm ring-2 ring-white">
+                      <span className="text-sm font-bold tabular-nums text-primary-800">#{inv.invoiceNumber}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-[var(--dash-text-strong)]">{inv.clientName}</p>
+                      <p className="truncate text-xs text-[var(--dash-text-muted)]">
+                        {inv.issueDate} ·{' '}
+                        {inv.totalIncVat.toLocaleString('en-KE', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{' '}
+                        {inv.currency}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-lg bg-[var(--dash-surface-muted)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--dash-text-muted)]">
+                      {inv.status}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </DashboardPageSection>
+    </div>
+  );
 }

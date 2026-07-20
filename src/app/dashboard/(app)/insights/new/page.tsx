@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BookOpen, ImagePlus, Loader2, X } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 const CATEGORIES = [
  'Uncategorized',
@@ -115,7 +116,7 @@ export default function NewInsightPage() {
 
  <DashboardPageHeader
  title="Add article"
- description="Add a new article to the public Insights page. Title, excerpt, and a featured image are recommended."
+ description="Add a new article to the public Insights page."
  className="mb-6 sm:mb-8"
  />
 
@@ -194,18 +195,13 @@ export default function NewInsightPage() {
  <label htmlFor="category" className="block text-sm font-medium text-primary-900 mb-2">
  Category
  </label>
- <select
+ <StrideSelect
  id="category"
  value={category}
- onChange={(e) => setCategory(e.target.value)}
- className="w-full min-w-0 px-4 py-2.5 sm:py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-base"
- >
- {CATEGORIES.map((c) => (
- <option key={c} value={c}>
- {c}
- </option>
- ))}
- </select>
+ onChange={(value) => setCategory(value)}
+ options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+ className="w-full min-w-0"
+ />
  </div>
  </div>
 

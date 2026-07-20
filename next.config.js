@@ -56,26 +56,6 @@ const nextConfig = {
         permanent: false,
       },
       {
-        source: '/dashboard/accounts/payroll',
-        destination: '/dashboard/outsourcing/payroll',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/accounts/payroll/payslips',
-        destination: '/dashboard/outsourcing/payroll/payslips',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/payroll',
-        destination: '/dashboard/outsourcing/payroll',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/payroll/payslips',
-        destination: '/dashboard/outsourcing/payroll/payslips',
-        permanent: false,
-      },
-      {
         source: '/ess/leave-approvals',
         destination: '/ess/team/leave',
         permanent: false,

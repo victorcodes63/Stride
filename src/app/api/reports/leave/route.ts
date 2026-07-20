@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toCSV } from '@/lib/report-export';
 import {
   assertReportsStaffRole,
-  downloadHeaders,
-  jsonOrPdf,
   parseDateParam,
   parseFormat,
+  respondWithReport,
   startOfDayUtc,
   ymd,
 } from '@/app/api/reports/_shared';
 import { resolvePrimaryWorkspaceClientId } from '@/lib/primary-workspace-client';
 import { withTenant } from '@/lib/tenant-api';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
@@ -88,32 +88,31 @@ export async function GET(request: NextRequest) {
       details,
     };
 
-    if (format === 'csv') {
-      const csv = toCSV(
-        ['Employee', 'Employee No.', 'Department', 'Leave type', 'Start', 'End', 'Days', 'Status'],
-        report.details.map((row) => [
-          row.employeeName,
-          row.employeeNumber,
-          row.department,
-          row.leaveType,
-          row.startDate,
-          row.endDate,
-          row.days,
-          row.status,
-        ]),
-      );
-      return new NextResponse(csv, {
-        headers: downloadHeaders('text/csv', `leave-${ymd(from)}-to-${ymd(to)}.csv`),
-      });
-    }
-
-    return jsonOrPdf(format, report, 'Leave Report', `leave-${ymd(from)}-to-${ymd(to)}.pdf`, [
-      `Period: ${report.from} to ${report.to}`,
-      `Applications: ${report.totalApplications}`,
-      `Total days: ${report.totalDays}`,
-      `Pending: ${report.pending}`,
-      `Approved: ${report.approved}`,
-      `Rejected: ${report.rejected}`,
-    ]);
+    return respondWithReport({
+      format,
+      json: report,
+      title: 'Leave Report',
+      sheetName: 'Leave',
+      baseFilename: `leave-${ymd(from)}-to-${ymd(to)}`,
+      headers: ['Employee', 'Employee No.', 'Department', 'Leave type', 'Start', 'End', 'Days', 'Status'],
+      rows: report.details.map((row) => [
+        row.employeeName,
+        row.employeeNumber,
+        row.department,
+        row.leaveType,
+        row.startDate,
+        row.endDate,
+        row.days,
+        row.status,
+      ]),
+      summaryLines: [
+        `Period: ${report.from} to ${report.to}`,
+        `Applications: ${report.totalApplications}`,
+        `Total days: ${report.totalDays}`,
+        `Pending: ${report.pending}`,
+        `Approved: ${report.approved}`,
+        `Rejected: ${report.rejected}`,
+      ],
+    });
   });
 }

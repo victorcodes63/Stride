@@ -68,7 +68,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     description: 'Pipeline KPIs, targets, attainment, and scorecard auto-measures.',
     hubHref: '/dashboard/sales',
     sectionIds: ['sales'],
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     id: 'finance',
@@ -78,7 +78,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     description: 'Invoicing, AP, expenses, budgets, and financial reports.',
     hubHref: '/dashboard/accounts',
     sectionIds: ['finance'],
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     id: 'procurement',
@@ -88,7 +88,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     description: 'Purchase requests, LPOs, vendor spend, and approvals.',
     hubHref: '/dashboard/procurement',
     sectionIds: ['procurement'],
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     id: 'legal-documents',
@@ -98,7 +98,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     description: 'Contracts, credentials, policies, and compliance obligations.',
     hubHref: '/dashboard/legal',
     sectionIds: ['legal-documents'],
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     id: 'projects',
@@ -108,7 +108,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     description: 'Deliverables, tasks, and budget vs execution.',
     hubHref: '/dashboard/projects',
     sectionIds: ['projects'],
-    readiness: 'planned',
+    readiness: 'live',
   },
   {
     id: 'fleet-logistics',
@@ -119,7 +119,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
       'Transport orders, trip dispatch, telematics, compliance, settlements, and client billing — Kenya-ready.',
     hubHref: '/dashboard/fleet',
     sectionIds: ['fleet-operations', 'fleet-monitoring', 'fleet-assets', 'fleet-commercial'],
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     id: 'hr-outsourcing',
@@ -129,7 +129,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     description: 'End-client register, outsourced workforce, and per-client payroll and leave.',
     hubHref: '/dashboard/outsourcing',
     sectionIds: ['outsourcing-clients', 'outsourcing-workforce', 'outsourcing-services'],
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     id: 'admin-operations',
@@ -139,7 +139,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     description: 'Assets, HSE, announcements, and operational reporting.',
     hubHref: '/dashboard/operations',
     sectionIds: ['operations', 'communications-insight'],
-    readiness: 'partial',
+    readiness: 'live',
   },
   {
     id: 'platform-admin',
