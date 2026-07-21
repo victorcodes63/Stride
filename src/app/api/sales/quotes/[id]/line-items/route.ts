@@ -28,9 +28,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const result = await ctx.run(async (tx) => {
         const quote = await tx.salesQuote.findFirst({
           where: { id: quoteId, organizationId: ctx.organizationId },
-          select: { id: true },
+          select: { id: true, supersededById: true },
         });
         if (!quote) return { status: 'not_found' as const };
+        if (quote.supersededById) return { status: 'read_only' as const };
 
         let product: {
           id: string;
@@ -122,6 +123,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       if (result.status === 'not_found') {
         return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
       }
+      if (result.status === 'read_only') {
+        return NextResponse.json(
+          { error: 'This quote version is superseded and read-only.' },
+          { status: 409 },
+        );
+      }
       if (result.status === 'bad_product') {
         return NextResponse.json({ error: 'Product not found.' }, { status: 400 });
       }
@@ -199,15 +206,31 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     try {
       const deleted = await ctx.run(async (tx) => {
+        const quote = await tx.salesQuote.findFirst({
+          where: { id: quoteId, organizationId: ctx.organizationId },
+          select: { id: true, supersededById: true },
+        });
+        if (!quote) return { kind: 'quote_missing' as const };
+        if (quote.supersededById) return { kind: 'read_only' as const };
+
         const existing = await tx.salesQuoteLineItem.findFirst({
           where: { id: lineItemId, quoteId, organizationId: ctx.organizationId },
         });
-        if (!existing) return null;
+        if (!existing) return { kind: 'not_found' as const };
         await tx.salesQuoteLineItem.delete({ where: { id: lineItemId } });
         await tx.salesQuote.update({ where: { id: quoteId }, data: { updatedAt: new Date() } });
-        return existing;
+        return { kind: 'ok' as const };
       });
-      if (!deleted) {
+      if (deleted.kind === 'quote_missing') {
+        return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
+      }
+      if (deleted.kind === 'read_only') {
+        return NextResponse.json(
+          { error: 'This quote version is superseded and read-only.' },
+          { status: 409 },
+        );
+      }
+      if (deleted.kind === 'not_found') {
         return NextResponse.json({ error: 'Line item not found.' }, { status: 404 });
       }
       return NextResponse.json({ ok: true, id: lineItemId });

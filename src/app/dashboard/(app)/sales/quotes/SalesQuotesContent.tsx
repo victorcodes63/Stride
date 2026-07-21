@@ -7,7 +7,9 @@ import {
   Coins,
   Download,
   FileText,
+  GitBranch,
   Loader2,
+  Link2,
   Pencil,
   Plus,
   Receipt,
@@ -81,6 +83,9 @@ type Totals = {
 type QuoteListItem = {
   id: string;
   quoteNumber: number;
+  version: number;
+  supersededById: string | null;
+  readOnly: boolean;
   title: string;
   status: string;
   currency: string;
@@ -95,6 +100,7 @@ type QuoteListItem = {
   taxRateBps: number;
   sentAt: string | null;
   acceptedAt: string | null;
+  acceptedByName?: string | null;
   lineItemCount: number;
   totals: Totals;
 };
@@ -140,6 +146,7 @@ type QuoteDetail = QuoteListItem & {
   terms: string | null;
   createdBy: { id: string; name: string } | null;
   canViewMargin?: boolean;
+  acceptPath?: string | null;
   lineItems: Array<Omit<LineItem, 'tempId'>>;
 };
 
@@ -438,6 +445,7 @@ export default function SalesQuotesContent() {
             setSelectedId(null);
             setDeleteTarget(q);
           }}
+          onOpenQuote={(id) => setSelectedId(id)}
         />
       ) : null}
 
@@ -654,8 +662,8 @@ function QuotesTable({
           </thead>
           <tbody>
             {quotes.map((quote) => {
-              const quoteLabel = `Q-${String(quote.quoteNumber).padStart(4, '0')}`;
-              const quoteTitle = `${quote.title} · ${quoteLabel}`;
+              const quoteLabel = `Q-${String(quote.quoteNumber).padStart(4, '0')} v${quote.version ?? 1}`;
+              const quoteTitle = `${quote.title} · ${quoteLabel}${quote.readOnly ? ' (superseded)' : ''}`;
               return (
               <tr
                 key={quote.id}
@@ -665,6 +673,11 @@ function QuotesTable({
                 {isColumnVisible('quote') ? (
                   <td className="col-primary col-truncate-lg font-medium text-[var(--dash-text-strong)]" title={quoteTitle}>
                     {quote.title} · {quoteLabel}
+                    {quote.readOnly ? (
+                      <span className="ml-1.5 text-[10px] font-normal uppercase tracking-wide text-[var(--dash-text-muted)]">
+                        superseded
+                      </span>
+                    ) : null}
                   </td>
                 ) : null}
                 {isColumnVisible('account') ? (
@@ -706,11 +719,13 @@ function QuoteDetailDrawer({
   onClose,
   onEdit,
   onDelete,
+  onOpenQuote,
 }: {
   quoteId: string;
   onClose: () => void;
   onEdit: (id: string) => void;
   onDelete: (quote: QuoteListItem) => void;
+  onOpenQuote: (id: string) => void;
 }) {
   const detailQuery = useSalesResource<{ quote: QuoteDetail }>(
     salesKeys.quote(quoteId),
@@ -731,6 +746,13 @@ function QuoteDetailDrawer({
       onSuccess: (_d, status) => toast.success(`Quote marked ${status}.`),
     },
   );
+
+  const reviseMutation = useSalesMutation<
+    { quote: { id: string; quoteNumber: number; version: number } },
+    void
+  >(() => apiFetch(`/api/sales/quotes/${quoteId}/revise`, { method: 'POST' }), {
+    invalidateKeys: [salesKeys.all, salesKeys.quote(quoteId)],
+  });
 
   const convertMutation = useSalesMutation<
     { result: { invoiceNumber: number } },
@@ -769,11 +791,33 @@ function QuoteDetailDrawer({
     }
   }
 
+  async function handleRevise() {
+    try {
+      const res = await reviseMutation.mutateAsync();
+      toast.success(`Created revision v${res.quote.version}.`);
+      onOpenQuote(res.quote.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Revise failed.');
+    }
+  }
+
   function downloadPdf() {
     window.open(`/api/sales/quotes/${quoteId}/pdf`, '_blank', 'noopener,noreferrer');
   }
 
-  const busy = statusMutation.isPending;
+  async function copyAcceptLink() {
+    if (!quote?.acceptPath) return;
+    const url = `${window.location.origin}${quote.acceptPath}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Accept link copied.');
+    } catch {
+      toast.error('Could not copy link.');
+    }
+  }
+
+  const busy = statusMutation.isPending || reviseMutation.isPending;
+  const readOnly = Boolean(quote?.readOnly);
 
   return (
     <SalesDrawer
@@ -781,12 +825,16 @@ function QuoteDetailDrawer({
       onClose={onClose}
       width="xl"
       title={quote ? quote.title : 'Quote'}
-      subtitle={quote ? `Q-${String(quote.quoteNumber).padStart(4, '0')}` : undefined}
+      subtitle={
+        quote
+          ? `Q-${String(quote.quoteNumber).padStart(4, '0')} · v${quote.version}${readOnly ? ' · superseded' : ''}`
+          : undefined
+      }
       footer={
         quote ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              {quote.status === 'draft' || quote.status === 'pending_approval' ? (
+              {!readOnly && (quote.status === 'draft' || quote.status === 'pending_approval') ? (
                 <button
                   type="button"
                   disabled={busy}
@@ -797,7 +845,7 @@ function QuoteDetailDrawer({
                   {quote.status === 'pending_approval' ? 'Send (if approved)' : 'Send'}
                 </button>
               ) : null}
-              {quote.status === 'sent' ? (
+              {!readOnly && quote.status === 'sent' ? (
                 <>
                   <button
                     type="button"
@@ -817,11 +865,11 @@ function QuoteDetailDrawer({
                   </button>
                 </>
               ) : null}
-              {quote.status === 'accepted' && quote.accountsInvoiceId ? (
+              {!readOnly && quote.status === 'accepted' && quote.accountsInvoiceId ? (
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
                   <Receipt className="h-4 w-4" /> Invoiced
                 </span>
-              ) : quote.status === 'accepted' ? (
+              ) : !readOnly && quote.status === 'accepted' ? (
                 <button
                   type="button"
                   disabled={convertMutation.isPending}
@@ -836,7 +884,7 @@ function QuoteDetailDrawer({
                   Convert to invoice
                 </button>
               ) : null}
-              {quote.status === 'rejected' || quote.status === 'expired' ? (
+              {!readOnly && (quote.status === 'rejected' || quote.status === 'expired') ? (
                 <button
                   type="button"
                   disabled={busy}
@@ -846,7 +894,7 @@ function QuoteDetailDrawer({
                   Reopen
                 </button>
               ) : null}
-              {quote.status === 'draft' || quote.status === 'sent' ? (
+              {!readOnly && (quote.status === 'draft' || quote.status === 'sent') ? (
                 <button
                   type="button"
                   disabled={busy}
@@ -854,6 +902,24 @@ function QuoteDetailDrawer({
                   className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--dash-text-muted)] hover:bg-[var(--dash-hover)] disabled:opacity-60"
                 >
                   Expire
+                </button>
+              ) : null}
+              {!readOnly ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void handleRevise()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--dash-border)] px-3 py-2 text-sm font-medium text-[var(--dash-text-strong)] hover:bg-[var(--dash-hover)] disabled:opacity-60"
+                >
+                  <GitBranch className="h-4 w-4" /> Revise
+                </button>
+              ) : quote.supersededById ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenQuote(quote.supersededById!)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--dash-border)] px-3 py-2 text-sm font-medium text-[var(--dash-text-strong)] hover:bg-[var(--dash-hover)]"
+                >
+                  Open latest version
                 </button>
               ) : null}
             </div>
@@ -865,13 +931,24 @@ function QuoteDetailDrawer({
               >
                 <Download className="h-4 w-4" /> PDF
               </button>
-              <button
-                type="button"
-                onClick={() => onEdit(quote.id)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--dash-border)] px-3 py-2 text-sm font-medium text-[var(--dash-text-strong)] hover:bg-[var(--dash-hover)]"
-              >
-                <Pencil className="h-4 w-4" /> Edit
-              </button>
+              {quote.acceptPath ? (
+                <button
+                  type="button"
+                  onClick={() => void copyAcceptLink()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--dash-border)] px-3 py-2 text-sm font-medium text-[var(--dash-text-strong)] hover:bg-[var(--dash-hover)]"
+                >
+                  <Link2 className="h-4 w-4" /> Accept link
+                </button>
+              ) : null}
+              {!readOnly ? (
+                <button
+                  type="button"
+                  onClick={() => onEdit(quote.id)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--dash-border)] px-3 py-2 text-sm font-medium text-[var(--dash-text-strong)] hover:bg-[var(--dash-hover)]"
+                >
+                  <Pencil className="h-4 w-4" /> Edit
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null
@@ -891,6 +968,14 @@ function QuoteDetailDrawer({
         <div className="space-y-5 text-sm">
           <div className="flex flex-wrap items-center gap-3">
             <QuoteStatusBadge status={quote.status} />
+            <span className="rounded-md bg-[var(--dash-surface-muted)] px-2 py-0.5 text-xs font-medium text-[var(--dash-text-muted)]">
+              v{quote.version}
+            </span>
+            {readOnly ? (
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                Read-only (superseded)
+              </span>
+            ) : null}
             <span className="text-xs text-[var(--dash-text-muted)]">
               Issued {formatShortDate(quote.issueDate)}
             </span>
@@ -908,6 +993,9 @@ function QuoteDetailDrawer({
             <Field label="VAT" value={`${(quote.taxRateBps / 100).toFixed(0)}%`} />
             <Field label="Prepared by" value={quote.createdBy?.name ?? null} />
             <Field label="Currency" value={quote.currency} />
+            {quote.acceptedByName ? (
+              <Field label="Accepted by" value={quote.acceptedByName} />
+            ) : null}
           </dl>
 
           <div className={`overflow-hidden rounded-xl border border-[var(--dash-border)]`}>
@@ -987,13 +1075,15 @@ function QuoteDetailDrawer({
             </div>
           ) : null}
 
-          <button
-            type="button"
-            onClick={() => onDelete(quote)}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 hover:underline"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Delete quote
-          </button>
+          {!readOnly ? (
+            <button
+              type="button"
+              onClick={() => onDelete(quote)}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 hover:underline"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete quote
+            </button>
+          ) : null}
         </div>
       )}
 

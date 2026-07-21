@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { existsSync, readFileSync } from 'fs';
+import { resolve } from 'path';
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib';
+import { loadCompanySetupSettingsForOrg } from '@/lib/company-setup';
+import { DEFAULT_PRIMARY_COLOR, sanitizeHexColor } from '@/lib/brand-theme';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
 import { lineItemExtendedAmount } from '@/lib/sales/access';
@@ -10,13 +14,19 @@ export const dynamic = 'force-dynamic';
 type RouteParams = { params: Promise<{ id: string }> };
 
 const INK = rgb(26 / 255, 23 / 255, 20 / 255);
-const CORAL = rgb(1, 84 / 255, 54 / 255);
 const GRAY_600 = rgb(82 / 255, 82 / 255, 82 / 255);
 const GRAY_500 = rgb(115 / 255, 115 / 255, 115 / 255);
 const BORDER = rgb(229 / 255, 229 / 255, 229 / 255);
 const PANEL = rgb(250 / 255, 247 / 255, 245 / 255);
+const WHITE = rgb(1, 1, 1);
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+function hexToRgb(hex: string): RGB {
+  const value = sanitizeHexColor(hex, DEFAULT_PRIMARY_COLOR).replace('#', '');
+  const n = Number.parseInt(value, 16);
+  return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
+}
 
 function fmt(n: number, currency: string) {
   return `${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
@@ -56,6 +66,19 @@ function drawRight(
   page.drawText(text, { x: xRight - w, y, size, font, color });
 }
 
+async function embedPngCandidates(doc: PDFDocument, candidates: string[]) {
+  for (const candidate of candidates) {
+    const abs = resolve(process.cwd(), 'public', candidate.replace(/^\//, ''));
+    if (!existsSync(abs) || !/\.png$/i.test(abs)) continue;
+    try {
+      return await doc.embedPng(readFileSync(abs));
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   return withTenant(request, async (ctx) => {
     const moduleBlock = requireModule('sales', getEffectiveModulesFromRequest(request));
@@ -72,16 +95,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           },
         });
         if (!found) return null;
-        const org = await tx.organization.findUnique({
-          where: { id: ctx.organizationId },
-          select: { name: true },
-        });
-        return { quote: found, orgName: org?.name ?? 'Stride' };
+        return { quote: found };
       });
       if (!data) {
         return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
       }
       const { quote } = data;
+
+      const setup = await loadCompanySetupSettingsForOrg(ctx.organizationId);
+      const orgName =
+        setup.payslipLegalName.trim() || setup.orgName.trim() || 'Stride';
+      const accent = hexToRgb(setup.primaryColor || DEFAULT_PRIMARY_COLOR);
 
       const currency = quote.currency;
       const rows = quote.lineItems.map((li) => ({
@@ -106,8 +130,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const taxAmount = round2((netAmount * Math.max(0, quote.taxRateBps)) / 10000);
       const total = round2(netAmount + taxAmount);
 
-      const orgName = data.orgName;
-
       const doc = await PDFDocument.create();
       const pageSize: [number, number] = [595, 842];
       const page = doc.addPage(pageSize);
@@ -120,16 +142,58 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const contentW = width - margin * 2;
       const rightEdge = margin + contentW;
 
-      // Header band
-      page.drawRectangle({ x: 0, y: height - 8, width, height: 8, color: CORAL });
+      // Branded letterhead band (org primary / Stride coral fallback)
+      const headerH = 72;
+      page.drawRectangle({
+        x: 0,
+        y: height - headerH,
+        width,
+        height: headerH,
+        color: accent,
+      });
 
-      let y = height - margin;
-      page.drawText('QUOTATION', { x: margin, y: y - 6, size: 22, font: bold, color: INK });
-      drawRight(page, orgName, rightEdge, y - 2, 13, bold, CORAL);
-      y -= 30;
+      const mark = await embedPngCandidates(doc, [
+        '/brand/stride-mark-mono-white-512.png',
+        '/brand/stride-bolt-white-512.png',
+        '/brand/stride-mark.png',
+      ]);
+      if (mark) {
+        const markSize = 28;
+        page.drawImage(mark, {
+          x: margin,
+          y: height - 48 - markSize / 2,
+          width: markSize,
+          height: markSize,
+        });
+        page.drawText(orgName, {
+          x: margin + markSize + 12,
+          y: height - 52,
+          size: 14,
+          font: bold,
+          color: WHITE,
+        });
+      } else {
+        page.drawText(orgName, {
+          x: margin,
+          y: height - 52,
+          size: 14,
+          font: bold,
+          color: WHITE,
+        });
+      }
+      page.drawText('QUOTATION', {
+        x: rightEdge - bold.widthOfTextAtSize('QUOTATION', 16),
+        y: height - 52,
+        size: 16,
+        font: bold,
+        color: WHITE,
+      });
 
+      let y = height - headerH - 28;
+
+      const quoteLabel = `Q-${String(quote.quoteNumber).padStart(4, '0')} · v${quote.version}`;
       const metaRows: [string, string][] = [
-        ['Quote no.', `Q-${String(quote.quoteNumber).padStart(4, '0')}`],
+        ['Quote no.', quoteLabel],
         ['Issue date', shortDate(quote.issueDate)],
         ['Valid until', shortDate(quote.validUntil)],
         ['Status', quote.status.toUpperCase()],
@@ -141,7 +205,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         my -= 13;
       }
 
-      // Bill-to block
       page.drawText('Prepared for', { x: margin, y, size: 8, font, color: GRAY_500 });
       y -= 15;
       const clientName = quote.accountsClient?.name ?? 'Prospective client';
@@ -157,14 +220,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
 
       y = Math.min(y, my) - 16;
-      // Title
       for (const line of wrapText(quote.title, Math.floor(contentW / 6))) {
         page.drawText(line, { x: margin, y, size: 13, font: bold, color: INK });
         y -= 16;
       }
       y -= 8;
 
-      // Table header
       const colDescX = margin + 8;
       const colQtyX = rightEdge - 250;
       const colUnitX = rightEdge - 170;
@@ -183,9 +244,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         const descLines = wrapText(row.description, descChars);
         const extra = row.detail ? 1 : 0;
         const rowH = Math.max(descLines.length + extra, 1) * 12 + 10;
-        if (y - rowH < margin + 120) {
-          // Not enough room; move totals to same page anyway (quotes are short).
-        }
         const topY = y - 14;
         let dy = topY;
         for (const dl of descLines) {
@@ -194,7 +252,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
         if (row.detail) {
           page.drawText(row.detail, { x: colDescX, y: dy, size: 8, font, color: GRAY_500 });
-          dy -= 12;
         }
         const discSuffix = row.discountPct > 0 ? ` (-${row.discountPct}%)` : '';
         drawRight(page, String(row.qty), colQtyX + 24, topY, 9, font, GRAY_600);
@@ -209,7 +266,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         y -= 26;
       }
 
-      // Totals
       y -= 18;
       const totalsLeft = rightEdge - 240;
       const sum = (label: string, value: string, size: number, f: PDFFont, color: RGB) => {
@@ -227,7 +283,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       y -= 12;
       sum('Total', fmt(total, currency), 12, bold, INK);
 
-      // Notes / terms
       if (quote.notes?.trim()) {
         y -= 16;
         page.drawText('Notes', { x: margin, y, size: 9, font: bold, color: INK });
@@ -247,13 +302,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
       }
 
-      // Footer
-      const footer = `${orgName} · Quote Q-${String(quote.quoteNumber).padStart(4, '0')} · Generated ${shortDate(new Date())}`;
+      if (quote.validUntil) {
+        y -= 14;
+        page.drawText(`This quotation is valid until ${shortDate(quote.validUntil)}.`, {
+          x: margin,
+          y,
+          size: 8,
+          font,
+          color: GRAY_500,
+        });
+      }
+
+      const footer = `${orgName} · ${quoteLabel} · Generated ${shortDate(new Date())}`;
       const fw = font.widthOfTextAtSize(footer, 7);
       page.drawText(footer, { x: width / 2 - fw / 2, y: margin - 18, size: 7, font, color: GRAY_500 });
 
       const bytes = await doc.save();
-      const filename = `Quote-Q-${String(quote.quoteNumber).padStart(4, '0')}.pdf`;
+      const filename = `Quote-Q-${String(quote.quoteNumber).padStart(4, '0')}-v${quote.version}.pdf`;
       const inline = request.nextUrl.searchParams.get('inline') === '1';
       return new NextResponse(Buffer.from(bytes), {
         status: 200,

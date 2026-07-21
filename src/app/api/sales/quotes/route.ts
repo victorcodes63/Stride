@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
               },
             },
           },
-          orderBy: [{ quoteNumber: 'desc' }],
+          orderBy: [{ quoteNumber: 'desc' }, { version: 'desc' }],
           take: 300,
         }),
       );
@@ -109,6 +109,9 @@ export async function GET(request: NextRequest) {
           return {
             id: quote.id,
             quoteNumber: quote.quoteNumber,
+            version: quote.version,
+            supersededById: quote.supersededById,
+            readOnly: Boolean(quote.supersededById),
             title: quote.title,
             status: quote.status,
             currency: quote.currency,
@@ -123,6 +126,7 @@ export async function GET(request: NextRequest) {
             taxRateBps: quote.taxRateBps,
             sentAt: quote.sentAt?.toISOString() ?? null,
             acceptedAt: quote.acceptedAt?.toISOString() ?? null,
+            acceptedByName: quote.acceptedByName,
             lineItemCount: quote.lineItems.length,
             totals,
             createdAt: quote.createdAt.toISOString(),
