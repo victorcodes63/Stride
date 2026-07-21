@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   CheckCircle2,
+  ClipboardCheck,
   Coins,
   Download,
   FileText,
@@ -19,18 +20,55 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DASHBOARD_SURFACE_CLASS } from '@/lib/dashboard-layout';
 import {
+  ColumnPickerMenu,
   QuoteStatusBadge,
   SalesDrawer,
   SalesEmptyState,
   SalesFilterBar,
+  useColumnVisibility,
+  type ColumnOption,
   type FilterSelect,
 } from '@/components/dashboard/sales';
+import {
+  DashboardTable,
+  DashboardTableCard,
+  DashboardTableViewport,
+} from '@/components/dashboard/DashboardDataTable';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { StrideSelect } from '@/components/ui/stride-select';
 import { toast } from '@/components/ui/toast';
+import { ApiError } from '@/hooks/useApiResource';
 import { apiFetch, salesKeys, useSalesMutation, useSalesResource } from '@/lib/sales/hooks';
 import { formatCompactCurrency, formatSalesCurrency, formatShortDate } from '@/lib/sales/format';
 import { SALES_QUOTE_STATUSES } from '@/lib/sales/schema';
+
+type PageTab = 'quotes' | 'approvals';
+
+type QuoteColumnId = 'quote' | 'account' | 'status' | 'total' | 'validUntil';
+
+const QUOTE_COLUMN_ORDER: QuoteColumnId[] = [
+  'quote',
+  'account',
+  'status',
+  'total',
+  'validUntil',
+];
+
+const QUOTE_COLUMN_OPTIONS: ColumnOption<QuoteColumnId>[] = [
+  { id: 'quote', label: 'Quote', locked: true },
+  { id: 'account', label: 'Account' },
+  { id: 'status', label: 'Status' },
+  { id: 'total', label: 'Total' },
+  { id: 'validUntil', label: 'Valid until' },
+];
+
+const DEFAULT_QUOTE_COLUMNS: QuoteColumnId[] = [
+  'quote',
+  'account',
+  'status',
+  'total',
+  'validUntil',
+];
 
 type Totals = {
   subtotal: number;
@@ -61,6 +99,24 @@ type QuoteListItem = {
   totals: Totals;
 };
 
+type ApprovalInboxItem = {
+  id: string;
+  status: string;
+  effectiveDiscountPct: number | null;
+  createdAt: string;
+  quote: {
+    id: string;
+    quoteNumber: number;
+    title: string;
+    status: string;
+    currency: string;
+    discountPct: number;
+    accountsClient: { id: string; name: string } | null;
+    createdBy: { id: string; name: string } | null;
+  } | null;
+  requestedBy: { id: string; name: string; email: string };
+};
+
 type LineItem = {
   id?: string;
   tempId: string;
@@ -70,6 +126,10 @@ type LineItem = {
   quantity: number;
   unitPrice: number;
   discountPct: number;
+  priceOverridden?: boolean;
+  listPrice?: number | null;
+  costPrice?: number | null;
+  margin?: number | null;
   isRecurring: boolean;
   termMonths: number | null;
   sortOrder: number;
@@ -79,6 +139,7 @@ type QuoteDetail = QuoteListItem & {
   notes: string | null;
   terms: string | null;
   createdBy: { id: string; name: string } | null;
+  canViewMargin?: boolean;
   lineItems: Array<Omit<LineItem, 'tempId'>>;
 };
 
@@ -96,6 +157,8 @@ type ProductOpt = {
   sku: string | null;
   category: string | null;
   unitPrice: number;
+  costPrice?: number | null;
+  margin?: number | null;
   currency: string;
   isRecurring: boolean;
   defaultTermMonths: number | null;
@@ -155,6 +218,7 @@ function KpiCard({
 }
 
 export default function SalesQuotesContent() {
+  const [tab, setTab] = useState<PageTab>('quotes');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -162,6 +226,13 @@ export default function SalesQuotesContent() {
     null,
   );
   const [deleteTarget, setDeleteTarget] = useState<QuoteListItem | null>(null);
+
+  const quoteColumns = useColumnVisibility<QuoteColumnId>({
+    storageKey: 'stride.sales.quotes.visibleColumns.v1',
+    columnOrder: QUOTE_COLUMN_ORDER,
+    defaults: DEFAULT_QUOTE_COLUMNS,
+    locked: ['quote'],
+  });
 
   const quotesQuery = useSalesResource<{ quotes: QuoteListItem[] }>(
     salesKeys.quotes(),
@@ -190,10 +261,11 @@ export default function SalesQuotesContent() {
     const total = quotes.length;
     const sent = quotes.filter((q) => q.status === 'sent').length;
     const accepted = quotes.filter((q) => q.status === 'accepted').length;
+    const pendingApproval = quotes.filter((q) => q.status === 'pending_approval').length;
     const acceptedValue = quotes
       .filter((q) => q.status === 'accepted')
       .reduce((s, q) => s + q.totals.total, 0);
-    return { total, sent, accepted, acceptedValue };
+    return { total, sent, accepted, acceptedValue, pendingApproval };
   }, [quotes]);
 
   async function handleDelete() {
@@ -215,7 +287,10 @@ export default function SalesQuotesContent() {
       onChange: setStatusFilter,
       options: [
         { value: '', label: 'All statuses' },
-        ...SALES_QUOTE_STATUSES.map((s) => ({ value: s, label: s[0].toUpperCase() + s.slice(1) })),
+        ...SALES_QUOTE_STATUSES.map((s) => ({
+          value: s,
+          label: s === 'pending_approval' ? 'Pending approval' : s[0].toUpperCase() + s.slice(1),
+        })),
       ],
     },
   ];
@@ -230,17 +305,49 @@ export default function SalesQuotesContent() {
         description="Build branded quotations, track their status, and convert accepted quotes into invoices."
         icon={FileText}
         actions={
-          <button
-            type="button"
-            onClick={() => setBuilder({ mode: 'create' })}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--stride-coral)] px-3 py-2 text-sm font-medium text-white"
-          >
-            <Plus className="h-4 w-4" /> New quote
-          </button>
+          tab === 'quotes' ? (
+            <button
+              type="button"
+              onClick={() => setBuilder({ mode: 'create' })}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--stride-coral)] px-3 py-2 text-sm font-medium text-white"
+            >
+              <Plus className="h-4 w-4" /> New quote
+            </button>
+          ) : null
         }
       />
 
-      {isError ? (
+      <div className="mb-4 flex gap-1 border-b border-[var(--dash-border)]">
+        {(
+          [
+            { id: 'quotes' as const, label: 'All quotes', icon: FileText },
+            { id: 'approvals' as const, label: 'Approvals', icon: ClipboardCheck },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+              tab === t.id
+                ? 'border-[var(--stride-coral)] text-[var(--dash-text-strong)]'
+                : 'border-transparent text-[var(--dash-text-muted)] hover:text-[var(--dash-text-strong)]'
+            }`}
+          >
+            <t.icon className="h-4 w-4" />
+            {t.label}
+            {t.id === 'approvals' && kpis.pendingApproval > 0 ? (
+              <span className="ml-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800 dark:bg-violet-500/20 dark:text-violet-300">
+                {kpis.pendingApproval}
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'approvals' ? (
+        <ApprovalsInbox onOpenQuote={setSelectedId} />
+      ) : isError ? (
         <SalesEmptyState
           icon={FileText}
           title="Couldn't load quotes"
@@ -292,6 +399,14 @@ export default function SalesQuotesContent() {
             searchPlaceholder="Search title, client, or quote #…"
             selects={filterSelects}
             resultCount={filtered.length}
+            right={
+              <ColumnPickerMenu
+                columns={QUOTE_COLUMN_OPTIONS}
+                visible={quoteColumns.visible}
+                onToggle={quoteColumns.toggle}
+                onReset={quoteColumns.reset}
+              />
+            }
           />
 
           {filtered.length === 0 ? (
@@ -302,52 +417,11 @@ export default function SalesQuotesContent() {
               compact
             />
           ) : (
-            <div className={`overflow-hidden ${DASHBOARD_SURFACE_CLASS} shadow-sm`}>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-[var(--dash-surface-muted)] text-left text-xs uppercase tracking-wide text-[var(--dash-text-muted)]">
-                    <tr>
-                      <th className="px-4 py-3">Quote</th>
-                      <th className="px-4 py-3">Account</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Total</th>
-                      <th className="px-4 py-3">Valid until</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((quote) => (
-                      <tr
-                        key={quote.id}
-                        onClick={() => setSelectedId(quote.id)}
-                        className="cursor-pointer border-t border-[var(--dash-border)] hover:bg-[var(--dash-hover)]"
-                      >
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-[var(--dash-text-strong)]">
-                            {quote.title}
-                          </div>
-                          <div className="text-xs text-[var(--dash-text-muted)]">
-                            Q-{String(quote.quoteNumber).padStart(4, '0')} · {quote.lineItemCount}{' '}
-                            {quote.lineItemCount === 1 ? 'item' : 'items'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-[var(--dash-text-muted)]">
-                          {quote.accountsClient?.name ?? '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <QuoteStatusBadge status={quote.status} />
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-[var(--dash-text-strong)]">
-                          {formatSalesCurrency(quote.totals.total, quote.currency)}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[var(--dash-text-muted)]">
-                          {formatShortDate(quote.validUntil)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <QuotesTable
+              quotes={filtered}
+              isColumnVisible={quoteColumns.isVisible}
+              onOpen={setSelectedId}
+            />
           )}
         </div>
       )}
@@ -360,7 +434,10 @@ export default function SalesQuotesContent() {
             setSelectedId(null);
             setBuilder({ mode: 'edit', id });
           }}
-          onDelete={(quote) => setDeleteTarget(quote)}
+          onDelete={(q) => {
+            setSelectedId(null);
+            setDeleteTarget(q);
+          }}
         />
       ) : null}
 
@@ -378,19 +455,245 @@ export default function SalesQuotesContent() {
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => void handleDelete()}
         title="Delete quote?"
         description={
           deleteTarget
-            ? `Quote Q-${String(deleteTarget.quoteNumber).padStart(4, '0')} — “${deleteTarget.title}” will be permanently removed.`
+            ? `Delete Q-${String(deleteTarget.quoteNumber).padStart(4, '0')} “${deleteTarget.title}”? This cannot be undone.`
             : undefined
         }
         confirmLabel="Delete"
         tone="danger"
         loading={deleteMutation.isPending}
-        onConfirm={() => void handleDelete()}
-        onCancel={() => setDeleteTarget(null)}
       />
     </DashboardPage>
+  );
+}
+
+function ApprovalsInbox({ onOpenQuote }: { onOpenQuote: (id: string) => void }) {
+  const [reasonDraft, setReasonDraft] = useState<Record<string, string>>({});
+  const approvalsQuery = useSalesResource<{ approvals: ApprovalInboxItem[] }>(
+    salesKeys.quoteApprovals(),
+    '/api/sales/quotes/approvals',
+    { retry: false },
+  );
+
+  const decisionMutation = useSalesMutation<
+    { approval: { id: string; status: string } },
+    { quoteId: string; decision: 'approved' | 'rejected'; reason: string }
+  >(
+    ({ quoteId, decision, reason }) =>
+      apiFetch(`/api/sales/quotes/${quoteId}/approval`, {
+        method: 'POST',
+        body: JSON.stringify({ decision, reason }),
+      }),
+    {
+      invalidateKeys: [salesKeys.all, salesKeys.quoteApprovals(), salesKeys.quotes()],
+      onSuccess: (_d, vars) =>
+        toast.success(vars.decision === 'approved' ? 'Quote approved — send is unblocked.' : 'Quote rejected.'),
+    },
+  );
+
+  if (approvalsQuery.isError) {
+    const status = (approvalsQuery.error as ApiError | undefined)?.status;
+    if (status === 403) {
+      return (
+        <SalesEmptyState
+          icon={ClipboardCheck}
+          title="Approvals restricted"
+          description="You need the sales.approve_quotes permission to review discount requests."
+          compact
+        />
+      );
+    }
+    return (
+      <SalesEmptyState
+        icon={ClipboardCheck}
+        title="Couldn't load approvals"
+        description={approvalsQuery.error?.message ?? 'Something went wrong.'}
+        action={
+          <button
+            type="button"
+            onClick={() => void approvalsQuery.refetch()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--stride-coral)] px-4 py-2 text-sm font-medium text-white"
+          >
+            <RefreshCw className="h-4 w-4" /> Retry
+          </button>
+        }
+      />
+    );
+  }
+
+  if (approvalsQuery.isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-[var(--dash-text-muted)]">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading approvals…
+      </div>
+    );
+  }
+
+  const approvals = approvalsQuery.data?.approvals ?? [];
+  if (approvals.length === 0) {
+    return (
+      <SalesEmptyState
+        icon={ClipboardCheck}
+        title="No pending approvals"
+        description="Quotes that exceed the discount policy will appear here for review."
+        compact
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {approvals.map((row) => {
+        const quote = row.quote;
+        if (!quote) return null;
+        const reason = reasonDraft[row.id] ?? '';
+        const busy = decisionMutation.isPending;
+        return (
+          <div
+            key={row.id}
+            className={`${DASHBOARD_SURFACE_CLASS} flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between`}
+          >
+            <div className="min-w-0 space-y-1">
+              <button
+                type="button"
+                onClick={() => onOpenQuote(quote.id)}
+                className="text-left text-sm font-semibold text-[var(--dash-text-strong)] hover:underline"
+              >
+                Q-{String(quote.quoteNumber).padStart(4, '0')} · {quote.title}
+              </button>
+              <p className="text-xs text-[var(--dash-text-muted)]">
+                {quote.accountsClient?.name ?? 'No account'} · Requested by {row.requestedBy.name}
+                {row.effectiveDiscountPct != null
+                  ? ` · Effective discount ${row.effectiveDiscountPct}%`
+                  : ''}
+              </p>
+              <QuoteStatusBadge status={quote.status} />
+              <label className="mt-2 block text-xs font-medium text-[var(--dash-text-muted)]">
+                Reason (required)
+                <textarea
+                  value={reason}
+                  onChange={(e) =>
+                    setReasonDraft((prev) => ({ ...prev, [row.id]: e.target.value }))
+                  }
+                  rows={2}
+                  className="mt-1 w-full rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-2 text-sm text-[var(--dash-text-strong)]"
+                  placeholder="Why approve or reject…"
+                />
+              </label>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={busy || !reason.trim()}
+                onClick={() =>
+                  void decisionMutation
+                    .mutateAsync({
+                      quoteId: quote.id,
+                      decision: 'approved',
+                      reason: reason.trim(),
+                    })
+                    .catch((e) => toast.error(e instanceof Error ? e.message : 'Approve failed.'))
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+              >
+                <CheckCircle2 className="h-4 w-4" /> Approve
+              </button>
+              <button
+                type="button"
+                disabled={busy || !reason.trim()}
+                onClick={() =>
+                  void decisionMutation
+                    .mutateAsync({
+                      quoteId: quote.id,
+                      decision: 'rejected',
+                      reason: reason.trim(),
+                    })
+                    .catch((e) => toast.error(e instanceof Error ? e.message : 'Reject failed.'))
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--dash-border)] px-3 py-2 text-sm font-medium text-[var(--dash-text-strong)] hover:bg-[var(--dash-hover)] disabled:opacity-60"
+              >
+                <X className="h-4 w-4" /> Reject
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Main list table                                                     */
+/* ------------------------------------------------------------------ */
+
+function QuotesTable({
+  quotes,
+  isColumnVisible,
+  onOpen,
+}: {
+  quotes: QuoteListItem[];
+  isColumnVisible: (id: QuoteColumnId) => boolean;
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <DashboardTableCard>
+      <DashboardTableViewport minWidth={780}>
+        <DashboardTable className="dashboard-table-clean">
+          <thead>
+            <tr>
+              {isColumnVisible('quote') ? <th className="col-primary">Quote</th> : null}
+              {isColumnVisible('account') ? <th>Account</th> : null}
+              {isColumnVisible('status') ? <th>Status</th> : null}
+              {isColumnVisible('total') ? <th className="col-right">Total</th> : null}
+              {isColumnVisible('validUntil') ? <th>Valid until</th> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {quotes.map((quote) => {
+              const quoteLabel = `Q-${String(quote.quoteNumber).padStart(4, '0')}`;
+              const quoteTitle = `${quote.title} · ${quoteLabel}`;
+              return (
+              <tr
+                key={quote.id}
+                onClick={() => onOpen(quote.id)}
+                className="cursor-pointer transition-colors hover:bg-[var(--dash-hover)]"
+              >
+                {isColumnVisible('quote') ? (
+                  <td className="col-primary col-truncate-lg font-medium text-[var(--dash-text-strong)]" title={quoteTitle}>
+                    {quote.title} · {quoteLabel}
+                  </td>
+                ) : null}
+                {isColumnVisible('account') ? (
+                  <td className="col-muted col-truncate" title={quote.accountsClient?.name ?? undefined}>
+                    {quote.accountsClient?.name ?? '—'}
+                  </td>
+                ) : null}
+                {isColumnVisible('status') ? (
+                  <td>
+                    <div className="inline-flex flex-nowrap whitespace-nowrap">
+                      <QuoteStatusBadge status={quote.status} />
+                    </div>
+                  </td>
+                ) : null}
+                {isColumnVisible('total') ? (
+                  <td className="col-right tabular-nums text-[var(--dash-text-strong)]">
+                    {formatSalesCurrency(quote.totals.total, quote.currency)}
+                  </td>
+                ) : null}
+                {isColumnVisible('validUntil') ? (
+                  <td className="col-muted">{formatShortDate(quote.validUntil)}</td>
+                ) : null}
+              </tr>
+              );
+            })}
+          </tbody>
+        </DashboardTable>
+      </DashboardTableViewport>
+    </DashboardTableCard>
   );
 }
 
@@ -424,7 +727,7 @@ function QuoteDetailDrawer({
         body: JSON.stringify({ status }),
       }),
     {
-      invalidateKeys: [salesKeys.all, salesKeys.quote(quoteId)],
+      invalidateKeys: [salesKeys.all, salesKeys.quote(quoteId), salesKeys.quoteApprovals()],
       onSuccess: (_d, status) => toast.success(`Quote marked ${status}.`),
     },
   );
@@ -444,10 +747,16 @@ function QuoteDetailDrawer({
       try {
         await statusMutation.mutateAsync(status);
       } catch (e) {
+        if (e instanceof ApiError && e.status === 409) {
+          toast.info(e.message || 'Quote submitted for approval.');
+          // Refetch so drawer shows pending_approval
+          void detailQuery.refetch();
+          return;
+        }
         toast.error(e instanceof Error ? e.message : 'Update failed.');
       }
     },
-    [statusMutation],
+    [statusMutation, detailQuery],
   );
 
   async function handleConvert() {
@@ -477,14 +786,15 @@ function QuoteDetailDrawer({
         quote ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              {quote.status === 'draft' ? (
+              {quote.status === 'draft' || quote.status === 'pending_approval' ? (
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void changeStatus('sent')}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--stride-coral)] px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
                 >
-                  <Send className="h-4 w-4" /> Send
+                  <Send className="h-4 w-4" />
+                  {quote.status === 'pending_approval' ? 'Send (if approved)' : 'Send'}
                 </button>
               ) : null}
               {quote.status === 'sent' ? (
@@ -618,26 +928,27 @@ function QuoteDetailDrawer({
                     </td>
                   </tr>
                 ) : (
-                  quote.lineItems.map((li) => (
+                  quote.lineItems.map((li) => {
+                    const recurringHint = li.isRecurring
+                      ? `Recurring · ${li.termMonths ?? 1} mo${li.discountPct ? ` · -${li.discountPct}%` : ''}`
+                      : li.discountPct
+                        ? `-${li.discountPct}%`
+                        : null;
+                    const descTitle = recurringHint
+                      ? `${li.description} · ${recurringHint}`
+                      : li.description;
+                    return (
                     <tr key={li.id} className="border-t border-[var(--dash-border)]">
-                      <td className="px-3 py-2">
-                        <div className="text-[var(--dash-text-strong)]">{li.description}</div>
-                        {li.isRecurring ? (
-                          <div className="text-xs text-[var(--dash-text-muted)]">
-                            Recurring · {li.termMonths ?? 1} mo
-                            {li.discountPct ? ` · -${li.discountPct}%` : ''}
-                          </div>
-                        ) : li.discountPct ? (
-                          <div className="text-xs text-[var(--dash-text-muted)]">-{li.discountPct}%</div>
-                        ) : null}
+                      <td className="max-w-[16rem] truncate whitespace-nowrap px-3 py-2 text-[var(--dash-text-strong)]" title={descTitle}>
+                        {li.description}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-[var(--dash-text-muted)]">
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-[var(--dash-text-muted)]">
                         {li.quantity}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-[var(--dash-text-muted)]">
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-[var(--dash-text-muted)]">
                         {formatSalesCurrency(li.unitPrice, quote.currency)}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-[var(--dash-text-strong)]">
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-[var(--dash-text-strong)]">
                         {formatSalesCurrency(
                           extendedAmount({
                             quantity: li.quantity,
@@ -650,7 +961,8 @@ function QuoteDetailDrawer({
                         )}
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -781,7 +1093,7 @@ function QuoteBuilderDrawer({
     salesKeys.deals({ scope: 'quote-builder' }),
     '/api/sales/deals',
   );
-  const productsQuery = useSalesResource<{ products: ProductOpt[] }>(
+  const productsQuery = useSalesResource<{ products: ProductOpt[]; canViewMargin?: boolean }>(
     salesKeys.products({ scope: 'quote-builder' }),
     '/api/sales/products?active=true',
   );
@@ -794,6 +1106,8 @@ function QuoteBuilderDrawer({
   const clients = clientsQuery.data?.clients ?? [];
   const deals = dealsQuery.data?.deals ?? [];
   const products = useMemo(() => productsQuery.data?.products ?? [], [productsQuery.data]);
+  const canViewMargin =
+    productsQuery.data?.canViewMargin === true || detailQuery.data?.quote?.canViewMargin === true;
 
   const loadedQuote = mode === 'edit' ? detailQuery.data?.quote ?? null : null;
 
@@ -843,6 +1157,8 @@ function QuoteBuilderDrawer({
         quantity: 1,
         unitPrice: 0,
         discountPct: 0,
+        priceOverridden: false,
+        listPrice: null,
         isRecurring: false,
         termMonths: null,
         sortOrder: prev.length,
@@ -858,18 +1174,80 @@ function QuoteBuilderDrawer({
     setLines((prev) => prev.filter((l) => l.tempId !== tempId));
   }
 
-  function selectProduct(tempId: string, productId: string) {
+  async function resolveListPrice(productId: string, quantity: number) {
+    try {
+      const res = await apiFetch<{
+        resolved: { unitPrice: number; minQty: number } | null;
+      }>(
+        `/api/sales/price-books?resolveProductId=${encodeURIComponent(productId)}&qty=${quantity}`,
+      );
+      return res.resolved?.unitPrice ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function selectProduct(tempId: string, productId: string) {
     const product = products.find((p) => p.id === productId);
     if (!product) {
-      updateLine(tempId, { productId: null });
+      updateLine(tempId, { productId: null, listPrice: null, priceOverridden: false });
+      return;
+    }
+    const line = lines.find((l) => l.tempId === tempId);
+    const qty = line?.quantity ?? 1;
+    const listPrice = (await resolveListPrice(product.id, qty)) ?? product.unitPrice;
+    updateLine(tempId, {
+      productId: product.id,
+      product: { id: product.id, name: product.name, sku: product.sku },
+      description: product.name,
+      unitPrice: listPrice,
+      listPrice,
+      priceOverridden: false,
+      costPrice: product.costPrice ?? null,
+      margin:
+        product.costPrice != null
+          ? Math.round((listPrice - product.costPrice) * 100) / 100
+          : null,
+      isRecurring: product.isRecurring,
+      termMonths: product.isRecurring ? product.defaultTermMonths : null,
+    });
+  }
+
+  async function onQuantityChange(tempId: string, quantity: number) {
+    const line = lines.find((l) => l.tempId === tempId);
+    if (!line) return;
+    if (!line.productId || line.priceOverridden) {
+      updateLine(tempId, { quantity });
+      return;
+    }
+    const listPrice = await resolveListPrice(line.productId, quantity);
+    if (listPrice == null) {
+      updateLine(tempId, { quantity });
       return;
     }
     updateLine(tempId, {
-      productId: product.id,
-      description: product.name,
-      unitPrice: product.unitPrice,
-      isRecurring: product.isRecurring,
-      termMonths: product.isRecurring ? product.defaultTermMonths : null,
+      quantity,
+      unitPrice: listPrice,
+      listPrice,
+      margin:
+        line.costPrice != null
+          ? Math.round((listPrice - line.costPrice) * 100) / 100
+          : line.margin ?? null,
+    });
+  }
+
+  function onUnitPriceChange(tempId: string, unitPrice: number) {
+    const line = lines.find((l) => l.tempId === tempId);
+    const listPrice = line?.listPrice;
+    const overridden =
+      listPrice != null ? Math.abs(unitPrice - listPrice) > 0.005 : true;
+    updateLine(tempId, {
+      unitPrice,
+      priceOverridden: overridden,
+      margin:
+        line?.costPrice != null
+          ? Math.round((unitPrice - line.costPrice) * 100) / 100
+          : null,
     });
   }
 
@@ -885,6 +1263,7 @@ function QuoteBuilderDrawer({
       quantity: l.quantity,
       unitPrice: l.unitPrice,
       discountPct: l.discountPct,
+      priceOverridden: l.priceOverridden === true,
       isRecurring: l.isRecurring,
       termMonths: l.isRecurring ? l.termMonths : null,
     };
@@ -1124,7 +1503,7 @@ function QuoteBuilderDrawer({
                       <div className="flex-1 space-y-2">
                         <StrideSelect
                           value={line.productId ?? ''}
-                          onChange={(v) => selectProduct(line.tempId, v)}
+                          onChange={(v) => void selectProduct(line.tempId, v)}
                           ariaLabel="Product"
                           className="w-full"
                           placeholder="Custom line (no product)"
@@ -1158,13 +1537,13 @@ function QuoteBuilderDrawer({
                         label="Qty"
                         value={line.quantity}
                         min={0}
-                        onChange={(n) => updateLine(line.tempId, { quantity: n })}
+                        onChange={(n) => void onQuantityChange(line.tempId, n)}
                       />
                       <NumberField
                         label="Unit price"
                         value={line.unitPrice}
                         min={0}
-                        onChange={(n) => updateLine(line.tempId, { unitPrice: n })}
+                        onChange={(n) => onUnitPriceChange(line.tempId, n)}
                       />
                       <NumberField
                         label="Disc %"
@@ -1182,6 +1561,21 @@ function QuoteBuilderDrawer({
                         </span>
                       </div>
                     </div>
+
+                    {line.priceOverridden || (canViewMargin && line.margin != null) ? (
+                      <div className="flex flex-wrap gap-3 text-[11px] text-[var(--dash-text-muted)]">
+                        {line.priceOverridden ? (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                            Price overridden
+                          </span>
+                        ) : null}
+                        {canViewMargin && line.margin != null ? (
+                          <span>
+                            Margin: {formatSalesCurrency(line.margin, currency)}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
 
                     <div className="flex flex-wrap items-center gap-3">
                       <label className="flex items-center gap-2 text-xs text-[var(--dash-text-strong)]">

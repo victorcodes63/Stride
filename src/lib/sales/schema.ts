@@ -32,8 +32,60 @@ export type SalesLeadRating = (typeof SALES_LEAD_RATINGS)[number];
 export const SALES_TASK_STATUSES = ['open', 'completed', 'cancelled'] as const;
 export type SalesTaskStatus = (typeof SALES_TASK_STATUSES)[number];
 
-export const SALES_QUOTE_STATUSES = ['draft', 'sent', 'accepted', 'rejected', 'expired'] as const;
+export const SALES_QUOTE_STATUSES = [
+  'draft',
+  'pending_approval',
+  'sent',
+  'accepted',
+  'rejected',
+  'expired',
+] as const;
 export type SalesQuoteStatus = (typeof SALES_QUOTE_STATUSES)[number];
+
+export const SALES_QUOTE_APPROVAL_STATUSES = ['pending', 'approved', 'rejected'] as const;
+export type SalesQuoteApprovalStatus = (typeof SALES_QUOTE_APPROVAL_STATUSES)[number];
+
+export const SALES_ACCOUNT_TIERS = ['strategic', 'key', 'standard', 'dormant'] as const;
+export type SalesAccountTier = (typeof SALES_ACCOUNT_TIERS)[number];
+
+export const SALES_DEAL_CONTACT_ROLES = [
+  'champion',
+  'economic_buyer',
+  'technical',
+  'user',
+  'other',
+] as const;
+export type SalesDealContactRoleType = (typeof SALES_DEAL_CONTACT_ROLES)[number];
+
+export const SALES_ATTACHMENT_ENTITY_TYPES = ['deal', 'account'] as const;
+export type SalesAttachmentEntityType = (typeof SALES_ATTACHMENT_ENTITY_TYPES)[number];
+
+export function salesDealContactRoleLabel(role: string): string {
+  switch (role) {
+    case 'champion':
+      return 'Champion';
+    case 'economic_buyer':
+      return 'Economic buyer';
+    case 'technical':
+      return 'Technical';
+    case 'user':
+      return 'User';
+    case 'other':
+    default:
+      return 'Other';
+  }
+}
+
+const ACCOUNT_TIER_LABELS: Record<SalesAccountTier, string> = {
+  strategic: 'Strategic',
+  key: 'Key',
+  standard: 'Standard',
+  dormant: 'Dormant',
+};
+
+export function accountTierLabel(tier: string): string {
+  return ACCOUNT_TIER_LABELS[tier as SalesAccountTier] ?? tier;
+}
 
 /** Terminal (closed) pipeline stages. */
 export const CLOSED_STAGES: SalesDealStage[] = ['won', 'lost'];

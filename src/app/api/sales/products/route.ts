@@ -1,44 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Prisma } from '@prisma/client';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
-import { withTenant } from '@/lib/tenant-api';
+import { canViewSalesMargin } from '@/lib/sales/access';
+import { afterProductWrite, mapProductToJson } from '@/lib/sales/product-api';
+import { withTenant, withTenantAudit } from '@/lib/tenant-api';
 
 export const dynamic = 'force-dynamic';
-
-type ProductRow = {
-  id: string;
-  name: string;
-  sku: string | null;
-  category: string | null;
-  description: string | null;
-  unitPrice: Prisma.Decimal;
-  currency: string;
-  isRecurring: boolean;
-  defaultTermMonths: number | null;
-  active: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  _count?: { dealLineItems: number; quoteLineItems: number };
-};
-
-function mapProduct(p: ProductRow) {
-  return {
-    id: p.id,
-    name: p.name,
-    sku: p.sku,
-    category: p.category,
-    description: p.description,
-    unitPrice: Number(p.unitPrice),
-    currency: p.currency,
-    isRecurring: p.isRecurring,
-    defaultTermMonths: p.defaultTermMonths,
-    active: p.active,
-    usageCount: p._count ? p._count.dealLineItems + p._count.quoteLineItems : undefined,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-  };
-}
 
 export async function GET(request: NextRequest) {
   return withTenant(request, async (ctx) => {
@@ -51,6 +18,7 @@ export async function GET(request: NextRequest) {
     const activeParam = params.get('active')?.trim().toLowerCase();
     const active =
       activeParam === 'true' ? true : activeParam === 'false' ? false : undefined;
+    const includeCost = await canViewSalesMargin(ctx.staff);
 
     try {
       const products = await ctx.run((tx) =>
@@ -78,7 +46,10 @@ export async function GET(request: NextRequest) {
         }),
       );
 
-      return NextResponse.json({ products: products.map(mapProduct) });
+      return NextResponse.json({
+        products: products.map((p) => mapProductToJson(p, { includeCost })),
+        canViewMargin: includeCost,
+      });
     } catch (error) {
       await reportApiError({
         route: 'GET /api/sales/products',
@@ -112,6 +83,15 @@ export async function POST(request: NextRequest) {
     const category = typeof body.category === 'string' ? body.category.trim() || null : null;
     const description =
       typeof body.description === 'string' ? body.description.trim() || null : null;
+    const unit = typeof body.unit === 'string' ? body.unit.trim() || null : null;
+    let costPrice: number | null = null;
+    if ('costPrice' in body && body.costPrice != null && body.costPrice !== '') {
+      const c = Number(body.costPrice);
+      if (!Number.isFinite(c) || c < 0) {
+        return NextResponse.json({ error: 'costPrice must be a non-negative number.' }, { status: 400 });
+      }
+      costPrice = c;
+    }
     const currency =
       typeof body.currency === 'string' && body.currency.trim() ? body.currency.trim() : 'KES';
     const isRecurring = body.isRecurring === true;
@@ -121,27 +101,44 @@ export async function POST(request: NextRequest) {
         ? Math.round(rawTerm)
         : null;
     const active = body.active === undefined ? true : body.active === true;
+    const includeCost = await canViewSalesMargin(ctx.staff);
 
     try {
-      const product = await ctx.run((tx) =>
-        tx.salesProduct.create({
-          data: {
-            organizationId: ctx.organizationId,
-            name,
-            sku,
-            category,
-            description,
-            unitPrice,
-            currency,
-            isRecurring,
-            defaultTermMonths: isRecurring ? defaultTermMonths : null,
-            active,
-          },
-          include: { _count: { select: { dealLineItems: true, quoteLineItems: true } } },
-        }),
+      const product = await withTenantAudit(
+        ctx,
+        {
+          action: 'sales.product.create',
+          entityType: 'SalesProduct',
+          route: '/api/sales/products',
+          entityIdFromResult: (r) => r.id,
+        },
+        async (tx) => {
+          const created = await tx.salesProduct.create({
+            data: {
+              organizationId: ctx.organizationId,
+              name,
+              sku,
+              category,
+              description,
+              unitPrice,
+              costPrice,
+              unit,
+              currency,
+              isRecurring,
+              defaultTermMonths: isRecurring ? defaultTermMonths : null,
+              active,
+            },
+            include: { _count: { select: { dealLineItems: true, quoteLineItems: true } } },
+          });
+          await afterProductWrite(tx, ctx.organizationId, created);
+          return created;
+        },
       );
 
-      return NextResponse.json({ product: mapProduct(product) }, { status: 201 });
+      return NextResponse.json(
+        { product: mapProductToJson(product, { includeCost }) },
+        { status: 201 },
+      );
     } catch (error) {
       await reportApiError({
         route: 'POST /api/sales/products',

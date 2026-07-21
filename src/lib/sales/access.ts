@@ -1,7 +1,46 @@
 import type { Prisma, SalesDeal } from '@prisma/client';
 import type { StaffUser } from '@/lib/staff-api-auth';
-import { canViewAllSalesDeals } from '@/lib/staff-permissions';
+import { can } from '@/lib/rbac/can';
+import {
+  canManageSalesAdmin,
+  canManageSalesTargets,
+  canViewAllSalesDeals,
+} from '@/lib/staff-permissions';
 import { resolveEmployeeIdForStaff } from '@/lib/sales/api-helpers';
+
+/** Settings routes: permission catalog `sales.admin` or manager/director staff type. */
+export async function hasSalesAdminAccess(staff: StaffUser): Promise<boolean> {
+  if (await can(staff, 'sales.admin')) return true;
+  return canManageSalesAdmin(staff.role, staff.staffUserType);
+}
+
+/**
+ * CRM manage / margin visibility (pairs with `sales.manage`).
+ * Accept (B1): plain sales_rep never sees cost/margin even if catalog grants staff.
+ */
+export async function hasSalesManageAccess(staff: StaffUser): Promise<boolean> {
+  if (staff.role === 'admin') return true;
+  if (staff.staffUserType === 'sales_rep') return false;
+  if (await can(staff, 'sales.manage')) return true;
+  return canManageSalesAdmin(staff.role, staff.staffUserType);
+}
+
+/** Cost & margin columns — alias of manage access for B1 UI/API gating. */
+export async function canViewSalesMargin(staff: StaffUser): Promise<boolean> {
+  return hasSalesManageAccess(staff);
+}
+
+/** Approver-style commission / target management (pairs with `sales.manage_commissions`). */
+export async function hasSalesCommissionManageAccess(staff: StaffUser): Promise<boolean> {
+  if (await can(staff, 'sales.manage_commissions')) return true;
+  return canManageSalesTargets(staff.role, staff.staffUserType);
+}
+
+/** Quote approval (pairs with `sales.approve_quotes`); admin / sales managers until B ships. */
+export async function hasSalesQuoteApproveAccess(staff: StaffUser): Promise<boolean> {
+  if (await can(staff, 'sales.approve_quotes')) return true;
+  return canManageSalesAdmin(staff.role, staff.staffUserType);
+}
 
 export class SalesAccessError extends Error {
   code: 'FORBIDDEN' | 'NOT_FOUND';

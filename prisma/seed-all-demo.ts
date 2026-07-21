@@ -16,6 +16,9 @@
  * 6. seed-staff-leave — internal staff leave types + per-user balances (dashboard staff leave).
  * 7. seed-demo-job-descriptions — published JDs + scorecards matched to demo staff titles.
  * 8. seed-performance-cycle — active review cycle (binds to JDs when titles match).
+ * 9. seed-sales-demo — sales deals/targets/contacts for Savannah Freight.
+ * 10. seed/sales-suite-b — Price books (B1) + approval policies (B2).
+ * 11. seed-ess-demo — ESS portal sample data.
  *
  * Run: npm run db:seed-all-demo
  * After clean reset: npm run db:reset-demo
@@ -57,6 +60,7 @@ async function main() {
   run('npx tsx scripts/seed-demo-job-descriptions.ts');
   run('npx tsx scripts/seed-performance-cycle.ts');
   run('npx tsx prisma/seed-sales-demo.ts');
+  run('npx tsx prisma/seed/sales-suite-b.ts');
   run('npx tsx prisma/seed-ess-demo.ts');
 
   console.log('\nAll demo module seeds finished.\n');

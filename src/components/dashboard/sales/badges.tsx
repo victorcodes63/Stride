@@ -54,6 +54,8 @@ export function LeadRatingBadge({ rating }: { rating: SalesLeadRating | string }
 
 const QUOTE_TONE: Record<string, string> = {
   draft: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:ring-slate-500/20',
+  pending_approval:
+    'bg-violet-100 text-violet-800 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/20',
   sent: 'bg-sky-100 text-sky-700 ring-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:ring-sky-500/20',
   accepted:
     'bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/20',
@@ -65,7 +67,8 @@ const QUOTE_TONE: Record<string, string> = {
 
 export function QuoteStatusBadge({ status }: { status: string }) {
   const tone = QUOTE_TONE[status] ?? QUOTE_TONE.draft;
-  return <span className={`${BADGE_BASE} ${tone} capitalize`}>{status}</span>;
+  const label = status === 'pending_approval' ? 'Pending approval' : status.replace(/_/g, ' ');
+  return <span className={`${BADGE_BASE} ${tone} capitalize`}>{label}</span>;
 }
 
 /** Shows how long a deal has been idle; amber when warning, rose when rotting. */

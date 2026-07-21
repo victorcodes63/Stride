@@ -28,6 +28,8 @@ export const salesKeys = {
     [...salesKeys.all, 'leads', params ?? {}] as const,
   contacts: (params?: Record<string, string | number | undefined>) =>
     [...salesKeys.all, 'contacts', params ?? {}] as const,
+  accounts: (params?: Record<string, string | number | undefined>) =>
+    [...salesKeys.all, 'accounts', params ?? {}] as const,
   account: (id: string) => [...salesKeys.all, 'account', id] as const,
   products: (params?: Record<string, string | number | undefined>) =>
     [...salesKeys.all, 'products', params ?? {}] as const,
@@ -43,6 +45,10 @@ export const salesKeys = {
     [...salesKeys.all, 'forecast', params ?? {}] as const,
   commissions: () => [...salesKeys.all, 'commissions'] as const,
   reps: () => [...salesKeys.all, 'reps'] as const,
+  pipelines: () => [...salesKeys.all, 'pipelines'] as const,
+  assignmentRules: () => [...salesKeys.all, 'assignment-rules'] as const,
+  priceBooks: () => [...salesKeys.all, 'price-books'] as const,
+  quoteApprovals: () => [...salesKeys.all, 'quote-approvals'] as const,
 };
 
 /** Keys that reflect aggregate metrics — invalidate after any deal write. */

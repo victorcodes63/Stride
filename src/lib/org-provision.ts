@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getLocalePack } from "@/lib/country-config";
 import { setOrgContext } from "@/lib/org-context";
 import { nameFromEmailLocalPart } from "@/lib/personal-display-name";
+import { ensureDefaultPriceBook } from "@/lib/sales/default-price-book";
 
 export type StaffAuthSetup =
   | "credentials"
@@ -258,6 +259,9 @@ export async function provisionOrganization(
     });
 
     await ensureProvisionAuthBootstrap(tx, org.id, adminEmail, staffAuthSetup);
+
+    // B1: every new org gets Standard default price book.
+    await ensureDefaultPriceBook(tx, org.id);
 
     return { org, user };
   });

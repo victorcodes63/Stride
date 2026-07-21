@@ -281,6 +281,8 @@ export interface UserSummary {
   canViewAllSalesDeals: boolean;
   /** Approve quotas and push commissions to payroll. */
   canManageSalesTargets: boolean;
+  /** B1 — see product costPrice and line margin (not plain sales_rep). */
+  canViewSalesMargin: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
