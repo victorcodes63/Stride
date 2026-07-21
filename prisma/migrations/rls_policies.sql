@@ -3420,6 +3420,74 @@ CREATE POLICY "SalesQuoteLineItem_insert_bootstrap" ON "SalesQuoteLineItem"
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "SalesPriceBook" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesPriceBook" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesPriceBook_tenant_rw" ON "SalesPriceBook";
+CREATE POLICY "SalesPriceBook_tenant_rw" ON "SalesPriceBook"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesPriceBook_insert_bootstrap" ON "SalesPriceBook";
+CREATE POLICY "SalesPriceBook_insert_bootstrap" ON "SalesPriceBook"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesPriceBookEntry" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesPriceBookEntry" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesPriceBookEntry_tenant_rw" ON "SalesPriceBookEntry";
+CREATE POLICY "SalesPriceBookEntry_tenant_rw" ON "SalesPriceBookEntry"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesPriceBookEntry_insert_bootstrap" ON "SalesPriceBookEntry";
+CREATE POLICY "SalesPriceBookEntry_insert_bootstrap" ON "SalesPriceBookEntry"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesApprovalPolicy" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesApprovalPolicy" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesApprovalPolicy_tenant_rw" ON "SalesApprovalPolicy";
+CREATE POLICY "SalesApprovalPolicy_tenant_rw" ON "SalesApprovalPolicy"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesApprovalPolicy_insert_bootstrap" ON "SalesApprovalPolicy";
+CREATE POLICY "SalesApprovalPolicy_insert_bootstrap" ON "SalesApprovalPolicy"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "SalesQuoteApproval" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SalesQuoteApproval" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "SalesQuoteApproval_tenant_rw" ON "SalesQuoteApproval";
+CREATE POLICY "SalesQuoteApproval_tenant_rw" ON "SalesQuoteApproval"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "SalesQuoteApproval_insert_bootstrap" ON "SalesQuoteApproval";
+CREATE POLICY "SalesQuoteApproval_insert_bootstrap" ON "SalesQuoteApproval"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "PerformanceCycle" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "PerformanceCycle" FORCE ROW LEVEL SECURITY;
 
