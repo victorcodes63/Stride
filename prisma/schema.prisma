@@ -3070,6 +3070,8 @@ model User {
   salesActualsRecorded              SalesActual[]                     @relation("SalesActualRecordedBy")
   salesDealStageChanges             SalesDealStageHistory[]           @relation("SalesDealStageChangedBy")
   salesQuotesCreated                SalesQuote[]                      @relation("SalesQuoteCreatedBy")
+  salesQuoteApprovalsRequested      SalesQuoteApproval[]              @relation("SalesQuoteApprovalRequestedBy")
+  salesQuoteApprovalsActioned       SalesQuoteApproval[]              @relation("SalesQuoteApprovalApprover")
   salesTasksCreated                 SalesTask[]                       @relation("SalesTaskCreatedBy")
   legalObligationsOwned             LegalObligation[]                 @relation("LegalObligationOwner")
   legalObligationEvents             LegalObligationEvent[]            @relation("LegalObligationEventActor")
@@ -6293,17 +6295,19 @@ model SalesDealLineItem {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  dealId      String
-  productId   String?
-  description String
-  quantity    Decimal  @default(1) @db.Decimal(12, 2)
-  unitPrice   Decimal  @db.Decimal(14, 2)
-  discountPct Decimal  @default(0) @db.Decimal(5, 2)
-  isRecurring Boolean  @default(false)
-  termMonths  Int?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  dealId           String
+  productId        String?
+  description      String
+  quantity         Decimal  @default(1) @db.Decimal(12, 2)
+  unitPrice        Decimal  @db.Decimal(14, 2)
+  discountPct      Decimal  @default(0) @db.Decimal(5, 2)
+  /// True when the rep manually overrode the price-book resolved unit price (B1).
+  priceOverridden  Boolean  @default(false)
+  isRecurring      Boolean  @default(false)
+  termMonths       Int?
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   deal    SalesDeal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
   product SalesProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
@@ -6480,10 +6484,17 @@ enum SalesTaskStatus {
 
 enum SalesQuoteStatus {
   draft
+  pending_approval
   sent
   accepted
   rejected
   expired
+}
+
+enum SalesQuoteApprovalStatus {
+  pending
+  approved
+  rejected
 }
 
 /// Reusable price-book product/service. Line items may reference a product for consistent pricing.
@@ -6496,6 +6507,10 @@ model SalesProduct {
   category          String?
   description       String?  @db.Text
   unitPrice         Decimal  @db.Decimal(14, 2)
+  /// Catalog cost for margin (price − cost); visible only with sales.manage (B1).
+  costPrice         Decimal? @db.Decimal(14, 2)
+  /// Unit of measure label (e.g. each, kg, hour).
+  unit              String?
   currency          String   @default("KES")
   isRecurring       Boolean  @default(false)
   defaultTermMonths Int?
@@ -6503,11 +6518,48 @@ model SalesProduct {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  dealLineItems  SalesDealLineItem[]
-  quoteLineItems SalesQuoteLineItem[]
+  dealLineItems    SalesDealLineItem[]
+  quoteLineItems   SalesQuoteLineItem[]
+  priceBookEntries SalesPriceBookEntry[]
 
   @@index([organizationId, active])
   @@index([organizationId, name])
+}
+
+/// Org price book (B1). "Standard" is the default, seeded from product.unitPrice.
+model SalesPriceBook {
+  id             String    @id @default(cuid())
+  organizationId String    @db.Uuid
+  name           String
+  isDefault      Boolean   @default(false)
+  currency       String    @default("KES")
+  archivedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  entries SalesPriceBookEntry[]
+
+  @@index([organizationId])
+  @@index([organizationId, isDefault])
+}
+
+model SalesPriceBookEntry {
+  id             String  @id @default(cuid())
+  organizationId String  @db.Uuid
+  priceBookId    String
+  productId      String
+  unitPrice      Decimal @db.Decimal(14, 2)
+  /// Volume tier: entry applies from this quantity upward (highest minQty ≤ qty wins).
+  minQty         Int     @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  priceBook SalesPriceBook @relation(fields: [priceBookId], references: [id], onDelete: Cascade)
+  product   SalesProduct   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([priceBookId, productId, minQty])
+  @@index([organizationId, productId])
+  @@index([organizationId, priceBookId])
 }
 
 /// Task / reminder attached to a deal, lead, or contact. Powers follow-up workflows and rotting alerts.
@@ -6571,6 +6623,7 @@ model SalesQuote {
   accountsInvoice AccountsInvoice?     @relation(fields: [accountsInvoiceId], references: [id], onDelete: SetNull)
   createdBy       User?                @relation("SalesQuoteCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   lineItems       SalesQuoteLineItem[]
+  approvals       SalesQuoteApproval[]
 
   @@unique([organizationId, quoteNumber])
   @@index([organizationId, status])
@@ -6578,21 +6631,60 @@ model SalesQuote {
   @@index([organizationId, accountsClientId])
 }
 
+/// Org discount-threshold ladder for quote send (B2). One row per org; config is JSON tiers.
+model SalesApprovalPolicy {
+  id             String   @id @default(cuid())
+  organizationId String   @db.Uuid
+  /// [{ maxDiscountPct: 5, approver: "none" }, { maxDiscountPct: 15, approver: "manager" }, …]
+  config         Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId])
+  @@index([organizationId])
+}
+
+/// Quote approval request when send exceeds SalesApprovalPolicy threshold (B2).
+model SalesQuoteApproval {
+  id             String                   @id @default(cuid())
+  organizationId String                   @db.Uuid
+  quoteId        String
+  requestedById  String
+  /// Set when approved/rejected.
+  approverId     String?
+  status         SalesQuoteApprovalStatus @default(pending)
+  reason         String?                  @db.Text
+  /// Effective discount % that triggered the request (for audit / display).
+  effectiveDiscountPct Decimal?           @db.Decimal(5, 2)
+  actionedAt     DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  quote       SalesQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  requestedBy User       @relation("SalesQuoteApprovalRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  approver    User?      @relation("SalesQuoteApprovalApprover", fields: [approverId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, quoteId])
+  @@index([organizationId, status])
+}
+
 model SalesQuoteLineItem {
   id             String @id @default(cuid())
   organizationId String @db.Uuid
 
-  quoteId     String
-  productId   String?
-  description String
-  quantity    Decimal  @default(1) @db.Decimal(12, 2)
-  unitPrice   Decimal  @db.Decimal(14, 2)
-  discountPct Decimal  @default(0) @db.Decimal(5, 2)
-  isRecurring Boolean  @default(false)
-  termMonths  Int?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  quoteId          String
+  productId        String?
+  description      String
+  quantity         Decimal  @default(1) @db.Decimal(12, 2)
+  unitPrice        Decimal  @db.Decimal(14, 2)
+  discountPct      Decimal  @default(0) @db.Decimal(5, 2)
+  /// True when the rep manually overrode the price-book resolved unit price (B1).
+  priceOverridden  Boolean  @default(false)
+  isRecurring      Boolean  @default(false)
+  termMonths       Int?
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   quote   SalesQuote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   product SalesProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)

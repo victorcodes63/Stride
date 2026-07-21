@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
+import { canViewSalesMargin } from '@/lib/sales/access';
+import { resolveLineUnitPrice } from '@/lib/sales/default-price-book';
 import { withTenant } from '@/lib/tenant-api';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +22,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
+    const includeCost = await canViewSalesMargin(ctx.staff);
+
     try {
       const result = await ctx.run(async (tx) => {
         const quote = await tx.salesQuote.findFirst({
@@ -28,8 +32,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         });
         if (!quote) return { status: 'not_found' as const };
 
-        // A product selection prefills description + unit price (both editable).
-        let product = null;
+        let product: {
+          id: string;
+          name: string;
+          unitPrice: unknown;
+          costPrice: unknown;
+          isRecurring: boolean;
+          defaultTermMonths: number | null;
+          sku: string | null;
+        } | null = null;
         const productId =
           typeof body.productId === 'string' && body.productId.trim() ? body.productId.trim() : null;
         if (productId) {
@@ -45,13 +56,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         const qty = Number(body.quantity);
         const quantity = Number.isFinite(qty) && qty > 0 ? qty : 1;
-        const rawUnit = Number(body.unitPrice);
-        const unitPrice =
-          Number.isFinite(rawUnit) && rawUnit >= 0
-            ? rawUnit
-            : product
-              ? Number(product.unitPrice)
-              : 0;
+        const rawUnit = body.unitPrice != null ? Number(body.unitPrice) : null;
+        const explicitUnit =
+          rawUnit != null && Number.isFinite(rawUnit) && rawUnit >= 0 ? rawUnit : null;
+        const priceBookId =
+          typeof body.priceBookId === 'string' ? body.priceBookId.trim() || null : null;
+
+        const priced = await resolveLineUnitPrice(tx, ctx.organizationId, {
+          productId: product?.id ?? null,
+          quantity,
+          priceBookId,
+          unitPrice: explicitUnit,
+          priceOverridden: body.priceOverridden === true,
+          catalogUnitPrice: product ? Number(product.unitPrice) : null,
+        });
+
         const rawDisc = Number(body.discountPct);
         const discountPct = Number.isFinite(rawDisc) && rawDisc >= 0 ? Math.min(100, rawDisc) : 0;
         const isRecurring =
@@ -78,17 +97,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             productId: product?.id ?? null,
             description,
             quantity,
-            unitPrice,
+            unitPrice: priced.unitPrice,
+            priceOverridden: priced.priceOverridden,
             discountPct,
             isRecurring,
             termMonths,
             sortOrder,
           },
-          include: { product: { select: { id: true, name: true, sku: true } } },
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+                ...(includeCost ? { costPrice: true } : {}),
+              },
+            },
+          },
         });
-        // Bump the parent quote's updatedAt so caches/listings stay coherent.
         await tx.salesQuote.update({ where: { id: quoteId }, data: { updatedAt: new Date() } });
-        return { status: 'ok' as const, line };
+        return { status: 'ok' as const, line, listPrice: priced.listPrice };
       });
 
       if (result.status === 'not_found') {
@@ -104,20 +132,46 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         );
       }
 
-      const { line } = result;
+      const { line, listPrice } = result;
+      const unitPrice = Number(line.unitPrice);
+      const costPrice =
+        includeCost &&
+        line.product &&
+        'costPrice' in line.product &&
+        line.product.costPrice != null
+          ? Number(line.product.costPrice)
+          : null;
+
       return NextResponse.json(
         {
           lineItem: {
             id: line.id,
             productId: line.productId,
-            product: line.product,
+            product: line.product
+              ? {
+                  id: line.product.id,
+                  name: line.product.name,
+                  sku: line.product.sku,
+                }
+              : null,
             description: line.description,
             quantity: Number(line.quantity),
-            unitPrice: Number(line.unitPrice),
+            unitPrice,
             discountPct: Number(line.discountPct),
+            priceOverridden: line.priceOverridden,
+            listPrice,
             isRecurring: line.isRecurring,
             termMonths: line.termMonths,
             sortOrder: line.sortOrder,
+            ...(includeCost
+              ? {
+                  costPrice,
+                  margin:
+                    costPrice != null
+                      ? Math.round((unitPrice - costPrice) * 100) / 100
+                      : null,
+                }
+              : {}),
           },
         },
         { status: 201 },

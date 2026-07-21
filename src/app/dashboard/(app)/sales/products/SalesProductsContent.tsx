@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import {
+  BookOpen,
   Boxes,
   CheckCircle2,
   Loader2,
@@ -17,15 +18,69 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DASHBOARD_SURFACE_CLASS } from '@/lib/dashboard-layout';
 import {
+  ColumnPickerMenu,
   SalesDrawer,
   SalesEmptyState,
   SalesFilterBar,
+  useColumnVisibility,
+  type ColumnOption,
   type FilterSelect,
 } from '@/components/dashboard/sales';
+import {
+  DashboardTable,
+  DashboardTableCard,
+  DashboardTableViewport,
+} from '@/components/dashboard/DashboardDataTable';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { toast } from '@/components/ui/toast';
 import { apiFetch, salesKeys, useSalesMutation, useSalesResource } from '@/lib/sales/hooks';
 import { formatSalesCurrency } from '@/lib/sales/format';
+import { PriceBooksPanel } from './PriceBooksPanel';
+
+type PageTab = 'catalog' | 'price-books';
+
+type ProductColumnId =
+  | 'product'
+  | 'sku'
+  | 'category'
+  | 'unitPrice'
+  | 'margin'
+  | 'type'
+  | 'status'
+  | 'actions';
+
+const PRODUCT_COLUMN_ORDER: ProductColumnId[] = [
+  'product',
+  'sku',
+  'category',
+  'unitPrice',
+  'margin',
+  'type',
+  'status',
+  'actions',
+];
+
+const PRODUCT_COLUMN_OPTIONS: ColumnOption<ProductColumnId>[] = [
+  { id: 'product', label: 'Product', locked: true },
+  { id: 'sku', label: 'SKU' },
+  { id: 'category', label: 'Category' },
+  { id: 'unitPrice', label: 'Unit price' },
+  { id: 'margin', label: 'Margin' },
+  { id: 'type', label: 'Type' },
+  { id: 'status', label: 'Status' },
+  { id: 'actions', label: 'Actions', locked: true },
+];
+
+const DEFAULT_PRODUCT_COLUMNS: ProductColumnId[] = [
+  'product',
+  'sku',
+  'category',
+  'unitPrice',
+  'margin',
+  'type',
+  'status',
+  'actions',
+];
 
 type Product = {
   id: string;
@@ -34,6 +89,9 @@ type Product = {
   category: string | null;
   description: string | null;
   unitPrice: number;
+  costPrice?: number | null;
+  margin?: number | null;
+  unit?: string | null;
   currency: string;
   isRecurring: boolean;
   defaultTermMonths: number | null;
@@ -71,6 +129,7 @@ function KpiCard({
 }
 
 export default function SalesProductsContent() {
+  const [tab, setTab] = useState<PageTab>('catalog');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
@@ -80,11 +139,27 @@ export default function SalesProductsContent() {
   >(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
-  const productsQuery = useSalesResource<{ products: Product[] }>(
+  const productColumns = useColumnVisibility<ProductColumnId>({
+    storageKey: 'stride.sales.products.visibleColumns.v2',
+    columnOrder: PRODUCT_COLUMN_ORDER,
+    defaults: DEFAULT_PRODUCT_COLUMNS,
+    locked: ['product', 'actions'],
+  });
+
+  const productsQuery = useSalesResource<{ products: Product[]; canViewMargin?: boolean }>(
     salesKeys.products(),
     '/api/sales/products',
   );
   const products = useMemo(() => productsQuery.data?.products ?? [], [productsQuery.data]);
+  const canViewMargin = productsQuery.data?.canViewMargin === true;
+
+  const columnOptions = useMemo(
+    () =>
+      canViewMargin
+        ? PRODUCT_COLUMN_OPTIONS
+        : PRODUCT_COLUMN_OPTIONS.filter((c) => c.id !== 'margin'),
+    [canViewMargin],
+  );
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -185,24 +260,59 @@ export default function SalesProductsContent() {
   return (
     <DashboardPage>
       <DashboardPageHeader
-        title="Price book"
-        description="Maintain the catalog of products and services your team quotes and sells."
+        title="Products"
+        description="Catalog products and volume price books your team quotes and sells."
         icon={Boxes}
         actions={
-          <button
-            type="button"
-            onClick={() => setFormState({ mode: 'create' })}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--stride-coral)] px-3 py-2 text-sm font-medium text-white"
-          >
-            <Plus className="h-4 w-4" /> Add product
-          </button>
+          tab === 'catalog' ? (
+            <button
+              type="button"
+              onClick={() => setFormState({ mode: 'create' })}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--stride-coral)] px-3 py-2 text-sm font-medium text-white"
+            >
+              <Plus className="h-4 w-4" /> Add product
+            </button>
+          ) : null
         }
       />
 
-      {isError ? (
+      <div className="mb-4 flex gap-1 border-b border-[var(--dash-border)]">
+        {(
+          [
+            { id: 'catalog' as const, label: 'Catalog', icon: Package },
+            { id: 'price-books' as const, label: 'Price books', icon: BookOpen },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+              tab === t.id
+                ? 'border-[var(--stride-coral)] text-[var(--dash-text-strong)]'
+                : 'border-transparent text-[var(--dash-text-muted)] hover:text-[var(--dash-text-strong)]'
+            }`}
+          >
+            <t.icon className="h-4 w-4" />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'price-books' ? (
+        <PriceBooksPanel
+          products={products.map((p) => ({
+            id: p.id,
+            name: p.name,
+            sku: p.sku,
+            unitPrice: p.unitPrice,
+            currency: p.currency,
+          }))}
+        />
+      ) : isError ? (
         <SalesEmptyState
           icon={Package}
-          title="Couldn't load the price book"
+          title="Couldn't load products"
           description={productsQuery.error?.message ?? 'Something went wrong. Please try again.'}
           action={
             <button
@@ -250,6 +360,14 @@ export default function SalesProductsContent() {
             searchPlaceholder="Search name, SKU, or category…"
             selects={filterSelects}
             resultCount={filtered.length}
+            right={
+              <ColumnPickerMenu
+                columns={columnOptions}
+                visible={productColumns.visible}
+                onToggle={productColumns.toggle}
+                onReset={productColumns.reset}
+              />
+            }
           />
 
           {filtered.length === 0 ? (
@@ -260,102 +378,17 @@ export default function SalesProductsContent() {
               compact
             />
           ) : (
-            <div className={`overflow-hidden ${DASHBOARD_SURFACE_CLASS} shadow-sm`}>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-[var(--dash-surface-muted)] text-left text-xs uppercase tracking-wide text-[var(--dash-text-muted)]">
-                    <tr>
-                      <th className="px-4 py-3">Product</th>
-                      <th className="px-4 py-3">SKU</th>
-                      <th className="px-4 py-3">Category</th>
-                      <th className="px-4 py-3 text-right">Unit price</th>
-                      <th className="px-4 py-3">Type</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((product) => (
-                      <tr
-                        key={product.id}
-                        className="border-t border-[var(--dash-border)] hover:bg-[var(--dash-hover)]"
-                      >
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-[var(--dash-text-strong)]">
-                            {product.name}
-                          </div>
-                          {product.description ? (
-                            <div className="max-w-xs truncate text-xs text-[var(--dash-text-muted)]">
-                              {product.description}
-                            </div>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-3 text-[var(--dash-text-muted)]">
-                          {product.sku ?? '—'}
-                        </td>
-                        <td className="px-4 py-3 text-[var(--dash-text-muted)]">
-                          {product.category ?? '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-[var(--dash-text-strong)]">
-                          {formatSalesCurrency(product.unitPrice, product.currency)}
-                        </td>
-                        <td className="px-4 py-3">
-                          {product.isRecurring ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/20">
-                              <Repeat className="h-3 w-3" />
-                              {product.defaultTermMonths ? `${product.defaultTermMonths} mo` : 'Recurring'}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-[var(--dash-text-muted)]">One-off</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          {product.active ? (
-                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/20">
-                              Active
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:ring-slate-500/20">
-                              Inactive
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setFormState({ mode: 'edit', product })}
-                              aria-label="Edit product"
-                              className="rounded-lg p-1.5 text-[var(--dash-text-muted)] hover:bg-[var(--dash-hover)] hover:text-[var(--dash-text-strong)]"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              disabled={toggleMutation.isPending}
-                              onClick={() => void toggleActive(product)}
-                              aria-label={product.active ? 'Deactivate product' : 'Activate product'}
-                              title={product.active ? 'Deactivate' : 'Activate'}
-                              className="rounded-lg p-1.5 text-[var(--dash-text-muted)] hover:bg-[var(--dash-hover)] hover:text-[var(--dash-text-strong)] disabled:opacity-60"
-                            >
-                              <Power className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeleteTarget(product)}
-                              aria-label="Delete product"
-                              className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <ProductsTable
+              products={filtered}
+              canViewMargin={canViewMargin}
+              isColumnVisible={(id) =>
+                id === 'margin' ? canViewMargin && productColumns.isVisible(id) : productColumns.isVisible(id)
+              }
+              togglePending={toggleMutation.isPending}
+              onEdit={(product) => setFormState({ mode: 'edit', product })}
+              onToggleActive={(product) => void toggleActive(product)}
+              onDelete={setDeleteTarget}
+            />
           )}
         </div>
       )}
@@ -365,6 +398,7 @@ export default function SalesProductsContent() {
           key={formState.mode === 'edit' ? formState.product.id : 'create'}
           mode={formState.mode}
           product={formState.mode === 'edit' ? formState.product : null}
+          canViewMargin={canViewMargin}
           onClose={() => setFormState(null)}
           onSaved={() => setFormState(null)}
         />
@@ -377,7 +411,7 @@ export default function SalesProductsContent() {
           deleteTarget
             ? deleteTarget.usageCount && deleteTarget.usageCount > 0
               ? `“${deleteTarget.name}” is referenced by existing quotes or deals, so it will be deactivated (kept for history) rather than deleted.`
-              : `“${deleteTarget.name}” will be permanently removed from the price book.`
+              : `“${deleteTarget.name}” will be permanently removed from the catalog.`
             : undefined
         }
         confirmLabel={
@@ -392,14 +426,154 @@ export default function SalesProductsContent() {
   );
 }
 
+function ProductsTable({
+  products,
+  canViewMargin,
+  isColumnVisible,
+  togglePending,
+  onEdit,
+  onToggleActive,
+  onDelete,
+}: {
+  products: Product[];
+  canViewMargin: boolean;
+  isColumnVisible: (id: ProductColumnId) => boolean;
+  togglePending: boolean;
+  onEdit: (product: Product) => void;
+  onToggleActive: (product: Product) => void;
+  onDelete: (product: Product) => void;
+}) {
+  return (
+    <DashboardTableCard>
+      <DashboardTableViewport minWidth={canViewMargin ? 980 : 900}>
+        <DashboardTable className="dashboard-table-clean">
+          <thead>
+            <tr>
+              {isColumnVisible('product') ? <th className="col-primary">Product</th> : null}
+              {isColumnVisible('sku') ? <th>SKU</th> : null}
+              {isColumnVisible('category') ? <th>Category</th> : null}
+              {isColumnVisible('unitPrice') ? <th className="col-right">Unit price</th> : null}
+              {isColumnVisible('margin') ? <th className="col-right">Margin</th> : null}
+              {isColumnVisible('type') ? <th>Type</th> : null}
+              {isColumnVisible('status') ? <th>Status</th> : null}
+              {isColumnVisible('actions') ? <th className="col-right">Actions</th> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((product) => {
+              const productTitle = product.description
+                ? `${product.name} · ${product.description}`
+                : product.name;
+              return (
+              <tr key={product.id} className="transition-colors hover:bg-[var(--dash-hover)]">
+                {isColumnVisible('product') ? (
+                  <td
+                    className="col-primary col-truncate-lg font-medium text-[var(--dash-text-strong)]"
+                    title={productTitle}
+                  >
+                    {product.name}
+                  </td>
+                ) : null}
+                {isColumnVisible('sku') ? (
+                  <td className="col-muted">{product.sku ?? '—'}</td>
+                ) : null}
+                {isColumnVisible('category') ? (
+                  <td className="col-muted col-truncate" title={product.category ?? undefined}>
+                    {product.category ?? '—'}
+                  </td>
+                ) : null}
+                {isColumnVisible('unitPrice') ? (
+                  <td className="col-right tabular-nums text-[var(--dash-text-strong)]">
+                    {formatSalesCurrency(product.unitPrice, product.currency)}
+                    {product.unit ? (
+                      <span className="ml-1 text-xs text-[var(--dash-text-muted)]">/{product.unit}</span>
+                    ) : null}
+                  </td>
+                ) : null}
+                {isColumnVisible('margin') ? (
+                  <td className="col-right tabular-nums text-[var(--dash-text-strong)]">
+                    {product.margin != null
+                      ? formatSalesCurrency(product.margin, product.currency)
+                      : '—'}
+                  </td>
+                ) : null}
+                {isColumnVisible('type') ? (
+                  <td>
+                    {product.isRecurring ? (
+                      <span className="inline-flex flex-nowrap items-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/20">
+                        <Repeat className="h-3 w-3" />
+                        {product.defaultTermMonths ? `${product.defaultTermMonths} mo` : 'Recurring'}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-[var(--dash-text-muted)]">One-off</span>
+                    )}
+                  </td>
+                ) : null}
+                {isColumnVisible('status') ? (
+                  <td>
+                    {product.active ? (
+                      <span className="inline-flex whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/20">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:ring-slate-500/20">
+                        Inactive
+                      </span>
+                    )}
+                  </td>
+                ) : null}
+                {isColumnVisible('actions') ? (
+                  <td className="col-right">
+                    <div className="inline-flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(product)}
+                        aria-label="Edit product"
+                        className="rounded-lg p-1.5 text-[var(--dash-text-muted)] hover:bg-[var(--dash-hover)] hover:text-[var(--dash-text-strong)]"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={togglePending}
+                        onClick={() => onToggleActive(product)}
+                        aria-label={product.active ? 'Deactivate product' : 'Activate product'}
+                        title={product.active ? 'Deactivate' : 'Activate'}
+                        className="rounded-lg p-1.5 text-[var(--dash-text-muted)] hover:bg-[var(--dash-hover)] hover:text-[var(--dash-text-strong)] disabled:opacity-60"
+                      >
+                        <Power className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(product)}
+                        aria-label="Delete product"
+                        className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                ) : null}
+              </tr>
+              );
+            })}
+          </tbody>
+        </DashboardTable>
+      </DashboardTableViewport>
+    </DashboardTableCard>
+  );
+}
+
 function ProductFormDrawer({
   mode,
   product,
+  canViewMargin,
   onClose,
   onSaved,
 }: {
   mode: 'create' | 'edit';
   product: Product | null;
+  canViewMargin: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -410,6 +584,10 @@ function ProductFormDrawer({
   const [unitPrice, setUnitPrice] = useState(
     product?.unitPrice != null ? String(product.unitPrice) : '',
   );
+  const [costPrice, setCostPrice] = useState(
+    product?.costPrice != null ? String(product.costPrice) : '',
+  );
+  const [unit, setUnit] = useState(product?.unit ?? '');
   const [currency, setCurrency] = useState(product?.currency ?? 'KES');
   const [isRecurring, setIsRecurring] = useState(product?.isRecurring ?? false);
   const [defaultTermMonths, setDefaultTermMonths] = useState(
@@ -419,18 +597,22 @@ function ProductFormDrawer({
 
   const saveMutation = useSalesMutation<unknown, void>(
     () => {
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: name.trim(),
         sku: sku.trim() || null,
         category: category.trim() || null,
         description: description.trim() || null,
         unitPrice: unitPrice.trim() === '' ? 0 : Number(unitPrice),
+        unit: unit.trim() || null,
         currency: currency.trim() || 'KES',
         isRecurring,
         defaultTermMonths:
           isRecurring && defaultTermMonths.trim() !== '' ? Number(defaultTermMonths) : null,
         active,
       };
+      if (canViewMargin) {
+        payload.costPrice = costPrice.trim() === '' ? null : Number(costPrice);
+      }
       if (mode === 'edit' && product) {
         return apiFetch(`/api/sales/products/${product.id}`, {
           method: 'PATCH',
@@ -459,7 +641,7 @@ function ProductFormDrawer({
       open
       onClose={onClose}
       title={mode === 'edit' ? 'Edit product' : 'New product'}
-      subtitle={mode === 'edit' ? product?.name : 'Add an item to the price book'}
+      subtitle={mode === 'edit' ? product?.name : 'Add an item to the catalog'}
       footer={
         <div className="flex items-center justify-end gap-2">
           <button
@@ -529,6 +711,31 @@ function ProductFormDrawer({
               className="dash-auth-input w-full uppercase"
             />
           </FormField>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="Unit of measure">
+            <input
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              placeholder="e.g. each, kg, hour"
+              className="dash-auth-input w-full"
+            />
+          </FormField>
+          {canViewMargin ? (
+            <FormField label="Cost price">
+              <input
+                type="number"
+                min={0}
+                step="any"
+                value={costPrice}
+                onChange={(e) => setCostPrice(e.target.value)}
+                placeholder="Hidden from reps"
+                className="dash-auth-input w-full"
+              />
+            </FormField>
+          ) : (
+            <div />
+          )}
         </div>
         <FormField label="Description">
           <textarea

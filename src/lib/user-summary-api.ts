@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { getAccountsAccess } from '@/lib/accounts-access';
 import {
   canApproveStaffLeave,
+  canManageSalesAdmin,
   canManageSalesTargets,
   canViewAllSalesDeals,
   canViewSystemAnalytics,
@@ -45,6 +46,11 @@ export async function userRowToSummary(
     canApproveStaffLeave: canApproveStaffLeave(role, staffUserType),
     canViewAllSalesDeals: canViewAllSalesDeals(role, staffUserType),
     canManageSalesTargets: canManageSalesTargets(role, staffUserType),
+    /** B1: cost/margin on products & quote lines — not plain sales_rep. */
+    canViewSalesMargin:
+      role === 'admin' ||
+      (staffUserType !== 'sales_rep' &&
+        (canManageSalesAdmin(role, staffUserType) || canManageSalesTargets(role, staffUserType))),
     canViewSystemAnalytics: canViewSystemAnalytics(role, staffUserType),
     isActive: user.isActive,
     createdAt: user.createdAt.toISOString(),

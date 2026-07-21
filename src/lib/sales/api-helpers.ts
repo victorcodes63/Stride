@@ -13,6 +13,7 @@ type DealLineItem = {
   sortOrder: number;
   productId?: string | null;
   product?: { id: string; name: string } | null;
+  priceOverridden?: boolean;
 };
 
 type DealWithRelations = SalesDeal & {
@@ -68,6 +69,7 @@ export function mapLineItemToJson(item: DealLineItem) {
     quantity,
     unitPrice,
     discountPct,
+    priceOverridden: item.priceOverridden === true,
     isRecurring: item.isRecurring,
     termMonths: item.termMonths,
     sortOrder: item.sortOrder,

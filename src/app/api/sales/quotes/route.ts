@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
 import { lineItemExtendedAmount } from '@/lib/sales/access';
+import { resolveLineUnitPrice } from '@/lib/sales/default-price-book';
 import { SALES_QUOTE_STATUSES } from '@/lib/sales/schema';
 import { withTenant } from '@/lib/tenant-api';
 
@@ -194,52 +195,70 @@ export async function POST(request: NextRequest) {
           : [];
         const productMap = new Map(products.map((p) => [p.id, p]));
 
-        const lineData = rawLines
-          .map((raw, index) => {
-            if (!raw || typeof raw !== 'object') return null;
-            const l = raw as Record<string, unknown>;
-            const productId =
-              typeof l.productId === 'string' && productMap.has(l.productId) ? l.productId : null;
-            const product = productId ? productMap.get(productId)! : null;
-            const description =
-              (typeof l.description === 'string' && l.description.trim()) ||
-              product?.name ||
-              '';
-            if (!description) return null;
-            const qty = Number(l.quantity);
-            const quantity = Number.isFinite(qty) && qty > 0 ? qty : 1;
-            const rawUnit = Number(l.unitPrice);
-            const unitPrice =
-              Number.isFinite(rawUnit) && rawUnit >= 0
-                ? rawUnit
-                : product
-                  ? Number(product.unitPrice)
-                  : 0;
-            const rawDisc = Number(l.discountPct);
-            const lineDiscount =
-              Number.isFinite(rawDisc) && rawDisc >= 0 ? Math.min(100, rawDisc) : 0;
-            const isRecurring =
-              l.isRecurring === true || (l.isRecurring === undefined && product?.isRecurring === true);
-            const rawTerm = Number(l.termMonths);
-            const termMonths =
-              isRecurring && Number.isFinite(rawTerm) && rawTerm > 0
-                ? Math.round(rawTerm)
-                : isRecurring
-                  ? product?.defaultTermMonths ?? null
-                  : null;
-            return {
-              organizationId: ctx.organizationId,
-              productId,
-              description,
-              quantity,
-              unitPrice,
-              discountPct: lineDiscount,
-              isRecurring,
-              termMonths,
-              sortOrder: index,
-            };
-          })
-          .filter((v): v is NonNullable<typeof v> => v !== null);
+        const lineData: Array<{
+          organizationId: string;
+          productId: string | null;
+          description: string;
+          quantity: number;
+          unitPrice: number;
+          priceOverridden: boolean;
+          discountPct: number;
+          isRecurring: boolean;
+          termMonths: number | null;
+          sortOrder: number;
+        }> = [];
+
+        for (let index = 0; index < rawLines.length; index += 1) {
+          const raw = rawLines[index];
+          if (!raw || typeof raw !== 'object') continue;
+          const l = raw as Record<string, unknown>;
+          const productId =
+            typeof l.productId === 'string' && productMap.has(l.productId) ? l.productId : null;
+          const product = productId ? productMap.get(productId)! : null;
+          const description =
+            (typeof l.description === 'string' && l.description.trim()) || product?.name || '';
+          if (!description) continue;
+          const qty = Number(l.quantity);
+          const quantity = Number.isFinite(qty) && qty > 0 ? qty : 1;
+          const rawUnit = l.unitPrice != null ? Number(l.unitPrice) : null;
+          const explicitUnit =
+            rawUnit != null && Number.isFinite(rawUnit) && rawUnit >= 0 ? rawUnit : null;
+          const priceBookId =
+            typeof l.priceBookId === 'string' ? l.priceBookId.trim() || null : null;
+          const priced = await resolveLineUnitPrice(tx, ctx.organizationId, {
+            productId,
+            quantity,
+            priceBookId,
+            unitPrice: explicitUnit,
+            priceOverridden: l.priceOverridden === true,
+            catalogUnitPrice: product ? Number(product.unitPrice) : null,
+          });
+          const rawDisc = Number(l.discountPct);
+          const lineDiscount =
+            Number.isFinite(rawDisc) && rawDisc >= 0 ? Math.min(100, rawDisc) : 0;
+          const isRecurring =
+            l.isRecurring === true ||
+            (l.isRecurring === undefined && product?.isRecurring === true);
+          const rawTerm = Number(l.termMonths);
+          const termMonths =
+            isRecurring && Number.isFinite(rawTerm) && rawTerm > 0
+              ? Math.round(rawTerm)
+              : isRecurring
+                ? product?.defaultTermMonths ?? null
+                : null;
+          lineData.push({
+            organizationId: ctx.organizationId,
+            productId,
+            description,
+            quantity,
+            unitPrice: priced.unitPrice,
+            priceOverridden: priced.priceOverridden,
+            discountPct: lineDiscount,
+            isRecurring,
+            termMonths,
+            sortOrder: index,
+          });
+        }
 
         return tx.salesQuote.create({
           data: {
