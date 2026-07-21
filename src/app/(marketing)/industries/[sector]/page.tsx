@@ -5,13 +5,16 @@ import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
 
-type Props = { params: Promise<{ sector: string }> };
+/**
+ * Coming-soon industry placeholders. Dedicated static routes under
+ * `/industries/<name>` cover available verticals; this catch-all is only for
+ * `coming_soon` entries. Forced dynamic because `generateStaticParams` would
+ * otherwise return [] when every vertical is `available`, which breaks
+ * Next.js page-data collection for this segment.
+ */
+export const dynamic = 'force-dynamic';
 
-export async function generateStaticParams() {
-  return INDUSTRY_VERTICALS.filter((v) => v.status === 'coming_soon').map((v) => ({
-    sector: v.id,
-  }));
-}
+type Props = { params: Promise<{ sector: string }> };
 
 export async function generateMetadata({ params }: Props) {
   const { sector } = await params;
