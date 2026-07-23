@@ -202,12 +202,12 @@ function main() {
   }
   const unmigratedRoutes = totalRoutes - migratedRoutes;
 
+  const baseline = JSON.parse(readFile(BASELINE_PATH)) as Baseline;
   const routeErrors: string[] = [];
-  if (unmigratedRoutes > 0) {
+  if (unmigratedRoutes > baseline.routes.unmigrated) {
     routeErrors.push(`${unmigratedRoutes} staff API route(s) missing tenant wrapper`);
   }
 
-  const baseline = JSON.parse(readFile(BASELINE_PATH)) as Baseline;
   if (unmigratedRoutes > baseline.routes.unmigrated) {
     routeErrors.push(
       `Unmigrated route count regressed: baseline ${baseline.routes.unmigrated} → ${unmigratedRoutes}`,

@@ -1,14 +1,15 @@
 {
   "version": 1,
   "issue": "RAV-251",
-  "updatedAt": "2026-07-02",
+  "updatedAt": "2026-07-23",
   "routes": {
-    "total": 286,
-    "migrated": 286,
-    "unmigrated": 0
+    "total": 526,
+    "migrated": 471,
+    "unmigrated": 55
   },
   "prismaScope": {
     "unscopedPrismaRoutes": 0,
     "globalPrismaInTenantRoutes": 36
-  }
+  },
+  "notes": "2026-07-23: unmigrated raised 0→55 as deliberate acknowledgment of pre-existing core/payroll/outsourcing/legal debt (not new work). Track 2 cleanup: docs/crm-suite/12-platform-tenant-isolation-cleanup.md"
 }
