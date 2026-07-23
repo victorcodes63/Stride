@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { verifyQuoteAcceptToken } from '@/lib/sales/quote-accept-token';
+import { withQuoteAcceptContext } from '@/lib/sales/quote-accept-token';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +40,13 @@ function computeTotals(
   return { subtotal, discountAmount, netAmount, taxAmount, total };
 }
 
+function resolveFailureResponse(reason: 'invalid_token' | 'not_found') {
+  if (reason === 'invalid_token') {
+    return NextResponse.json({ error: 'Invalid or expired link.' }, { status: 400 });
+  }
+  return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
+}
+
 /** GET: Validate token and return public quote summary for e-accept (B3). */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -49,67 +55,74 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Token is required.' }, { status: 400 });
   }
 
-  const quoteId = verifyQuoteAcceptToken(token);
-  if (!quoteId) {
-    return NextResponse.json({ error: 'Invalid or expired link.' }, { status: 400 });
-  }
-
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: 'Service temporarily unavailable.' }, { status: 503 });
   }
 
-  const quote = await prisma.salesQuote.findUnique({
-    where: { id: quoteId },
-    include: {
-      accountsClient: { select: { name: true } },
-      lineItems: { orderBy: { sortOrder: 'asc' } },
-    },
+  const resolved = await withQuoteAcceptContext(token, async ({ tx, quoteId, organizationId }) => {
+    const quote = await tx.salesQuote.findFirst({
+      where: { id: quoteId, organizationId },
+      include: {
+        accountsClient: { select: { name: true } },
+        lineItems: { orderBy: { sortOrder: 'asc' } },
+      },
+    });
+    if (!quote) return { kind: 'not_found' as const };
+    if (quote.supersededById) {
+      return { kind: 'superseded' as const };
+    }
+
+    const org = await tx.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+
+    const totals = computeTotals(Number(quote.discountPct), quote.taxRateBps, quote.lineItems);
+
+    return {
+      kind: 'ok' as const,
+      body: {
+        valid: true,
+        quoteNumber: quote.quoteNumber,
+        version: quote.version,
+        title: quote.title,
+        status: quote.status,
+        currency: quote.currency,
+        issueDate: quote.issueDate.toISOString(),
+        validUntil: quote.validUntil?.toISOString() ?? null,
+        taxRateBps: quote.taxRateBps,
+        discountPct: Number(quote.discountPct),
+        notes: quote.notes,
+        terms: quote.terms,
+        acceptedAt: quote.acceptedAt?.toISOString() ?? null,
+        acceptedByName: quote.acceptedByName,
+        clientName: quote.accountsClient?.name ?? 'Prospective client',
+        companyName: org?.name ?? 'Stride',
+        lineItems: quote.lineItems.map((li) => ({
+          description: li.description,
+          quantity: Number(li.quantity),
+          unitPrice: Number(li.unitPrice),
+          discountPct: Number(li.discountPct),
+          isRecurring: li.isRecurring,
+          termMonths: li.termMonths,
+          amount: lineAmount(li),
+        })),
+        totals,
+      },
+    };
   });
-  if (!quote) {
+
+  if (!resolved.ok) return resolveFailureResponse(resolved.reason);
+  if (resolved.result.kind === 'not_found') {
     return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
   }
-  if (quote.supersededById) {
+  if (resolved.result.kind === 'superseded') {
     return NextResponse.json(
       { error: 'This quote has been superseded by a newer revision.' },
       { status: 410 },
     );
   }
-
-  const org = await prisma.organization.findUnique({
-    where: { id: quote.organizationId },
-    select: { name: true },
-  });
-
-  const totals = computeTotals(Number(quote.discountPct), quote.taxRateBps, quote.lineItems);
-
-  return NextResponse.json({
-    valid: true,
-    quoteNumber: quote.quoteNumber,
-    version: quote.version,
-    title: quote.title,
-    status: quote.status,
-    currency: quote.currency,
-    issueDate: quote.issueDate.toISOString(),
-    validUntil: quote.validUntil?.toISOString() ?? null,
-    taxRateBps: quote.taxRateBps,
-    discountPct: Number(quote.discountPct),
-    notes: quote.notes,
-    terms: quote.terms,
-    acceptedAt: quote.acceptedAt?.toISOString() ?? null,
-    acceptedByName: quote.acceptedByName,
-    clientName: quote.accountsClient?.name ?? 'Prospective client',
-    companyName: org?.name ?? 'Stride',
-    lineItems: quote.lineItems.map((li) => ({
-      description: li.description,
-      quantity: Number(li.quantity),
-      unitPrice: Number(li.unitPrice),
-      discountPct: Number(li.discountPct),
-      isRecurring: li.isRecurring,
-      termMonths: li.termMonths,
-      amount: lineAmount(li),
-    })),
-    totals,
-  });
+  return NextResponse.json(resolved.result.body);
 }
 
 /**
@@ -135,48 +148,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please enter your full name.' }, { status: 400 });
   }
 
-  const quoteId = verifyQuoteAcceptToken(token);
-  if (!quoteId) {
-    return NextResponse.json({ error: 'Invalid or expired link.' }, { status: 400 });
-  }
-
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: 'Service temporarily unavailable.' }, { status: 503 });
   }
 
-  const quote = await prisma.salesQuote.findUnique({
-    where: { id: quoteId },
-    include: {
-      deal: { select: { id: true, ownerEmployeeId: true, organizationId: true } },
-    },
-  });
-  if (!quote) {
-    return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
-  }
-  if (quote.supersededById) {
-    return NextResponse.json(
-      { error: 'This quote has been superseded by a newer revision.' },
-      { status: 410 },
-    );
-  }
-  if (quote.status !== 'sent' && quote.status !== 'accepted') {
-    return NextResponse.json(
-      { error: 'This quote is not open for acceptance.' },
-      { status: 400 },
-    );
-  }
-  if (quote.acceptedAt) {
-    return NextResponse.json({
-      success: true,
-      alreadyAccepted: true,
-      message: 'This quote was already accepted.',
-      acceptedAt: quote.acceptedAt.toISOString(),
-      acceptedByName: quote.acceptedByName,
+  const resolved = await withQuoteAcceptContext(token, async ({ tx, quoteId, organizationId }) => {
+    const quote = await tx.salesQuote.findFirst({
+      where: { id: quoteId, organizationId },
+      include: {
+        deal: { select: { id: true, ownerEmployeeId: true, organizationId: true } },
+      },
     });
-  }
+    if (!quote) return { kind: 'not_found' as const };
+    if (quote.supersededById) {
+      return { kind: 'superseded' as const };
+    }
+    if (quote.status !== 'sent' && quote.status !== 'accepted') {
+      return { kind: 'not_open' as const };
+    }
+    if (quote.acceptedAt) {
+      return {
+        kind: 'already' as const,
+        acceptedAt: quote.acceptedAt.toISOString(),
+        acceptedByName: quote.acceptedByName,
+      };
+    }
 
-  const now = new Date();
-  await prisma.$transaction(async (tx) => {
+    const now = new Date();
     await tx.salesQuote.update({
       where: { id: quoteId },
       data: {
@@ -190,7 +188,7 @@ export async function POST(request: NextRequest) {
     if (quote.dealId && quote.deal?.ownerEmployeeId) {
       await tx.salesDealActivity.create({
         data: {
-          organizationId: quote.organizationId,
+          organizationId,
           dealId: quote.dealId,
           type: 'note',
           subject: `Quote Q-${String(quote.quoteNumber).padStart(4, '0')} v${quote.version} accepted`,
@@ -206,7 +204,7 @@ export async function POST(request: NextRequest) {
 
     await tx.auditEvent.create({
       data: {
-        organizationId: quote.organizationId,
+        organizationId,
         actorUserId: null,
         actorEmail: null,
         action: 'sales.quote.e_accepted',
@@ -216,12 +214,45 @@ export async function POST(request: NextRequest) {
         metadata: { acceptedByName, quoteNumber: quote.quoteNumber, version: quote.version },
       },
     });
+
+    return {
+      kind: 'ok' as const,
+      acceptedAt: now.toISOString(),
+      acceptedByName,
+    };
   });
+
+  if (!resolved.ok) return resolveFailureResponse(resolved.reason);
+  const result = resolved.result;
+  if (result.kind === 'not_found') {
+    return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
+  }
+  if (result.kind === 'superseded') {
+    return NextResponse.json(
+      { error: 'This quote has been superseded by a newer revision.' },
+      { status: 410 },
+    );
+  }
+  if (result.kind === 'not_open') {
+    return NextResponse.json(
+      { error: 'This quote is not open for acceptance.' },
+      { status: 400 },
+    );
+  }
+  if (result.kind === 'already') {
+    return NextResponse.json({
+      success: true,
+      alreadyAccepted: true,
+      message: 'This quote was already accepted.',
+      acceptedAt: result.acceptedAt,
+      acceptedByName: result.acceptedByName,
+    });
+  }
 
   return NextResponse.json({
     success: true,
     message: 'Thank you — this quote has been accepted.',
-    acceptedAt: now.toISOString(),
-    acceptedByName,
+    acceptedAt: result.acceptedAt,
+    acceptedByName: result.acceptedByName,
   });
 }
