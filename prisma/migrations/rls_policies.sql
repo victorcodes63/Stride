@@ -2978,6 +2978,142 @@ CREATE POLICY "ProcurementApprovalPolicy_insert_bootstrap" ON "ProcurementApprov
     OR "organizationId" = current_setting('app.current_org', true)::uuid
   );
 
+ALTER TABLE "Rfq" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Rfq" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Rfq_tenant_rw" ON "Rfq";
+CREATE POLICY "Rfq_tenant_rw" ON "Rfq"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "Rfq_insert_bootstrap" ON "Rfq";
+CREATE POLICY "Rfq_insert_bootstrap" ON "Rfq"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "RfqLine" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "RfqLine" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RfqLine_tenant_rw" ON "RfqLine";
+CREATE POLICY "RfqLine_tenant_rw" ON "RfqLine"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "RfqLine_insert_bootstrap" ON "RfqLine";
+CREATE POLICY "RfqLine_insert_bootstrap" ON "RfqLine"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "RfqInvitation" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "RfqInvitation" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RfqInvitation_tenant_rw" ON "RfqInvitation";
+CREATE POLICY "RfqInvitation_tenant_rw" ON "RfqInvitation"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "RfqInvitation_insert_bootstrap" ON "RfqInvitation";
+CREATE POLICY "RfqInvitation_insert_bootstrap" ON "RfqInvitation"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "RfqQuote" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "RfqQuote" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RfqQuote_tenant_rw" ON "RfqQuote";
+CREATE POLICY "RfqQuote_tenant_rw" ON "RfqQuote"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "RfqQuote_insert_bootstrap" ON "RfqQuote";
+CREATE POLICY "RfqQuote_insert_bootstrap" ON "RfqQuote"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "RfqQuoteLine" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "RfqQuoteLine" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RfqQuoteLine_tenant_rw" ON "RfqQuoteLine";
+CREATE POLICY "RfqQuoteLine_tenant_rw" ON "RfqQuoteLine"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "RfqQuoteLine_insert_bootstrap" ON "RfqQuoteLine";
+CREATE POLICY "RfqQuoteLine_insert_bootstrap" ON "RfqQuoteLine"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "ProcurementVendorProfile" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProcurementVendorProfile" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ProcurementVendorProfile_tenant_rw" ON "ProcurementVendorProfile";
+CREATE POLICY "ProcurementVendorProfile_tenant_rw" ON "ProcurementVendorProfile"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "ProcurementVendorProfile_insert_bootstrap" ON "ProcurementVendorProfile";
+CREATE POLICY "ProcurementVendorProfile_insert_bootstrap" ON "ProcurementVendorProfile"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "VendorScorecard" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "VendorScorecard" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "VendorScorecard_tenant_rw" ON "VendorScorecard";
+CREATE POLICY "VendorScorecard_tenant_rw" ON "VendorScorecard"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "VendorScorecard_insert_bootstrap" ON "VendorScorecard";
+CREATE POLICY "VendorScorecard_insert_bootstrap" ON "VendorScorecard"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
+ALTER TABLE "BudgetCommitment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "BudgetCommitment" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "BudgetCommitment_tenant_rw" ON "BudgetCommitment";
+CREATE POLICY "BudgetCommitment_tenant_rw" ON "BudgetCommitment"
+  FOR ALL
+  USING ("organizationId" = current_setting('app.current_org', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_org', true)::uuid);
+
+DROP POLICY IF EXISTS "BudgetCommitment_insert_bootstrap" ON "BudgetCommitment";
+CREATE POLICY "BudgetCommitment_insert_bootstrap" ON "BudgetCommitment"
+  FOR INSERT
+  WITH CHECK (
+    coalesce(current_setting('app.current_org', true), '') = ''
+    OR "organizationId" = current_setting('app.current_org', true)::uuid
+  );
+
 ALTER TABLE "JdDivision" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "JdDivision" FORCE ROW LEVEL SECURITY;
 
