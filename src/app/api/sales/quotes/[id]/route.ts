@@ -9,6 +9,7 @@ import {
   resolveApprovalRequirement,
   resolveQuoteApproverNote,
 } from '@/lib/sales/quote-approval';
+import { createQuoteAcceptToken } from '@/lib/sales/quote-accept-token';
 import { SALES_QUOTE_STATUSES } from '@/lib/sales/schema';
 import { withTenant } from '@/lib/tenant-api';
 import { computeQuoteTotals } from '../route';
@@ -32,6 +33,8 @@ const quoteInclude = {
 type QuoteWithRelations = {
   id: string;
   quoteNumber: number;
+  version: number;
+  supersededById: string | null;
   title: string;
   status: string;
   currency: string;
@@ -46,6 +49,7 @@ type QuoteWithRelations = {
   terms: string | null;
   sentAt: Date | null;
   acceptedAt: Date | null;
+  acceptedByName: string | null;
   createdAt: Date;
   updatedAt: Date;
   accountsClient: { id: string; name: string; currency: string } | null;
@@ -104,9 +108,17 @@ function mapQuote(quote: QuoteWithRelations, options?: { includeCost?: boolean }
     };
   });
   const totals = computeQuoteTotals(Number(quote.discountPct), quote.taxRateBps, quote.lineItems);
+  const readOnly = Boolean(quote.supersededById);
+  const acceptPath =
+    !readOnly && (quote.status === 'sent' || quote.status === 'accepted')
+      ? `/quote/${createQuoteAcceptToken(quote.id)}`
+      : null;
   return {
     id: quote.id,
     quoteNumber: quote.quoteNumber,
+    version: quote.version,
+    supersededById: quote.supersededById,
+    readOnly,
     title: quote.title,
     status: quote.status,
     currency: quote.currency,
@@ -123,6 +135,8 @@ function mapQuote(quote: QuoteWithRelations, options?: { includeCost?: boolean }
     terms: quote.terms,
     sentAt: quote.sentAt?.toISOString() ?? null,
     acceptedAt: quote.acceptedAt?.toISOString() ?? null,
+    acceptedByName: quote.acceptedByName,
+    acceptPath,
     createdBy: quote.createdBy
       ? { id: quote.createdBy.id, name: quote.createdBy.name }
       : null,
@@ -216,6 +230,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           },
         });
         if (!existing) return { kind: 'not_found' as const };
+        if (existing.supersededById) {
+          return { kind: 'read_only' as const };
+        }
 
         const data: Prisma.SalesQuoteUncheckedUpdateInput = {};
 
@@ -398,6 +415,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (result.kind === 'not_found') {
         return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
       }
+      if (result.kind === 'read_only') {
+        return NextResponse.json(
+          { error: 'This quote version is superseded and read-only. Revise to edit.' },
+          { status: 409 },
+        );
+      }
       if (result.kind === 'invalid_transition') {
         return NextResponse.json(
           { error: `Cannot move quote from ${result.from} to ${result.to}.` },
@@ -441,12 +464,19 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         const existing = await tx.salesQuote.findFirst({
           where: { id, organizationId: ctx.organizationId },
         });
-        if (!existing) return null;
+        if (!existing) return { kind: 'not_found' as const };
+        if (existing.supersededById) return { kind: 'read_only' as const };
         await tx.salesQuote.delete({ where: { id } });
-        return existing;
+        return { kind: 'ok' as const };
       });
-      if (!deleted) {
+      if (deleted.kind === 'not_found') {
         return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
+      }
+      if (deleted.kind === 'read_only') {
+        return NextResponse.json(
+          { error: 'This quote version is superseded and read-only.' },
+          { status: 409 },
+        );
       }
       return NextResponse.json({ ok: true, id });
     } catch (error) {

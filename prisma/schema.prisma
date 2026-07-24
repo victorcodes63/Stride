@@ -6599,6 +6599,10 @@ model SalesQuote {
   organizationId String @db.Uuid
 
   quoteNumber       Int
+  /// B3 — revision counter; versions share quoteNumber.
+  version           Int              @default(1)
+  /// Points at the newer revision that replaced this quote (null = current).
+  supersededById    String?
   dealId            String?
   accountsClientId  String?
   accountsInvoiceId String?
@@ -6614,6 +6618,8 @@ model SalesQuote {
   terms            String?          @db.Text
   sentAt           DateTime?
   acceptedAt       DateTime?
+  /// Name captured on public e-accept (B3).
+  acceptedByName   String?
   createdByUserId  String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -6624,11 +6630,14 @@ model SalesQuote {
   createdBy       User?                @relation("SalesQuoteCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   lineItems       SalesQuoteLineItem[]
   approvals       SalesQuoteApproval[]
+  supersededBy    SalesQuote?          @relation("SalesQuoteSupersedes", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersedes      SalesQuote[]         @relation("SalesQuoteSupersedes")
 
-  @@unique([organizationId, quoteNumber])
+  @@unique([organizationId, quoteNumber, version])
   @@index([organizationId, status])
   @@index([organizationId, dealId])
   @@index([organizationId, accountsClientId])
+  @@index([organizationId, quoteNumber])
 }
 
 /// Org discount-threshold ladder for quote send (B2). One row per org; config is JSON tiers.
