@@ -8,6 +8,8 @@ import {
   mapDealToJson,
 } from '@/lib/sales/api-helpers';
 import { createCloseOpsDrafts } from '@/lib/sales/close-ops';
+import { runWonDealAutomation } from '@/lib/sales/won-deal-automation';
+import { loadWonDealSettings } from '@/lib/sales/won-deal-settings';
 import {
   evaluateFleetCapacityForDeal,
   evaluateSalesLegalGate,
@@ -159,6 +161,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         const warnings: string[] = [];
 
         if (stage === 'won' && existing.stage !== 'won') {
+          const settings = await loadWonDealSettings(tx, ctx.organizationId);
+          if (settings.requireAcceptedQuote) {
+            const acceptedQuote = await tx.salesQuote.findFirst({
+              where: {
+                organizationId: ctx.organizationId,
+                dealId: id,
+                status: 'accepted',
+              },
+              select: { id: true },
+            });
+            if (!acceptedQuote) {
+              return {
+                blockedQuote: true as const,
+                deal: existing,
+              };
+            }
+          }
+
           const [legal, fleet] = await Promise.all([
             evaluateSalesLegalGate(tx, {
               organizationId: ctx.organizationId,
@@ -253,6 +273,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
         const finalStage = updated.stage;
         let closeOps = null as Awaited<ReturnType<typeof createCloseOpsDrafts>> | null;
+        let wonAutomation = null as Awaited<ReturnType<typeof runWonDealAutomation>> | null;
         if (finalStage === 'won') {
           const { periodStart, periodEnd } = currentMonthPeriod();
           await syncRepPeriodMetric(tx, {
@@ -263,16 +284,51 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             currency: updated.currency,
           });
           if (stage === 'won' && existing.stage !== 'won') {
-            closeOps = await createCloseOpsDrafts(tx, {
+            const modules = getEffectiveModulesFromRequest(request);
+            wonAutomation = await runWonDealAutomation(tx, {
               organizationId: ctx.organizationId,
-              deal: updated,
+              dealId: id,
               staffUserId: ctx.staff.id,
-              options: {
-                createProject: body.createProject !== false,
-                createFleetOrder: body.createFleetOrder === true,
-                createPurchaseRequest: body.createPurchaseRequest === true,
-                pickupLocation: typeof body.pickupLocation === 'string' ? body.pickupLocation : null,
-                deliveryLocation: typeof body.deliveryLocation === 'string' ? body.deliveryLocation : null,
+              fleetLicensed: modules.fleet === true,
+              confirmFleetOrder: false,
+              pickupLocation: typeof body.pickupLocation === 'string' ? body.pickupLocation : null,
+              deliveryLocation:
+                typeof body.deliveryLocation === 'string' ? body.deliveryLocation : null,
+            });
+
+            // Optional purchase-request draft remains a one-off body flag (not B4 settings).
+            if (body.createPurchaseRequest === true) {
+              closeOps = await createCloseOpsDrafts(tx, {
+                organizationId: ctx.organizationId,
+                deal: updated,
+                staffUserId: ctx.staff.id,
+                options: {
+                  createProject: false,
+                  createFleetOrder: false,
+                  createPurchaseRequest: true,
+                },
+              });
+            }
+
+            await tx.auditEvent.create({
+              data: {
+                organizationId: ctx.organizationId,
+                actorUserId: ctx.staff.id,
+                actorEmail: ctx.staff.email,
+                action: 'sales.deal.won_automation',
+                entityType: 'SalesDeal',
+                entityId: id,
+                route: `/api/sales/deals/${id}`,
+                metadata: {
+                  invoiceId: wonAutomation.invoiceId,
+                  invoiceNumber: wonAutomation.invoiceNumber,
+                  salesActualId: wonAutomation.salesActualId,
+                  projectId: wonAutomation.projectId,
+                  projectCode: wonAutomation.projectCode,
+                  fleetOffer: Boolean(wonAutomation.fleetOffer),
+                  notes: wonAutomation.notes,
+                  settings: wonAutomation.settings,
+                },
               },
             });
           }
@@ -283,7 +339,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           include: dealInclude,
         });
 
-        return { blocked: false as const, warnings, deal, closeOps };
+        return { blocked: false as const, warnings, deal, closeOps, wonAutomation };
       });
 
       if (!result) {
@@ -304,11 +360,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           { status: 409 },
         );
       }
+      if ('blockedQuote' in result && result.blockedQuote) {
+        return NextResponse.json(
+          {
+            error:
+              'This org requires a linked accepted quote before marking a deal won.',
+            code: 'ACCEPTED_QUOTE_REQUIRED',
+          },
+          { status: 409 },
+        );
+      }
 
       return NextResponse.json({
         deal: mapDealToJson(result.deal!),
-        warnings: result.warnings,
+        warnings: result.warnings ?? [],
         closeOps: 'closeOps' in result ? result.closeOps : null,
+        wonAutomation: 'wonAutomation' in result ? result.wonAutomation : null,
       });
     } catch (error) {
       await reportApiError({

@@ -180,6 +180,17 @@ export default function SalesDealsContent() {
     null,
   );
   const [bulkConfirm, setBulkConfirm] = useState<{ ids: string[]; stage: SalesDealStage } | null>(null);
+  const [fleetOffer, setFleetOffer] = useState<{
+    dealId: string;
+    dealName: string;
+    cargoWeightKg: number | null;
+    fleetCustomerId: string | null;
+    fleetCustomerName: string | null;
+    suggestedPickup: string;
+    suggestedDelivery: string;
+    notes: string;
+  } | null>(null);
+  const [fleetBusy, setFleetBusy] = useState(false);
 
   const repsQuery = useSalesResource<{ employees: Rep[] }>(salesKeys.reps(), '/api/sales/reps');
   const reps = repsQuery.data?.employees ?? [];
@@ -230,10 +241,24 @@ export default function SalesDealsContent() {
       try {
         const results = await Promise.allSettled(
           ids.map((id) =>
-            mutate(`/api/sales/deals/${id}`, 'PATCH', {
+            mutate<{
+              deal?: unknown;
+              wonAutomation?: {
+                notes?: string[];
+                fleetOffer?: {
+                  dealId: string;
+                  dealName: string;
+                  cargoWeightKg: number | null;
+                  fleetCustomerId: string | null;
+                  fleetCustomerName: string | null;
+                  suggestedPickup: string;
+                  suggestedDelivery: string;
+                  notes: string;
+                } | null;
+              } | null;
+            }>(`/api/sales/deals/${id}`, 'PATCH', {
               stage,
               acknowledgeWarnings: acknowledge,
-              ...(stage === 'won' ? { createFleetOrder: true, createPurchaseRequest: false } : {}),
             }),
           ),
         );
@@ -241,8 +266,16 @@ export default function SalesDealsContent() {
         const warnings = new Set<string>();
         let needsAck = false;
         let otherError: string | null = null;
+        let lastFleetOffer: typeof fleetOffer = null;
+        const automationNotes: string[] = [];
+
         for (const r of results) {
-          if (r.status !== 'rejected') continue;
+          if (r.status === 'fulfilled') {
+            const wa = r.value.wonAutomation;
+            if (wa?.notes?.length) automationNotes.push(...wa.notes);
+            if (wa?.fleetOffer) lastFleetOffer = wa.fleetOffer;
+            continue;
+          }
           const reason = r.reason;
           if (
             reason instanceof ApiError &&
@@ -254,6 +287,16 @@ export default function SalesDealsContent() {
             needsAck = true;
             const w = (reason.body as { warnings?: unknown }).warnings;
             if (Array.isArray(w)) for (const item of w) warnings.add(String(item));
+          } else if (
+            reason instanceof ApiError &&
+            reason.status === 409 &&
+            reason.body &&
+            typeof reason.body === 'object' &&
+            (reason.body as { code?: string }).code === 'ACCEPTED_QUOTE_REQUIRED'
+          ) {
+            otherError =
+              reason.message ||
+              'An accepted quote is required before marking this deal won.';
           } else {
             otherError = reason instanceof Error ? reason.message : 'Update failed';
           }
@@ -268,8 +311,15 @@ export default function SalesDealsContent() {
           toast.error(otherError);
         } else {
           toast.success(
-            ids.length === 1 ? `Deal moved to ${stageLabel(stage)}.` : `${ids.length} deals moved to ${stageLabel(stage)}.`,
+            ids.length === 1
+              ? `Deal moved to ${stageLabel(stage)}.`
+              : `${ids.length} deals moved to ${stageLabel(stage)}.`,
           );
+          if (automationNotes.length) {
+            const skip = automationNotes.find((n) => n.toLowerCase().includes('skipped'));
+            if (skip) toast.info(skip);
+          }
+          if (lastFleetOffer) setFleetOffer(lastFleetOffer);
           setSelection(new Set());
         }
         await invalidateAll();
@@ -472,6 +522,63 @@ export default function SalesDealsContent() {
           void runMove(ids, stage, true);
         }}
         onCancel={() => setWarnConfirm(null)}
+      />
+
+      <ConfirmDialog
+        open={!!fleetOffer}
+        title="Create fleet order?"
+        confirmLabel="Create draft order"
+        loading={fleetBusy}
+        description={
+          fleetOffer ? (
+            <div className="space-y-2 text-sm">
+              <p>
+                Deal <strong>{fleetOffer.dealName}</strong> is won
+                {fleetOffer.cargoWeightKg != null
+                  ? ` · cargo ${fleetOffer.cargoWeightKg} kg`
+                  : ''}
+                .
+              </p>
+              <p>
+                Customer:{' '}
+                {fleetOffer.fleetCustomerName ??
+                  'No FleetCustomer linked to this billing client — open Fleet to create one first.'}
+              </p>
+              <p className="text-[var(--dash-text-muted)]">
+                {fleetOffer.suggestedPickup} → {fleetOffer.suggestedDelivery}
+              </p>
+            </div>
+          ) : null
+        }
+        onConfirm={() => {
+          if (!fleetOffer?.fleetCustomerId) {
+            toast.error('Link a fleet customer to this account before creating an order.');
+            return;
+          }
+          void (async () => {
+            setFleetBusy(true);
+            try {
+              await apiFetch('/api/fleet/orders', {
+                method: 'POST',
+                body: JSON.stringify({
+                  customerId: fleetOffer.fleetCustomerId,
+                  pickupLocation: fleetOffer.suggestedPickup,
+                  deliveryLocation: fleetOffer.suggestedDelivery,
+                  cargoType: 'Sales closed-won cargo',
+                  cargoWeightKg: fleetOffer.cargoWeightKg,
+                  notes: fleetOffer.notes,
+                }),
+              });
+              toast.success('Fleet order draft created.');
+              setFleetOffer(null);
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : 'Fleet order failed.');
+            } finally {
+              setFleetBusy(false);
+            }
+          })();
+        }}
+        onCancel={() => setFleetOffer(null)}
       />
 
       <ConfirmDialog

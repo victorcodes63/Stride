@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  createDraftAccountsInvoice,
-  dueDateFromIssue,
-} from '@/lib/accounts/billing-automation';
-import { reportApiError } from '@/lib/monitoring';
-import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
-import { lineItemExtendedAmount, requireAccessibleDeal, SalesAccessError } from '@/lib/sales/access';
-import { currentMonthPeriod } from '@/lib/sales/api-helpers';
-import {
   evaluateFleetCapacityForDeal,
   evaluateSalesLegalGate,
 } from '@/lib/sales/cross-module-gates';
-import { syncRepPeriodMetric } from '@/lib/sales/metrics-sync';
+import { reportApiError } from '@/lib/monitoring';
+import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
+import { requireAccessibleDeal, SalesAccessError } from '@/lib/sales/access';
+import { createInvoiceFromWonDeal } from '@/lib/sales-finance-bridge';
 import { withTenant } from '@/lib/tenant-api';
 
 export const dynamic = 'force-dynamic';
@@ -40,14 +35,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         await requireAccessibleDeal(tx, ctx.staff, ctx.organizationId, dealId);
         const deal = await tx.salesDeal.findFirst({
           where: { id: dealId, ...ctx.where() },
-          include: {
-            accountsClient: {
-              include: {
-                outsourcingClient: { select: { paymentTerms: true } },
-              },
-            },
-            lineItems: { orderBy: { sortOrder: 'asc' } },
-          },
         });
 
         if (!deal) {
@@ -58,9 +45,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
         if (!deal.accountsClientId) {
           throw Object.assign(new Error('CLIENT_REQUIRED'), { code: 'CLIENT_REQUIRED' });
-        }
-        if (deal.accountsInvoiceId) {
-          throw Object.assign(new Error('INVOICE_EXISTS'), { code: 'INVOICE_EXISTS' });
         }
 
         const [legal, fleet] = await Promise.all([
@@ -81,99 +65,44 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           });
         }
 
-        const issueDate = deal.closedAt ?? new Date();
-        const paymentTerms = deal.accountsClient?.outsourcingClient?.paymentTerms ?? null;
-        const dueDate = dueDateFromIssue(issueDate, paymentTerms);
-        const dealValue = Number(deal.value);
-
-        const lines =
-          deal.lineItems.length > 0
-            ? deal.lineItems.map((li) => ({
-                item: li.description,
-                description: li.isRecurring
-                  ? `Recurring (${li.termMonths ?? 1} mo)`
-                  : 'Sales deal line',
-                amountExVat: lineItemExtendedAmount({
-                  quantity: Number(li.quantity),
-                  unitPrice: Number(li.unitPrice),
-                  discountPct: Number(li.discountPct),
-                  isRecurring: li.isRecurring,
-                  termMonths: li.termMonths,
-                }),
-              }))
-            : [
-                {
-                  item: deal.name,
-                  description: 'Sales deal — closed won',
-                  amountExVat: dealValue,
-                },
-              ];
-
-        const invoice = await createDraftAccountsInvoice(tx, {
+        const created = await createInvoiceFromWonDeal(tx, {
           organizationId: ctx.organizationId,
-          clientId: deal.accountsClientId,
-          issueDate,
-          dueDate,
-          currency: deal.currency,
-          notes: `Closed-won deal: ${deal.name}`,
-          lines,
+          dealId,
+          recordedByUserId: ctx.staff.id,
+          createSalesActual: true,
         });
 
-        const updatedDeal = await tx.salesDeal.update({
-          where: { id: dealId },
-          data: { accountsInvoiceId: invoice.id },
-        });
-
-        const { periodStart, periodEnd } = currentMonthPeriod(deal.closedAt ?? new Date());
-
-        const existingActual = await tx.salesActual.findFirst({
-          where: {
+        await tx.auditEvent.create({
+          data: {
             organizationId: ctx.organizationId,
-            salesDealId: dealId,
+            actorUserId: ctx.staff.id,
+            actorEmail: ctx.staff.email,
+            action: 'sales.deal.invoice_created',
+            entityType: 'SalesDeal',
+            entityId: dealId,
+            route: `/api/sales/deals/${dealId}/create-invoice`,
+            metadata: {
+              accountsInvoiceId: created.accountsInvoiceId,
+              invoiceNumber: created.invoiceNumber,
+              salesActualId: created.salesActualId,
+              alreadyLinked: created.alreadyLinked ?? false,
+            },
           },
         });
 
-        let actualId: string | null = existingActual?.id ?? null;
-        if (!existingActual) {
-          const actual = await tx.salesActual.create({
-            data: {
-              organizationId: ctx.organizationId,
-              employeeId: deal.ownerEmployeeId,
-              periodStart,
-              periodEnd,
-              amount: dealValue,
-              currency: deal.currency,
-              source: 'finance_invoice',
-              salesDealId: dealId,
-              accountsInvoiceId: invoice.id,
-              notes: `Auto-created from closed-won deal: ${deal.name}`,
-              recordedByUserId: ctx.staff.id,
-            },
-          });
-          actualId = actual.id;
-        }
-
-        await syncRepPeriodMetric(tx, {
-          organizationId: ctx.organizationId,
-          employeeId: deal.ownerEmployeeId,
-          periodStart,
-          periodEnd,
-          currency: deal.currency,
-        });
-
-        return {
-          dealId: updatedDeal.id,
-          accountsInvoiceId: invoice.id,
-          invoiceNumber: invoice.invoiceNumber,
-          salesActualId: actualId,
-          warnings,
-        };
+        return { ...created, warnings };
       });
 
-      return NextResponse.json({ result }, { status: 201 });
+      return NextResponse.json(
+        { result },
+        { status: result.alreadyLinked ? 200 : 201 },
+      );
     } catch (error: unknown) {
       if (error instanceof SalesAccessError) {
-        return NextResponse.json({ error: error.message }, { status: error.code === 'FORBIDDEN' ? 403 : 404 });
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.code === 'FORBIDDEN' ? 403 : 404 },
+        );
       }
       const err = error as { code?: string; warnings?: string[] };
       if (err.code === 'DEAL_NOT_FOUND') {

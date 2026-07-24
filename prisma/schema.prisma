@@ -6283,6 +6283,7 @@ model SalesDeal {
   tasks             SalesTask[]
   quotes            SalesQuote[]
   convertedFromLead SalesLead?
+  deliveryProjects  Project[]               @relation("ProjectSourceDeal")
 
   @@index([organizationId, stage])
   @@index([organizationId, ownerEmployeeId])
@@ -7034,6 +7035,8 @@ model Project {
   currency            String        @default("KES")
   budgetAmount        Decimal?      @db.Decimal(14, 2)
   budgetId            String?
+  /// B4 — optional link back to the won sales deal that spawned this delivery project.
+  sourceDealId        String?
   startDate           DateTime?     @db.Date
   dueDate             DateTime?     @db.Date
   completedAt         DateTime?
@@ -7047,6 +7050,7 @@ model Project {
   budget            Budget?             @relation(fields: [budgetId], references: [id], onDelete: SetNull)
   owner             User?               @relation("ProjectOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   createdBy         User                @relation("ProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  sourceDeal        SalesDeal?          @relation("ProjectSourceDeal", fields: [sourceDealId], references: [id], onDelete: SetNull)
   milestones        ProjectMilestone[]
   tasks             ProjectTask[]
   constructionSites ConstructionSite[]
@@ -7063,6 +7067,7 @@ model Project {
   @@index([dueDate])
   @@index([ownerUserId])
   @@index([budgetId])
+  @@index([organizationId, sourceDealId])
 }
 
 model ProjectMilestone {
