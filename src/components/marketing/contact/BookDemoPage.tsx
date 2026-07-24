@@ -157,7 +157,7 @@ function stepState(stepNumber: number, currentStep: number): StepItemProps['stat
 
 function BookDemoLeftPanel({ currentStep }: { currentStep: number }) {
   return (
-    <section className="bd-demo-panel relative flex min-h-[min(320px,42vh)] flex-col overflow-hidden rounded-[20px] shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:rounded-[28px] lg:min-h-0">
+    <section className="bd-demo-panel relative hidden min-h-0 flex-col overflow-hidden rounded-[20px] shadow-[0_24px_80px_rgba(0,0,0,0.35)] lg:flex sm:rounded-[28px]">
       <div
         className="pointer-events-none absolute -right-[10%] top-[5%] h-[55%] w-[55%] rounded-full opacity-30 blur-[80px] bd-demo-drift-a"
         style={{ background: 'radial-gradient(circle, var(--sc-coral) 0%, transparent 68%)' }}
@@ -203,6 +203,35 @@ function BookDemoLeftPanel({ currentStep }: { currentStep: number }) {
         </p>
       </div>
     </section>
+  );
+}
+
+function MobileProgress({ currentStep }: { currentStep: number }) {
+  return (
+    <div
+      className="flex items-center gap-1.5"
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={TOTAL_STEPS}
+      aria-valuenow={currentStep}
+      aria-label={`Step ${currentStep} of ${TOTAL_STEPS}`}
+    >
+      {MARKETING_DEMO_STEPS.map((demoStep) => {
+        const state = stepState(demoStep.number, currentStep);
+        return (
+          <span
+            key={demoStep.number}
+            className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+              state === 'active'
+                ? 'bg-[var(--sc-coral)]'
+                : state === 'complete'
+                  ? 'bg-[#fbf8f4]/70'
+                  : 'bg-white/15'
+            }`}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -330,13 +359,13 @@ export function BookDemoPage() {
   }
 
   return (
-    <main className="flex min-h-[100dvh] w-full max-w-[100vw] flex-col gap-2 overflow-x-clip bg-[var(--sc-ink)] p-2 selection:bg-[var(--sc-coral)]/25 sm:gap-3 sm:p-3 lg:grid lg:h-[100dvh] lg:max-h-[100dvh] lg:grid-cols-2 lg:overflow-hidden lg:p-4">
+    <main className="flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-[var(--sc-ink)] p-2 selection:bg-[var(--sc-coral)]/25 sm:p-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:p-4">
       <BookDemoLeftPanel currentStep={step} />
 
-      <section className="relative flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[20px] bg-[var(--sc-ink)] sm:rounded-[28px]">
+      <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] bg-[var(--sc-ink)] sm:rounded-[28px]">
         <MarketingCloseButton />
 
-        <div className="flex min-h-0 flex-1 flex-col px-5 py-10 sm:px-10 sm:py-12 lg:px-14 lg:py-10 xl:px-20">
+        <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-5 sm:px-10 sm:pb-10 sm:pt-10 lg:px-14 lg:py-10 xl:px-20">
           <motion.div
             className="bd-demo-form mx-auto flex w-full max-w-md min-h-0 flex-1 flex-col"
             initial={{ opacity: 0, y: 16 }}
@@ -369,8 +398,15 @@ export function BookDemoPage() {
                 </Link>
               </div>
             ) : (
-              <div className="flex min-h-0 flex-1 flex-col gap-7">
-                <div className="shrink-0 space-y-2 pr-10">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-7">
+                <div className="shrink-0 space-y-4 lg:hidden">
+                  <Link href={MARKETING_ROUTES.home} className="inline-flex pr-12" aria-label="Stride home">
+                    <StrideLogo heightClass="h-6" className="brightness-0 invert" />
+                  </Link>
+                  <MobileProgress currentStep={step} />
+                </div>
+
+                <div className="shrink-0 space-y-1.5 pr-10 sm:space-y-2">
                   <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--sc-coral)]">
                     Step {step} of {TOTAL_STEPS}
                   </p>
@@ -381,106 +417,154 @@ export function BookDemoPage() {
                 </div>
 
                 {step === 1 ? (
-                  <div className="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2">
-                    <SocialButton
-                      icon={<Mail className="h-4 w-4 text-[var(--sc-coral)]" aria-hidden />}
-                      label="Email us"
-                      href={`mailto:${MARKETING_SALES_EMAIL}`}
-                    />
-                    <SocialButton
-                      icon={<Calendar className="h-4 w-4 text-[var(--sc-coral)]" aria-hidden />}
-                      label="Talk to sales"
-                      href={`mailto:${MARKETING_SALES_EMAIL}?subject=${encodeURIComponent('Stride sales enquiry')}`}
-                    />
-                  </div>
-                ) : null}
+                  <>
+                    {/* Compact contact links on narrow phones */}
+                    <p className="shrink-0 text-[13px] text-[#fbf8f4]/55 sm:hidden">
+                      Prefer email?{' '}
+                      <a
+                        href={`mailto:${MARKETING_SALES_EMAIL}`}
+                        className="font-medium text-[#fbf8f4] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
+                      >
+                        Email us
+                      </a>
+                      {' · '}
+                      <a
+                        href={`mailto:${MARKETING_SALES_EMAIL}?subject=${encodeURIComponent('Stride sales enquiry')}`}
+                        className="font-medium text-[#fbf8f4] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
+                      >
+                        Talk to sales
+                      </a>
+                    </p>
 
-                {step === 1 ? (
-                  <div className="relative flex shrink-0 items-center justify-center">
-                    <div className="absolute inset-x-0 border-t border-white/10" />
-                    <span className="relative bg-[var(--sc-ink)] px-4 text-[11px] font-medium uppercase tracking-[0.16em] text-white/35">
-                      Or send a request
-                    </span>
-                  </div>
+                    {/* Full CTA buttons from sm and up */}
+                    <div className="hidden shrink-0 grid-cols-2 gap-3 sm:grid">
+                      <SocialButton
+                        icon={<Mail className="h-4 w-4 text-[var(--sc-coral)]" aria-hidden />}
+                        label="Email us"
+                        href={`mailto:${MARKETING_SALES_EMAIL}`}
+                      />
+                      <SocialButton
+                        icon={<Calendar className="h-4 w-4 text-[var(--sc-coral)]" aria-hidden />}
+                        label="Talk to sales"
+                        href={`mailto:${MARKETING_SALES_EMAIL}?subject=${encodeURIComponent('Stride sales enquiry')}`}
+                      />
+                    </div>
+
+                    <div className="relative hidden shrink-0 items-center justify-center sm:flex">
+                      <div className="absolute inset-x-0 border-t border-white/10" />
+                      <span className="relative bg-[var(--sc-ink)] px-4 text-[11px] font-medium uppercase tracking-[0.16em] text-white/35">
+                        Or send a request
+                      </span>
+                    </div>
+                  </>
                 ) : null}
 
                 <form className="flex min-h-0 flex-1 flex-col gap-4" onSubmit={handleSubmit}>
                   <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
-                  <AnimatePresence mode="wait">
-                    {step === 1 ? (
-                      <motion.div
-                        key="step-1"
-                        initial={{ opacity: 0, x: 12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -12 }}
-                        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                        className="space-y-4"
-                      >
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <AnimatePresence mode="wait">
+                      {step === 1 ? (
+                        <motion.div
+                          key="step-1"
+                          initial={{ opacity: 0, x: 12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -12 }}
+                          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                          className="space-y-4"
+                        >
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <InputGroup
+                              label="First name"
+                              name="firstName"
+                              placeholder="Jane"
+                              value={firstName}
+                              onChange={setFirstName}
+                              required
+                            />
+                            <InputGroup
+                              label="Last name"
+                              name="lastName"
+                              placeholder="Kamau"
+                              value={lastName}
+                              onChange={setLastName}
+                              required
+                            />
+                          </div>
                           <InputGroup
-                            label="First name"
-                            name="firstName"
-                            placeholder="Jane"
-                            value={firstName}
-                            onChange={setFirstName}
+                            label="Work email"
+                            name="email"
+                            type="email"
+                            placeholder="jane@company.co.ke"
+                            value={email}
+                            onChange={setEmail}
                             required
                           />
                           <InputGroup
-                            label="Last name"
-                            name="lastName"
-                            placeholder="Kamau"
-                            value={lastName}
-                            onChange={setLastName}
+                            label="Company"
+                            name="company"
+                            placeholder="Your organisation"
+                            value={company}
+                            onChange={setCompany}
                             required
                           />
-                        </div>
-                        <InputGroup
-                          label="Work email"
-                          name="email"
-                          type="email"
-                          placeholder="jane@company.co.ke"
-                          value={email}
-                          onChange={setEmail}
-                          required
-                        />
-                        <InputGroup
-                          label="Company"
-                          name="company"
-                          placeholder="Your organisation"
-                          value={company}
-                          onChange={setCompany}
-                          required
-                        />
-                        <label className="block space-y-2">
-                          <span className="text-[13px] font-medium text-[#fbf8f4]/90">Team size</span>
-                          <StrideSelect
-                            surface="public"
-                            ariaLabel="Team size"
-                            triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
-                            value={teamSize}
-                            onChange={setTeamSize}
-                            options={TEAM_SIZE_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
-                          />
-                        </label>
-                      </motion.div>
-                    ) : null}
+                          <label className="block space-y-2">
+                            <span className="text-[13px] font-medium text-[#fbf8f4]/90">Team size</span>
+                            <StrideSelect
+                              surface="public"
+                              ariaLabel="Team size"
+                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
+                              value={teamSize}
+                              onChange={setTeamSize}
+                              options={TEAM_SIZE_OPTIONS.map((option) => ({
+                                value: option.value,
+                                label: option.label,
+                              }))}
+                            />
+                          </label>
+                        </motion.div>
+                      ) : null}
 
-                    {step === 2 ? (
-                      <motion.div
-                        key="step-2"
-                        initial={{ opacity: 0, x: 12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -12 }}
-                        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                        className="bd-demo-module-list max-h-[min(52dvh,26rem)] space-y-2"
-                      >
-                        {CORE_MODULES.map((mod) => {
-                          const selected = modules.includes(mod.name);
-                          return (
+                      {step === 2 ? (
+                        <motion.div
+                          key="step-2"
+                          initial={{ opacity: 0, x: 12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -12 }}
+                          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                          className="bd-demo-module-list space-y-2"
+                        >
+                          {CORE_MODULES.map((mod) => {
+                            const selected = modules.includes(mod.name);
+                            return (
+                              <label
+                                key={mod.name}
+                                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3.5 transition-colors ${
+                                  selected
+                                    ? 'border-[var(--sc-coral)]/40 bg-[var(--sc-coral)]/10'
+                                    : 'border-white/10 bg-white/[0.04] hover:border-white/20'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--sc-coral)]"
+                                  checked={selected}
+                                  onChange={() => toggleModule(mod.name)}
+                                />
+                                <span>
+                                  <span className="block text-sm font-medium text-[#fbf8f4]">
+                                    {mod.name}
+                                  </span>
+                                  <span className="mt-0.5 block text-[12px] leading-relaxed text-[#fbf8f4]/55">
+                                    {mod.description}
+                                  </span>
+                                </span>
+                              </label>
+                            );
+                          })}
+
+                          <div className="space-y-2">
                             <label
-                              key={mod.name}
                               className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3.5 transition-colors ${
-                                selected
+                                somethingElse
                                   ? 'border-[var(--sc-coral)]/40 bg-[var(--sc-coral)]/10'
                                   : 'border-white/10 bg-white/[0.04] hover:border-white/20'
                               }`}
@@ -488,126 +572,105 @@ export function BookDemoPage() {
                               <input
                                 type="checkbox"
                                 className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--sc-coral)]"
-                                checked={selected}
-                                onChange={() => toggleModule(mod.name)}
+                                checked={somethingElse}
+                                onChange={toggleSomethingElse}
                               />
                               <span>
-                                <span className="block text-sm font-medium text-[#fbf8f4]">{mod.name}</span>
+                                <span className="block text-sm font-medium text-[#fbf8f4]">
+                                  {SOMETHING_ELSE_LABEL}
+                                </span>
                                 <span className="mt-0.5 block text-[12px] leading-relaxed text-[#fbf8f4]/55">
-                                  {mod.description}
+                                  Tell us about a module or workflow your business needs — we use this
+                                  to shape the roadmap.
                                 </span>
                               </span>
                             </label>
-                          );
-                        })}
 
-                        <div className="space-y-2">
-                          <label
-                            className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3.5 transition-colors ${
-                              somethingElse
-                                ? 'border-[var(--sc-coral)]/40 bg-[var(--sc-coral)]/10'
-                                : 'border-white/10 bg-white/[0.04] hover:border-white/20'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--sc-coral)]"
-                              checked={somethingElse}
-                              onChange={toggleSomethingElse}
-                            />
-                            <span>
-                              <span className="block text-sm font-medium text-[#fbf8f4]">
-                                {SOMETHING_ELSE_LABEL}
-                              </span>
-                              <span className="mt-0.5 block text-[12px] leading-relaxed text-[#fbf8f4]/55">
-                                Tell us about a module or workflow your business needs — we use this
-                                to shape the roadmap.
-                              </span>
+                            {somethingElse ? (
+                              <label className="block space-y-2 pl-1">
+                                <span className="text-[12px] font-medium text-[#fbf8f4]/75">
+                                  Which module or capability?
+                                </span>
+                                <input
+                                  type="text"
+                                  name="otherModule"
+                                  value={otherModule}
+                                  onChange={(event) => setOtherModule(event.target.value)}
+                                  placeholder="e.g. Inventory, CRM, field service…"
+                                  className={fieldClass}
+                                />
+                              </label>
+                            ) : null}
+                          </div>
+                        </motion.div>
+                      ) : null}
+
+                      {step === 3 ? (
+                        <motion.div
+                          key="step-3"
+                          initial={{ opacity: 0, x: 12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -12 }}
+                          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                          className="space-y-4"
+                        >
+                          <InputGroup
+                            label="Preferred date"
+                            name="preferredDate"
+                            type="date"
+                            placeholder=""
+                            value={preferredDate}
+                            onChange={setPreferredDate}
+                            required
+                            min={minDate}
+                          />
+                          <label className="block space-y-2">
+                            <span className="text-[13px] font-medium text-[#fbf8f4]/90">
+                              Preferred time (EAT)
                             </span>
+                            <StrideSelect
+                              surface="public"
+                              ariaLabel="Preferred time (EAT)"
+                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
+                              value={preferredTime}
+                              onChange={setPreferredTime}
+                              options={TIME_OPTIONS.map((option) => ({
+                                value: option.value,
+                                label: option.label,
+                              }))}
+                            />
                           </label>
-
-                          {somethingElse ? (
-                            <label className="block space-y-2 pl-1">
-                              <span className="text-[12px] font-medium text-[#fbf8f4]/75">
-                                Which module or capability?
-                              </span>
-                              <input
-                                type="text"
-                                name="otherModule"
-                                value={otherModule}
-                                onChange={(event) => setOtherModule(event.target.value)}
-                                placeholder="e.g. Inventory, CRM, field service…"
-                                className={fieldClass}
-                              />
-                            </label>
+                          <label className="block space-y-2">
+                            <span className="text-[13px] font-medium text-[#fbf8f4]/90">
+                              Anything else?
+                            </span>
+                            <textarea
+                              name="message"
+                              value={message}
+                              rows={3}
+                              placeholder="Entities, timelines, logistics needs..."
+                              onChange={(event) => setMessage(event.target.value)}
+                              className={textareaClass}
+                            />
+                          </label>
+                          {modules.length > 0 || otherModule ? (
+                            <p className="text-[12px] text-[#fbf8f4]/50">
+                              Modules selected:{' '}
+                              {[
+                                ...modules,
+                                ...(otherModule.trim()
+                                  ? [`${SOMETHING_ELSE_LABEL}: ${otherModule.trim()}`]
+                                  : []),
+                              ].join(', ')}
+                            </p>
                           ) : null}
-                        </div>
-                      </motion.div>
-                    ) : null}
-
-                    {step === 3 ? (
-                      <motion.div
-                        key="step-3"
-                        initial={{ opacity: 0, x: 12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -12 }}
-                        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                        className="space-y-4"
-                      >
-                        <InputGroup
-                          label="Preferred date"
-                          name="preferredDate"
-                          type="date"
-                          placeholder=""
-                          value={preferredDate}
-                          onChange={setPreferredDate}
-                          required
-                          min={minDate}
-                        />
-                        <label className="block space-y-2">
-                          <span className="text-[13px] font-medium text-[#fbf8f4]/90">
-                            Preferred time (EAT)
-                          </span>
-                          <StrideSelect
-                            surface="public"
-                            ariaLabel="Preferred time (EAT)"
-                            triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
-                            value={preferredTime}
-                            onChange={setPreferredTime}
-                            options={TIME_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
-                          />
-                        </label>
-                        <label className="block space-y-2">
-                          <span className="text-[13px] font-medium text-[#fbf8f4]/90">
-                            Anything else?
-                          </span>
-                          <textarea
-                            name="message"
-                            value={message}
-                            rows={3}
-                            placeholder="Entities, timelines, logistics needs..."
-                            onChange={(event) => setMessage(event.target.value)}
-                            className={textareaClass}
-                          />
-                        </label>
-                        {modules.length > 0 || otherModule ? (
-                          <p className="text-[12px] text-[#fbf8f4]/50">
-                            Modules selected:{' '}
-                            {[
-                              ...modules,
-                              ...(otherModule.trim()
-                                ? [`${SOMETHING_ELSE_LABEL}: ${otherModule.trim()}`]
-                                : []),
-                            ].join(', ')}
-                          </p>
-                        ) : null}
-                      </motion.div>
-                    ) : null}
-                  </AnimatePresence>
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
                   </div>
 
                   {error ? (
-                    <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    <p className="shrink-0 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                       {error}
                     </p>
                   ) : null}
