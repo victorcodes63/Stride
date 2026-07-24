@@ -16,8 +16,8 @@ const brandVars = {
 export default function FullscreenMarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <PublicAppShell
-      className="studio-craft-marketing max-w-[100vw] overflow-x-clip bg-[var(--sc-ink)] font-[var(--font-inter)] text-[var(--sc-paper)] antialiased"
-      style={brandVars}
+      className="studio-craft-marketing !bg-[var(--sc-ink)] max-w-[100vw] overflow-x-clip font-[var(--font-inter)] text-[var(--sc-paper)] antialiased"
+      style={{ ...brandVars, backgroundColor: 'var(--sc-ink)' }}
     >
       <MarketingAnalytics />
       {children}

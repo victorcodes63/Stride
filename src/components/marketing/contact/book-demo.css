@@ -252,3 +252,60 @@ html.dark .public-app .bd-demo-form p {
     animation: none;
   }
 }
+
+/* Full-bleed mobile shell — kills cream paper bleed under the wizard. */
+body:has(.bd-demo-shell) {
+  background: var(--sc-ink, #1a1714) !important;
+}
+
+.bd-demo-shell {
+  background-color: var(--sc-ink, #1a1714);
+}
+
+@supports (height: 100svh) {
+  .bd-demo-shell {
+    height: 100svh;
+    max-height: 100svh;
+  }
+}
+
+@media (max-width: 1023px) {
+  .bd-demo-shell {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  @supports (height: 100svh) {
+    .bd-demo-shell {
+      height: 100svh;
+      max-height: 100svh;
+    }
+  }
+
+  .bd-demo-shell .bd-demo-form-column {
+    border-radius: 0;
+  }
+
+  .bd-demo-shell .bd-demo-actions {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .bd-demo-shell .bd-demo-topbar {
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+  }
+}
+
+/* Hide native checkbox; custom indicator is the visual control. */
+.bd-demo-module-card input[type='checkbox'] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}

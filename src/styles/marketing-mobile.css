@@ -106,10 +106,6 @@ body.marketing-menu-open .marketing-fixed-header {
 }
 
 @media (max-width: 639px) {
-  .bd-demo-panel {
-    min-height: min(320px, 42vh) !important;
-  }
-
   .marketing-mobile-drawer-cta {
     padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
   }

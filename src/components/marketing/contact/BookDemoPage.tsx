@@ -359,13 +359,13 @@ export function BookDemoPage() {
   }
 
   return (
-    <main className="flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-[var(--sc-ink)] p-2 selection:bg-[var(--sc-coral)]/25 sm:p-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:p-4">
+    <main className="bd-demo-shell flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-[var(--sc-ink)] selection:bg-[var(--sc-coral)]/25 lg:relative lg:grid lg:grid-cols-2 lg:gap-3 lg:p-4">
       <BookDemoLeftPanel currentStep={step} />
 
-      <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] bg-[var(--sc-ink)] sm:rounded-[28px]">
-        <MarketingCloseButton />
+      <section className="bd-demo-form-column relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--sc-ink)] lg:rounded-[28px]">
+        <MarketingCloseButton className="right-4 top-[max(1rem,env(safe-area-inset-top))] sm:right-8 sm:top-8" />
 
-        <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-5 sm:px-10 sm:pb-10 sm:pt-10 lg:px-14 lg:py-10 xl:px-20">
+        <div className="flex min-h-0 flex-1 flex-col px-5 pb-0 pt-0 sm:px-10 lg:px-14 lg:py-10 xl:px-20">
           <motion.div
             className="bd-demo-form mx-auto flex w-full max-w-md min-h-0 flex-1 flex-col"
             initial={{ opacity: 0, y: 16 }}
@@ -373,7 +373,7 @@ export function BookDemoPage() {
             transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
           >
             {submitted ? (
-              <div className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.04] p-8">
+              <div className="my-auto space-y-5 rounded-2xl border border-white/10 bg-white/[0.04] p-8">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--sc-coral)]/15 text-[var(--sc-coral)]">
                   <Mail className="h-4 w-4" aria-hidden />
                 </span>
@@ -398,28 +398,29 @@ export function BookDemoPage() {
                 </Link>
               </div>
             ) : (
-              <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-7">
-                <div className="shrink-0 space-y-4 lg:hidden">
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div className="bd-demo-topbar shrink-0 space-y-3 pb-4 pt-4 lg:hidden">
                   <Link href={MARKETING_ROUTES.home} className="inline-flex pr-12" aria-label="Stride home">
                     <StrideLogo heightClass="h-6" className="brightness-0 invert" />
                   </Link>
                   <MobileProgress currentStep={step} />
                 </div>
 
-                <div className="shrink-0 space-y-1.5 pr-10 sm:space-y-2">
+                <div className="shrink-0 space-y-1.5 pb-4 pr-10 pt-1 sm:space-y-2 sm:pt-6 lg:pt-0">
                   <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--sc-coral)]">
                     Step {step} of {TOTAL_STEPS}
                   </p>
-                  <h2 className="text-[clamp(1.5rem,3.5vw,2rem)] font-normal leading-tight tracking-tight text-[#fbf8f4]">
+                  <h2 className="text-[clamp(1.4rem,4.2vw,2rem)] font-normal leading-tight tracking-tight text-[#fbf8f4]">
                     {stepMeta.title}
                   </h2>
-                  <p className="text-[14px] text-[#fbf8f4]/65">{stepMeta.description}</p>
+                  <p className="text-[13px] leading-relaxed text-[#fbf8f4]/60 sm:text-[14px]">
+                    {stepMeta.description}
+                  </p>
                 </div>
 
                 {step === 1 ? (
                   <>
-                    {/* Compact contact links on narrow phones */}
-                    <p className="shrink-0 text-[13px] text-[#fbf8f4]/55 sm:hidden">
+                    <p className="shrink-0 pb-3 text-[13px] text-[#fbf8f4]/55 sm:hidden">
                       Prefer email?{' '}
                       <a
                         href={`mailto:${MARKETING_SALES_EMAIL}`}
@@ -436,8 +437,7 @@ export function BookDemoPage() {
                       </a>
                     </p>
 
-                    {/* Full CTA buttons from sm and up */}
-                    <div className="hidden shrink-0 grid-cols-2 gap-3 sm:grid">
+                    <div className="hidden shrink-0 grid-cols-2 gap-3 pb-4 sm:grid">
                       <SocialButton
                         icon={<Mail className="h-4 w-4 text-[var(--sc-coral)]" aria-hidden />}
                         label="Email us"
@@ -450,7 +450,7 @@ export function BookDemoPage() {
                       />
                     </div>
 
-                    <div className="relative hidden shrink-0 items-center justify-center sm:flex">
+                    <div className="relative hidden shrink-0 items-center justify-center pb-4 sm:flex">
                       <div className="absolute inset-x-0 border-t border-white/10" />
                       <span className="relative bg-[var(--sc-ink)] px-4 text-[11px] font-medium uppercase tracking-[0.16em] text-white/35">
                         Or send a request
@@ -459,8 +459,8 @@ export function BookDemoPage() {
                   </>
                 ) : null}
 
-                <form className="flex min-h-0 flex-1 flex-col gap-4" onSubmit={handleSubmit}>
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+                <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 pr-0.5 [-webkit-overflow-scrolling:touch]">
                     <AnimatePresence mode="wait">
                       {step === 1 ? (
                         <motion.div
@@ -469,9 +469,9 @@ export function BookDemoPage() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -12 }}
                           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                          className="space-y-4"
+                          className="space-y-3.5"
                         >
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
                             <InputGroup
                               label="First name"
                               name="firstName"
@@ -530,30 +530,39 @@ export function BookDemoPage() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -12 }}
                           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                          className="bd-demo-module-list space-y-2"
+                          className="bd-demo-module-list space-y-2.5"
                         >
                           {CORE_MODULES.map((mod) => {
                             const selected = modules.includes(mod.name);
                             return (
                               <label
                                 key={mod.name}
-                                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3.5 transition-colors ${
+                                className={`bd-demo-module-card relative flex cursor-pointer items-start gap-3.5 rounded-2xl border px-3.5 py-3.5 transition-all duration-200 active:scale-[0.99] sm:px-4 sm:py-3.5 ${
                                   selected
-                                    ? 'border-[var(--sc-coral)]/40 bg-[var(--sc-coral)]/10'
-                                    : 'border-white/10 bg-white/[0.04] hover:border-white/20'
+                                    ? 'border-[var(--sc-coral)]/50 bg-[var(--sc-coral)]/12 shadow-[0_0_0_1px_rgba(255,84,54,0.12)]'
+                                    : 'border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.05]'
                                 }`}
                               >
                                 <input
                                   type="checkbox"
-                                  className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--sc-coral)]"
                                   checked={selected}
                                   onChange={() => toggleModule(mod.name)}
                                 />
-                                <span>
-                                  <span className="block text-sm font-medium text-[#fbf8f4]">
+                                <span
+                                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                                    selected
+                                      ? 'border-[var(--sc-coral)] bg-[var(--sc-coral)] text-white'
+                                      : 'border-white/25 bg-transparent text-transparent'
+                                  }`}
+                                  aria-hidden
+                                >
+                                  <Check className="h-3 w-3" strokeWidth={3} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-[15px] font-medium tracking-tight text-[#fbf8f4]">
                                     {mod.name}
                                   </span>
-                                  <span className="mt-0.5 block text-[12px] leading-relaxed text-[#fbf8f4]/55">
+                                  <span className="mt-0.5 block text-[12px] leading-snug text-[#fbf8f4]/52 line-clamp-2 sm:line-clamp-none sm:leading-relaxed">
                                     {mod.description}
                                   </span>
                                 </span>
@@ -563,25 +572,33 @@ export function BookDemoPage() {
 
                           <div className="space-y-2">
                             <label
-                              className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3.5 transition-colors ${
+                              className={`bd-demo-module-card relative flex cursor-pointer items-start gap-3.5 rounded-2xl border px-3.5 py-3.5 transition-all duration-200 active:scale-[0.99] sm:px-4 ${
                                 somethingElse
-                                  ? 'border-[var(--sc-coral)]/40 bg-[var(--sc-coral)]/10'
-                                  : 'border-white/10 bg-white/[0.04] hover:border-white/20'
+                                  ? 'border-[var(--sc-coral)]/50 bg-[var(--sc-coral)]/12 shadow-[0_0_0_1px_rgba(255,84,54,0.12)]'
+                                  : 'border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.05]'
                               }`}
                             >
                               <input
                                 type="checkbox"
-                                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--sc-coral)]"
                                 checked={somethingElse}
                                 onChange={toggleSomethingElse}
                               />
-                              <span>
-                                <span className="block text-sm font-medium text-[#fbf8f4]">
+                              <span
+                                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                                  somethingElse
+                                    ? 'border-[var(--sc-coral)] bg-[var(--sc-coral)] text-white'
+                                    : 'border-white/25 bg-transparent text-transparent'
+                                }`}
+                                aria-hidden
+                              >
+                                <Check className="h-3 w-3" strokeWidth={3} />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-[15px] font-medium tracking-tight text-[#fbf8f4]">
                                   {SOMETHING_ELSE_LABEL}
                                 </span>
-                                <span className="mt-0.5 block text-[12px] leading-relaxed text-[#fbf8f4]/55">
-                                  Tell us about a module or workflow your business needs — we use this
-                                  to shape the roadmap.
+                                <span className="mt-0.5 block text-[12px] leading-snug text-[#fbf8f4]/52 line-clamp-2 sm:line-clamp-none">
+                                  Tell us about a module or workflow your business needs.
                                 </span>
                               </span>
                             </label>
@@ -675,45 +692,47 @@ export function BookDemoPage() {
                     </p>
                   ) : null}
 
-                  <div className="flex shrink-0 gap-3 border-t border-white/10 bg-[var(--sc-ink)] pt-4">
-                    {step > 1 ? (
+                  <div className="bd-demo-actions shrink-0 border-t border-white/10 bg-[var(--sc-ink)] pt-3">
+                    <div className="flex gap-3">
+                      {step > 1 ? (
+                        <button
+                          type="button"
+                          onClick={goBack}
+                          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/12 text-sm font-medium text-[#fbf8f4] transition hover:bg-white/[0.06] active:scale-[0.99]"
+                        >
+                          <ArrowLeft className="h-4 w-4" aria-hidden />
+                          Back
+                        </button>
+                      ) : null}
                       <button
-                        type="button"
-                        onClick={goBack}
-                        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 text-sm font-medium text-[#fbf8f4] transition hover:bg-white/[0.06]"
+                        type="submit"
+                        disabled={submitting}
+                        className="inline-flex h-12 flex-[2] items-center justify-center gap-2 rounded-2xl bg-[#fbf8f4] text-[14px] font-semibold text-[#1a1714] transition hover:bg-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                       >
-                        <ArrowLeft className="h-4 w-4" aria-hidden />
-                        Back
+                        {submitting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                        ) : step < TOTAL_STEPS ? (
+                          <>
+                            Continue
+                            <ArrowRight className="h-4 w-4" aria-hidden />
+                          </>
+                        ) : (
+                          MARKETING_CTAS.bookDemo
+                        )}
                       </button>
-                    ) : null}
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="inline-flex h-11 flex-[2] items-center justify-center gap-2 rounded-xl bg-[#fbf8f4] text-[14px] font-semibold text-[#1a1714] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {submitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                      ) : step < TOTAL_STEPS ? (
-                        <>
-                          Continue
-                          <ArrowRight className="h-4 w-4" aria-hidden />
-                        </>
-                      ) : (
-                        MARKETING_CTAS.bookDemo
-                      )}
-                    </button>
+                    </div>
+
+                    <p className="mt-3 hidden text-center text-sm text-[#fbf8f4]/55 lg:block">
+                      Already on Stride?{' '}
+                      <Link
+                        href={getMarketingLoginUrl()}
+                        className="font-medium text-[#fbf8f4] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
+                      >
+                        {MARKETING_CTAS.signIn}
+                      </Link>
+                    </p>
                   </div>
                 </form>
-
-                <p className="shrink-0 text-center text-sm text-[#fbf8f4]/55">
-                  Already on Stride?{' '}
-                  <Link
-                    href={getMarketingLoginUrl()}
-                    className="font-medium text-[#fbf8f4] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
-                  >
-                    {MARKETING_CTAS.signIn}
-                  </Link>
-                </p>
               </div>
             )}
           </motion.div>
