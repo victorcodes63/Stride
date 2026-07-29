@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
 import { withFleetTenant, fleetTenantWhere } from '@/lib/fleet-tenant-api';
 
 export const dynamic = 'force-dynamic';
@@ -9,15 +8,17 @@ export async function GET(request: NextRequest) {
   return withFleetTenant(request, async (ctx) => {
     const vehicleId = ctx.request.nextUrl.searchParams.get('vehicleId')?.trim() || undefined;
 
-    const rows = await prisma.fleetFuelLog.findMany({
-      where: fleetTenantWhere(ctx, { ...(vehicleId ? { vehicleId } : {}) }),
-      include: {
-        vehicle: { select: { id: true, registration: true, label: true } },
-        driver: { select: { id: true, fullName: true } },
-      },
-      orderBy: { fueledAt: 'desc' },
-      take: 200,
-    });
+    const rows = await ctx.run((tx) =>
+      tx.fleetFuelLog.findMany({
+        where: fleetTenantWhere(ctx, { ...(vehicleId ? { vehicleId } : {}) }),
+        include: {
+          vehicle: { select: { id: true, registration: true, label: true } },
+          driver: { select: { id: true, fullName: true } },
+        },
+        orderBy: { fueledAt: 'desc' },
+        take: 200,
+      }),
+    );
 
     return NextResponse.json(
       rows.map((row) => ({
@@ -52,21 +53,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'amountKes must be a valid number.' }, { status: 400 });
     }
 
-    const vehicle = await prisma.fleetVehicle.findFirst({
-      where: fleetTenantWhere(ctx, { id: vehicleId }),
-      select: { id: true },
-    });
-    if (!vehicle) return NextResponse.json({ error: 'Vehicle not found.' }, { status: 404 });
-
-    const driverId = typeof body?.driverId === 'string' ? body.driverId.trim() || null : null;
-    if (driverId) {
-      const driver = await prisma.fleetDriver.findFirst({
-        where: fleetTenantWhere(ctx, { id: driverId }),
-        select: { id: true },
-      });
-      if (!driver) return NextResponse.json({ error: 'Driver not found.' }, { status: 404 });
-    }
-
     const fueledAt =
       typeof body?.fueledAt === 'string' && body.fueledAt
         ? new Date(body.fueledAt)
@@ -76,46 +62,67 @@ export async function POST(request: NextRequest) {
         ? Number(body.odometerKm)
         : null;
 
-    const row = await prisma.$transaction(async (tx) => {
-      const log = await tx.fleetFuelLog.create({
-        data: {
-          organizationId: ctx.organizationId,
-          outsourcingClientId: ctx.workspaceClientId,
-          vehicleId,
-          driverId,
-          fueledAt,
-          liters: new Prisma.Decimal(liters),
-          amountKes: new Prisma.Decimal(amountKes),
-          odometerKm: Number.isFinite(odometerKm) ? odometerKm : null,
-          station: typeof body?.station === 'string' ? body.station.trim() || null : null,
-          notes: typeof body?.notes === 'string' ? body.notes.trim() || null : null,
-          createdByUserId: ctx.staff.id,
-        },
-        include: {
-          vehicle: { select: { registration: true } },
-          driver: { select: { fullName: true } },
-        },
+    try {
+      const row = await ctx.run(async (tx) => {
+        const vehicle = await tx.fleetVehicle.findFirst({
+          where: fleetTenantWhere(ctx, { id: vehicleId }),
+          select: { id: true },
+        });
+        if (!vehicle) throw new Error('Vehicle not found.');
+
+        const driverId = typeof body?.driverId === 'string' ? body.driverId.trim() || null : null;
+        if (driverId) {
+          const driver = await tx.fleetDriver.findFirst({
+            where: fleetTenantWhere(ctx, { id: driverId }),
+            select: { id: true },
+          });
+          if (!driver) throw new Error('Driver not found.');
+        }
+
+        const log = await tx.fleetFuelLog.create({
+          data: {
+            organizationId: ctx.organizationId,
+            outsourcingClientId: ctx.workspaceClientId,
+            vehicleId,
+            driverId,
+            fueledAt,
+            liters: new Prisma.Decimal(liters),
+            amountKes: new Prisma.Decimal(amountKes),
+            odometerKm: Number.isFinite(odometerKm) ? odometerKm : null,
+            station: typeof body?.station === 'string' ? body.station.trim() || null : null,
+            notes: typeof body?.notes === 'string' ? body.notes.trim() || null : null,
+            createdByUserId: ctx.staff.id,
+          },
+          include: {
+            vehicle: { select: { registration: true } },
+            driver: { select: { fullName: true } },
+          },
+        });
+
+        if (Number.isFinite(odometerKm) && odometerKm != null) {
+          await tx.fleetVehicle.update({
+            where: { id: vehicleId },
+            data: { odometerKm },
+          });
+        }
+
+        return log;
       });
 
-      if (Number.isFinite(odometerKm) && odometerKm != null) {
-        await tx.fleetVehicle.update({
-          where: { id: vehicleId },
-          data: { odometerKm },
-        });
-      }
-
-      return log;
-    });
-
-    return NextResponse.json(
-      {
-        id: row.id,
-        vehicleRegistration: row.vehicle.registration,
-        fueledAt: row.fueledAt.toISOString(),
-        liters: Number(row.liters),
-        amountKes: Number(row.amountKes),
-      },
-      { status: 201 },
-    );
+      return NextResponse.json(
+        {
+          id: row.id,
+          vehicleRegistration: row.vehicle.registration,
+          fueledAt: row.fueledAt.toISOString(),
+          liters: Number(row.liters),
+          amountKes: Number(row.amountKes),
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create fuel log.';
+      const status = message.includes('not found') ? 404 : 500;
+      return NextResponse.json({ error: message }, { status });
+    }
   });
 }
