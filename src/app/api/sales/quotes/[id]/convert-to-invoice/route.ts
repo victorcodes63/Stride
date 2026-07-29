@@ -61,6 +61,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           { status: 400 },
         );
       }
+      if (err.code === 'QUOTE_SUPERSEDED') {
+        return NextResponse.json(
+          { error: 'This quote revision was superseded — convert the current version instead.' },
+          { status: 400 },
+        );
+      }
       if (err.code === 'CLIENT_REQUIRED') {
         return NextResponse.json(
           { error: 'Attach a billing client to the quote before invoicing.' },
