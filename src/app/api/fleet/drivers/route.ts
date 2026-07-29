@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { FleetDriverStatus } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
 import { withFleetTenant, fleetTenantWhere } from '@/lib/fleet-tenant-api';
 import { FLEET_DRIVER_STATUS_LABELS } from '@/lib/fleet/registers';
 
@@ -15,14 +14,16 @@ const DRIVER_STATUSES = new Set<FleetDriverStatus>([
 
 export async function GET(request: NextRequest) {
   return withFleetTenant(request, async (ctx) => {
-    const rows = await prisma.fleetDriver.findMany({
-      where: fleetTenantWhere(ctx),
-      include: {
-        employee: { select: { id: true, name: true, email: true } },
-        _count: { select: { trips: true } },
-      },
-      orderBy: [{ status: 'asc' }, { fullName: 'asc' }],
-    });
+    const rows = await ctx.run((tx) =>
+      tx.fleetDriver.findMany({
+        where: fleetTenantWhere(ctx),
+        include: {
+          employee: { select: { id: true, firstName: true, lastName: true, email: true } },
+          _count: { select: { trips: true } },
+        },
+        orderBy: [{ status: 'asc' }, { fullName: 'asc' }],
+      }),
+    );
 
     return NextResponse.json(
       rows.map((row) => ({
@@ -34,7 +35,9 @@ export async function GET(request: NextRequest) {
         licenceExpiry: row.licenceExpiry?.toISOString().slice(0, 10) ?? null,
         status: row.status,
         statusLabel: FLEET_DRIVER_STATUS_LABELS[row.status],
-        employeeName: row.employee?.name ?? null,
+        employeeName: row.employee
+          ? `${row.employee.firstName} ${row.employee.lastName}`.trim()
+          : null,
         tripCount: row._count.trips,
         notes: row.notes,
       })),
@@ -60,21 +63,23 @@ export async function POST(request: NextRequest) {
         ? new Date(body.licenceExpiry)
         : null;
 
-    const row = await prisma.fleetDriver.create({
-      data: {
-        organizationId: ctx.organizationId,
-        outsourcingClientId: ctx.workspaceClientId,
-        fullName,
-        phone: typeof body?.phone === 'string' ? body.phone.trim() || null : null,
-        licenceNumber:
-          typeof body?.licenceNumber === 'string' ? body.licenceNumber.trim() || null : null,
-        licenceClass:
-          typeof body?.licenceClass === 'string' ? body.licenceClass.trim() || null : null,
-        licenceExpiry,
-        status,
-        notes: typeof body?.notes === 'string' ? body.notes.trim() || null : null,
-      },
-    });
+    const row = await ctx.run((tx) =>
+      tx.fleetDriver.create({
+        data: {
+          organizationId: ctx.organizationId,
+          outsourcingClientId: ctx.workspaceClientId,
+          fullName,
+          phone: typeof body?.phone === 'string' ? body.phone.trim() || null : null,
+          licenceNumber:
+            typeof body?.licenceNumber === 'string' ? body.licenceNumber.trim() || null : null,
+          licenceClass:
+            typeof body?.licenceClass === 'string' ? body.licenceClass.trim() || null : null,
+          licenceExpiry,
+          status,
+          notes: typeof body?.notes === 'string' ? body.notes.trim() || null : null,
+        },
+      }),
+    );
 
     return NextResponse.json(
       {

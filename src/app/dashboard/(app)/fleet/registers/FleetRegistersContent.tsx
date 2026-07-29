@@ -117,27 +117,69 @@ export default function FleetRegistersContent() {
     setLoading(true);
     setError(null);
     try {
-      const [vehiclesRes, driversRes, partnersRes, fuelRes, maintRes] = await Promise.all([
-        fetch('/api/fleet/vehicles'),
-        fetch('/api/fleet/drivers'),
-        fetch('/api/fleet/partners'),
-        fetch('/api/fleet/fuel-logs'),
-        fetch('/api/fleet/maintenance-logs'),
-      ]);
+      const endpoints = [
+        { key: 'vehicles', url: '/api/fleet/vehicles' },
+        { key: 'drivers', url: '/api/fleet/drivers' },
+        { key: 'partners', url: '/api/fleet/partners' },
+        { key: 'fuel', url: '/api/fleet/fuel-logs' },
+        { key: 'maintenance', url: '/api/fleet/maintenance-logs' },
+      ] as const;
 
-      if (!vehiclesRes.ok || !driversRes.ok || !partnersRes.ok || !fuelRes.ok || !maintRes.ok) {
-        throw new Error('Unable to load fleet registers.');
+      const results = await Promise.all(
+        endpoints.map(async ({ key, url }) => {
+          const res = await fetch(url);
+          const body = await res.json().catch(() => null);
+          return { key, ok: res.ok, status: res.status, body };
+        }),
+      );
+
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length === endpoints.length) {
+        const detail = failed
+          .map((r) => {
+            const msg =
+              r.body && typeof r.body === 'object' && 'error' in r.body
+                ? String((r.body as { error?: unknown }).error ?? r.status)
+                : String(r.status);
+            return `${r.key}: ${msg}`;
+          })
+          .join('; ');
+        throw new Error(`Unable to load fleet registers. (${detail})`);
       }
 
-      const vehicleRows = (await vehiclesRes.json()) as VehicleOption[];
-      setVehicles(vehicleRows);
-      setDrivers((await driversRes.json()) as DriverRow[]);
-      setPartners((await partnersRes.json()) as PartnerRow[]);
-      setFuelLogs((await fuelRes.json()) as FuelRow[]);
-      setMaintenanceLogs((await maintRes.json()) as MaintenanceRow[]);
+      const byKey = Object.fromEntries(results.map((r) => [r.key, r]));
+
+      const vehicleRows = byKey.vehicles?.ok
+        ? ((byKey.vehicles.body as VehicleOption[]) ?? [])
+        : [];
+      setVehicles(Array.isArray(vehicleRows) ? vehicleRows : []);
+      setDrivers(
+        byKey.drivers?.ok && Array.isArray(byKey.drivers.body)
+          ? (byKey.drivers.body as DriverRow[])
+          : [],
+      );
+      setPartners(
+        byKey.partners?.ok && Array.isArray(byKey.partners.body)
+          ? (byKey.partners.body as PartnerRow[])
+          : [],
+      );
+      setFuelLogs(
+        byKey.fuel?.ok && Array.isArray(byKey.fuel.body) ? (byKey.fuel.body as FuelRow[]) : [],
+      );
+      setMaintenanceLogs(
+        byKey.maintenance?.ok && Array.isArray(byKey.maintenance.body)
+          ? (byKey.maintenance.body as MaintenanceRow[])
+          : [],
+      );
 
       setFuelVehicleId((prev) => prev || vehicleRows[0]?.id || '');
       setMaintVehicleId((prev) => prev || vehicleRows[0]?.id || '');
+
+      if (failed.length > 0) {
+        setError(
+          `Some register data failed to load (${failed.map((f) => f.key).join(', ')}). Showing what is available.`,
+        );
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to load fleet registers.');
     } finally {

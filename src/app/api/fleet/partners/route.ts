@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { withFleetTenant, fleetTenantWhere } from '@/lib/fleet-tenant-api';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   return withFleetTenant(request, async (ctx) => {
-    const rows = await prisma.fleetTransportPartner.findMany({
-      where: fleetTenantWhere(ctx),
-      include: { _count: { select: { trips: true } } },
-      orderBy: { name: 'asc' },
-    });
+    const rows = await ctx.run((tx) =>
+      tx.fleetTransportPartner.findMany({
+        where: fleetTenantWhere(ctx),
+        include: { _count: { select: { trips: true } } },
+        orderBy: { name: 'asc' },
+      }),
+    );
 
     return NextResponse.json(
       rows.map((row) => ({
@@ -35,22 +36,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'name is required.' }, { status: 400 });
     }
 
-    const row = await prisma.fleetTransportPartner.create({
-      data: {
-        organizationId: ctx.organizationId,
-        outsourcingClientId: ctx.workspaceClientId,
-        name,
-        contactName:
-          typeof body?.contactName === 'string' ? body.contactName.trim() || null : null,
-        contactPhone:
-          typeof body?.contactPhone === 'string' ? body.contactPhone.trim() || null : null,
-        contactEmail:
-          typeof body?.contactEmail === 'string' ? body.contactEmail.trim() || null : null,
-        payoutDetails:
-          typeof body?.payoutDetails === 'string' ? body.payoutDetails.trim() || null : null,
-        notes: typeof body?.notes === 'string' ? body.notes.trim() || null : null,
-      },
-    });
+    const row = await ctx.run((tx) =>
+      tx.fleetTransportPartner.create({
+        data: {
+          organizationId: ctx.organizationId,
+          outsourcingClientId: ctx.workspaceClientId,
+          name,
+          contactName:
+            typeof body?.contactName === 'string' ? body.contactName.trim() || null : null,
+          contactPhone:
+            typeof body?.contactPhone === 'string' ? body.contactPhone.trim() || null : null,
+          contactEmail:
+            typeof body?.contactEmail === 'string' ? body.contactEmail.trim() || null : null,
+          payoutDetails:
+            typeof body?.payoutDetails === 'string' ? body.payoutDetails.trim() || null : null,
+          notes: typeof body?.notes === 'string' ? body.notes.trim() || null : null,
+        },
+      }),
+    );
 
     return NextResponse.json({ id: row.id, name: row.name }, { status: 201 });
   });

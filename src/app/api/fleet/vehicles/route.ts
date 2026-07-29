@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { FleetVehicleOwnership, FleetVehicleStatus } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
 import { withFleetTenant } from '@/lib/fleet-tenant-api';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   return withFleetTenant(request, async (ctx) => {
-    const vehicles = await prisma.fleetVehicle.findMany({
-      where: {
-        outsourcingClientId: ctx.workspaceClientId,
-        organizationId: ctx.organizationId,
-      },
-      orderBy: [{ status: 'asc' }, { registration: 'asc' }],
-    });
+    const vehicles = await ctx.run((tx) =>
+      tx.fleetVehicle.findMany({
+        where: {
+          outsourcingClientId: ctx.workspaceClientId,
+          organizationId: ctx.organizationId,
+        },
+        orderBy: [{ status: 'asc' }, { registration: 'asc' }],
+      }),
+    );
 
     return NextResponse.json(
       vehicles.map((v) => ({
@@ -49,21 +50,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Registration is required.' }, { status: 400 });
     }
 
-    const vehicle = await prisma.fleetVehicle.create({
-      data: {
-        organizationId: ctx.organizationId,
-        outsourcingClientId: ctx.workspaceClientId,
-        registration: body.registration.trim().toUpperCase(),
-        label: body.label?.trim() || null,
-        vehicleType: body.vehicleType?.trim() || null,
-        capacityKg: body.capacityKg ?? null,
-        ownership: body.ownership ?? 'managed',
-        status: body.status ?? 'available',
-        depotLocation: body.depotLocation?.trim() || null,
-        odometerKm: body.odometerKm ?? null,
-        notes: body.notes?.trim() || null,
-      },
-    });
+    const vehicle = await ctx.run((tx) =>
+      tx.fleetVehicle.create({
+        data: {
+          organizationId: ctx.organizationId,
+          outsourcingClientId: ctx.workspaceClientId,
+          registration: body.registration!.trim().toUpperCase(),
+          label: body.label?.trim() || null,
+          vehicleType: body.vehicleType?.trim() || null,
+          capacityKg: body.capacityKg ?? null,
+          ownership: body.ownership ?? 'managed',
+          status: body.status ?? 'available',
+          depotLocation: body.depotLocation?.trim() || null,
+          odometerKm: body.odometerKm ?? null,
+          notes: body.notes?.trim() || null,
+        },
+      }),
+    );
 
     return NextResponse.json(
       {
