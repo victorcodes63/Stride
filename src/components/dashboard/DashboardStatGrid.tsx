@@ -106,6 +106,7 @@ export function DashboardStatCard({
   className,
   tone = 'primary',
   warn,
+  size = 'default',
 }: {
   label: string;
   value: ReactNode;
@@ -115,6 +116,8 @@ export function DashboardStatCard({
   /** Coloured accent strip + subtle card wash */
   tone?: DashboardStatTone;
   warn?: boolean;
+  /** `compact` fits long currency strings in narrow / 6-column grids (e.g. payroll). */
+  size?: 'default' | 'compact';
 }) {
   const styles = DASHBOARD_STAT_TONE_CLASSES[tone] ?? DASHBOARD_STAT_TONE_CLASSES.primary;
 
@@ -131,20 +134,21 @@ export function DashboardStatCard({
         className={cn('absolute inset-y-0 left-0 w-1.5', styles.bar)}
         aria-hidden
       />
-      <div className="relative pl-3.5">
+      <div className="relative min-w-0 pl-3.5">
         <p className="dash-stat-label text-[11px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
           {label}
         </p>
-        <div className="mt-1 flex items-end justify-between gap-2">
+        <div className="mt-1 flex min-w-0 items-end justify-between gap-2">
           <p
             className={cn(
-              'dash-stat-value text-2xl font-semibold tabular-nums text-[var(--dash-text-strong)]',
+              'dash-stat-value min-w-0 font-semibold tabular-nums leading-snug text-[var(--dash-text-strong)]',
+              size === 'compact' ? 'text-sm sm:text-[15px] lg:text-base' : 'text-2xl',
               warn && 'text-[var(--dash-text-strong)]',
             )}
           >
             {value}
           </p>
-          {trend ? <div className="text-xs text-[var(--dash-text-muted)]">{trend}</div> : null}
+          {trend ? <div className="shrink-0 text-xs text-[var(--dash-text-muted)]">{trend}</div> : null}
         </div>
         {hint ? <p className="dash-stat-hint mt-1 text-xs text-[var(--dash-text-subtle)]">{hint}</p> : null}
       </div>

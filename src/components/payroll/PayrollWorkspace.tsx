@@ -1681,12 +1681,12 @@ function PayrollWorkspaceInner({
  <>
  <div className="border-b border-neutral-200/70 px-4 py-4 sm:px-5">
  <DashboardStatGrid columns={6}>
- <DashboardStatCard label="Headcount" value={String(runTotals.headcount)} tone="primary" />
- <DashboardStatCard label="Gross" value={formatCurrency(runTotals.gross)} tone="sky" />
- <DashboardStatCard label="Deductions" value={formatCurrency(runTotals.deductions)} tone="warning" />
- <DashboardStatCard label="Net pay" value={formatCurrency(runTotals.net)} tone="success" />
- <DashboardStatCard label="Employer cost" value={formatCurrency(runTotals.employerCost)} tone="violet" />
- <DashboardStatCard label="Cost to company" value={formatCurrency(runTotals.ctc)} tone="primary" />
+ <DashboardStatCard size="compact" label="Headcount" value={String(runTotals.headcount)} tone="primary" />
+ <DashboardStatCard size="compact" label="Gross" value={formatCurrency(runTotals.gross)} tone="sky" />
+ <DashboardStatCard size="compact" label="Deductions" value={formatCurrency(runTotals.deductions)} tone="warning" />
+ <DashboardStatCard size="compact" label="Net pay" value={formatCurrency(runTotals.net)} tone="success" />
+ <DashboardStatCard size="compact" label="Employer cost" value={formatCurrency(runTotals.employerCost)} tone="violet" />
+ <DashboardStatCard size="compact" label="Cost to company" value={formatCurrency(runTotals.ctc)} tone="primary" />
  </DashboardStatGrid>
  </div>
  {selectedCount > 0 && (
