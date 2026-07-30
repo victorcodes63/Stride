@@ -14,6 +14,8 @@ import {
   EnrollmentStatus,
   AnnouncementStatus,
   AnnouncementPriority,
+  AttendanceSummaryStatus,
+  AccountsInvoiceStatus,
   Prisma,
 } from '@prisma/client';
 import { startWorkflowForEmployee } from '../src/lib/onboarding-workflows';
@@ -266,14 +268,24 @@ async function seedSectorContent(
 }
 
 async function seedBiometricForClient(clientId: string, entityCode: string) {
+  const client = await prisma.outsourcingClient.findUnique({
+    where: { id: clientId },
+    select: { organizationId: true },
+  });
+  if (!client) return;
+
   const prefix = entityPrefix(entityCode);
   const names = [`${prefix}-GATE-IN`, `${prefix}-GATE-OUT`];
   await prisma.biometricPunch.deleteMany({ where: { device: { name: { in: names } } } });
-  await prisma.biometricDevice.deleteMany({ where: { name: { in: names } } });
+  await prisma.biometricDevice.deleteMany({
+    where: { outsourcingClientId: clientId, name: { in: names } },
+  });
 
+  const devices = [];
   for (const [i, name] of names.entries()) {
-    await prisma.biometricDevice.create({
+    const device = await prisma.biometricDevice.create({
       data: {
+        organizationId: client.organizationId,
         outsourcingClientId: clientId,
         name,
         adapterKind: 'hikvision_isapi',
@@ -282,7 +294,240 @@ async function seedBiometricForClient(clientId: string, entityCode: string) {
         lastPollAt: daysFromNow(-1),
       },
     });
+    devices.push(device);
   }
+
+  const deviceIn = devices[0];
+  const deviceOut = devices[1];
+  if (!deviceIn || !deviceOut) return;
+
+  const employees = await prisma.employee.findMany({
+    where: { outsourcingClientId: clientId, employmentStatus: 'active' },
+    orderBy: { employeeNumber: 'asc' },
+    take: 12,
+    select: { id: true, employeeNumber: true },
+  });
+  if (employees.length === 0) return;
+
+  // Clear prior enrichment attendance events for these employees (reseed-safe).
+  await prisma.attendanceEvent.deleteMany({
+    where: {
+      outsourcingClientId: clientId,
+      employeeId: { in: employees.map((e) => e.id) },
+      source: 'biometric',
+      notes: 'demo-enrichment-punch',
+    },
+  });
+
+  for (let dayOffset = -10; dayOffset <= -1; dayOffset++) {
+    const day = daysFromNow(dayOffset);
+    if (day.getUTCDay() === 0) continue;
+    const workYmd = day.toISOString().slice(0, 10);
+    const workDate = new Date(`${workYmd}T00:00:00.000Z`);
+
+    for (let i = 0; i < employees.length; i++) {
+      const emp = employees[i]!;
+      const inHour = 7;
+      const inMin = 45 + (i % 12);
+      const outHour = 17;
+      const outMin = 5 + (i % 20);
+      const inAt = new Date(`${workYmd}T${String(inHour).padStart(2, '0')}:${String(inMin).padStart(2, '0')}:00.000Z`);
+      const outAt = new Date(`${workYmd}T${String(outHour).padStart(2, '0')}:${String(outMin).padStart(2, '0')}:00.000Z`);
+
+      const punchIn = await prisma.biometricPunch.create({
+        data: {
+          organizationId: client.organizationId,
+          biometricDeviceId: deviceIn.id,
+          externalEventId: `${prefix}-IN-${workYmd}-${emp.id.slice(-6)}`,
+          observedAt: inAt,
+          rawSubjectId: emp.employeeNumber ?? emp.id,
+          employeeId: emp.id,
+          source: 'device',
+          direction: 'in',
+        },
+      });
+      const punchOut = await prisma.biometricPunch.create({
+        data: {
+          organizationId: client.organizationId,
+          biometricDeviceId: deviceOut.id,
+          externalEventId: `${prefix}-OUT-${workYmd}-${emp.id.slice(-6)}`,
+          observedAt: outAt,
+          rawSubjectId: emp.employeeNumber ?? emp.id,
+          employeeId: emp.id,
+          source: 'device',
+          direction: 'out',
+        },
+      });
+
+      await prisma.attendanceEvent.create({
+        data: {
+          organizationId: client.organizationId,
+          employeeId: emp.id,
+          outsourcingClientId: clientId,
+          observedAt: inAt,
+          workDate,
+          source: 'biometric',
+          kind: 'check_in',
+          biometricPunchId: punchIn.id,
+          notes: 'demo-enrichment-punch',
+        },
+      });
+      await prisma.attendanceEvent.create({
+        data: {
+          organizationId: client.organizationId,
+          employeeId: emp.id,
+          outsourcingClientId: clientId,
+          observedAt: outAt,
+          workDate,
+          source: 'biometric',
+          kind: 'check_out',
+          biometricPunchId: punchOut.id,
+          notes: 'demo-enrichment-punch',
+        },
+      });
+
+      await prisma.attendanceDaySummary.upsert({
+        where: { employeeId_workDate: { employeeId: emp.id, workDate } },
+        update: {
+          firstInAt: inAt,
+          lastOutAt: outAt,
+          minutesWorked: Math.max(0, Math.round((outAt.getTime() - inAt.getTime()) / 60000) - 60),
+          lateMinutes: inMin > 50 ? inMin - 50 : 0,
+          status: AttendanceSummaryStatus.reconciled,
+        },
+        create: {
+          organizationId: client.organizationId,
+          employeeId: emp.id,
+          outsourcingClientId: clientId,
+          workDate,
+          firstInAt: inAt,
+          lastOutAt: outAt,
+          minutesWorked: Math.max(0, Math.round((outAt.getTime() - inAt.getTime()) / 60000) - 60),
+          lateMinutes: inMin > 50 ? inMin - 50 : 0,
+          undertimeMinutes: 0,
+          overtimeMinutes: outMin > 15 ? outMin - 15 : 0,
+          status: AttendanceSummaryStatus.reconciled,
+        },
+      });
+    }
+  }
+}
+
+async function seedInvoicesForAccountsClient(
+  accountsClientId: string,
+  organizationId: string,
+  prefix: string,
+  clientName: string,
+) {
+  const existingDemo = await prisma.accountsInvoice.findFirst({
+    where: {
+      clientId: accountsClientId,
+      notes: { contains: '[demo-enrichment-invoice]' },
+    },
+  });
+  if (existingDemo) return;
+
+  const accountsClient = await prisma.accountsClient.findUnique({
+    where: { id: accountsClientId },
+    select: { nextInvoiceNumber: true },
+  });
+  if (!accountsClient) return;
+
+  const maxInvoice = await prisma.accountsInvoice.aggregate({ _max: { invoiceNumber: true } });
+  let nextNum = Math.max(accountsClient.nextInvoiceNumber || 1000, (maxInvoice._max.invoiceNumber ?? 1000) + 1);
+  const specs: Array<{
+    status: AccountsInvoiceStatus;
+    daysAgo: number;
+    dueIn: number;
+    lines: Array<{ item: string; amount: string }>;
+  }> = [
+    {
+      status: AccountsInvoiceStatus.paid,
+      daysAgo: 45,
+      dueIn: -15,
+      lines: [
+        { item: `Managed services — ${clientName}`, amount: '185000.00' },
+        { item: 'Payroll administration', amount: '42000.00' },
+      ],
+    },
+    {
+      status: AccountsInvoiceStatus.unpaid,
+      daysAgo: 5,
+      dueIn: 25,
+      lines: [
+        { item: `Monthly retainer — ${clientName}`, amount: '210000.00' },
+        { item: 'Attendance & biometric ops support', amount: '28000.00' },
+      ],
+    },
+    {
+      status: AccountsInvoiceStatus.partial,
+      daysAgo: 20,
+      dueIn: 10,
+      lines: [
+        { item: 'Pass-through disbursements', amount: '96000.00' },
+        { item: 'Statutory filing support', amount: '15000.00' },
+      ],
+    },
+  ];
+
+  for (const spec of specs) {
+    const issueDate = daysFromNow(-spec.daysAgo);
+    const dueDate = daysFromNow(spec.dueIn);
+    const invoice = await prisma.accountsInvoice.create({
+      data: {
+        organizationId,
+        clientId: accountsClientId,
+        invoiceNumber: nextNum,
+        issueDate,
+        dueDate,
+        taxDate: issueDate,
+        currency: 'KES',
+        vatRateBps: 1600,
+        status: spec.status,
+        notes: `[demo-enrichment-invoice] ${prefix} demo invoice for ${clientName}`,
+        lines: {
+          create: spec.lines.map((l, idx) => ({
+            organizationId,
+            item: l.item,
+            amountExVat: new Prisma.Decimal(l.amount),
+            sortOrder: idx,
+          })),
+        },
+      },
+    });
+
+    if (spec.status === AccountsInvoiceStatus.paid || spec.status === AccountsInvoiceStatus.partial) {
+      const total = spec.lines.reduce((s, l) => s + parseFloat(l.amount), 0) * 1.16;
+      const payAmount =
+        spec.status === AccountsInvoiceStatus.paid ? total : Math.round(total * 0.4 * 100) / 100;
+      const payment = await prisma.accountsClientPayment.create({
+        data: {
+          organizationId,
+          clientId: accountsClientId,
+          receivedAt: daysFromNow(-Math.max(1, spec.daysAgo - 5)),
+          amount: new Prisma.Decimal(payAmount.toFixed(2)),
+          reference: `MPESA-${prefix}-${nextNum}`,
+          method: 'mpesa',
+          notes: '[demo-enrichment-invoice] sample receipt',
+        },
+      });
+      await prisma.accountsInvoicePaymentAllocation.create({
+        data: {
+          organizationId,
+          paymentId: payment.id,
+          invoiceId: invoice.id,
+          amount: new Prisma.Decimal(payAmount.toFixed(2)),
+        },
+      });
+    }
+
+    nextNum += 1;
+  }
+
+  await prisma.accountsClient.update({
+    where: { id: accountsClientId },
+    data: { nextInvoiceNumber: nextNum },
+  });
 }
 
 async function seedContractsForEntity(
@@ -476,11 +721,45 @@ async function enrichShowcaseVerticals() {
     return;
   }
 
+  const sharedOrg = await prisma.organization.findUnique({
+    where: { slug: 'demo-multi-vertical' },
+    select: { id: true },
+  });
+
   const showcaseCodes = VERTICAL_SHOWCASE_PACK_IDS.map((id) => `${id}__ke`);
-  const keClients = await prisma.outsourcingClient.findMany({
-    where: { entityCode: { in: showcaseCodes } },
+  const keClientsRaw = await prisma.outsourcingClient.findMany({
+    where: {
+      entityCode: { in: showcaseCodes },
+      ...(sharedOrg ? { organizationId: sharedOrg.id } : {}),
+    },
     orderBy: { entityCode: 'asc' },
   });
+
+  // One client per entityCode — prefer the row with active employees.
+  const keClients = [] as typeof keClientsRaw;
+  const byCode = new Map<string, (typeof keClientsRaw)[number][]>();
+  for (const c of keClientsRaw) {
+    const code = c.entityCode!;
+    const list = byCode.get(code) ?? [];
+    list.push(c);
+    byCode.set(code, list);
+  }
+  for (const [, list] of byCode) {
+    if (list.length === 1) {
+      keClients.push(list[0]!);
+      continue;
+    }
+    const withCounts = await Promise.all(
+      list.map(async (c) => ({
+        client: c,
+        n: await prisma.employee.count({
+          where: { outsourcingClientId: c.id, employmentStatus: 'active' },
+        }),
+      })),
+    );
+    withCounts.sort((a, b) => b.n - a.n);
+    keClients.push(withCounts[0]!.client);
+  }
 
   for (const client of keClients) {
     const entityCode = client.entityCode!;
@@ -539,6 +818,14 @@ async function enrichShowcaseVerticals() {
       if (accountsClient) {
         await runStep('contracts', () =>
           seedContractsForEntity(accountsClient.id, hrUser.id, entityPrefix(entityCode)),
+        );
+        await runStep('invoices', () =>
+          seedInvoicesForAccountsClient(
+            accountsClient.id,
+            client.organizationId,
+            entityPrefix(entityCode),
+            client.name,
+          ),
         );
       }
 
@@ -618,24 +905,43 @@ async function main() {
   await enrichShowcaseVerticals();
 
   console.log('\n→ Fleet demo for Savannah Freight (cargo-logistics)…');
-  execSync('npx tsx prisma/seed-fleet-demo.ts', {
-    cwd: root,
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      FLEET_CLIENT_NAME: 'Savannah Freight & Logistics Ltd',
-    },
-  });
+  try {
+    execSync('npx tsx prisma/seed-fleet-demo.ts', {
+      cwd: root,
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        FLEET_CLIENT_NAME: 'Savannah Freight & Logistics Ltd',
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`→ Fleet demo skipped: ${message.slice(0, 200)}`);
+  }
 
   console.log('\n→ Sales demo (cargo + travel pipeline)…');
-  execSync('npx tsx prisma/seed-sales-demo.ts', {
-    cwd: root,
-    stdio: 'inherit',
-    env: { ...process.env, SALES_THEME: 'both' },
-  });
+  try {
+    execSync('npx tsx prisma/seed-sales-demo.ts', {
+      cwd: root,
+      stdio: 'inherit',
+      env: { ...process.env, SALES_THEME: 'both' },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`→ Sales demo skipped: ${message.slice(0, 200)}`);
+  }
 
   console.log('\n→ Industry depth (assets, HSE, procurement, performance per company)…');
-  execSync('npx tsx prisma/seed-demo-industry-depth.ts', { cwd: root, stdio: 'inherit', env: process.env });
+  try {
+    execSync('npx tsx prisma/seed-demo-industry-depth.ts', {
+      cwd: root,
+      stdio: 'inherit',
+      env: process.env,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`→ Industry depth skipped: ${message.slice(0, 200)}`);
+  }
 
   await seedStaffLeaveDemo();
 

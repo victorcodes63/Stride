@@ -93,6 +93,8 @@
     "demo:cell:deploy": "node scripts/setup-demo-getstride-vercel.mjs",
     "demo:cell:local": "node scripts/use-demo-cell-local.mjs",
     "demo:prep:live": "node scripts/demo-prep-live.mjs",
+    "demo:cleanup:orphans": "npx tsx scripts/cleanup-demo-orphan-clients.ts",
+    "demo:seed:security-bpo": "npx tsx prisma/seed-demo-security-bpo.ts",
     "demo:patch:module-packs": "npx tsx scripts/patch-demo-module-packs.mjs",
     "demo:seed:industry-depth": "npx tsx prisma/seed-demo-industry-depth.ts",
     "demo:reseed:production": "node scripts/reseed-production-cargo-logistics.mjs",

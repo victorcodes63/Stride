@@ -52,13 +52,13 @@ const prisma = basePrisma.$extends({
     $allModels: {
       create({ model, args, query }) {
         if (!NON_TENANT_MODELS.has(model)) {
-          args.data = injectOrgId(args.data as Record<string, unknown>);
+          args.data = injectOrgId(args.data as Record<string, unknown>) as typeof args.data;
         }
         return query(args);
       },
       upsert({ model, args, query }) {
         if (!NON_TENANT_MODELS.has(model) && args.create) {
-          args.create = injectOrgId(args.create as Record<string, unknown>);
+          args.create = injectOrgId(args.create as Record<string, unknown>) as typeof args.create;
         }
         return query(args);
       },
@@ -2433,18 +2433,26 @@ async function main() {
   }
 
   if (hasModel('attendanceWorkSite')) {
+    const keSiteName =
+      pack.id === 'cargo-logistics'
+        ? 'Savannah Nairobi Hub — Industrial Area'
+        : `${pack.orgName ?? pack.entities.ke.legalName ?? 'Kenya'} — Nairobi HQ`;
+    const ugSiteName =
+      pack.id === 'cargo-logistics'
+        ? 'Savannah Kampala Depot'
+        : `${pack.orgName ?? pack.entities.ug.legalName ?? 'Uganda'} — Kampala Office`;
     const demoSites: Array<{ clientId: string; id: string; name: string; lat: number; lng: number }> = [
       {
         clientId: keClient.id,
         id: `worksite-hq-${keClient.id}`,
-        name: 'Heritage Nairobi HQ',
+        name: keSiteName,
         lat: -1.2674,
         lng: 36.8116,
       },
       {
         clientId: ugClient.id,
         id: `worksite-hq-${ugClient.id}`,
-        name: 'Heritage Kampala Office',
+        name: ugSiteName,
         lat: 0.3476,
         lng: 32.5825,
       },

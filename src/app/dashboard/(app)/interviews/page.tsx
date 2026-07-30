@@ -3,7 +3,25 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { CalendarCheck, Plus, Loader2, FileDown, Send, Filter, Pencil, Trash2, X, Video, ExternalLink, Search, Coffee } from 'lucide-react';
+import {
+ CalendarCheck,
+ Plus,
+ Loader2,
+ FileDown,
+ Send,
+ Filter,
+ Pencil,
+ Trash2,
+ X,
+ Video,
+ ExternalLink,
+ Search,
+ Coffee,
+ Briefcase,
+ Users,
+ CalendarDays,
+ ListTodo,
+} from 'lucide-react';
 import type {
  InterviewWithDetails,
  InterviewStatus,
@@ -14,8 +32,21 @@ import type {
 import { formatInNairobi, parseDateTimeAsNairobi, toDateTimeLocalNairobi } from '@/lib/timezone';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import { DashboardMetricCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { StrideSelect } from '@/components/ui/stride-select';
 import type { UserSummary } from '@/types/dashboard';
+
+type JobPipelineRow = {
+ id: string;
+ title: string;
+ company?: string;
+ clientId?: string | null;
+ clientName?: string | null;
+ shortlistedCount: number;
+ scheduledCount: number;
+};
+
+type PipelineSort = 'needs-booking' | 'title' | 'shortlisted' | 'scheduled';
 
 const TYPE_LABELS: Record<InterviewType, string> = {
  phone: 'Phone',
@@ -82,10 +113,11 @@ export default function DashboardInterviewsPage() {
 
  /** Job-first view: '' = none selected (show picker), 'all' = all jobs, or jobId */
  const [selectedJobView, setSelectedJobView] = useState<string>('');
- const [jobsWithShortlisted, setJobsWithShortlisted] = useState<{ id: string; title: string; company?: string; clientId?: string | null; clientName?: string | null; shortlistedCount: number; scheduledCount: number }[]>([]);
+ const [jobsWithShortlisted, setJobsWithShortlisted] = useState<JobPipelineRow[]>([]);
  const [jobsWithShortlistedLoading, setJobsWithShortlistedLoading] = useState(true);
  const [jobCardsSearch, setJobCardsSearch] = useState('');
- const [jobCardsJobFilter, setJobCardsJobFilter] = useState('');
+ const [jobCardsClientFilter, setJobCardsClientFilter] = useState('');
+ const [jobCardsSort, setJobCardsSort] = useState<PipelineSort>('needs-booking');
  const [filterDateFrom, setFilterDateFrom] = useState('');
  const [filterDateTo, setFilterDateTo] = useState('');
  const [filterStatus, setFilterStatus] = useState('');
@@ -477,25 +509,28 @@ export default function DashboardInterviewsPage() {
  }
  };
 
- const filteredJobCards = useMemo(() => {
- let list = jobsWithShortlisted;
- const q = jobCardsSearch.trim().toLowerCase();
- if (q) {
- list = list.filter(
- (j) =>
- j.title.toLowerCase().includes(q) ||
- (j.company ?? '').toLowerCase().includes(q) ||
- (j.clientName ?? '').toLowerCase().includes(q)
- );
- }
- if (jobCardsJobFilter) {
- list = list.filter((j) => j.id === jobCardsJobFilter);
- }
- return list;
- }, [jobsWithShortlisted, jobCardsSearch, jobCardsJobFilter]);
+ const pipelineKpis = useMemo(() => {
+ const vacancies = jobsWithShortlisted.length;
+ const shortlisted = jobsWithShortlisted.reduce((sum, j) => sum + j.shortlistedCount, 0);
+ const scheduled = jobsWithShortlisted.reduce((sum, j) => sum + j.scheduledCount, 0);
+ const stillToBook = Math.max(0, shortlisted - scheduled);
+ return { vacancies, shortlisted, scheduled, stillToBook };
+ }, [jobsWithShortlisted]);
 
- const jobFilterOptions = useMemo(() => {
- let list = jobsWithShortlisted;
+ const clientFilterOptions = useMemo(() => {
+ const seen = new Map<string, string>();
+ for (const j of jobsWithShortlisted) {
+ const key = j.clientId || j.clientName || j.company;
+ const label = j.clientName || j.company;
+ if (key && label) seen.set(key, label);
+ }
+ return Array.from(seen.entries())
+ .map(([value, label]) => ({ value, label }))
+ .sort((a, b) => a.label.localeCompare(b.label));
+ }, [jobsWithShortlisted]);
+
+ const filteredJobCards = useMemo(() => {
+ let list = [...jobsWithShortlisted];
  const q = jobCardsSearch.trim().toLowerCase();
  if (q) {
  list = list.filter(
@@ -505,14 +540,40 @@ export default function DashboardInterviewsPage() {
  (j.clientName ?? '').toLowerCase().includes(q)
  );
  }
+ if (jobCardsClientFilter) {
+ list = list.filter(
+ (j) =>
+ j.clientId === jobCardsClientFilter ||
+ j.clientName === jobCardsClientFilter ||
+ j.company === jobCardsClientFilter
+ );
+ }
+ list.sort((a, b) => {
+ const aLeft = Math.max(0, a.shortlistedCount - a.scheduledCount);
+ const bLeft = Math.max(0, b.shortlistedCount - b.scheduledCount);
+ switch (jobCardsSort) {
+ case 'title':
+ return a.title.localeCompare(b.title);
+ case 'shortlisted':
+ return b.shortlistedCount - a.shortlistedCount;
+ case 'scheduled':
+ return b.scheduledCount - a.scheduledCount;
+ case 'needs-booking':
+ default:
+ return bLeft - aLeft || a.title.localeCompare(b.title);
+ }
+ });
  return list;
- }, [jobsWithShortlisted, jobCardsSearch]);
+ }, [jobsWithShortlisted, jobCardsSearch, jobCardsClientFilter, jobCardsSort]);
 
  useEffect(() => {
- if (jobCardsJobFilter && !jobFilterOptions.some((j) => j.id === jobCardsJobFilter)) {
- setJobCardsJobFilter('');
+ if (
+ jobCardsClientFilter &&
+ !clientFilterOptions.some((c) => c.value === jobCardsClientFilter)
+ ) {
+ setJobCardsClientFilter('');
  }
- }, [jobCardsJobFilter, jobFilterOptions]);
+ }, [jobCardsClientFilter, clientFilterOptions]);
 
  const exportScheduleUrl = `/api/interviews/export-schedule?date=${exportDate}${selectedJobView && selectedJobView !== 'all' ? `&jobId=${encodeURIComponent(selectedJobView)}` : ''}`;
  const exportSelectedUrl = selectedCount > 0
@@ -565,13 +626,25 @@ export default function DashboardInterviewsPage() {
  description={
  selectedJobTitle
  ? 'Schedule and invites for this position.'
- : 'Your central hub for scheduling, invites, and all interview-related content.'
+ : 'Schedule interviews, send invites, and clear the shortlist pipeline.'
  }
  actions={
+ <div className="flex flex-wrap items-center gap-2">
+ {selectedJobView === '' && (
+ <button
+ type="button"
+ onClick={() => setSelectedJobView('all')}
+ className="inline-flex items-center gap-2 px-3.5 py-2 border border-neutral-300 bg-white text-neutral-800 rounded-lg hover:bg-neutral-50 text-sm font-medium transition-colors"
+ >
+ <CalendarDays className="w-4 h-4" />
+ All schedules
+ </button>
+ )}
  <Link href={scheduleUrlCurrentJob} className="btn-primary inline-flex items-center gap-2">
  <Plus className="w-4 h-4" />
  Schedule interviews
  </Link>
+ </div>
  }
  />
 
@@ -581,60 +654,111 @@ export default function DashboardInterviewsPage() {
  </div>
  )}
 
- {/* Job selector: cards when no job selected, dropdown when viewing a schedule */}
+ {/* Job selector: KPI + pipeline table when no job selected */}
  {selectedJobView === '' ? (
- <div className="mb-6">
- <h2 className="text-base font-semibold text-primary-900 mb-3">Select a vacancy to schedule interviews</h2>
- <p className="text-sm text-neutral-600 mb-4">
- Jobs with shortlisted candidates are listed below. Select one to view its schedule and manage invites.
- </p>
+ <div className="mb-6 space-y-5">
  {!jobsWithShortlistedLoading && jobsWithShortlisted.length > 0 && (
- <div className="dashboard-surface shadow-sm p-4 mb-4">
- <div className="flex flex-col sm:flex-row gap-3">
+ <DashboardStatGrid columns={4}>
+ <DashboardMetricCard
+ label="Vacancies"
+ value={pipelineKpis.vacancies}
+ hint="With shortlists"
+ icon={Briefcase}
+ tone="primary"
+ />
+ <DashboardMetricCard
+ label="Shortlisted"
+ value={pipelineKpis.shortlisted}
+ hint="Ready to invite"
+ icon={Users}
+ tone="violet"
+ />
+ <DashboardMetricCard
+ label="Scheduled"
+ value={pipelineKpis.scheduled}
+ hint="On the calendar"
+ icon={CalendarCheck}
+ tone="emerald"
+ />
+ <DashboardMetricCard
+ label="Still to book"
+ value={pipelineKpis.stillToBook}
+ hint="Shortlisted − scheduled"
+ icon={ListTodo}
+ tone="amber"
+ highlighted={pipelineKpis.stillToBook > 0}
+ />
+ </DashboardStatGrid>
+ )}
+
+ <div className="dashboard-surface shadow-sm overflow-hidden">
+ <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b border-neutral-100">
+ <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500">
+ Interview pipeline
+ </p>
+ <p className="mt-1 text-sm text-neutral-600">
+ Open a vacancy to manage its schedule, or book new slots.
+ </p>
+ <div className="mt-4 flex flex-col lg:flex-row gap-3">
  <div className="relative flex-1 min-w-0">
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
  <input
  type="text"
- placeholder="Search by job title or company..."
+ placeholder="Search by job title, company, or client..."
  value={jobCardsSearch}
  onChange={(e) => setJobCardsSearch(e.target.value)}
- className="w-full pl-9 pr-3 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+ className="w-full pl-9 pr-3 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm bg-white"
  aria-label="Search vacancies"
  />
  </div>
+ {clientFilterOptions.length > 0 && (
  <StrideSelect
- value={jobCardsJobFilter}
- onChange={(value) => setJobCardsJobFilter(value)}
+ value={jobCardsClientFilter}
+ onChange={(value) => setJobCardsClientFilter(value)}
  options={[
- { value: '', label: 'All jobs' },
- ...jobFilterOptions.map((j) => ({ value: j.id, label: j.title })),
+ { value: '', label: 'Filter by client…' },
+ ...clientFilterOptions,
  ]}
- ariaLabel="Filter by job"
- className="flex-1 min-w-0"
+ ariaLabel="Filter by client"
+ className="w-full lg:w-56 shrink-0"
  />
- {(jobCardsSearch || jobCardsJobFilter) && (
+ )}
+ <StrideSelect
+ value={jobCardsSort}
+ onChange={(value) => setJobCardsSort(value as PipelineSort)}
+ options={[
+ { value: 'needs-booking', label: 'Needs booking first' },
+ { value: 'title', label: 'Job title A–Z' },
+ { value: 'shortlisted', label: 'Most shortlisted' },
+ { value: 'scheduled', label: 'Most scheduled' },
+ ]}
+ ariaLabel="Sort vacancies"
+ className="w-full lg:w-56 shrink-0"
+ />
+ {(jobCardsSearch || jobCardsClientFilter || jobCardsSort !== 'needs-booking') && (
  <button
  type="button"
  onClick={() => {
  setJobCardsSearch('');
- setJobCardsJobFilter('');
+ setJobCardsClientFilter('');
+ setJobCardsSort('needs-booking');
  }}
- className="shrink-0 px-3 py-2.5 text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors flex items-center gap-1.5"
+ className="shrink-0 px-3 py-2.5 text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5"
  aria-label="Clear all filters"
  >
  <X className="w-4 h-4" />
- Clear filters
+ Clear
  </button>
  )}
  </div>
  </div>
- )}
+
  {jobsWithShortlistedLoading ? (
- <div className="flex items-center justify-center py-12">
+ <div className="flex items-center justify-center py-16">
  <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
  </div>
  ) : jobsWithShortlisted.length === 0 ? (
- <div className="dashboard-surface shadow-sm p-8 sm:p-12 text-center">
+ <div className="p-8 sm:p-12 text-center">
  <CalendarCheck className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
  <p className="text-neutral-600 mb-4">
  No vacancies have shortlisted candidates yet. Shortlist applicants from the Applications page first.
@@ -646,58 +770,183 @@ export default function DashboardInterviewsPage() {
  Go to Applications
  </Link>
  </div>
- ) : (
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
- {filteredJobCards.length === 0 ? (
- <p className="col-span-full text-sm text-neutral-500 py-8 text-center">
+ ) : filteredJobCards.length === 0 ? (
+ <p className="text-sm text-neutral-500 py-12 text-center">
  No vacancies match your search or filters.
  </p>
- ) : null}
- {filteredJobCards.map((j) => (
- <motion.div
+ ) : (
+ <>
+ {/* Desktop table */}
+ <div className="hidden md:block overflow-x-auto">
+ <table className="data-table dashboard-data-table w-full text-left">
+ <thead>
+ <tr className="dashboard-toolbar">
+ <th className="px-4 sm:px-5 py-3 text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+ Vacancy
+ </th>
+ <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase tracking-wider text-center w-28">
+ Shortlisted
+ </th>
+ <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase tracking-wider text-center w-28">
+ Scheduled
+ </th>
+ <th className="px-4 py-3 text-xs font-semibold text-neutral-600 uppercase tracking-wider min-w-[160px]">
+ Progress
+ </th>
+ <th className="px-4 sm:px-5 py-3 text-xs font-semibold text-neutral-600 uppercase tracking-wider text-right w-52">
+ Actions
+ </th>
+ </tr>
+ </thead>
+ <tbody>
+ {filteredJobCards.map((j) => {
+ const stillToBook = Math.max(0, j.shortlistedCount - j.scheduledCount);
+ const progressPct =
+ j.shortlistedCount > 0
+ ? Math.min(100, Math.round((j.scheduledCount / j.shortlistedCount) * 100))
+ : 0;
+ return (
+ <tr
  key={j.id}
- className="text-left dashboard-surface shadow-sm hover:shadow-md hover:border-primary-300 transition-all group flex flex-col"
- whileHover={{ y: -2 }}
+ className="border-b border-neutral-100 hover:bg-neutral-50/70 transition-colors"
  >
+ <td className="px-4 sm:px-5 py-4 align-middle">
  <button
  type="button"
  onClick={() => setSelectedJobView(j.id)}
- className="text-left p-4 sm:p-5 pb-3 w-full rounded-t-xl hover:bg-neutral-50/80 transition-colors"
+ className="text-left group max-w-md"
  >
- <h3 className="font-semibold text-primary-900 group-hover:text-primary-700 truncate">
+ <span className="block font-semibold text-primary-900 group-hover:text-primary-700 transition-colors">
  {j.title}
- </h3>
- {j.company && (
- <p className="text-sm text-neutral-600 mt-0.5 truncate">{j.company}</p>
- )}
- <div className="flex items-center gap-4 mt-3 text-sm">
- <span className="inline-flex items-center gap-1.5 text-indigo-700 font-medium">
- <span>{j.shortlistedCount}</span>
- <span>shortlisted</span>
  </span>
- {j.scheduledCount > 0 && (
- <span className="text-neutral-500">
- {j.scheduledCount} scheduled
+ {(j.clientName || j.company) && (
+ <span className="block text-sm text-neutral-500 mt-0.5 truncate">
+ {j.clientName || j.company}
  </span>
  )}
- </div>
- <p className="mt-2 text-xs text-primary-600 font-medium">
- {j.scheduledCount > 0 ? 'View schedule & invites' : 'Open job workspace'} →
- </p>
  </button>
- <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
+ </td>
+ <td className="px-4 py-4 text-center align-middle">
+ <span className="text-sm font-semibold tabular-nums text-violet-700">
+ {j.shortlistedCount}
+ </span>
+ </td>
+ <td className="px-4 py-4 text-center align-middle">
+ <span className="text-sm font-semibold tabular-nums text-emerald-700">
+ {j.scheduledCount}
+ </span>
+ </td>
+ <td className="px-4 py-4 align-middle">
+ <p className="text-xs text-neutral-600 mb-1.5">
+ {stillToBook > 0 ? (
+ <>
+ <span className="font-medium text-neutral-800">{stillToBook}</span> still to book
+ </>
+ ) : (
+ <span className="font-medium text-emerald-700">Fully booked</span>
+ )}
+ </p>
+ <div
+ className="h-1.5 w-full max-w-[180px] rounded-full bg-neutral-100 overflow-hidden"
+ role="progressbar"
+ aria-valuenow={progressPct}
+ aria-valuemin={0}
+ aria-valuemax={100}
+ aria-label={`${progressPct}% of shortlist scheduled`}
+ >
+ <div
+ className={`h-full rounded-full transition-all ${
+ stillToBook === 0 ? 'bg-emerald-500' : 'bg-primary-500'
+ }`}
+ style={{ width: `${progressPct}%` }}
+ />
+ </div>
+ </td>
+ <td className="px-4 sm:px-5 py-4 align-middle">
+ <div className="flex items-center justify-end gap-2">
  <Link
  href={scheduleUrlForJob(j.id)}
- className="inline-flex items-center justify-center w-full gap-2 px-3 py-2.5 bg-primary-900 text-white rounded-lg hover:bg-primary-800 text-sm font-medium"
+ className="inline-flex items-center gap-1.5 px-3 py-2 border border-neutral-300 bg-white text-neutral-800 rounded-lg hover:bg-neutral-50 text-sm font-medium transition-colors"
  >
- <Plus className="w-4 h-4 shrink-0" />
- Schedule interviews
+ <Plus className="w-3.5 h-3.5" />
+ Schedule
  </Link>
+ <button
+ type="button"
+ onClick={() => setSelectedJobView(j.id)}
+ className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium transition-colors"
+ >
+ Open
+ </button>
  </div>
- </motion.div>
- ))}
+ </td>
+ </tr>
+ );
+ })}
+ </tbody>
+ </table>
  </div>
+
+ {/* Mobile list */}
+ <ul className="md:hidden divide-y divide-neutral-100">
+ {filteredJobCards.map((j) => {
+ const stillToBook = Math.max(0, j.shortlistedCount - j.scheduledCount);
+ const progressPct =
+ j.shortlistedCount > 0
+ ? Math.min(100, Math.round((j.scheduledCount / j.shortlistedCount) * 100))
+ : 0;
+ return (
+ <li key={j.id} className="p-4">
+ <button
+ type="button"
+ onClick={() => setSelectedJobView(j.id)}
+ className="w-full text-left"
+ >
+ <p className="font-semibold text-primary-900">{j.title}</p>
+ {(j.clientName || j.company) && (
+ <p className="text-sm text-neutral-500 mt-0.5">{j.clientName || j.company}</p>
  )}
+ <div className="mt-3 flex items-center gap-4 text-sm">
+ <span className="font-semibold tabular-nums text-violet-700">
+ {j.shortlistedCount} shortlisted
+ </span>
+ <span className="font-semibold tabular-nums text-emerald-700">
+ {j.scheduledCount} scheduled
+ </span>
+ </div>
+ <p className="mt-2 text-xs text-neutral-600">
+ {stillToBook > 0 ? `${stillToBook} still to book` : 'Fully booked'}
+ </p>
+ <div className="mt-1.5 h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
+ <div
+ className={`h-full rounded-full ${stillToBook === 0 ? 'bg-emerald-500' : 'bg-primary-500'}`}
+ style={{ width: `${progressPct}%` }}
+ />
+ </div>
+ </button>
+ <div className="mt-3 flex gap-2">
+ <Link
+ href={scheduleUrlForJob(j.id)}
+ className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-neutral-300 bg-white text-neutral-800 rounded-lg text-sm font-medium"
+ >
+ <Plus className="w-3.5 h-3.5" />
+ Schedule
+ </Link>
+ <button
+ type="button"
+ onClick={() => setSelectedJobView(j.id)}
+ className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium"
+ >
+ Open
+ </button>
+ </div>
+ </li>
+ );
+ })}
+ </ul>
+ </>
+ )}
+ </div>
  </div>
  ) : (
  <div className="mb-6 space-y-4">
