@@ -79,6 +79,8 @@ const SCHEMA_HOTFIX_FILES = [
   '20260718200000_onboarding_forms_signatures/migration.sql',
   '20260718210000_department_details/migration.sql',
   '20260719000000_staff_time_attendance/migration.sql',
+  // Demo Neon (and other db-push cells) skip migrate history; keep ESS/employee schema current.
+  '20260730120000_employee_emergency_contacts/migration.sql',
 ];
 
 function applySqlHotfix(migrateEnv, relativePaths, label) {
