@@ -14,3 +14,10 @@ export {
   SALES_CHART,
   STAGE_CHART_COLOR,
 } from './SalesCharts';
+
+export {
+  ColumnPickerMenu,
+  useColumnVisibility,
+  VisibleColumn,
+  type ColumnOption,
+} from '@/components/dashboard/ColumnPicker';
