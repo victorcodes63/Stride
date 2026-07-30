@@ -59,49 +59,59 @@ export default function EssHseReportPage() {
       {error ? <EssAlert tone="danger">{error}</EssAlert> : null}
       <EssCard as="form" onSubmit={onSubmit} className="space-y-4">
         <label className="block">
-          <span className="text-sm font-bold text-[var(--ess-text)]">Severity</span>
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">
+            Severity
+          </span>
           <StrideSelect
             surface="ess"
-            className="mt-1"
+            triggerClassName="ess-field-compact"
             value={severity}
-            onChange={(value) => setSeverity(value)}
+            onChange={setSeverity}
             options={[
-              { value: 'low', label: 'Low - unsafe condition' },
-              { value: 'medium', label: 'Medium - near-miss or minor incident' },
-              { value: 'high', label: 'High - injury, spill, fire, or urgent hazard' },
+              { value: 'low', label: 'Low — unsafe condition' },
+              { value: 'medium', label: 'Medium — near-miss / minor' },
+              { value: 'high', label: 'High — injury or urgent hazard' },
             ]}
             ariaLabel="Severity"
           />
         </label>
         <label className="block">
-          <span className="text-sm font-bold text-[var(--ess-text)]">When did it happen? (optional)</span>
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">
+            When did it happen? (optional)
+          </span>
           <input
             type="datetime-local"
             value={happenedAt}
             onChange={(e) => setHappenedAt(e.target.value)}
-            className={`${essInputClass} mt-1`}
+            className={`${essInputClass} ess-field-compact`}
           />
         </label>
         <label className="block">
-          <span className="text-sm font-bold text-[var(--ess-text)]">What happened?</span>
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">
+            What happened?
+          </span>
           <textarea
             required
             rows={5}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className={`${essInputClass} mt-1 min-h-32`}
+            placeholder="Describe the incident, near-miss, or hazard"
+            className={`${essInputClass} mt-0 min-h-32`}
           />
         </label>
         <label className="block">
-          <span className="text-sm font-bold text-[var(--ess-text)]">Location (optional)</span>
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">
+            Location (optional)
+          </span>
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className={`${essInputClass} mt-1`}
+            placeholder="Site, yard, warehouse aisle…"
+            className={`${essInputClass} ess-field-compact`}
           />
         </label>
         <button type="submit" disabled={saving} className={`${essPrimaryButtonClass} w-full`}>
-          {saving ? 'Submitting...' : 'Submit report'}
+          {saving ? 'Submitting…' : 'Submit report'}
         </button>
       </EssCard>
     </div>

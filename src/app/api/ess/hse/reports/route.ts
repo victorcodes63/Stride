@@ -42,9 +42,17 @@ export async function GET(request: NextRequest) {
           id: row.id,
           incidentNumber: row.incidentNumber,
           title: row.title,
+          description: row.description,
           status: row.status,
           statusLabel: row.statusLabel,
+          severity: row.severity,
+          severityLabel: row.severityLabel,
+          incidentType: row.incidentType,
+          incidentTypeLabel: row.incidentTypeLabel,
+          location: row.location,
+          occurredAt: row.occurredAt,
           submittedAt: row.reportedAt,
+          openActionCount: row.openActionCount,
         };
       }),
     });

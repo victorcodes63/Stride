@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Download, Receipt } from 'lucide-react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
 import { EssPullRefresh } from '@/components/ess/EssPullRefresh';
-import { EssEmptyState, essInputClass, essSecondaryButtonClass } from '@/components/ess/EssUi';
+import { EssEmptyState } from '@/components/ess/EssUi';
 import { StrideSelect } from '@/components/ui/stride-select';
 
 type PayslipRow = {
@@ -22,6 +22,8 @@ type PayslipRow = {
 };
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_SPAN = 6;
 
 function money(value: number) {
   return `KES ${Number(value || 0).toLocaleString()}`;
@@ -139,6 +141,7 @@ export default function EssPayslipsPage() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const yearOptions = Array.from({ length: YEAR_SPAN }, (_, i) => CURRENT_YEAR - i);
 
   async function load() {
     const params = new URLSearchParams();
@@ -166,48 +169,63 @@ export default function EssPayslipsPage() {
     <EssPullRefresh onRefresh={load}>
     <div className="space-y-5">
       <EssPageHeader title="Payslips" subtitle="View monthly pay summaries and download PDFs." />
-      <section className="ess-card-flat p-4">
-        <div className="grid gap-3">
-          <input
-            type="number"
-            min={2000}
-            max={3000}
-            value={year}
-            onChange={(e) => {
-              setYear(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Year"
-            className={essInputClass}
-          />
-          <StrideSelect
-            surface="ess"
-            value={month}
-            onChange={(value) => {
-              setMonth(value);
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: 'All months' },
-              ...Array.from({ length: 12 }).map((_, i) => ({ value: String(i + 1), label: MONTH_NAMES[i]! })),
-            ]}
-            ariaLabel="Month"
-          />
-          <StrideSelect
-            surface="ess"
-            value={status}
-            onChange={(value) => {
-              setStatus(value);
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: 'All statuses' },
-              { value: 'draft', label: 'Draft' },
-              { value: 'approved', label: 'Approved' },
-              { value: 'paid', label: 'Paid' },
-            ]}
-            ariaLabel="Status"
-          />
+      <section className="ess-card-flat p-3">
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block min-w-0">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">Year</span>
+            <StrideSelect
+              surface="ess"
+              triggerClassName="ess-field-compact"
+              value={year}
+              onChange={(value) => {
+                setYear(value);
+                setPage(1);
+              }}
+              options={[
+                { value: '', label: 'All years' },
+                ...yearOptions.map((y) => ({ value: String(y), label: String(y) })),
+              ]}
+              ariaLabel="Year"
+            />
+          </label>
+          <label className="block min-w-0">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">Month</span>
+            <StrideSelect
+              surface="ess"
+              triggerClassName="ess-field-compact"
+              value={month}
+              onChange={(value) => {
+                setMonth(value);
+                setPage(1);
+              }}
+              options={[
+                { value: '', label: 'All months' },
+                ...Array.from({ length: 12 }).map((_, i) => ({ value: String(i + 1), label: MONTH_NAMES[i]! })),
+              ]}
+              ariaLabel="Month"
+            />
+          </label>
+          <label className="col-span-2 block min-w-0">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">Status</span>
+            <StrideSelect
+              surface="ess"
+              triggerClassName="ess-field-compact"
+              value={status}
+              onChange={(value) => {
+                setStatus(value);
+                setPage(1);
+              }}
+              options={[
+                { value: '', label: 'All statuses' },
+                { value: 'draft', label: 'Draft' },
+                { value: 'approved', label: 'Approved' },
+                { value: 'paid', label: 'Paid' },
+              ]}
+              ariaLabel="Status"
+            />
+          </label>
+        </div>
+        {(year || month || status) ? (
           <button
             type="button"
             onClick={() => {
@@ -216,11 +234,11 @@ export default function EssPayslipsPage() {
               setStatus('');
               setPage(1);
             }}
-            className={essSecondaryButtonClass}
+            className="mt-2 w-full text-center text-xs font-bold text-[var(--ess-primary)]"
           >
             Clear filters
           </button>
-        </div>
+        ) : null}
       </section>
 
       <section className="space-y-3">

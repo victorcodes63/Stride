@@ -403,6 +403,14 @@ model Employee {
   bankName                      String?
   bankBranch                    String?
   bankAccountNumber             String?
+  /// Primary person to call in an emergency (ESS self-service + HR record).
+  emergencyContactName          String?
+  emergencyContactPhone         String?
+  emergencyContactRelationship  String?
+  /// Optional secondary emergency contact.
+  emergencyContactAltName         String?
+  emergencyContactAltPhone        String?
+  emergencyContactAltRelationship String?
   employmentStatus              EmployeeEmploymentStatus @default(active)
   employmentStatusEffectiveFrom DateTime?
   employmentStatusEffectiveTo   DateTime?
