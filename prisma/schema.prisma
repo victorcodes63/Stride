@@ -3084,6 +3084,14 @@ model User {
   legalObligationsOwned             LegalObligation[]                 @relation("LegalObligationOwner")
   legalObligationEvents             LegalObligationEvent[]            @relation("LegalObligationEventActor")
 
+  staffTasksCreated                 StaffTask[]                       @relation("StaffTaskCreator")
+  staffTasksAssigned                StaffTask[]                       @relation("StaffTaskAssignee")
+  personalCalendarEvents            PersonalCalendarEvent[]
+  personalCalendarSharesOwned       PersonalCalendarShare[]           @relation("PersonalCalendarShareOwner")
+  personalCalendarSharesReceived    PersonalCalendarShare[]           @relation("PersonalCalendarShareViewer")
+  companyCalendarEventsCreated      CompanyCalendarEvent[]            @relation("CompanyCalendarEventCreator")
+  companyCalendarEventParticipations CompanyCalendarEventParticipant[]
+
   leaveApprover  User?  @relation("UserLeaveApprover", fields: [leaveApproverId], references: [id], onDelete: SetNull)
   leaveReportees User[] @relation("UserLeaveApprover")
 
@@ -8067,4 +8075,166 @@ model SupportTicketMessage {
   authorUser User?         @relation("SupportTicketMessageAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
 
   @@index([ticketId, createdAt])
+}
+
+// --- Plan my work: personal tasks + collaborative calendar (tenant-scoped) ---
+
+enum StaffTaskStatus {
+  todo
+  in_progress
+  done
+}
+
+enum StaffTaskPriority {
+  none
+  low
+  medium
+  high
+}
+
+/// Internal company tasks (To Do style) assignable to dashboard users.
+model StaffTask {
+  id             String            @id @default(cuid())
+  organizationId String            @db.Uuid
+  title          String
+  description    String?           @db.Text
+  status         StaffTaskStatus   @default(todo)
+  priority       StaffTaskPriority @default(none)
+  dueAt          DateTime?
+  completedAt    DateTime?
+  createdById    String
+  assigneeId     String?
+  sortOrder      Int               @default(0)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  createdBy              User                   @relation("StaffTaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  assignee               User?                  @relation("StaffTaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  linkedCalendarReminder PersonalCalendarEvent? @relation("PersonalCalendarLinkedTask")
+
+  @@index([organizationId, assigneeId, status, dueAt])
+  @@index([organizationId, createdById, status])
+  @@index([organizationId, status, dueAt])
+}
+
+model PersonalCalendarShare {
+  id              String   @id @default(cuid())
+  organizationId  String   @db.Uuid
+  ownerId         String
+  viewerId        String
+  /// Inclusive Nairobi calendar dates the viewer may inspect.
+  windowStart     DateTime
+  windowEnd       DateTime
+  /// When this grant stops working (usually end of windowEnd in Nairobi).
+  accessExpiresAt DateTime
+  /// titles = show event titles; busy = show only "Busy" / "Focus" labels
+  detailLevel     String   @default("titles")
+  message         String?  @db.Text
+  status          String   @default("active") // active | revoked
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  owner  User @relation("PersonalCalendarShareOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  viewer User @relation("PersonalCalendarShareViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, viewerId, status, accessExpiresAt])
+  @@index([organizationId, ownerId, status])
+  @@index([organizationId, windowStart, windowEnd])
+}
+
+/// Private staff planning blocks. Not on the company calendar unless shared via PersonalCalendarShare.
+model PersonalCalendarEvent {
+  id              String            @id @default(cuid())
+  organizationId  String            @db.Uuid
+  userId          String
+  /// event | note | reminder
+  kind            String            @default("event")
+  title           String
+  notes           String?           @db.Text
+  startsAt        DateTime
+  endsAt          DateTime
+  allDay          Boolean           @default(false)
+  isFocusBlock    Boolean           @default(false)
+  recurrence      String            @default("none") // none | daily | weekly | monthly
+  recurrenceUntil DateTime?
+  reminderMinutes Int?
+  reminderSentAt  DateTime?
+  priority        StaffTaskPriority @default(none)
+  linkedTaskId    String?           @unique
+  status          String            @default("scheduled") // scheduled | cancelled
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedTask StaffTask? @relation("PersonalCalendarLinkedTask", fields: [linkedTaskId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, userId, startsAt])
+  @@index([organizationId, status, startsAt])
+  @@index([organizationId, kind, startsAt])
+}
+
+/// Shared staff events within a tenant.
+model CompanyCalendarEvent {
+  id              String   @id @default(cuid())
+  organizationId  String   @db.Uuid
+  /// event | note
+  kind            String   @default("event")
+  title           String
+  eventType       String // bid_submission | training | meeting | public_holiday | other | note
+  startsAt        DateTime
+  endsAt          DateTime
+  allDay          Boolean  @default(false)
+  notes           String?  @db.Text
+  recurrence      String   @default("none") // none | daily | weekly | monthly
+  recurrenceUntil DateTime?
+  reminderMinutes Int?
+  reminderSentAt  DateTime?
+  status          String   @default("scheduled") // scheduled | cancelled
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  createdBy    User                              @relation("CompanyCalendarEventCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  participants CompanyCalendarEventParticipant[]
+
+  @@index([organizationId, startsAt])
+  @@index([organizationId, status, startsAt])
+  @@index([organizationId, createdById])
+  @@index([organizationId, kind, startsAt])
+}
+
+/// Per-occurrence reminder delivery (Inbox / email) so recurring items can fire more than once.
+model CalendarReminderDelivery {
+  id                 String   @id @default(cuid())
+  organizationId     String   @db.Uuid
+  /// personal | company
+  eventScope         String
+  eventId            String
+  occurrenceStartsAt DateTime
+  /// inbox | email
+  channel            String
+  sentAt             DateTime @default(now())
+
+  @@unique([organizationId, eventScope, eventId, occurrenceStartsAt, channel])
+  @@index([organizationId, eventScope, eventId])
+  @@index([organizationId, sentAt])
+}
+
+/// Targeted staff invitations for a shared company calendar event.
+model CompanyCalendarEventParticipant {
+  id          String    @id @default(cuid())
+  organizationId String @db.Uuid
+  eventId     String
+  userId      String
+  status      String    @default("pending") // pending | accepted | declined
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  event CompanyCalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([organizationId, userId, status])
+  @@index([eventId])
 }

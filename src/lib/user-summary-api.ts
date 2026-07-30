@@ -5,6 +5,7 @@ import {
   canManageSalesAdmin,
   canManageSalesTargets,
   canViewAllSalesDeals,
+  canViewCompanyTasks,
   canViewSystemAnalytics,
 } from '@/lib/staff-permissions';
 import type { OrganizationSummary, StaffUserType, UserRole, UserSummary } from '@/types/dashboard';
@@ -52,6 +53,7 @@ export async function userRowToSummary(
       (staffUserType !== 'sales_rep' &&
         (canManageSalesAdmin(role, staffUserType) || canManageSalesTargets(role, staffUserType))),
     canViewSystemAnalytics: canViewSystemAnalytics(role, staffUserType),
+    canAccessCompanyTasks: canViewCompanyTasks(role, staffUserType),
     isActive: user.isActive,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),

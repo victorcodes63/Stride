@@ -8,6 +8,8 @@ import {
   ALL_MODULES_ENABLED,
   buildDashboardNavSections,
   OVERVIEW_NAV_ITEM,
+  OVERVIEW_PERSONAL_LINKS,
+  PERSONAL_PLANNING_LINKS,
   resolveDashboardNavItems,
   type DashboardNavItem,
   type DashboardNavSection,
@@ -56,7 +58,7 @@ function NavPinButton({
   const idleClass =
     variant === 'onPrimary'
       ? 'text-white/50 opacity-60 group-hover/link-row:opacity-100 group-hover/link-row:text-white hover:bg-white/15 hover:text-white'
-      : 'text-neutral-400 opacity-50 group-hover/link-row:opacity-100 hover:bg-neutral-100 hover:text-primary-600';
+      : 'text-[var(--dash-text-muted)] opacity-50 group-hover/link-row:opacity-100 hover:bg-[var(--dash-hover)] hover:text-[var(--stride-coral)]';
 
   return (
     <button
@@ -70,7 +72,7 @@ function NavPinButton({
         isPinned
           ? variant === 'onPrimary'
             ? 'text-white opacity-100 hover:bg-white/15'
-            : 'text-primary-600 opacity-100'
+            : 'text-[var(--stride-coral)] opacity-100'
           : idleClass
       }`}
       title={isPinned ? 'Unpin from top' : 'Pin to top'}
@@ -102,7 +104,9 @@ function NavSubLink({
   sectionActive?: boolean;
 }) {
   const isActive = isPathActive(pathname, href);
-  const connectorClass = sectionActive ? 'bg-primary-300' : 'bg-neutral-200';
+  const connectorClass = sectionActive
+    ? 'bg-[rgba(var(--stride-coral-rgb),0.35)]'
+    : 'bg-[var(--dash-border-subtle)]';
   const readiness = getNavItemReadiness(href);
 
   return (
@@ -360,138 +364,156 @@ export default function DashboardNav({
 
   return (
     <nav
-      className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-1.5 scrollbar-thin"
+      className="flex-1 flex flex-col overflow-x-hidden px-2.5 py-1.5"
       aria-label={isCommandCenter ? 'Business overview navigation' : `${activeDomain.shortLabel} navigation`}
     >
-      {pinsLoaded && pinnedItems.length > 0 && !isCommandCenter ? (
-        <div className="mb-1">
-          <NavGroupLabel label="Pinned" />
-          <div className="space-y-0.5">{pinnedItems.map(renderPinnedLink)}</div>
-        </div>
-      ) : null}
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
+        {pinsLoaded && pinnedItems.length > 0 && !isCommandCenter ? (
+          <div className="mb-1">
+            <NavGroupLabel label="Pinned" />
+            <div className="space-y-0.5">{pinnedItems.map(renderPinnedLink)}</div>
+          </div>
+        ) : null}
 
-      {showDomainOverview && !isCommandCenter ? (
-        <NavRootLink
-          {...overviewItem}
-          pathname={pathname}
-          onNavigate={onNavigate}
-          isPinned={isPinned(overviewItem.href)}
-          onTogglePin={togglePin}
-        />
-      ) : null}
-
-      {isCommandCenter ? (
-        <div className="mt-1">
+        {showDomainOverview && !isCommandCenter ? (
           <NavRootLink
-            {...OVERVIEW_NAV_ITEM}
+            {...overviewItem}
             pathname={pathname}
             onNavigate={onNavigate}
-            isPinned={isPinned(OVERVIEW_NAV_ITEM.href)}
+            isPinned={isPinned(overviewItem.href)}
             onTogglePin={togglePin}
           />
-          <NavGroupLabel label="Modules" />
-          <div className="space-y-0.5">
-            {visibleDomains.map((domain) => {
-              const DomainIcon = domain.icon;
-              const isActive = isPathActive(pathname, domain.hubHref);
-              return (
-                <Link
-                  key={domain.id}
-                  href={domain.hubHref}
-                  onClick={onNavigate}
-                  className={`group/link-row dash-nav-root focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
-                    isActive ? 'is-active' : ''
-                  }`}
-                >
-                  <DomainIcon className="dash-nav-icon" />
-                  <span className="truncate">{domain.shortLabel}</span>
-                </Link>
-              );
-            })}
-          </div>
-          <p className="dash-nav-hint">
-            Pick a module to focus the sidebar, or stay here for the cross-module command center.
-          </p>
-        </div>
-      ) : flattenNav && sections[0] ? (
-        <div className="mt-1 space-y-0.5">
-          {sections[0].items
-            .filter((item) => !isOverviewSubItem(item.href))
-            .map((item, index, items) => (
-            <NavSubLink
-              key={item.href}
-              href={item.href}
-              label={item.label}
+        ) : null}
+
+        {isCommandCenter ? (
+          <div className="mt-1">
+            <NavRootLink
+              {...OVERVIEW_NAV_ITEM}
               pathname={pathname}
               onNavigate={onNavigate}
-              isPinned={isPinned(item.href)}
+              isPinned={isPinned(OVERVIEW_NAV_ITEM.href)}
               onTogglePin={togglePin}
-              isLast={index === items.length - 1}
-              sectionActive={items.some((i) => isPathActive(pathname, i.href))}
             />
-          ))}
-        </div>
-      ) : (
-        sections.map((section) => {
-          const isExpanded = hasMounted && hydrated ? expanded.has(section.id) : false;
-          const sectionActive = section.items.some((item) => isPathActive(pathname, item.href));
-          const SectionIcon = section.icon;
-
-          return (
-            <div key={section.id}>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.id)}
-                  className={`dash-nav-section-btn focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
-                    sectionActive ? 'is-active' : ''
-                  }`}
-                  aria-expanded={isExpanded}
-                  aria-controls={`nav-section-${section.id}`}
-                  id={`nav-trigger-${section.id}`}
-                >
-                  <SectionIcon className="dash-nav-icon" />
-                  <span className="min-w-0 flex-1 truncate">{section.label}</span>
-                  <ChevronRight
-                    className={`h-3.5 w-3.5 flex-shrink-0 text-neutral-400 transition-transform duration-200 ${
-                      isExpanded ? 'rotate-90' : ''
+            <NavGroupLabel label="Modules" />
+            <div className="space-y-0.5">
+              {visibleDomains.map((domain) => {
+                const DomainIcon = domain.icon;
+                const isActive = isPathActive(pathname, domain.hubHref);
+                return (
+                  <Link
+                    key={domain.id}
+                    href={domain.hubHref}
+                    onClick={onNavigate}
+                    className={`group/link-row dash-nav-root focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
+                      isActive ? 'is-active' : ''
                     }`}
-                  />
-                </button>
+                  >
+                    <DomainIcon className="dash-nav-icon" />
+                    <span className="truncate">{domain.shortLabel}</span>
+                  </Link>
+                );
+              })}
+            </div>
+            <p className="dash-nav-hint">
+              Pick a module to focus the sidebar, or stay here for the cross-module command center.
+            </p>
+          </div>
+        ) : flattenNav && sections[0] ? (
+          <div className="mt-1 space-y-0.5">
+            {sections[0].items
+              .filter((item) => !isOverviewSubItem(item.href))
+              .map((item, index, items) => (
+                <NavSubLink
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  pathname={pathname}
+                  onNavigate={onNavigate}
+                  isPinned={isPinned(item.href)}
+                  onTogglePin={togglePin}
+                  isLast={index === items.length - 1}
+                  sectionActive={items.some((i) => isPathActive(pathname, i.href))}
+                />
+              ))}
+          </div>
+        ) : (
+          sections.map((section) => {
+            const isExpanded = hasMounted && hydrated ? expanded.has(section.id) : false;
+            const sectionActive = section.items.some((item) => isPathActive(pathname, item.href));
+            const SectionIcon = section.icon;
 
-                <div
-                  id={`nav-section-${section.id}`}
-                  role="region"
-                  aria-labelledby={`nav-trigger-${section.id}`}
-                  className={`grid transition-[grid-template-rows] duration-200 ease-out ${
-                    isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
-                  }`}
-                >
-                  <div className="overflow-hidden">
-                    <div className="space-y-0.5 pb-1 pt-0.5">
-                      {section.items
-                        .filter((item) => !isOverviewSubItem(item.href))
-                        .map((item, index, items) => (
-                        <NavSubLink
-                          key={item.href}
-                          href={item.href}
-                          label={item.label}
-                          pathname={pathname}
-                          onNavigate={onNavigate}
-                          isPinned={isPinned(item.href)}
-                          onTogglePin={togglePin}
-                          isLast={index === items.length - 1}
-                          sectionActive={sectionActive}
-                        />
-                      ))}
+            return (
+              <div key={section.id}>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => toggleSection(section.id)}
+                    className={`dash-nav-section-btn focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
+                      sectionActive ? 'is-active' : ''
+                    }`}
+                    aria-expanded={isExpanded}
+                    aria-controls={`nav-section-${section.id}`}
+                    id={`nav-trigger-${section.id}`}
+                  >
+                    <SectionIcon className="dash-nav-icon" />
+                    <span className="min-w-0 flex-1 truncate">{section.label}</span>
+                    <ChevronRight
+                      className={`h-3.5 w-3.5 flex-shrink-0 text-[var(--dash-text-faint)] transition-transform duration-200 ${
+                        isExpanded ? 'rotate-90' : ''
+                      }`}
+                    />
+                  </button>
+
+                  <div
+                    id={`nav-section-${section.id}`}
+                    role="region"
+                    aria-labelledby={`nav-trigger-${section.id}`}
+                    className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                      isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="space-y-0.5 pb-1 pt-0.5">
+                        {section.items
+                          .filter((item) => !isOverviewSubItem(item.href))
+                          .map((item, index, items) => (
+                            <NavSubLink
+                              key={item.href}
+                              href={item.href}
+                              label={item.label}
+                              pathname={pathname}
+                              onNavigate={onNavigate}
+                              isPinned={isPinned(item.href)}
+                              onTogglePin={togglePin}
+                              isLast={index === items.length - 1}
+                              sectionActive={sectionActive}
+                            />
+                          ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })
-      )}
+            );
+          })
+        )}
+      </div>
+
+      <div className="mt-2 border-t border-[var(--dash-border-subtle)] pt-2 pb-1">
+        <NavGroupLabel label="Plan my work" />
+        <div className="space-y-0.5">
+          {(isCommandCenter ? OVERVIEW_PERSONAL_LINKS : PERSONAL_PLANNING_LINKS).map((item) => (
+            <NavRootLink
+              key={item.href}
+              {...item}
+              pathname={pathname}
+              onNavigate={onNavigate}
+              isPinned={isPinned(item.href)}
+              onTogglePin={togglePin}
+            />
+          ))}
+        </div>
+      </div>
     </nav>
   );
 }

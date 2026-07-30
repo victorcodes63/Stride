@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
-  ArrowRight,
   Bell,
   Building2,
   ChevronRight,
@@ -21,6 +20,7 @@ import {
 } from '@/lib/dashboard-nav-catalog';
 import {
   buildAttentionItems,
+  buildCrossModuleKpis,
   buildDefaultShortcuts,
   buildDomainSnapshots,
   getOverviewGreeting,
@@ -31,48 +31,26 @@ import {
   groupAttentionByDomain,
   pickTopAttentionAction,
   resolveOverviewPersona,
-  type OverviewAttentionItem,
   type OverviewCrossModuleMetrics,
   type OverviewShortcut,
 } from '@/lib/dashboard-overview-personalization';
 import { useDashboardModuleOrder } from '@/contexts/dashboard-module-order';
 import { OverviewModuleCommandCenter } from '@/components/dashboard/overview/OverviewModuleCommandCenter';
+import { ModuleKpiSnapshotCard } from '@/components/dashboard/overview/ModuleKpiSnapshotCard';
 import {
   FULL_WIDTH_OVERVIEW_WIDGETS,
+  orderKpisByLayout,
   resolveWidgetOrder,
   SIDEBAR_OVERVIEW_WIDGETS,
   type OverviewWidgetId,
 } from '@/lib/dashboard-overview-layout';
 import { useDashboardOverviewLayout } from '@/contexts/dashboard-overview-layout';
 import { OverviewWidgetHeader } from '@/components/dashboard/overview/OverviewWidgetHeader';
+import { PersonalPlanningSection } from '@/components/dashboard/overview/PersonalPlanningSection';
+import { NeedsAttentionSection } from '@/components/dashboard/overview/NeedsAttentionSection';
 import { DemoWalkthroughCard } from '@/components/dashboard/DemoWalkthroughCard';
 import { isPublicDemoMode } from '@/lib/deployment-flags';
-import type { ModuleKey } from '@/lib/modules';
 
-const ALL_MODULES_ON: Record<ModuleKey, boolean> = {
-  core: true,
-  leave: true,
-  time: true,
-  payroll: true,
-  ats: true,
-  performance: true,
-  hse: true,
-  accounts: true,
-  disciplinary: true,
-  reports: true,
-  assets: true,
-  ess: true,
-  communications: true,
-  training: true,
-  documents: true,
-};
-
-function attentionRowClass(tone: OverviewAttentionItem['tone']) {
-  if (tone === 'amber') return 'dash-overview-attention-row--amber';
-  if (tone === 'rose') return 'dash-overview-attention-row--rose';
-  if (tone === 'sky') return 'dash-overview-attention-row--sky';
-  return 'dash-overview-attention-row--neutral';
-}
 
 function ShortcutTile({ item, pinned = false }: { item: OverviewShortcut; pinned?: boolean }) {
   const Icon = item.icon;
@@ -124,6 +102,11 @@ function applyOverviewCoreMetrics(
     salesPastDueCloses: data.crossModule.salesPastDueCloses ?? 0,
     salesClosingThisWeek: data.crossModule.salesClosingThisWeek ?? 0,
     salesWeightedPipelineKes: data.crossModule.salesWeightedPipelineKes ?? 0,
+    assetsAssigned: data.crossModule.assetsAssigned ?? 0,
+    assetsPendingHandoverAck: data.crossModule.assetsPendingHandoverAck ?? 0,
+    assetsWarrantyExpiring: data.crossModule.assetsWarrantyExpiring ?? 0,
+    openHseIncidents: data.crossModule.openHseIncidents ?? 0,
+    openHseActions: data.crossModule.openHseActions ?? 0,
   });
 }
 
@@ -381,23 +364,55 @@ export default function DashboardOverviewContent() {
 
   const { layout, isCustom } = useDashboardOverviewLayout();
 
+  const snapshotKpis = useMemo(() => {
+    if (coreLoading) return [];
+    const kpis = buildCrossModuleKpis({
+      totalStaff,
+      onDuty,
+      pendingLeave: pendingApprovals,
+      credentialsExpiring,
+      credentialsExpired,
+      crossModule,
+      persona,
+      modules,
+    }).filter((kpi) => kpi.show);
+
+    return orderKpisByLayout(kpis, layout);
+  }, [
+    coreLoading,
+    totalStaff,
+    onDuty,
+    pendingApprovals,
+    credentialsExpiring,
+    credentialsExpired,
+    crossModule,
+    persona,
+    modules,
+    layout,
+  ]);
+
   const eligibleFullWidthWidgets = useMemo(() => {
     const ids: OverviewWidgetId[] = [];
     if (!coreLoading && attentionItems.length > 0) ids.push('attention');
+    ids.push('personal-planning');
+    if (!coreLoading && snapshotKpis.length > 0) ids.push('snapshot');
     ids.push('command-center');
     return ids;
-  }, [coreLoading, attentionItems.length]);
+  }, [coreLoading, attentionItems.length, snapshotKpis.length]);
 
   const orderedFullWidthWidgets = useMemo(
     () => resolveWidgetOrder(eligibleFullWidthWidgets, layout, FULL_WIDTH_OVERVIEW_WIDGETS),
     [eligibleFullWidthWidgets, layout],
   );
 
+  const personalPlanningHidden = (layout.hiddenWidgets ?? []).includes('personal-planning');
+
   const eligibleSidebarWidgets = useMemo(() => {
     const ids: OverviewWidgetId[] = ['shortcuts'];
-    if (!coreLoading) ids.push('notifications');
+    // Inbox lives inside Plan my work; only surface the standalone Updates panel if that widget is hidden.
+    if (!coreLoading && personalPlanningHidden) ids.push('notifications');
     return ids;
-  }, [coreLoading]);
+  }, [coreLoading, personalPlanningHidden]);
 
   const orderedSidebarWidgets = useMemo(
     () => resolveWidgetOrder(eligibleSidebarWidgets, layout, SIDEBAR_OVERVIEW_WIDGETS),
@@ -441,50 +456,39 @@ export default function DashboardOverviewContent() {
       ) : null}
 
       {orderedFullWidthWidgets.includes('attention') && !coreLoading && attentionItems.length > 0 ? (
-        <section className="dashboard-panel group/pin-target overflow-hidden">
-          <OverviewWidgetHeader
-            widgetId="attention"
-            title="Needs attention now"
-            trailing={
-              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
-                {attentionItems.length}
-              </span>
-            }
-          />
-          <div className="space-y-4 px-2 py-2 sm:px-3">
-            {visibleDomains.filter((d) => (attentionByDomain[d.id]?.length ?? 0) > 0).map(
-              (domain) => {
-                const items = attentionByDomain[domain.id] ?? [];
-                const DomainIcon = domain.icon;
-                return (
-                  <div key={domain.id}>
-                    <div className="mb-1.5 flex items-center gap-2 px-1">
-                      <DomainIcon className="h-3.5 w-3.5 text-[var(--dash-text-muted)]" strokeWidth={1.75} />
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--dash-text-subtle)]">
-                        {domain.shortLabel}
-                      </p>
-                    </div>
-                    <div className="space-y-0.5">
-                      {items.map((item) => (
-                        <Link
-                          key={item.id}
-                          href={item.href}
-                          className={`dash-overview-attention-row group ${attentionRowClass(item.tone)}`}
-                        >
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-[var(--dash-text-strong)]">{item.label}</p>
-                            <p className="mt-0.5 text-xs text-[var(--dash-text-muted)]">{item.detail}</p>
-                          </div>
-                          <ArrowRight className="h-4 w-4 shrink-0 text-[var(--dash-text-faint)] transition group-hover:text-[var(--dash-text-muted)]" />
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
-        </section>
+        <NeedsAttentionSection
+          items={attentionItems}
+          domains={visibleDomains}
+          attentionByDomain={attentionByDomain}
+        />
+      ) : null}
+
+      {orderedFullWidthWidgets.includes('personal-planning') ? (
+        <PersonalPlanningSection onUnreadChange={setUnreadNotifications} />
+      ) : null}
+
+      {orderedFullWidthWidgets.includes('snapshot') ? (
+        coreLoading ? (
+          <div className="skeleton h-56 rounded-xl" aria-hidden />
+        ) : (
+          <section className="dashboard-panel group/pin-target overflow-hidden">
+            <OverviewWidgetHeader widgetId="snapshot" title="Business snapshot tiles" />
+            <div className="grid grid-cols-1 gap-4 px-2 py-2 sm:grid-cols-2 sm:px-3 xl:grid-cols-3">
+              {snapshotKpis.map((kpi) => (
+                <ModuleKpiSnapshotCard
+                  key={kpi.domainId}
+                  label={kpi.label}
+                  value={kpi.value}
+                  note={kpi.note}
+                  icon={kpi.icon}
+                  href={kpi.href}
+                  chartSegments={kpi.chartSegments}
+                  chartPlaceholder={kpi.chartPlaceholder}
+                />
+              ))}
+            </div>
+          </section>
+        )
       ) : null}
 
       {orderedFullWidthWidgets.includes('command-center') ? (
