@@ -82,10 +82,12 @@ npm run demo:reseed:production   # pulls Vercel production DB URLs, multi-vertic
 ## Client demo tips
 
 - Lead with people ops + payroll + ATS on any company.
-- Switch to **Savannah Freight** for the full platform (fleet, sales, outsourcing).
+- Switch to **Savannah Freight** for the full platform (fleet, sales, outsourcing). Savannah KE has ~130 field staff plus biometric punches, attendance events, and accounts invoices.
+- **Security / manpower buyers:** stay on Savannah → **Outsourcing clients** (8 end-clients tagged `[demo-security-bpo]`, hidden from the company switcher). Walk client → guards → rota → attendance → payroll.
 - Other companies hide irrelevant modules in the sidebar (industry packs).
 - SACCO / healthcare / energy domain screens are light illustrations (modules still planned) — use for narrative, not deep workflows.
-- ESS: `moses.okello@savannahfreight.co.ke` / `Demo@2026!` when on logistics context.
+- ESS: `moses.okello@savannahfreight.co.ke` / `Demo@2026!` (logistics); `guard.demo@westlands.security.demo.ke` / `Demo@2026!` (guarding).
+- After seed changes: `npm run demo:prep:live` (includes orphan cleanup + security BPO + smoke asserts).
 
 See also: `docs/DEMO-LIVE-CHEATSHEET.md`.
 

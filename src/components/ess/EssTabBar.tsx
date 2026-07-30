@@ -40,7 +40,7 @@ export function EssTabBar() {
       className="fixed inset-x-0 bottom-0 z-30 px-3 ess-tab-bar"
       aria-label="Primary"
     >
-      <div className="ess-glass pointer-events-auto mx-auto flex w-full max-w-lg justify-around rounded-[1.75rem] p-1.5 shadow-[var(--ess-shadow-float)]">
+      <div className="ess-glass pointer-events-auto mx-auto flex w-full max-w-lg items-end justify-around rounded-[1.75rem] px-1.5 pb-1.5 pt-1.5 shadow-[var(--ess-shadow-float)]">
         {tabs.map((tab) => {
           const active = tab.match(pathname);
           const Icon = tab.icon;
@@ -49,12 +49,12 @@ export function EssTabBar() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="relative -mt-5 flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-black leading-tight text-[var(--ess-primary)]"
+                className="relative -mt-6 mb-0.5 flex min-w-0 flex-1 flex-col items-center justify-end gap-0.5 text-[10px] font-black leading-tight text-[var(--ess-primary)]"
               >
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--ess-primary)] text-white shadow-[0_16px_34px_color-mix(in_srgb,var(--ess-primary)_35%,transparent)] ring-4 ring-[var(--ess-surface)]">
-                  <Icon className="h-7 w-7" strokeWidth={2.1} />
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--ess-primary)] text-white shadow-[0_16px_34px_color-mix(in_srgb,var(--ess-primary)_35%,transparent)] ring-4 ring-[var(--ess-surface)]">
+                  <Icon className="h-6 w-6" strokeWidth={2.1} />
                 </span>
-                <span>{tab.label}</span>
+                <span className="truncate">{tab.label}</span>
               </Link>
             );
           }
@@ -62,14 +62,14 @@ export function EssTabBar() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.35rem] px-1 text-[10px] font-bold leading-tight transition-all sm:text-xs ${
+              className={`flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.35rem] px-1 py-1 text-[10px] font-bold leading-tight transition-all sm:text-xs ${
                 active
                   ? 'text-[var(--ess-primary)]'
                   : 'text-[var(--ess-muted)] hover:bg-[var(--ess-primary-soft)]'
               }`}
             >
               <Icon className="h-5 w-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} />
-              <span>{tab.label}</span>
+              <span className="truncate">{tab.label}</span>
             </Link>
           );
         })}

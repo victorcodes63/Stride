@@ -91,10 +91,6 @@ async function seedConstructionProjects() {
     return;
   }
 
-  const sharedOrg = await prisma.organization.findUnique({
-    where: { slug: 'demo-multi-vertical' },
-    select: { id: true },
-  });
   const membership = await prisma.organizationMembership.findFirst({
     where: {
       userId: admin.id,

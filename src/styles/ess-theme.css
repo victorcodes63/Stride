@@ -3,11 +3,9 @@
  */
 
 .ess-app {
-  /* Floating Check in CTA sits above the glass bar — keep clearance tall enough */
-  --ess-tab-height: 104px;
-  /* Bottom clearance below the tab bar — driven by the device home indicator / gesture
-     bar. On phones with a home indicator this resolves to the inset (~34px) so the bar
-     tucks just above it; on devices without one it drops to a small floor. */
+  /* Clearance reserved for the tab bar + protruding Check in CTA (content padding). */
+  --ess-tab-height: 5.5rem;
+  /* Bottom inset only — keep the glass pill just above the home indicator. */
   --ess-tab-gap: max(env(safe-area-inset-bottom, 0px), 0.25rem);
   /* Chrome header: safe-area + glass pill (~3.5rem) + vertical padding + breathing gap below the bar */
   --ess-header-offset: calc(max(env(safe-area-inset-top, 0px), 0.75rem) + 5.5rem);
@@ -80,15 +78,21 @@
 }
 
 .ess-tab-bar {
+  /* Pin the glass pill to the bottom; only pad for the home indicator.
+     Do NOT use a tall min-height — that left a large empty gap under the menu. */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* Room for the Check in CTA which lifts above the glass row (-mt-5). */
+  padding-top: 1.35rem;
   padding-bottom: var(--ess-tab-gap);
-  min-height: calc(var(--ess-tab-height) + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
 .ess-main-pad {
   /* Clear fixed chrome + tab bar — must beat Tailwind py-* if both are present */
   padding-top: var(--ess-header-offset) !important;
-  padding-bottom: calc(var(--ess-tab-height) + env(safe-area-inset-bottom, 0px) + 1.5rem) !important;
+  padding-bottom: calc(var(--ess-tab-height) + var(--ess-tab-gap) + 0.75rem) !important;
 }
 
 /* .ess-card, .ess-card-flat, .ess-field, .ess-btn-* → stride-primitives.css */

@@ -92,6 +92,9 @@ console.log('\n→ RLS policies (skipped on demo cell — isolated DB uses neond
 
 run('multi-vertical demo seed', 'npx', ['tsx', 'prisma/seed-demo-multi-vertical.ts'], multiVerticalEnv);
 
+// Defense-in-depth: cleanup + security roster also run at end of multi-vertical seed.
+run('orphan client cleanup', 'npx', ['tsx', 'scripts/cleanup-demo-orphan-clients.ts'], multiVerticalEnv);
+
 run('demo email domains (all showcase orgs)', 'npx', ['tsx', 'scripts/seed-demo-email-domains.mjs'], {
   ...multiVerticalEnv,
   DEMO_MULTI_CONTEXT: 'true',

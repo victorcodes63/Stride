@@ -105,6 +105,28 @@ async function main() {
       DEMO_UNIFIED_ADMIN_EMAIL: process.env.DEMO_UNIFIED_ADMIN_EMAIL ?? UNIFIED_DEMO_EMAIL,
     },
   });
+
+  console.log('\n→ Cleanup legacy/orphan outsourcing clients…');
+  execSync('npx tsx scripts/cleanup-demo-orphan-clients.ts', {
+    cwd: root,
+    stdio: 'inherit',
+    env: process.env,
+  });
+
+  console.log('\n→ Security / manpower end-client roster…');
+  execSync('npx tsx prisma/seed-demo-security-bpo.ts', {
+    cwd: root,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      DEMO_UNIFIED_ADMIN_EMAIL: process.env.DEMO_UNIFIED_ADMIN_EMAIL ?? UNIFIED_DEMO_EMAIL,
+      NEXT_PUBLIC_DEMO_PASSWORD:
+        process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? process.env.STAFF_PASSWORD ?? 'Demo@2026!',
+    },
+  });
+
+  // Re-merge switcher after cleanup (must still be exactly the 6 showcase KE entities).
+  await seedCombinedOperatingEntities();
 }
 
 main()

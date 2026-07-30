@@ -1,5 +1,6 @@
 import { buildVerticalPackFromGeneric } from '../build-from-generic';
 import { d, daysFromToday } from '../date-helpers';
+import { generateDemoStaffRows } from '../generate-demo-staff';
 import type { DemoEmployeeSeed, DemoPack } from '../types';
 
 const DOMAIN = 'savannahfreight.co.ke';
@@ -422,9 +423,38 @@ const credentials = [
   },
 ];
 
+/** Field workforce for credible headcount KPIs (~130 with hero rows). */
+const fieldStaff = generateDemoStaffRows({
+  prefix: PREFIX,
+  emailDomain: DOMAIN,
+  count: 120,
+  departments: [
+    'Fleet & Drivers',
+    'Warehouse',
+    'Dispatch',
+    'Customs & Clearing',
+    'Finance',
+    'HR & Administration',
+  ],
+  startIndex: 11,
+  baseSalary: 58000,
+  roles: [
+    'Long-haul Driver',
+    'Site Supervisor',
+    'Warehouse Operative',
+    'Dispatch Clerk',
+    'Security Post Guard',
+    'Yard Marshal',
+    'Clearing Assistant',
+    'Fleet Admin',
+    'Night Shift Lead',
+    'Gate Controller',
+  ],
+});
+
 export const cargoLogisticsPack: DemoPack = {
   ...base,
-  employees,
+  employees: [...employees, ...fieldStaff],
   careersJobs,
   credentials,
   staffUsers: {
