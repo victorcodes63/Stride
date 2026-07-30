@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
-import { EssEmptyState, essInputClass } from '@/components/ess/EssUi';
+import { EssEmptyState } from '@/components/ess/EssUi';
+import { StrideSelect } from '@/components/ui/stride-select';
 
 type AttendanceSummary = {
   month: string | null;
@@ -37,8 +39,32 @@ const STATUS_STYLES: Record<AttendanceRow['status'], string> = {
   corrected: 'bg-neutral-100 text-neutral-700 border-neutral-200',
 };
 
+const MONTH_LABELS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
 function toMonthInputValue(date: Date): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function shiftMonth(month: string, delta: number): string {
+  const [year, monthIndex] = month.split('-').map(Number);
+  return toMonthInputValue(new Date(Date.UTC(year, monthIndex - 1 + delta, 1)));
+}
+
+function formatMonthLabel(month: string): string {
+  const [year, monthIndex] = month.split('-').map(Number);
+  return `${MONTH_LABELS[(monthIndex || 1) - 1] ?? 'Month'} ${year}`;
+}
+
+function buildMonthOptions(anchor: string, past = 18, future = 2) {
+  const options: { value: string; label: string }[] = [];
+  for (let i = -past; i <= future; i += 1) {
+    const value = shiftMonth(anchor, i);
+    options.push({ value, label: formatMonthLabel(value) });
+  }
+  return options;
 }
 
 function monthBounds(month: string): { from: string; to: string } {
@@ -103,7 +129,8 @@ function AttendanceCard({ row }: { row: AttendanceRow }) {
 }
 
 export default function EssAttendancePage() {
-  const [month, setMonth] = useState(toMonthInputValue(new Date()));
+  const currentMonth = toMonthInputValue(new Date());
+  const [month, setMonth] = useState(currentMonth);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -112,6 +139,7 @@ export default function EssAttendancePage() {
   const [error, setError] = useState('');
 
   const range = useMemo(() => monthBounds(month), [month]);
+  const monthOptions = useMemo(() => buildMonthOptions(currentMonth), [currentMonth]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,8 +186,13 @@ export default function EssAttendancePage() {
     };
   }, [month, page, range.from, range.to]);
 
+  function selectMonth(next: string) {
+    setMonth(next || currentMonth);
+    setPage(1);
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <EssPageHeader
         title="Attendance"
         subtitle="Monthly summary and history"
@@ -173,47 +206,65 @@ export default function EssAttendancePage() {
           </Link>
         }
       />
-      <div className="-mt-2">
-        <label className="block text-sm font-bold text-[var(--ess-text)]">
-          <span>Month</span>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => {
-              setMonth(e.target.value || toMonthInputValue(new Date()));
-              setPage(1);
-            }}
-            className={`${essInputClass} mt-1`}
-          />
-        </label>
+
+      <div className="ess-card-flat flex items-center gap-2 p-2">
+        <button
+          type="button"
+          aria-label="Previous month"
+          onClick={() => selectMonth(shiftMonth(month, -1))}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[var(--ess-muted)] hover:bg-[var(--ess-primary-soft)] hover:text-[var(--ess-primary)]"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <StrideSelect
+          surface="ess"
+          className="min-w-0 flex-1"
+          triggerClassName="ess-field-compact justify-center text-center"
+          value={month}
+          onChange={selectMonth}
+          options={
+            monthOptions.some((o) => o.value === month)
+              ? monthOptions
+              : [{ value: month, label: formatMonthLabel(month) }, ...monthOptions]
+          }
+          ariaLabel="Month"
+        />
+        <button
+          type="button"
+          aria-label="Next month"
+          onClick={() => selectMonth(shiftMonth(month, 1))}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[var(--ess-muted)] hover:bg-[var(--ess-primary-soft)] hover:text-[var(--ess-primary)]"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
       </div>
 
       {error ? (
-        <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-md px-3 py-2">{error}</p>
+        <p className="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       ) : null}
 
       <section className="grid grid-cols-2 gap-3">
-        <div className="bg-white border border-neutral-200 rounded-xl p-4">
+        <div className="rounded-xl border border-neutral-200 bg-white p-4">
           <p className="text-xs text-neutral-600">Days worked / scheduled</p>
-          <p className="text-xl font-semibold text-primary-900 mt-1">
+          <p className="mt-1 text-xl font-semibold text-primary-900">
             {summary?.totalDaysWorked ?? 0} / {summary?.totalScheduledDays ?? 0}
           </p>
         </div>
-        <div className="bg-white border border-neutral-200 rounded-xl p-4">
+        <div className="rounded-xl border border-neutral-200 bg-white p-4">
           <p className="text-xs text-neutral-600">Total hours</p>
-          <p className="text-xl font-semibold text-primary-900 mt-1">{summary?.totalHours ?? 0}</p>
+          <p className="mt-1 text-xl font-semibold text-primary-900">{summary?.totalHours ?? 0}</p>
         </div>
-        <div className="bg-white border border-neutral-200 rounded-xl p-4">
+        <div className="rounded-xl border border-neutral-200 bg-white p-4">
           <p className="text-xs text-neutral-600">Overtime hours</p>
-          <p className="text-xl font-semibold text-primary-900 mt-1">{summary?.overtimeHours ?? 0}</p>
+          <p className="mt-1 text-xl font-semibold text-primary-900">{summary?.overtimeHours ?? 0}</p>
         </div>
-        <div className="bg-white border border-neutral-200 rounded-xl p-4">
+        <div className="rounded-xl border border-neutral-200 bg-white p-4">
           <p className="text-xs text-neutral-600">Late arrivals</p>
-          <p className="text-xl font-semibold text-amber-700 mt-1">{summary?.lateCount ?? 0}</p>
+          <p className="mt-1 text-xl font-semibold text-amber-700">{summary?.lateCount ?? 0}</p>
         </div>
-        <div className="bg-white border border-amber-200 rounded-xl p-4 bg-amber-50/40">
+        <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4">
           <p className="text-xs text-amber-800">Pending review items</p>
-          <p className="text-xl font-semibold text-amber-700 mt-1">{summary?.pendingReviewCount ?? 0}</p>
+          <p className="mt-1 text-xl font-semibold text-amber-700">{summary?.pendingReviewCount ?? 0}</p>
         </div>
       </section>
 
@@ -231,7 +282,7 @@ export default function EssAttendancePage() {
           type="button"
           disabled={page <= 1}
           onClick={() => setPage((p) => Math.max(1, p - 1))}
-          className="px-3 py-2.5 min-h-11 rounded-md border border-neutral-300 text-sm disabled:opacity-50"
+          className="min-h-11 rounded-md border border-neutral-300 px-3 py-2.5 text-sm disabled:opacity-50"
         >
           Previous
         </button>
@@ -242,7 +293,7 @@ export default function EssAttendancePage() {
           type="button"
           disabled={page >= totalPages}
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          className="px-3 py-2.5 min-h-11 rounded-md border border-neutral-300 text-sm disabled:opacity-50"
+          className="min-h-11 rounded-md border border-neutral-300 px-3 py-2.5 text-sm disabled:opacity-50"
         >
           Next
         </button>

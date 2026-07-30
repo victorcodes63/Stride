@@ -68,14 +68,15 @@ const SURFACE_STYLES: Record<StrideSelectSurface, SurfaceStyles> = {
     chevron: 'text-[var(--dash-text-faint)]',
   },
   ess: {
-    trigger: () => 'ess-field text-sm',
+    // Literal fallbacks required — the menu portals onto document.body, outside .ess-app.
+    trigger: () => 'ess-field text-sm font-semibold',
     menu:
-      'border border-[var(--ess-border)] bg-[var(--ess-surface-raised,var(--ess-surface))] text-[var(--ess-text)] shadow-2xl',
-    option: 'text-[var(--ess-text)]',
-    optionActive: 'bg-[color-mix(in_srgb,var(--ess-primary)_14%,transparent)]',
-    optionSelected: 'font-semibold text-[var(--ess-primary)]',
-    placeholder: 'text-[var(--ess-muted)]',
-    chevron: 'text-[var(--ess-muted)]',
+      'border border-[var(--ess-border,#e8e2da)] bg-[var(--ess-surface-raised,#ffffff)] text-[var(--ess-text,#1a1714)] shadow-2xl',
+    option: 'text-[var(--ess-text,#1a1714)]',
+    optionActive: 'bg-[color-mix(in_srgb,var(--ess-primary,#ff5436)_14%,transparent)]',
+    optionSelected: 'font-semibold text-[var(--ess-primary,#ff5436)]',
+    placeholder: 'text-[var(--ess-muted,#8a8076)]',
+    chevron: 'text-[var(--ess-muted,#8a8076)]',
   },
   public: {
     // Self-contained tokens with literal fallbacks so the portaled menu (rendered
@@ -144,30 +145,53 @@ export function StrideSelect({
 
     const spaceBelow = vh - rect.bottom;
     const spaceAbove = rect.top;
-    const openUp = spaceBelow < 240 && spaceAbove > spaceBelow;
+    const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
     const availableV = (openUp ? spaceAbove : spaceBelow) - gap - margin;
-    const maxHeight = Math.max(160, Math.min(360, availableV));
+    // Keep mobile menus short so they don't swallow the whole screen / filters below.
+    const maxHeight = Math.max(140, Math.min(surface === 'ess' ? 240 : 360, availableV));
 
-    // The menu sizes to its content (capped via CSS max-width). Measure the
-    // rendered width so we can flip/shift it to stay within the viewport
-    // instead of forcing the narrow trigger width onto long option labels.
-    const menuWidth = menuRef.current?.offsetWidth ?? rect.width;
+    // Match trigger width on ESS (narrow filter stacks). Elsewhere allow content
+    // to grow up to the measured menu width, then clamp into the viewport.
+    const triggerWidth = Math.round(rect.width);
+    const measuredWidth = menuRef.current?.offsetWidth ?? triggerWidth;
+    const menuWidth = surface === 'ess' ? triggerWidth : measuredWidth;
     let left = rect.left;
     if (left + menuWidth > vw - margin) {
       left = Math.max(margin, vw - margin - menuWidth);
     }
 
+    // Copy ESS tokens from the shell onto the portaled menu (body is outside .ess-app).
+    const themeVars: Record<string, string> = {};
+    if (surface === 'ess') {
+      const scope = el.closest('.ess-app') ?? document.documentElement;
+      const cs = getComputedStyle(scope);
+      for (const name of [
+        '--ess-surface',
+        '--ess-surface-raised',
+        '--ess-border',
+        '--ess-text',
+        '--ess-muted',
+        '--ess-primary',
+        '--ess-primary-soft',
+      ]) {
+        const value = cs.getPropertyValue(name).trim();
+        if (value) themeVars[name] = value;
+      }
+    }
+
     setMenuStyle({
       position: 'fixed',
       left: Math.round(left),
-      minWidth: Math.round(rect.width),
+      width: surface === 'ess' ? triggerWidth : undefined,
+      minWidth: triggerWidth,
       maxHeight,
+      ...themeVars,
       ...(openUp
         ? { bottom: Math.round(vh - rect.top + gap) }
         : { top: Math.round(rect.bottom + gap) }),
     });
     setReady(true);
-  }, []);
+  }, [surface]);
 
   useIsomorphicLayoutEffect(() => {
     if (!open) {

@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         status: item.status,
         reason: item.reason,
         createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
       })),
     );
   });

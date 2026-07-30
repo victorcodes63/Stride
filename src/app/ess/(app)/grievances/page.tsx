@@ -3,7 +3,14 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { EssPageHeader } from '@/components/ess/EssPageHeader';
-import { EssAlert, EssCard, EssEmptyState, EssListItem, essInputClass, essPrimaryButtonClass } from '@/components/ess/EssUi';
+import {
+  EssAlert,
+  EssCard,
+  EssEmptyState,
+  EssSectionTitle,
+  essInputClass,
+  essPrimaryButtonClass,
+} from '@/components/ess/EssUi';
 import { EssStatusPill } from '@/components/ess/EssStatusPill';
 import { StrideSelect } from '@/components/ui/stride-select';
 import { toDisplayLabel } from '@/lib/format-label';
@@ -12,10 +19,38 @@ type Grievance = {
   id: string;
   grievanceNumber: string;
   subject: string;
+  description?: string;
   category: string;
   status: string;
   submittedAt: string;
 };
+
+const CATEGORIES = [
+  'WORKPLACE_SAFETY',
+  'HARASSMENT',
+  'DISCRIMINATION',
+  'WORKLOAD',
+  'MANAGEMENT',
+  'COMPENSATION',
+  'POLICY',
+  'OTHER',
+] as const;
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString([], {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function statusHelper(status: string) {
+  const normalized = status.toLowerCase();
+  if (normalized === 'submitted' || normalized === 'open') return 'Logged with HR for review';
+  if (normalized.includes('investigat')) return 'Under investigation';
+  if (normalized.includes('resolv') || normalized.includes('closed')) return 'Resolved / closed';
+  return toDisplayLabel(status);
+}
 
 export default function EssGrievancesPage() {
   const [items, setItems] = useState<Grievance[]>([]);
@@ -23,6 +58,7 @@ export default function EssGrievancesPage() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('OTHER');
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   async function load() {
     const res = await fetch('/api/ess/grievances');
@@ -34,70 +70,143 @@ export default function EssGrievancesPage() {
     void load();
   }, []);
 
-  async function submit() {
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
     if (!navigator.onLine) {
       setError('You are offline. Reconnect before submitting a grievance.');
       return;
     }
-    const res = await fetch('/api/ess/grievances', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject, description, category }),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(body.error || 'Failed to submit grievance');
-      return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/ess/grievances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, description, category }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(body.error || 'Failed to submit grievance');
+        return;
+      }
+      setSubject('');
+      setDescription('');
+      setCategory('OTHER');
+      await load();
+    } finally {
+      setSaving(false);
     }
-    setSubject('');
-    setDescription('');
-    setCategory('OTHER');
-    await load();
   }
 
   return (
     <div className="space-y-5">
       <div>
-        <EssPageHeader title="Grievances" subtitle="Raise workplace concerns for formal HR review." backHref="/ess/more" />
+        <EssPageHeader
+          title="Grievances"
+          subtitle="Raise workplace concerns for formal HR review."
+          backHref="/ess/more"
+        />
         <p className="text-sm leading-6 text-[var(--ess-muted)]">
-          Use this form for workplace concerns (safety, harassment, workload, management, and similar). Your case is logged and reviewed under the employer’s grievance procedure and applicable labour law. This is not the same as a{' '}
-          <a className="font-medium text-primary-700 underline" href="/ess/disciplinary">
+          Use this for safety, harassment, workload, management, and similar concerns. Cases follow the employer’s
+          grievance procedure. This is not the same as a{' '}
+          <Link className="font-semibold text-[var(--ess-primary)] underline" href="/ess/disciplinary">
             disciplinary case
-          </a>{' '}
+          </Link>{' '}
           against you.
         </p>
       </div>
-      <EssCard>
+
+      <EssCard as="form" onSubmit={submit} className="space-y-3">
         <p className="text-sm font-black text-[var(--ess-text)]">Submit grievance</p>
-        <div className="mt-2 space-y-2">
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">
+            Category
+          </span>
           <StrideSelect
             surface="ess"
+            triggerClassName="ess-field-compact"
             value={category}
-            onChange={(value) => setCategory(value)}
-            options={['WORKPLACE_SAFETY','HARASSMENT','DISCRIMINATION','WORKLOAD','MANAGEMENT','COMPENSATION','POLICY','OTHER'].map((c) => ({ value: c, label: toDisplayLabel(c) }))}
+            onChange={setCategory}
+            options={CATEGORIES.map((c) => ({ value: c, label: toDisplayLabel(c) }))}
             ariaLabel="Grievance category"
           />
-          <input className={essInputClass} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" />
-          <textarea className={`${essInputClass} min-h-28`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the grievance" />
-          {error ? <EssAlert tone="danger">{error}</EssAlert> : null}
-          <button onClick={submit} className={essPrimaryButtonClass}>Submit</button>
-        </div>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">
+            Subject
+          </span>
+          <input
+            className={`${essInputClass} ess-field-compact`}
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Short summary"
+            required
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">
+            Details
+          </span>
+          <textarea
+            className={`${essInputClass} min-h-28`}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe what happened, when, and who was involved"
+            required
+          />
+        </label>
+        {error ? <EssAlert tone="danger">{error}</EssAlert> : null}
+        <button type="submit" disabled={saving} className={`${essPrimaryButtonClass} w-full`}>
+          {saving ? 'Submitting…' : 'Submit grievance'}
+        </button>
       </EssCard>
-      <section className="space-y-2">
-        {items.map((item) => (
-          <Link key={item.id} href={`/ess/grievances/${item.id}`}>
-            <EssListItem
-              title={item.subject}
-              subtitle={`${item.grievanceNumber} · ${item.category.replaceAll('_', ' ')}`}
-              meta={new Date(item.submittedAt).toLocaleDateString()}
-              trailing={<EssStatusPill status={item.status} />}
+
+      <section>
+        <EssSectionTitle eyebrow="History" title="Your cases" subtitle="Status and category for each submission" />
+        <div className="space-y-3">
+          {items.map((item) => (
+            <Link key={item.id} href={`/ess/grievances/${item.id}`} className="block">
+              <article className="ess-card-flat overflow-hidden transition-transform active:scale-[0.99]">
+                <div className="flex items-start justify-between gap-3 border-b border-[var(--ess-border)] px-4 py-3.5">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--ess-muted)]">
+                      {item.grievanceNumber}
+                    </p>
+                    <h3 className="mt-1 text-base font-black text-[var(--ess-text)]">{item.subject}</h3>
+                  </div>
+                  <EssStatusPill status={item.status} />
+                </div>
+                <div className="space-y-2 px-4 py-3">
+                  <dl className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-2xl bg-[var(--ess-surface-soft)] px-3 py-2">
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">
+                        Category
+                      </dt>
+                      <dd className="mt-0.5 font-black text-[var(--ess-text)]">
+                        {toDisplayLabel(item.category)}
+                      </dd>
+                    </div>
+                    <div className="rounded-2xl bg-[var(--ess-surface-soft)] px-3 py-2">
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--ess-muted)]">
+                        Submitted
+                      </dt>
+                      <dd className="mt-0.5 font-black text-[var(--ess-text)]">
+                        {formatDate(item.submittedAt)}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="text-xs font-semibold text-[var(--ess-muted)]">{statusHelper(item.status)}</p>
+                </div>
+              </article>
+            </Link>
+          ))}
+          {!items.length ? (
+            <EssEmptyState
+              title="No grievances submitted"
+              message="Cases you raise will appear here with their review status."
             />
-          </Link>
-        ))}
-        {!items.length ? (
-          <EssEmptyState title="No grievances submitted" message="Cases you raise will appear here with their review status." />
-        ) : null}
+          ) : null}
+        </div>
       </section>
     </div>
   );

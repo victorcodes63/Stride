@@ -244,6 +244,27 @@
   color-scheme: inherit;
 }
 
+/* Compact controls for filter rows (month / year / status) on small screens */
+.ess-field-compact {
+  min-height: 2.5rem;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  line-height: 1.2;
+}
+
+/* Native month/date inputs inflate on iOS — keep the visible control tight */
+.ess-field-compact[type='month'],
+.ess-field-compact[type='date'],
+.ess-field-compact[type='number'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+}
+
 .ess-field:focus {
   outline: none;
   border-color: var(--ess-primary);
