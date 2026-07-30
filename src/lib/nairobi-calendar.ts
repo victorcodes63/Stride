@@ -33,6 +33,17 @@ export function ymdToUtcNoon(ymd: string): Date {
   return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
 }
 
+/** Combine YYYY-MM-DD and HH:MM in Africa/Nairobi (UTC+3, no DST). */
+export function nairobiDateTimeFromYmdAndTime(ymd: string, time: string): Date {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const match = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
+  if (!match) throw new Error('Invalid time. Use HH:MM.');
+  const h = Number(match[1]);
+  const min = Number(match[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) throw new Error('Invalid time. Use HH:MM.');
+  return new Date(Date.UTC(y, m - 1, d, h - 3, min, 0));
+}
+
 /** Whole calendar days from `fromYmd` to `toYmd` (can be negative). */
 export function daysBetweenYmd(fromYmd: string, toYmd: string): number {
   const a = ymdToUtcNoon(fromYmd).getTime();

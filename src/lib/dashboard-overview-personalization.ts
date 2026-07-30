@@ -20,6 +20,32 @@ import { STAFF_USER_TYPE_LABELS } from '@/lib/staff-permissions';
 import type { ModuleKey } from '@/lib/modules';
 import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
 import { DASHBOARD_MODULE_DOMAINS } from '@/lib/dashboard-module-domains';
+import { PERSONAL_PLANNING_LINKS } from '@/lib/dashboard-nav-catalog';
+import {
+  buildAttentionItems as collectDomainAttentionItems,
+  groupAttentionByDomain,
+  type OverviewAttentionItem,
+} from '@/lib/dashboard-attention';
+
+export type { OverviewAttentionItem };
+export { groupAttentionByDomain };
+
+function buildPersonalPlanningShortcuts(): OverviewShortcut[] {
+  const descByLabel: Record<string, string> = {
+    Calendar: 'Your personal calendar & reminders',
+    'My tasks': 'Tasks assigned to you',
+    Inbox: 'Personal notifications and updates',
+    Leave: 'Request and track your leave',
+    'My profile': 'Your staff profile & settings',
+  };
+
+  return PERSONAL_PLANNING_LINKS.map((item) => ({
+    href: item.href,
+    label: item.label,
+    desc: descByLabel[item.label] ?? 'Personal shortcut',
+    icon: item.icon,
+  }));
+}
 
 export type OverviewPersona =
   | 'admin'
@@ -83,15 +109,6 @@ export type CrossModuleKpi = {
   show: boolean;
   chartSegments: OverviewKpiChartSegment[];
   chartPlaceholder?: boolean;
-};
-
-export type OverviewAttentionItem = {
-  id: string;
-  label: string;
-  detail: string;
-  href: string;
-  tone: 'amber' | 'rose' | 'sky' | 'neutral';
-  domainId: DashboardModuleDomainId;
 };
 
 export function resolveOverviewPersona(user: UserSummary | null): OverviewPersona {
@@ -200,10 +217,11 @@ export function buildDefaultShortcuts(
   modules: Partial<Record<ModuleKey, boolean>>,
 ): OverviewShortcut[] {
   const on = (key: ModuleKey) => modules[key] === true;
-  const shortcuts: OverviewShortcut[] = [];
+  const personalPlanning = buildPersonalPlanningShortcuts();
+  const moduleShortcuts: OverviewShortcut[] = [];
 
   if (user?.hasAccountsAccess && on('accounts')) {
-    shortcuts.push({
+    moduleShortcuts.push({
       href: '/dashboard/accounts',
       label: 'Finance',
       desc: 'Invoices, AP & billing',
@@ -211,7 +229,7 @@ export function buildDefaultShortcuts(
     });
   }
   if (on('fleet') && (persona === 'admin' || persona === 'director' || persona === 'operations')) {
-    shortcuts.push({
+    moduleShortcuts.push({
       href: '/dashboard/fleet',
       label: 'Fleet',
       desc: 'Trips & compliance',
@@ -219,7 +237,7 @@ export function buildDefaultShortcuts(
     });
   }
   if (on('legal') || on('documents')) {
-    shortcuts.push({
+    moduleShortcuts.push({
       href: '/dashboard/legal',
       label: 'Legal',
       desc: 'Contracts & credentials',
@@ -227,7 +245,7 @@ export function buildDefaultShortcuts(
     });
   }
   if (on('procurement')) {
-    shortcuts.push({
+    moduleShortcuts.push({
       href: '/dashboard/procurement',
       label: 'Procurement',
       desc: 'Purchase requests',
@@ -235,7 +253,7 @@ export function buildDefaultShortcuts(
     });
   }
   if (on('payroll') && persona !== 'viewer') {
-    shortcuts.push({
+    moduleShortcuts.push({
       href: '/dashboard/payroll',
       label: 'Payroll',
       desc: 'Runs & payslips',
@@ -243,7 +261,7 @@ export function buildDefaultShortcuts(
     });
   }
   if (on('leave') && (user?.canApproveStaffLeave || persona === 'admin' || persona === 'business_manager')) {
-    shortcuts.push({
+    moduleShortcuts.push({
       href: '/dashboard/leave',
       label: 'Leave queue',
       desc: 'Approve or decline',
@@ -251,7 +269,7 @@ export function buildDefaultShortcuts(
     });
   }
   if (on('core')) {
-    shortcuts.push({
+    moduleShortcuts.push({
       href: '/dashboard/employees',
       label: 'Employees',
       desc: 'Directory & profiles',
@@ -259,7 +277,7 @@ export function buildDefaultShortcuts(
     });
   }
   if (persona === 'director' && user?.canViewSystemAnalytics) {
-    shortcuts.unshift({
+    moduleShortcuts.unshift({
       href: '/dashboard/analytics',
       label: 'Analytics',
       desc: 'Executive summary',
@@ -267,7 +285,16 @@ export function buildDefaultShortcuts(
     });
   }
 
-  return shortcuts.slice(0, 6);
+  const merged: OverviewShortcut[] = [];
+  const seen = new Set<string>();
+  for (const item of [...personalPlanning, ...moduleShortcuts]) {
+    if (seen.has(item.href)) continue;
+    seen.add(item.href);
+    merged.push(item);
+    if (merged.length >= 6) break;
+  }
+
+  return merged;
 }
 
 export function buildAttentionItems(input: {
@@ -281,142 +308,7 @@ export function buildAttentionItems(input: {
   persona: OverviewPersona;
   modules: Partial<Record<ModuleKey, boolean>>;
 }): OverviewAttentionItem[] {
-  const items: OverviewAttentionItem[] = [];
-  const on = (key: ModuleKey) => input.modules[key] === true;
-  const cross = input.crossModule;
-
-  if (on('accounts') && cross && cross.invoicesOutstanding > 0) {
-    items.push({
-      id: 'invoices',
-      label: 'Unpaid invoices',
-      detail: `${cross.invoicesOutstanding} invoice${cross.invoicesOutstanding === 1 ? '' : 's'} awaiting payment`,
-      href: '/dashboard/accounts/invoices?status=unpaid',
-      tone: 'amber',
-      domainId: 'finance',
-    });
-  }
-  if (on('accounts') && cross && cross.vendorBillsOutstanding > 0) {
-    items.push({
-      id: 'vendor-bills',
-      label: 'Vendor bills',
-      detail: `${cross.vendorBillsOutstanding} bill${cross.vendorBillsOutstanding === 1 ? '' : 's'} to pay or approve`,
-      href: '/dashboard/accounts/vendor-bills?status=unpaid',
-      tone: 'amber',
-      domainId: 'procurement',
-    });
-  }
-  if (on('core') && cross && cross.pendingPurchaseRequests > 0) {
-    items.push({
-      id: 'purchase-requests',
-      label: 'Purchase requests',
-      detail: `${cross.pendingPurchaseRequests} awaiting approval`,
-      href: '/dashboard/procurement/purchase-requests?status=submitted',
-      tone: 'amber',
-      domainId: 'procurement',
-    });
-  }
-  if (on('fleet') && cross && cross.openFleetIncidents > 0) {
-    items.push({
-      id: 'fleet-incidents',
-      label: 'Fleet incidents',
-      detail: `${cross.openFleetIncidents} open incident${cross.openFleetIncidents === 1 ? '' : 's'}`,
-      href: '/dashboard/fleet/compliance',
-      tone: 'rose',
-      domainId: 'fleet-logistics',
-    });
-  }
-  if (on('sales') && cross && cross.salesPastDueCloses > 0) {
-    items.push({
-      id: 'sales-past-due',
-      label: 'Past-due closes',
-      detail: `${cross.salesPastDueCloses} open deal${cross.salesPastDueCloses === 1 ? '' : 's'} past expected close`,
-      href: '/dashboard/sales/deals',
-      tone: 'rose',
-      domainId: 'sales',
-    });
-  }
-  if (on('sales') && cross && cross.salesStalledDeals > 0) {
-    items.push({
-      id: 'sales-stalled',
-      label: 'Stalled deals',
-      detail: `${cross.salesStalledDeals} with no movement in 14+ days`,
-      href: '/dashboard/sales/deals',
-      tone: 'amber',
-      domainId: 'sales',
-    });
-  }
-
-  if (on('leave') && input.pendingLeave > 0 && input.persona !== 'viewer') {
-    items.push({
-      id: 'leave',
-      label: 'Leave approvals',
-      detail: `${input.pendingLeave} request${input.pendingLeave === 1 ? '' : 's'} awaiting action`,
-      href: '/dashboard/staff-leave?tab=approvals',
-      tone: 'amber',
-      domainId: 'hr-payroll',
-    });
-  }
-  if (on('time') && input.openAttendanceExceptions > 0) {
-    items.push({
-      id: 'attendance',
-      label: 'Attendance exceptions',
-      detail: `${input.openAttendanceExceptions} open — review clock data`,
-      href: '/dashboard/attendance?status=open',
-      tone: 'rose',
-      domainId: 'hr-payroll',
-    });
-  }
-  if (on('core') && (input.credentialsExpiring > 0 || input.credentialsExpired > 0)) {
-    items.push({
-      id: 'credentials',
-      label: 'Credentials',
-      detail: [
-        input.credentialsExpiring > 0 ? `${input.credentialsExpiring} expiring soon` : null,
-        input.credentialsExpired > 0 ? `${input.credentialsExpired} expired` : null,
-      ]
-        .filter(Boolean)
-        .join(' · '),
-      href: input.credentialsExpired > 0
-        ? '/dashboard/credentials?status=expired'
-        : '/dashboard/credentials?status=expiring_soon',
-      tone: 'amber',
-      domainId: 'legal-documents',
-    });
-  }
-  if (on('core') && input.myOnboardingCount > 0) {
-    items.push({
-      id: 'onboarding',
-      label: 'Onboarding tasks',
-      detail: `${input.myOnboardingCount} assigned to you`,
-      href: '/dashboard/onboarding?status=IN_PROGRESS',
-      tone: 'sky',
-      domainId: 'hr-payroll',
-    });
-  }
-  if (input.unreadNotifications > 0) {
-    items.push({
-      id: 'notifications',
-      label: 'Notifications',
-      detail: `${input.unreadNotifications} unread update${input.unreadNotifications === 1 ? '' : 's'}`,
-      href: '/dashboard/notifications',
-      tone: 'neutral',
-      domainId: 'platform-admin',
-    });
-  }
-  return items;
-}
-
-/** Group attention items by platform module for the overview command center. */
-export function groupAttentionByDomain(
-  items: OverviewAttentionItem[],
-): Partial<Record<DashboardModuleDomainId, OverviewAttentionItem[]>> {
-  const map: Partial<Record<DashboardModuleDomainId, OverviewAttentionItem[]>> = {};
-  for (const item of items) {
-    const bucket = map[item.domainId] ?? [];
-    bucket.push(item);
-    map[item.domainId] = bucket;
-  }
-  return map;
+  return collectDomainAttentionItems(input);
 }
 
 /** Highest-priority attention item for hero CTA (rose > amber > sky > neutral). */

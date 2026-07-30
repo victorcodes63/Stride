@@ -298,6 +298,8 @@ export interface UserSummary {
   accountsPermissions: AccountsPermissionsSummary;
   /** Executive system summary at /dashboard/analytics (admin or Director staff type). */
   canViewSystemAnalytics: boolean;
+  /** Company-wide My tasks scope (admin, business_manager, director). */
+  canAccessCompanyTasks: boolean;
   /** Active tenant organization (Phase 0 multi-tenant). */
   currentOrgId: string | null;
   currentOrgName: string | null;

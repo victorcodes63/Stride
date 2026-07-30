@@ -189,6 +189,15 @@ export function resolveDomainForPath(pathname: string): DashboardModuleDomainId 
     return 'hr-payroll';
   }
 
+  if (
+    path.startsWith('/dashboard/calendar') ||
+    path.startsWith('/dashboard/my-tasks') ||
+    path.startsWith('/dashboard/notifications') ||
+    path.startsWith('/dashboard/staff-leave')
+  ) {
+    return 'hr-payroll';
+  }
+
   if (path.startsWith('/dashboard/accounts')) return 'finance';
   if (path.startsWith('/dashboard/procurement')) return 'procurement';
   if (path.startsWith('/dashboard/legal')) return 'legal-documents';

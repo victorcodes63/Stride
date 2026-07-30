@@ -90,6 +90,25 @@ export const OVERVIEW_NAV_ITEM: DashboardNavItem = {
   icon: LayoutDashboard,
 };
 
+/** Always-visible self-service strip — personal tools for every staff member. */
+export const PERSONAL_PLANNING_LINKS: DashboardNavItem[] = [
+  { href: '/dashboard/calendar?scope=personal', label: 'Calendar', icon: CalendarDays },
+  { href: '/dashboard/my-tasks', label: 'My tasks', icon: ClipboardList },
+  { href: '/dashboard/notifications', label: 'Inbox', icon: Bell },
+  { href: '/dashboard/staff-leave?tab=my', label: 'Leave', icon: CalendarOff },
+  { href: '/dashboard/people/me', label: 'My profile', icon: UserCog },
+];
+
+/**
+ * Compact personal strip for the Overview (command-center) sidebar —
+ * keeps modules primary while still offering day-to-day personal entry points.
+ */
+export const OVERVIEW_PERSONAL_LINKS: DashboardNavItem[] = [
+  { href: '/dashboard/calendar?scope=personal', label: 'Calendar', icon: CalendarDays },
+  { href: '/dashboard/my-tasks', label: 'My work', icon: ClipboardList },
+  { href: '/dashboard/people/me', label: 'My profile', icon: UserCog },
+];
+
 const primarySections: DashboardNavSection[] = [
   {
     id: 'people-hr',

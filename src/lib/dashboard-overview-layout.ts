@@ -7,6 +7,7 @@ export const OVERVIEW_WIDGET_IDS = [
   'snapshot',
   'hr-details',
   'shortcuts',
+  'personal-planning',
   'notifications',
   'credentials',
 ] as const;
@@ -31,7 +32,9 @@ export const DEFAULT_OVERVIEW_LAYOUT: DashboardOverviewLayout = {
 
 export const FULL_WIDTH_OVERVIEW_WIDGETS: OverviewWidgetId[] = [
   'attention',
+  'personal-planning',
   'command-center',
+  'snapshot',
 ];
 
 export const SIDEBAR_OVERVIEW_WIDGETS: OverviewWidgetId[] = [

@@ -15,6 +15,12 @@ export function canViewSystemAnalytics(role: UserRole, staffUserType: StaffUserT
   return staffUserType === 'director';
 }
 
+/** Company-wide personal task list (scope=all / company). */
+export function canViewCompanyTasks(role: UserRole, staffUserType: StaffUserType): boolean {
+  if (role === 'admin') return true;
+  return staffUserType === 'business_manager' || staffUserType === 'director';
+}
+
 export function isStaffUserType(value: string): value is StaffUserType {
   return (STAFF_USER_TYPES as readonly string[]).includes(value);
 }
@@ -36,6 +42,11 @@ export function canViewAllSalesDeals(role: UserRole, staffUserType: StaffUserTyp
     staffUserType === 'business_manager' ||
     staffUserType === 'director'
   );
+}
+
+/** Sales settings / quote approval / manage (admin, sales manager, leadership). */
+export function canManageSalesAdmin(role: UserRole, staffUserType: StaffUserType): boolean {
+  return canViewAllSalesDeals(role, staffUserType);
 }
 
 /** Approve / edit team quotas and commission push to payroll. */

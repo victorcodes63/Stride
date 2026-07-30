@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseStaffSession } from '@/lib/auth-session';
-import { canApproveStaffLeave, canViewTeamLeaveQueue } from '@/lib/staff-permissions';
+import {
+  canApproveStaffLeave,
+  canViewCompanyTasks,
+  canViewTeamLeaveQueue,
+} from '@/lib/staff-permissions';
 import { resolveMembershipWithLoginScope } from '@/lib/org-membership';
 import { resolveStaffSessionOrgId } from '@/lib/staff-session-org';
 import type { StaffUserType } from '@/types/dashboard';
@@ -62,4 +66,10 @@ export function canApproveStaffLeaveRequests(u: StaffUser | null): boolean {
 export function canAccessTeamLeaveScope(u: StaffUser | null): boolean {
   if (!u) return false;
   return canViewTeamLeaveQueue(u.role, u.staffUserType);
+}
+
+/** Company-wide personal task list (admin, business manager, director). */
+export function canAccessCompanyTasks(u: StaffUser | null): boolean {
+  if (!u) return false;
+  return canViewCompanyTasks(u.role, u.staffUserType);
 }
