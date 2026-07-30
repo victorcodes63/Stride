@@ -294,6 +294,16 @@ const outsourcingServicesSection: DashboardNavSection = {
   ],
 };
 
+
+const inventorySection: DashboardNavSection = {
+  id: 'inventory',
+  label: 'Inventory',
+  icon: Package,
+  items: [
+    { href: '/dashboard/inventory', label: 'Stock', icon: Package },
+  ],
+};
+
 const salesSection: DashboardNavSection = {
   id: 'sales',
   label: 'Sales',
@@ -306,7 +316,11 @@ const salesSection: DashboardNavSection = {
     { href: '/dashboard/sales/tasks', label: 'Tasks', icon: ListTodo },
     { href: '/dashboard/sales/contacts', label: 'Contacts', icon: Users },
     { href: '/dashboard/sales/products', label: 'Products', icon: Package },
+    { href: '/dashboard/sales/orders', label: 'Orders', icon: Package },
     { href: '/dashboard/sales/quotes', label: 'Quotes', icon: FileText },
+    { href: '/dashboard/sales/territories', label: 'Territories', icon: Target },
+    { href: '/dashboard/sales/promotions', label: 'Promotions', icon: Coins },
+    { href: '/dashboard/sales/van-loads', label: 'Van loads', icon: Package },
     { href: '/dashboard/sales/forecast', label: 'Forecast', icon: PieChart },
     { href: '/dashboard/sales/attainment', label: 'Attainment', icon: TrendingUp },
     { href: '/dashboard/sales/commissions', label: 'Commissions', icon: Coins },
@@ -544,6 +558,7 @@ export function buildDashboardNavSections(options: DashboardNavBuildOptions): Da
   }
   if (isNavSectionVisible('sales', enabledModules)) {
     chunks.push(salesSection);
+    chunks.push(inventorySection);
   }
   chunks.push(
     operationsSection,
@@ -582,6 +597,7 @@ export function getStaticNavCatalogSections(): DashboardNavSection[] {
     outsourcingWorkforceSection,
     outsourcingServicesSection,
     salesSection,
+    inventorySection,
     operationsSection,
     buildCommunicationsInsightSection(true),
     adminSection,
@@ -674,6 +690,7 @@ export const DASHBOARD_NAV_EXPANDABLE_SECTION_IDS = [
   outsourcingWorkforceSection.id,
   outsourcingServicesSection.id,
   salesSection.id,
+  inventorySection.id,
   operationsSection.id,
   'communications-insight',
   adminSection.id,

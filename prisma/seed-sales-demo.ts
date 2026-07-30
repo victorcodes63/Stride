@@ -416,10 +416,28 @@ async function main() {
         sku: spec.sku,
         category: spec.category,
         unitPrice: spec.unitPrice,
+        unit: 'each',
+        baseUom: 'each',
         currency: 'KES',
         isRecurring: spec.isRecurring,
         defaultTermMonths: 'defaultTermMonths' in spec ? spec.defaultTermMonths : null,
         active: true,
+        uoms: {
+          create: [
+            {
+              organizationId,
+              uom: 'each',
+              toBaseFactor: 1,
+              isDefaultOrderUom: true,
+            },
+            {
+              organizationId,
+              uom: 'case',
+              toBaseFactor: 12,
+              isDefaultOrderUom: false,
+            },
+          ],
+        },
       },
     });
     products.push(product);
@@ -995,6 +1013,91 @@ async function main() {
   const productCount = await prisma.salesProduct.count({ where: { organizationId } });
   const quoteCount = await prisma.salesQuote.count({ where: { organizationId } });
   const taskCount = await prisma.salesTask.count({ where: { organizationId } });
+
+  // —— FMCG OTC spine demo extras (P0–P2) ——
+  try {
+    await prisma.accountsClient.updateMany({
+      where: { organizationId },
+      data: { creditLimit: 5_000_000, accountTier: 'key', channelType: 'distributor' },
+    });
+    if (accounts[0]) {
+      await prisma.accountsClient.update({
+        where: { id: accounts[0].id },
+        data: { creditLimit: 2_000_000, accountTier: 'strategic', channelType: 'key_account', outletCode: 'KA-001' },
+      });
+    }
+    if (accounts[1] && accounts[0]) {
+      await prisma.accountsClient.update({
+        where: { id: accounts[1].id },
+        data: {
+          channelType: 'general_trade',
+          parentClientId: accounts[0].id,
+          outletCode: 'OUT-101',
+          accountTier: 'standard',
+        },
+      });
+    }
+
+    const team = await prisma.salesTeam.create({
+      data: {
+        organizationId,
+        name: 'Nairobi FMCG Team',
+        members: {
+          create: reps.slice(0, 2).map((r, i) => ({
+            organizationId,
+            employeeId: r.id,
+            role: i === 0 ? 'lead' : 'member',
+          })),
+        },
+      },
+    });
+
+    const territory = await prisma.salesTerritory.create({
+      data: {
+        organizationId,
+        name: 'Nairobi Metro',
+        code: 'NBO',
+        members: {
+          create: reps.slice(0, 2).map((r) => ({
+            organizationId,
+            employeeId: r.id,
+          })),
+        },
+      },
+    });
+
+    if (accounts[1]) {
+      await prisma.salesBeat.create({
+        data: {
+          organizationId,
+          territoryId: territory.id,
+          name: 'Monday GT route',
+          weekday: 1,
+          outlets: {
+            create: [{ organizationId, accountsClientId: accounts[1].id, sortOrder: 0 }],
+          },
+        },
+      });
+    }
+
+    await prisma.salesPromotion.create({
+      data: {
+        organizationId,
+        name: 'Q3 Case deal 5%',
+        mechanic: 'off_invoice',
+        discountPct: 5,
+        fundingPct: 50,
+        startsOn: periodStart,
+        endsOn: periodEnd,
+        active: true,
+      },
+    });
+
+    console.log(`→ FMCG extras: team ${team.name}, territory ${territory.name}, credit limits + UOM cases`);
+  } catch (e) {
+    console.warn('→ FMCG extras skipped:', e instanceof Error ? e.message : e);
+  }
+
   console.log(
     `→ Seeded ${dealCount} deals, ${contacts.length} contacts, ${leadCount} leads, ${lineCount} line items, ${productCount} products, ${quoteCount} quotes, ${taskCount} tasks, ${metrics} rep metrics.`,
   );

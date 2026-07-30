@@ -67,7 +67,7 @@ export const DASHBOARD_MODULE_DOMAINS: DashboardModuleDomain[] = [
     icon: Target,
     description: 'Pipeline KPIs, targets, attainment, and scorecard auto-measures.',
     hubHref: '/dashboard/sales',
-    sectionIds: ['sales'],
+    sectionIds: ['sales', 'inventory'],
     readiness: 'live',
   },
   {
@@ -203,6 +203,7 @@ export function resolveDomainForPath(pathname: string): DashboardModuleDomainId 
   if (path.startsWith('/dashboard/legal')) return 'legal-documents';
   if (path.startsWith('/dashboard/projects')) return 'projects';
   if (path.startsWith('/dashboard/sales')) return 'sales';
+  if (path.startsWith('/dashboard/inventory')) return 'sales';
   if (path.startsWith('/dashboard/fleet')) return 'fleet-logistics';
   if (path.startsWith('/dashboard/outsourcing')) return 'hr-outsourcing';
   if (path.startsWith('/dashboard/operations')) return 'admin-operations';
@@ -266,7 +267,7 @@ export function isHrefInDomain(href: string, domainId: DashboardModuleDomainId):
 
 export const DOMAIN_REQUIRED_MODULES: Record<DashboardModuleDomainId, ModuleKey[]> = {
   'hr-payroll': ['core'],
-  sales: ['sales'],
+  sales: ['sales', 'inventory'],
   finance: ['accounts'],
   procurement: ['procurement'],
   'legal-documents': ['legal', 'documents'],
