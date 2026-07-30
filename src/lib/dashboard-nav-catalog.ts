@@ -291,6 +291,7 @@ const salesSection: DashboardNavSection = {
     { href: '/dashboard/sales/forecast', label: 'Forecast', icon: PieChart },
     { href: '/dashboard/sales/attainment', label: 'Attainment', icon: TrendingUp },
     { href: '/dashboard/sales/commissions', label: 'Commissions', icon: Coins },
+    { href: '/dashboard/sales/settings', label: 'CRM settings', icon: Settings },
   ],
 };
 
