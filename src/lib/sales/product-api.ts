@@ -38,6 +38,7 @@ export function mapProductToJson(
     description: p.description,
     unitPrice,
     unit: p.unit ?? null,
+    baseUom: (p as { baseUom?: string | null }).baseUom ?? p.unit ?? 'each',
     currency: p.currency,
     isRecurring: p.isRecurring,
     defaultTermMonths: p.defaultTermMonths,

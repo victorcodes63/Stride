@@ -30,6 +30,7 @@ export function usesTenantWrapper(source: string): boolean {
     /\bwithEssTenant\s*\(/.test(source) ||
     /\bwithAssessmentAccessToken\s*\(/.test(source) ||
     /\bwithQuoteAcceptContext\s*\(/.test(source) ||
+    /\bwithOrderStatusContext\s*\(/.test(source) ||
     (/\bwithOrgContext\s*\(/.test(source) && /\brequireStaffUser\b/.test(source))
   );
 }

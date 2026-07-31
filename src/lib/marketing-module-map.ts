@@ -46,7 +46,7 @@ export const MARKETING_AREA_MODULE_KEYS: Record<MarketingAreaId, readonly Module
   'admin-operations': ['assets', 'hse', 'operations'],
   'fleet-logistics': ['fleet'],
   'hr-outsourcing': ['outsourcing'],
-  sales: ['sales'],
+  sales: ['sales', 'inventory'],
 };
 
 /** Industry-pack module keys (vertical engines marketed separately from product areas). */

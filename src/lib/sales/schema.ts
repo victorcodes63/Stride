@@ -204,3 +204,27 @@ export function defaultProbabilityForStage(stage: SalesDealStage): number {
 export function defaultForecastForStage(stage: SalesDealStage): SalesForecastCategory {
   return STAGE_DEFAULT_FORECAST[stage];
 }
+
+
+export const SALES_ORDER_STATUSES = [
+  'draft',
+  'credit_hold',
+  'confirmed',
+  'partially_shipped',
+  'shipped',
+  'invoiced',
+  'cancelled',
+] as const;
+export type SalesOrderStatusType = (typeof SALES_ORDER_STATUSES)[number];
+
+export const SALES_CHANNEL_TYPES = [
+  'modern_trade',
+  'general_trade',
+  'distributor',
+  'key_account',
+  'direct',
+] as const;
+export type SalesChannelType = (typeof SALES_CHANNEL_TYPES)[number];
+
+export const SALES_PROMO_MECHANICS = ['off_invoice', 'scanback', 'lump_sum'] as const;
+export type SalesPromoMechanic = (typeof SALES_PROMO_MECHANICS)[number];

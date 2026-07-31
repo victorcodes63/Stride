@@ -110,6 +110,8 @@ export const ROUTE_MODULE_BINDINGS: RouteModuleBinding[] = [
   // —— Sales Performance ——
   { prefix: '/api/sales', module: 'sales' },
   { prefix: '/dashboard/sales', module: 'sales' },
+  { prefix: '/dashboard/inventory', module: 'inventory' },
+  { prefix: '/api/inventory', module: 'inventory' },
 
   // —— HSE ——
   { prefix: '/dashboard/hse', module: 'hse' },

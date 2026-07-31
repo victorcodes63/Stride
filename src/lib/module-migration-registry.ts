@@ -137,14 +137,6 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'PerformanceReviewRating',
     'PerformanceFeedback',
   ],
-  sales: ['SalesRepPeriodMetric'],
-  assessments: [
-    'AssessmentTemplate',
-    'AssessmentQuestion',
-    'JobAssessmentAssignment',
-    'ApplicationAssessmentAttempt',
-    'ApplicationAssessmentAnswer',
-  ],
   operations: ['CompanyAsset', 'AssetAssignmentEvent', 'HseIncident', 'HseAction', 'Announcement'],
   hse: ['HseIncident', 'HseAction'],
   accounts: [
@@ -188,7 +180,18 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'SalesActual',
     'SalesRepPeriodMetric',
     'SalesCommissionRule',
+    'SalesProduct',
+    'SalesProductUom',
+    'SalesQuote',
+    'SalesOrder',
+    'SalesOrderLine',
+    'SalesTeam',
+    'SalesTerritory',
+    'SalesPromotion',
+    'SalesVanLoad',
+    'SalesEdiMessage',
   ],
+  inventory: ['InventoryStock', 'InventoryMovement', 'InventoryReservation'],
   assessments: [
     'AssessmentTemplate',
     'AssessmentQuestion',
@@ -197,7 +200,6 @@ export const MODULE_PRISMA_MODELS: Record<ModuleKey, string[]> = {
     'ApplicationAssessmentAnswer',
   ],
   projects: ['Project', 'ProjectMilestone', 'ProjectTask'],
-  operations: ['CompanyAsset', 'AssetAssignmentEvent', 'HseIncident', 'Announcement'],
   outsourcing: ['OutsourcingClient', 'OutsourcingRateCard', 'OutsourcingRateCardLine', 'Employee', 'Department'],
 };
 
@@ -366,7 +368,16 @@ export const MODULE_MIGRATION_TRACKING: ModuleMigrationRecord[] = MODULE_DEFINIT
       return {
         ...base,
         phase: 'tenant-safe',
-        notes: 'All /api/sales/* routes use withTenant(); won revenue sources Finance invoices when linked (SALES-02).',
+        notes:
+          'All /api/sales/* staff routes use withTenant(); public partner order status uses withOrderStatusContext (SALES-02 / FMCG OTC).',
+      };
+    }
+
+    if (def.key === 'inventory') {
+      return {
+        ...base,
+        phase: 'tenant-safe',
+        notes: 'All /api/inventory/* routes use withTenant(); stock/ATP/receipts for sales order fulfillment.',
       };
     }
 

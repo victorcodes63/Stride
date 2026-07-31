@@ -66,6 +66,55 @@ export const PERMISSION_SEEDS: PermissionSeed[] = [
     description: 'Create invoices, vendor bills, and other high-impact finance entries.',
     defaults: { admin: true, staff: true, viewer: false },
   },
+  {
+    key: 'sales.admin',
+    label: 'Administer sales settings',
+    module: 'Sales',
+    description: 'Manage price books, products settings, and sales admin configuration.',
+    defaults: { admin: true, staff: false, viewer: false },
+  },
+  {
+    key: 'sales.manage',
+    label: 'Manage sales CRM',
+    module: 'Sales',
+    description: 'Create and update deals, quotes, contacts, and view product margins.',
+    defaults: { admin: true, staff: true, viewer: false },
+  },
+  {
+    key: 'sales.manage_commissions',
+    label: 'Manage sales commissions and targets',
+    module: 'Sales',
+    description: 'Approve targets and manage commission rules / payroll push.',
+    defaults: { admin: true, staff: true, viewer: false },
+  },
+  {
+    key: 'sales.approve_quotes',
+    label: 'Approve sales quote discounts',
+    module: 'Sales',
+    description: 'Approve or reject quote discount requests above policy thresholds.',
+    defaults: { admin: true, staff: true, viewer: false },
+  },
+  {
+    key: 'sales.orders',
+    label: 'Manage sales orders',
+    module: 'Sales',
+    description: 'Create, confirm, ship, and invoice sales orders.',
+    defaults: { admin: true, staff: true, viewer: false },
+  },
+  {
+    key: 'sales.credit_override',
+    label: 'Override sales credit warnings',
+    module: 'Sales',
+    description: 'Acknowledge credit-hold warnings when confirming orders or invoicing.',
+    defaults: { admin: true, staff: true, viewer: false },
+  },
+  {
+    key: 'inventory.manage',
+    label: 'Manage inventory',
+    module: 'Inventory',
+    description: 'Receive stock, adjust levels, and view ATP across warehouses.',
+    defaults: { admin: true, staff: true, viewer: false },
+  },
 ];
 
 export async function ensurePermissionCatalog(): Promise<void> {

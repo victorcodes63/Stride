@@ -9,6 +9,7 @@ import { lineItemExtendedAmount, requireAccessibleDeal, SalesAccessError } from 
 import { currentMonthPeriod } from '@/lib/sales/api-helpers';
 import {
   evaluateFleetCapacityForDeal,
+  evaluateSalesCreditGate,
   evaluateSalesLegalGate,
 } from '@/lib/sales/cross-module-gates';
 import { syncRepPeriodMetric } from '@/lib/sales/metrics-sync';
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           throw Object.assign(new Error('INVOICE_EXISTS'), { code: 'INVOICE_EXISTS' });
         }
 
-        const [legal, fleet] = await Promise.all([
+        const [legal, fleet, credit] = await Promise.all([
           evaluateSalesLegalGate(tx, {
             organizationId: ctx.organizationId,
             accountsClientId: deal.accountsClientId,
@@ -72,8 +73,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             organizationId: ctx.organizationId,
             cargoWeightKg: deal.cargoWeightKg,
           }),
+          evaluateSalesCreditGate(tx, {
+            organizationId: ctx.organizationId,
+            accountsClientId: deal.accountsClientId,
+            proposedAmount: Number(deal.value),
+          }),
         ]);
-        const warnings = [...legal.warnings, ...fleet.warnings];
+        const warnings = [...legal.warnings, ...fleet.warnings, ...credit.warnings];
         if (warnings.length > 0 && !acknowledgeWarnings) {
           throw Object.assign(new Error('WARNINGS'), {
             code: 'WARNINGS',

@@ -7,6 +7,7 @@ import {
 import { reportApiError } from '@/lib/monitoring';
 import { getEffectiveModulesFromRequest, requireModule } from '@/lib/module-access';
 import { lineItemExtendedAmount } from '@/lib/sales/access';
+import { evaluateSalesCreditGate } from '@/lib/sales/cross-module-gates';
 import { withTenant } from '@/lib/tenant-api';
 
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (moduleBlock) return moduleBlock;
 
     const { id } = await params;
+    let acknowledgeWarnings = false;
+    try {
+      const body = await request.json();
+      if (body && typeof body === 'object') {
+        acknowledgeWarnings =
+          (body as { acknowledgeWarnings?: boolean }).acknowledgeWarnings === true;
+      }
+    } catch {
+      /* empty ok */
+    }
 
     try {
       const result = await ctx.run(async (tx) => {
@@ -83,6 +94,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           };
         });
 
+        const proposed = lines.reduce((s, l) => s + l.amountExVat, 0);
+        const credit = await evaluateSalesCreditGate(tx, {
+          organizationId: ctx.organizationId,
+          accountsClientId: quote.accountsClientId,
+          proposedAmount: proposed,
+        });
+        if (credit.warnings.length > 0 && !acknowledgeWarnings) {
+          throw Object.assign(new Error('WARNINGS'), {
+            code: 'WARNINGS',
+            warnings: credit.warnings,
+          });
+        }
+
         const issueDate = quote.issueDate ?? new Date();
         const paymentTerms = quote.accountsClient?.outsourcingClient?.paymentTerms ?? null;
         const dueDate = quote.validUntil ?? dueDateFromIssue(issueDate, paymentTerms);
@@ -114,7 +138,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       return NextResponse.json({ result }, { status: 201 });
     } catch (error: unknown) {
-      const err = error as { code?: string };
+      const err = error as { code?: string; warnings?: string[] };
+      if (err.code === 'WARNINGS') {
+        return NextResponse.json(
+          {
+            error: 'Credit warnings require acknowledgement.',
+            warnings: err.warnings ?? [],
+            code: 'WARNINGS',
+            requireAcknowledge: true,
+          },
+          { status: 409 },
+        );
+      }
       if (err.code === 'QUOTE_NOT_FOUND') {
         return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
       }

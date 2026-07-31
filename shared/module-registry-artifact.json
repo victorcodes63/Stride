@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-17T09:59:40.091Z",
+  "generatedAt": "2026-07-30T14:57:31.623Z",
   "keys": [
     "core",
     "ess",
@@ -21,6 +21,7 @@
     "operations",
     "outsourcing",
     "sales",
+    "inventory",
     "assessments",
     "fleet",
     "assets",
@@ -228,6 +229,18 @@
       "readiness": "live"
     },
     {
+      "key": "inventory",
+      "label": "Inventory",
+      "bucket": "horizontal",
+      "canDisable": true,
+      "domainId": "sales",
+      "envVar": "MODULE_INVENTORY",
+      "requires": [
+        "sales"
+      ],
+      "readiness": "partial"
+    },
+    {
       "key": "assessments",
       "label": "Candidate assessments",
       "bucket": "horizontal",
@@ -330,6 +343,7 @@
     "operations": "horizontal",
     "outsourcing": "horizontal",
     "sales": "horizontal",
+    "inventory": "horizontal",
     "assessments": "horizontal",
     "fleet": "vertical",
     "assets": "vertical",
@@ -366,7 +380,8 @@
       "label": "Sales",
       "description": "Pipeline KPIs, targets, attainment, and scorecard auto-measures.",
       "keys": [
-        "sales"
+        "sales",
+        "inventory"
       ]
     },
     {

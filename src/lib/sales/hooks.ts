@@ -35,6 +35,12 @@ export const salesKeys = {
     [...salesKeys.all, 'products', params ?? {}] as const,
   quotes: (params?: Record<string, string | number | undefined>) =>
     [...salesKeys.all, 'quotes', params ?? {}] as const,
+  orders: (params?: Record<string, string | number | undefined>) =>
+    [...salesKeys.all, 'orders', params ?? {}] as const,
+  order: (id: string) => [...salesKeys.all, 'order', id] as const,
+  territories: () => [...salesKeys.all, 'territories'] as const,
+  promotions: () => [...salesKeys.all, 'promotions'] as const,
+  vanLoads: () => [...salesKeys.all, 'vanLoads'] as const,
   quote: (id: string) => [...salesKeys.all, 'quote', id] as const,
   tasks: (params?: Record<string, string | number | undefined>) =>
     [...salesKeys.all, 'tasks', params ?? {}] as const,
