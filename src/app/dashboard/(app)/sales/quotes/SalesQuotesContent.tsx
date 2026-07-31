@@ -756,13 +756,19 @@ function QuoteDetailDrawer({
 
   const convertMutation = useSalesMutation<
     { result: { invoiceNumber: number } },
-    void
+    { acknowledgeWarnings?: boolean }
   >(
-    () => apiFetch(`/api/sales/quotes/${quoteId}/convert-to-invoice`, { method: 'POST' }),
+    (vars) =>
+      apiFetch(`/api/sales/quotes/${quoteId}/convert-to-invoice`, {
+        method: 'POST',
+        body: JSON.stringify({ acknowledgeWarnings: vars?.acknowledgeWarnings === true }),
+      }),
     {
       invalidateKeys: [salesKeys.all, salesKeys.quote(quoteId)],
     },
   );
+
+  const [convertWarnings, setConvertWarnings] = useState<string[] | null>(null);
 
   const changeStatus = useCallback(
     async (status: string) => {
@@ -781,12 +787,25 @@ function QuoteDetailDrawer({
     [statusMutation, detailQuery],
   );
 
-  async function handleConvert() {
+  async function handleConvert(acknowledge = false) {
     try {
-      const res = await convertMutation.mutateAsync();
+      const res = await convertMutation.mutateAsync({ acknowledgeWarnings: acknowledge });
       setConvertOpen(false);
+      setConvertWarnings(null);
       toast.success(`Invoice #${res.result.invoiceNumber} created in Finance.`);
     } catch (e) {
+      if (
+        e instanceof ApiError &&
+        e.status === 409 &&
+        e.body &&
+        typeof e.body === 'object' &&
+        ('requireAcknowledge' in e.body || (e.body as { code?: string }).code === 'WARNINGS')
+      ) {
+        const w = (e.body as { warnings?: unknown }).warnings;
+        setConvertWarnings(Array.isArray(w) ? w.map(String) : []);
+        setConvertOpen(true);
+        return;
+      }
       toast.error(e instanceof Error ? e.message : 'Conversion failed.');
     }
   }
@@ -1089,16 +1108,28 @@ function QuoteDetailDrawer({
 
       <ConfirmDialog
         open={convertOpen}
-        title="Convert quote to invoice?"
+        title={convertWarnings?.length ? 'Acknowledge credit warnings?' : 'Convert quote to invoice?'}
         description={
-          quote
-            ? `A finance invoice will be created for ${quote.accountsClient?.name ?? 'the client'} totalling ${formatSalesCurrency(quote.totals.total, quote.currency)} (incl. VAT).`
-            : undefined
+          convertWarnings?.length ? (
+            <div className="space-y-2 whitespace-pre-wrap">
+              <ul className="list-disc space-y-1 pl-4">
+                {convertWarnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+              <p>Continue and create the invoice anyway?</p>
+            </div>
+          ) : quote ? (
+            `A finance invoice will be created for ${quote.accountsClient?.name ?? 'the client'} totalling ${formatSalesCurrency(quote.totals.total, quote.currency)} (incl. VAT).`
+          ) : undefined
         }
-        confirmLabel="Create invoice"
+        confirmLabel={convertWarnings?.length ? 'Acknowledge & invoice' : 'Create invoice'}
         loading={convertMutation.isPending}
-        onConfirm={() => void handleConvert()}
-        onCancel={() => setConvertOpen(false)}
+        onConfirm={() => void handleConvert(Boolean(convertWarnings?.length))}
+        onCancel={() => {
+          setConvertOpen(false);
+          setConvertWarnings(null);
+        }}
       />
     </SalesDrawer>
   );

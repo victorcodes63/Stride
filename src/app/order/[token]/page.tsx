@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { prisma } from '@/lib/prisma';
+import { withOrderStatusContext } from '@/lib/sales/order-status-token';
 
 export const metadata: Metadata = { title: 'Order status | Stride' };
 
@@ -7,13 +7,17 @@ type PageProps = { params: Promise<{ token: string }> };
 
 export default async function PublicOrderStatusPage({ params }: PageProps) {
   const { token } = await params;
-  const order = await prisma.salesOrder.findFirst({
-    where: { publicStatusToken: token },
-    include: {
-      accountsClient: { select: { name: true } },
-      lineItems: { select: { description: true, qtyOrdered: true, qtyShipped: true, uom: true } },
-    },
+  const resolved = await withOrderStatusContext(token, async ({ tx, orderId, organizationId }) => {
+    return tx.salesOrder.findFirst({
+      where: { id: orderId, organizationId },
+      include: {
+        accountsClient: { select: { name: true } },
+        lineItems: { select: { description: true, qtyOrdered: true, qtyShipped: true, uom: true } },
+      },
+    });
   });
+
+  const order = resolved.ok ? resolved.result : null;
 
   if (!order) {
     return (

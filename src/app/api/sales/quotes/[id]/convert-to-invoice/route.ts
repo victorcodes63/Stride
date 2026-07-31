@@ -141,7 +141,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const err = error as { code?: string; warnings?: string[] };
       if (err.code === 'WARNINGS') {
         return NextResponse.json(
-          { error: 'Credit warnings require acknowledgement.', warnings: err.warnings ?? [], code: 'WARNINGS' },
+          {
+            error: 'Credit warnings require acknowledgement.',
+            warnings: err.warnings ?? [],
+            code: 'WARNINGS',
+            requireAcknowledge: true,
+          },
           { status: 409 },
         );
       }
