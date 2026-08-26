@@ -4,13 +4,21 @@ import { INDUSTRY_VERTICALS } from '@/lib/marketing-config';
 import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
+import { marketingMetadata } from '@/lib/marketing-metadata';
 
 /**
- * Coming-soon industry placeholders. Dedicated static routes under
- * `/industries/<name>` cover available verticals; this catch-all is only for
- * `coming_soon` entries. Forced dynamic because `generateStaticParams` would
- * otherwise return [] when every vertical is `available`, which breaks
- * Next.js page-data collection for this segment.
+ * Reserved for `coming_soon` industry verticals only.
+ *
+ * Live verticals (status `available`) ship as dedicated static pages under
+ * `/industries/<name>` (logistics, saccos, healthcare, energy, construction).
+ * Those win over this catch-all, so this route never serves them — it
+ * `notFound()`s if a sector is missing or already available.
+ *
+ * Keep this file when adding a new roadmap vertical: set status to
+ * `coming_soon` in INDUSTRY_VERTICALS and this page becomes its waitlist
+ * surface. Forced dynamic because `generateStaticParams` would return []
+ * while every vertical is `available`, which breaks Next.js page-data
+ * collection for this segment.
  */
 export const dynamic = 'force-dynamic';
 
@@ -19,11 +27,18 @@ type Props = { params: Promise<{ sector: string }> };
 export async function generateMetadata({ params }: Props) {
   const { sector } = await params;
   const vertical = INDUSTRY_VERTICALS.find((v) => v.id === sector);
-  if (!vertical) return { title: 'Industry' };
-  return {
+  if (!vertical || vertical.status === 'available') {
+    return marketingMetadata({
+      title: 'Industry',
+      description: 'Stride industry verticals for East African businesses.',
+      path: '/industries',
+    });
+  }
+  return marketingMetadata({
     title: vertical.name,
     description: vertical.description,
-  };
+    path: `/industries/${sector}`,
+  });
 }
 
 export default async function IndustrySectorPage({ params }: Props) {

@@ -2,12 +2,14 @@ import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
 import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { marketingMetadata } from '@/lib/marketing-metadata';
 
-export const metadata = {
+export const metadata = marketingMetadata({
   title: 'SACCOs',
   description:
     'Member ledger, BOSA/FOSA operations, dividend runs, and SASRA-aligned reporting for regulated Kenyan SACCOs.',
-};
+  path: '/industries/saccos',
+});
 
 const FEATURES = [
   {
