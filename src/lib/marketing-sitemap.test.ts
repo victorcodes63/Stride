@@ -26,5 +26,7 @@ describe('marketing sitemap', () => {
     expect(paths).not.toContain('/services');
     expect(paths).not.toContain('/resources');
     expect(paths).not.toContain('/insights');
+    expect(paths).not.toContain('/industries#hr-consultancy');
+    expect(paths.every((path) => !path.includes('#'))).toBe(true);
   });
 });

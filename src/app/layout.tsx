@@ -111,21 +111,23 @@ const jsonLd = (baseUrl: string, logoSrc: string) => ({
       '@type': 'Organization',
       '@id': `${baseUrl}/#organization`,
       name: brandConfig.companyLegal,
+      legalName: brandConfig.companyLegal,
+      alternateName: brandConfig.productName,
       url: baseUrl,
+      email: brandConfig.supportEmail,
       logo: {
         '@type': 'ImageObject',
         url: `${baseUrl}${logoSrc.startsWith('/') ? logoSrc : `/${logoSrc}`}`,
       },
-      ...(brand.contactPhone
-        ? {
-            contactPoint: {
-              '@type': 'ContactPoint',
-              telephone: brand.contactPhone,
-              contactType: 'customer service',
-              email: brand.contactEmail,
-            },
-          }
-        : {}),
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer service',
+        email: brand.contactEmail || brandConfig.supportEmail,
+        ...(brand.contactPhone ? { telephone: brand.contactPhone } : {}),
+        areaServed: 'KE',
+        availableLanguage: ['en', 'sw'],
+      },
+      sameAs: ['https://linkedin.com/company/raventechgroup'],
     },
     {
       '@type': 'WebSite',
@@ -135,6 +137,7 @@ const jsonLd = (baseUrl: string, logoSrc: string) => ({
       description: defaultDescription,
       publisher: { '@id': `${baseUrl}/#organization` },
       inLanguage: 'en',
+      // No SearchAction — the marketing site has no public site search.
     },
     {
       '@type': 'SoftwareApplication',
