@@ -26,7 +26,6 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 import '@/styles/public-theme.css';
 import { ToastViewport } from '@/components/ui/toast';
-import { AppDialogsProvider } from '@/components/ui/AppDialogsProvider';
 import { BrandProvider } from '@/components/BrandProvider';
 import { DashboardThemeProvider } from '@/components/dashboard/DashboardThemeProvider';
 import { DashboardThemeScript } from '@/components/dashboard/DashboardThemeScript';
@@ -195,9 +194,7 @@ export default async function RootLayout({
           }}
         />
         <DashboardThemeProvider>
-          <AppDialogsProvider>
-            <BrandProvider value={publicBrand}>{children}</BrandProvider>
-          </AppDialogsProvider>
+          <BrandProvider value={publicBrand}>{children}</BrandProvider>
         </DashboardThemeProvider>
         <ToastViewport />
       </body>
