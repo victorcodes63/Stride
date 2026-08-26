@@ -2,12 +2,14 @@ import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
 import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { marketingMetadata } from '@/lib/marketing-metadata';
 
-export const metadata = {
+export const metadata = marketingMetadata({
   title: 'Healthcare',
   description:
     'Clinical rota with licence gates, ward rules, biometric attendance, and NHIF/SHIF-ready payroll for hospitals and clinics.',
-};
+  path: '/industries/healthcare',
+});
 
 const FEATURES = [
   { title: 'Clinical rota rules', body: 'Ward-level minimum rest and weekly hour caps stricter than default rota policy.' },

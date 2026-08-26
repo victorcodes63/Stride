@@ -2,12 +2,14 @@ import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
 import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { marketingMetadata } from '@/lib/marketing-metadata';
 
-export const metadata = {
+export const metadata = marketingMetadata({
   title: 'Oil & Gas / Energy',
   description:
     'Permit tracking, multi-entity HSE rollup, and compliance operations for petroleum retail and energy operators.',
-};
+  path: '/industries/energy',
+});
 
 const FEATURES = [
   { title: 'Permit register', body: 'Environmental, operating, and transport permits with expiry alerts and authority tracking.' },

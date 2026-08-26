@@ -81,7 +81,7 @@ export function StudioCraftHero() {
 
             <h1 className="font-normal leading-[1.05] tracking-tight text-[var(--sc-ink)] text-[clamp(2rem,9vw,2.75rem)] min-[400px]:text-[44px] sm:text-6xl lg:text-7xl xl:text-[80px]">
               <span className="block sc-animate-fade-up" style={{ animationDelay: '160ms' }}>
-                {titleLead}
+                {titleLead}{' '}
               </span>
               <span className="block sc-animate-fade-up" style={{ animationDelay: '240ms' }}>
                 business{' '}

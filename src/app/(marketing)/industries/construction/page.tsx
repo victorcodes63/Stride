@@ -2,12 +2,14 @@ import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
 import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { marketingMetadata } from '@/lib/marketing-metadata';
 
-export const metadata = {
+export const metadata = marketingMetadata({
   title: 'Construction',
   description:
     'Site hierarchy, plant asset tracking, and subcontractor accounts payable for construction and civil contractors.',
-};
+  path: '/industries/construction',
+});
 
 const FEATURES = [
   { title: 'Site hierarchy', body: 'Programme → phase → site structure with parent-child links and project integration.' },

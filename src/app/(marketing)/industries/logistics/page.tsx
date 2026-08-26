@@ -2,12 +2,14 @@ import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
 import { FleetBoardMockup } from '@/components/marketing/mockups/FleetBoardMockup';
+import { marketingMetadata } from '@/lib/marketing-metadata';
 
-export const metadata = {
+export const metadata = marketingMetadata({
   title: 'Logistics & Cargo',
   description:
     'Fleet management, route and trip planning, driver records and delivery tracking for East African logistics operators.',
-};
+  path: '/industries/logistics',
+});
 
 const FEATURES = [
   {

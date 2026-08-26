@@ -30,6 +30,7 @@ import { BrandProvider } from '@/components/BrandProvider';
 import { DashboardThemeProvider } from '@/components/dashboard/DashboardThemeProvider';
 import { DashboardThemeScript } from '@/components/dashboard/DashboardThemeScript';
 import { brand, getSiteUrl } from '@/lib/brand';
+import { brandConfig } from '@/lib/brand.config';
 import { MARKETING_OG_IMAGE } from '@/lib/marketing-metadata';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
 import { brandThemeStyle } from '@/lib/brand-theme-style';
@@ -37,34 +38,31 @@ import { getCompanySetupCapabilities } from '@/lib/company-setup-tier-features';
 import { getDeploymentTier, getDeploymentFeatureOverrides } from '@/lib/deployment-tier';
 
 const siteUrl = getSiteUrl();
-const defaultDescription = `${brand.orgName} — ${brand.tagline}`;
+/** Public product defaults — never the tenant placeholder (`Your Organisation`). */
+const defaultDescription = `${brandConfig.productName} — ${brandConfig.tagline}`;
 const keywords =
   'Stride, HRIS, HR software, payroll, operations platform, recruitment, leave management, workforce, East Africa';
 
 export const metadata: Metadata = {
   title: {
-    default: brand.appName,
-    template: `%s | ${brand.appName}`,
+    default: brandConfig.productName,
+    template: `%s | ${brandConfig.productName}`,
   },
   description: defaultDescription,
   keywords,
-  authors: [{ name: brand.orgName }],
-  creator: brand.orgName,
-  publisher: brand.orgName,
+  authors: [{ name: brandConfig.companyLegal }],
+  creator: brandConfig.companyLegal,
+  publisher: brandConfig.companyLegal,
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
   metadataBase: new URL(siteUrl),
-  alternates: {
-    canonical: '/',
-  },
   openGraph: {
-    title: brand.appName,
+    title: brandConfig.productName,
     description: defaultDescription,
-    url: '/',
-    siteName: brand.appName,
+    siteName: brandConfig.productName,
     images: [
       {
         url: MARKETING_OG_IMAGE.url,
@@ -73,12 +71,12 @@ export const metadata: Metadata = {
         alt: MARKETING_OG_IMAGE.alt,
       },
     ],
-    locale: 'en_US',
+    locale: 'en_KE',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: brand.appName,
+    title: brandConfig.productName,
     description: defaultDescription,
     images: [MARKETING_OG_IMAGE.url],
   },
@@ -102,46 +100,62 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   other: {
-    'twitter:image:alt': brand.orgName,
+    'twitter:image:alt': brandConfig.productName,
   },
 };
 
-const jsonLd = (baseUrl: string, orgName: string, appName: string, logoSrc: string) => ({
+const jsonLd = (baseUrl: string, logoSrc: string) => ({
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'Organization',
       '@id': `${baseUrl}/#organization`,
-      name: orgName,
+      name: brandConfig.companyLegal,
+      legalName: brandConfig.companyLegal,
+      alternateName: brandConfig.productName,
       url: baseUrl,
+      email: brandConfig.supportEmail,
       logo: {
         '@type': 'ImageObject',
         url: `${baseUrl}${logoSrc.startsWith('/') ? logoSrc : `/${logoSrc}`}`,
       },
-      ...(brand.contactPhone
-        ? {
-            contactPoint: {
-              '@type': 'ContactPoint',
-              telephone: brand.contactPhone,
-              contactType: 'customer service',
-              email: brand.contactEmail,
-            },
-          }
-        : {}),
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer service',
+        email: brand.contactEmail || brandConfig.supportEmail,
+        ...(brand.contactPhone ? { telephone: brand.contactPhone } : {}),
+        areaServed: 'KE',
+        availableLanguage: ['en', 'sw'],
+      },
+      sameAs: ['https://linkedin.com/company/raventechgroup'],
     },
     {
       '@type': 'WebSite',
       '@id': `${baseUrl}/#website`,
       url: baseUrl,
-      name: appName,
+      name: brandConfig.productName,
       description: defaultDescription,
       publisher: { '@id': `${baseUrl}/#organization` },
       inLanguage: 'en',
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: { '@type': 'EntryPoint', urlTemplate: `${baseUrl}/careers?keyword={search_term_string}` },
-        'query-input': 'required name=search_term_string',
+      // No SearchAction — the marketing site has no public site search.
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': `${baseUrl}/#software`,
+      name: brandConfig.productName,
+      description: brandConfig.tagline,
+      url: baseUrl,
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'KES',
+        lowPrice: '18000',
+        highPrice: '55000',
+        offerCount: 3,
+        url: `${baseUrl}/pricing`,
       },
+      publisher: { '@id': `${baseUrl}/#organization` },
     },
   ],
 });
@@ -179,9 +193,7 @@ export default async function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(
-              jsonLd(siteUrl, publicBrand.orgName, publicBrand.appName, publicBrand.logoSrc),
-            ),
+            __html: JSON.stringify(jsonLd(siteUrl, publicBrand.logoSrc)),
           }}
         />
         <DashboardThemeProvider>
