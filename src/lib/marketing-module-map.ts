@@ -195,9 +195,9 @@ const MARKETING_AREA_COPY: Record<
     ],
   },
   'fleet-logistics': {
-    headline: 'Transport orders through to client billing.',
+    headline: 'Logistics industry pack — trips on the same platform as payroll.',
     description:
-      'Transport orders, trip dispatch, compliance, settlements and client billing for Kenya road freight — on the same finance module as payroll.',
+      'Optional industry pack for transporters: orders, dispatch, compliance, settlements and client billing — billed on the same finance module as payroll.',
     features: [
       'Transport orders and trip board',
       'Vehicle and driver registers',

@@ -16,8 +16,8 @@ export const brandConfig = {
   companyLegal: 'Raven Tech Group',
   beachhead: 'sacco' as const,
   tagline:
-    'Hit your stride. HR, finance, and operations on one platform — built for East African businesses.',
-  shortTagline: 'People, payroll, and operations — M-Pesa-native, compliance-ready.',
+    'One operations platform for East African businesses — HR & payroll and finance at the core, industry packs on top.',
+  shortTagline: 'HR, finance, and industry packs — M-Pesa-native, compliance-ready.',
   theme: {
     primary: STRIDE_BRAND_PRIMARY,
     secondary: STRIDE_BRAND_SECONDARY,

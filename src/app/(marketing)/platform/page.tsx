@@ -2,9 +2,9 @@ import { PlatformPageContent } from '@/components/marketing/platform/PlatformPag
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
-  title: 'Platform',
+  title: 'Platform — Core modules & industry packs',
   description:
-    'Nine product areas on one platform — HR, finance, fleet, outsourcing, sales and more. Built for East Africa with KRA, NSSF, SHIF and M-Pesa from day one.',
+    'What Stride includes: HR & payroll and finance as the core, then plug-in modules (procurement, legal, projects, admin) and industry packs when you need them. KRA, NSSF, SHIF and M-Pesa from day one.',
   path: '/platform',
 });
 

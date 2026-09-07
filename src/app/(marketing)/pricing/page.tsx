@@ -11,8 +11,9 @@ import {
 } from '@/components/marketing/v3/studio-craft-shared';
 
 export const metadata = marketingMetadata({
-  title: 'Pricing',
-  description: 'Stride platform pricing — size-banded tiers in KES, not per-seat.',
+  title: 'Pricing — Plans for the Stride platform',
+  description:
+    'Size-banded Stride plans in KES (not per-seat). Every plan includes HR & payroll and finance; add plug-in modules and industry packs as you grow.',
   path: '/pricing',
 });
 
@@ -22,7 +23,7 @@ export default function PricingPage() {
       <MarketingPageHeader
         eyebrow="Pricing"
         title="Simple tiers. Kenyan shillings."
-        description="Platform access banded by organisation size. Add vertical packs when you need them. No per-seat surprises."
+        description="Plans for the Stride operations platform — banded by organisation size. HR & payroll and finance on every plan; add plug-ins and industry packs when you need them."
         align="center"
       />
 

@@ -8,7 +8,7 @@ import { marketingMetadata } from '@/lib/marketing-metadata';
 export const metadata = marketingMetadata({
   title: 'Stride — Operations platform for East African businesses',
   description:
-    'Hit your stride. HR, finance, procurement, legal, projects and admin on one platform — M-Pesa native, compliance-ready.',
+    'One operations platform: HR & payroll plus finance at the core, with plug-in modules and industry packs. Built for East Africa — M-Pesa native, compliance-ready.',
   path: '/',
 });
 
