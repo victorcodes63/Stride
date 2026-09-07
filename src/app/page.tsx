@@ -5,9 +5,9 @@ import { StudioCraftHomePage } from '@/components/marketing/v3/StudioCraftHomePa
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata: Metadata = marketingMetadata({
-  title: 'Stride — Move your business forward',
+  title: 'Stride — Operations platform for East African businesses',
   description:
-    'HR, finance, procurement, legal, projects and admin on one platform built for East African businesses. M-Pesa native. Compliance first.',
+    'One operations platform: HR & payroll plus finance at the core, with plug-in modules and industry packs. Built for East Africa — M-Pesa native, compliance-ready.',
   path: '/',
 });
 

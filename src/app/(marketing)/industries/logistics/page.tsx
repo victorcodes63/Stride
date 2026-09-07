@@ -5,9 +5,9 @@ import { FleetBoardMockup } from '@/components/marketing/mockups/FleetBoardMocku
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
-  title: 'Logistics & Cargo',
+  title: 'Logistics industry pack',
   description:
-    'Fleet management, route and trip planning, driver records and delivery tracking for East African logistics operators.',
+    'Stride industry pack for cargo and road freight: fleet, trips, drivers and billing on the same HR & finance platform — not a separate fleet system.',
   path: '/industries/logistics',
 });
 
@@ -49,7 +49,7 @@ export default function LogisticsIndustryPage() {
   return (
     <>
       <MarketingPageHeader
-        eyebrow="Logistics & Cargo"
+        eyebrow="Industry pack · Logistics"
         title="Fleet operations on the same platform as payroll."
         description="Built for cargo operators, transporters and 3PLs who need trip management, compliance and billing without bolting on a separate fleet system."
         visual={<FleetBoardMockup />}

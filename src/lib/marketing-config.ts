@@ -163,13 +163,13 @@ export const MARKETING_NAV_LINKS = [
 ] as const;
 
 export const MARKETING_HERO = {
-  eyebrow: 'Business management platform · East Africa',
-  eyebrowLines: ['Business management platform', 'East Africa'] as const,
+  eyebrow: 'Operations platform · East Africa',
+  eyebrowLines: ['Operations platform', 'East Africa'] as const,
   titleLines: ['Run your whole', 'business as one.'] as const,
   /** Final phrase on the accent line, rendered in brand coral. */
   titleAccent: 'as one.',
   sub:
-    'One platform for people, payroll, finance and operations — with East African compliance built in, not bolted on.',
+    'HR & payroll and finance at the core — plug-in modules and industry packs on the same platform. East African compliance built in, not bolted on.',
   descriptionHighlight: 'East African compliance',
   trustBadge: 'Built for Kenya',
   trustTags: 'M-Pesa · KRA · NSSF',
@@ -384,13 +384,13 @@ export const PLATFORM_MODULES = buildPlatformModulesFromRegistry();
 export const PLATFORM_PAGE = {
   hero: {
     eyebrow: 'The platform',
-    titleLines: ['Everything your business', 'runs on.'] as const,
+    titleLines: ['Core ops first.', 'Industry depth when you need it.'] as const,
     description:
-      'Stride is a horizontal operations platform — not just HR software. Payroll is the wedge every business needs, but finance, procurement, documents, projects and admin share the same org chart, employee records and approval flows.',
+      'Stride is a horizontal operations platform: HR & payroll and finance at the core. Add procurement, legal, projects and admin as plug-ins — then industry packs for logistics, SACCOs and more. Same login, same records, same compliance.',
     highlights: [
-      'Six core modules on one login — all live in production',
+      'HR & payroll and finance included on every plan',
       'Kenyan payroll, M-Pesa disbursements and statutory filing on the core',
-      'Enable modules as you grow — no forced bundles or shelfware',
+      'Plug-in modules and industry packs when you need them — no shelfware',
     ],
   },
   audience: {

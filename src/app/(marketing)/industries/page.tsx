@@ -2,9 +2,9 @@ import { IndustriesPageContent } from '@/components/marketing/industries/Industr
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
-  title: 'Industries',
+  title: 'Industries — Vertical packs on the Stride core',
   description:
-    'Stride for HR consultancies, logistics, SACCOs, healthcare, energy and construction — sector workflows on one Kenya-native platform.',
+    'Industry packs for SACCOs, logistics, healthcare, energy and construction — specialised workflows on the same Stride HR & finance core.',
   path: '/industries',
 });
 

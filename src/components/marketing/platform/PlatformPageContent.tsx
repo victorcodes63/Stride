@@ -103,11 +103,11 @@ function PlatformModulesSection() {
       <StudioCraftContainer>
         <SectionBadge number="2" label="Core modules" />
         <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
-          Six modules. <span className="text-[var(--sc-coral)]">One platform.</span>
+          Core first. <span className="text-[var(--sc-coral)]">Packs when you need them.</span>
         </h2>
         <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
           Sign up with HR & Payroll and Finance — your two included modules — then switch on legal,
-          admin, procurement or projects when your operations need them.
+          admin, procurement or projects. Industry packs like logistics sit on the same data layer.
         </p>
 
         <div className="mt-12 space-y-5">
