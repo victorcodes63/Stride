@@ -1,4 +1,5 @@
 import { MarketingShell } from '@/components/marketing/MarketingShell';
+import { MarketingAnalytics } from '@/components/marketing/MarketingAnalytics';
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 /**
@@ -13,5 +14,10 @@ export const metadata = marketingMetadata({
 });
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
-  return <MarketingShell>{children}</MarketingShell>;
+  return (
+    <MarketingShell>
+      <MarketingAnalytics />
+      {children}
+    </MarketingShell>
+  );
 }
