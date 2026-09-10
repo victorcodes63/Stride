@@ -43,10 +43,15 @@ export async function POST(request: NextRequest) {
     const notes = typeof body.notes === 'string' ? body.notes.trim() || null : null;
     const paymentAccountId =
       typeof body.paymentAccountId === 'string' ? body.paymentAccountId.trim() : '';
+    const kind = body.kind === 'credit_note' ? 'credit_note' : 'invoice';
     const previewNumber =
       typeof body.previewInvoiceNumber === 'number' && body.previewInvoiceNumber > 0
         ? Math.round(body.previewInvoiceNumber)
         : 1;
+    const originalInvoiceNumber =
+      typeof body.originalInvoiceNumber === 'number' && body.originalInvoiceNumber > 0
+        ? Math.round(body.originalInvoiceNumber)
+        : null;
 
     const rawLines = Array.isArray(body.lines) ? (body.lines as PreviewLine[]) : [];
     const amountLines = rawLines
@@ -83,11 +88,14 @@ export async function POST(request: NextRequest) {
         });
         const branding = await resolveInvoicePdfBranding(ctx.organizationId);
         const pdfBytes = await generateAccountsInvoicePdf({
-          kind: 'invoice',
+          kind,
           documentNumber: previewNumber,
+          ...(kind === 'credit_note' && originalInvoiceNumber != null
+            ? { originalInvoiceNumber }
+            : {}),
           clientName,
           issueDate,
-          dueDate,
+          dueDate: kind === 'credit_note' ? null : dueDate,
           currency,
           vatRateBps,
           status: 'draft',
@@ -102,11 +110,13 @@ export async function POST(request: NextRequest) {
         return pdfBytes;
       });
 
+      const filename =
+        kind === 'credit_note' ? 'Credit-note-preview.pdf' : 'Invoice-preview.pdf';
       return new NextResponse(Buffer.from(result), {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': 'inline; filename="Invoice-preview.pdf"',
+          'Content-Disposition': `inline; filename="${filename}"`,
           'Cache-Control': 'private, no-store',
         },
       });
