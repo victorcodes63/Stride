@@ -6,8 +6,12 @@
 import { PDFDocument, PDFPage, StandardFonts, rgb, type RGB } from 'pdf-lib';
 import type { PDFFont } from 'pdf-lib';
 import type { PaymentAccountDetails } from '@/lib/payment-accounts';
-import type { InvoiceLetterheadMode, InvoicePdfBranding, InvoiceStyle } from '@/lib/invoice-setup';
-import { resolveInvoicePanelBackground } from '@/lib/invoice-setup';
+import type {
+  InvoiceLetterheadMode,
+  InvoicePdfBranding,
+  InvoiceStyle,
+} from '@/lib/invoice-setup-shared';
+import { resolveInvoicePanelBackground } from '@/lib/invoice-setup-shared';
 import { embedImageFromUrl } from '@/lib/pdf-embed-image';
 import { DEFAULT_PRIMARY_COLOR, isValidHexColor, sanitizeHexColor } from '@/lib/brand-theme';
 
