@@ -23,10 +23,7 @@ import type {
   InvoiceSetupSnapshot,
   InvoiceStyle,
 } from '@/lib/invoice-setup-shared';
-import {
-  DEFAULT_INVOICE_PANEL_BACKGROUND,
-  resolveLetterheadModeForStyle,
-} from '@/lib/invoice-setup-shared';
+import { resolveLetterheadModeForStyle } from '@/lib/invoice-setup-shared';
 
 const inputClass =
   'w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
@@ -339,10 +336,11 @@ function InvoicingSetupPageInner() {
                 </label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {[
-                    { id: '', label: `Default (${DEFAULT_INVOICE_PANEL_BACKGROUND})` },
+                    { id: '', label: 'Default (accent colour)' },
                     { id: '#FFFFFF', label: 'White' },
                     { id: '#E8F4FC', label: 'Light blue' },
                     { id: '#FEF3C7', label: 'Warm sand' },
+                    { id: '#0B3A6E', label: 'Navy' },
                   ].map((preset) => (
                     <button
                       key={preset.id || 'default'}
@@ -366,7 +364,7 @@ function InvoicingSetupPageInner() {
                     value={
                       isValidHexColor(form.panelBackgroundColor)
                         ? form.panelBackgroundColor.toLowerCase()
-                        : DEFAULT_INVOICE_PANEL_BACKGROUND.toLowerCase()
+                        : accentPickerValue
                     }
                     onChange={(e) =>
                       setForm((f) =>
@@ -381,11 +379,12 @@ function InvoicingSetupPageInner() {
                     onChange={(e) =>
                       setForm((f) => (f ? { ...f, panelBackgroundColor: e.target.value } : f))
                     }
-                    placeholder={DEFAULT_INVOICE_PANEL_BACKGROUND}
+                    placeholder="Accent (default)"
                   />
                 </div>
                 <p className="text-xs text-neutral-500 mt-1.5">
-                  Used for the line-item table header row on PDFs. Invoice-to and payment
+                  Table header colour on branded PDFs. Leave blank to use your PDF accent colour
+                  (strong logo-and-colour look, like official receipts). Invoice-to and payment
                   sections stay typographic (no box) for a cleaner layout. Text colour adapts
                   automatically on dark shades.
                 </p>
