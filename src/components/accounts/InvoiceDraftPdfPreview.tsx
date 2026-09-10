@@ -5,16 +5,20 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import type { InvoiceLineDraft } from '@/lib/accounts-invoice-line-draft';
 import { invoiceLineDraftsToPayload } from '@/lib/accounts-invoice-line-draft';
 
+export type AccountsDocumentPreviewKind = 'invoice' | 'credit_note';
+
 type PreviewInput = {
+  kind?: AccountsDocumentPreviewKind;
   clientName: string;
   currency: string;
   issueDate: string;
-  dueDate: string;
+  dueDate?: string;
   vatRateBps: number;
   paymentAccountId: string;
   notes: string;
   lines: InvoiceLineDraft[];
   previewInvoiceNumber?: number;
+  originalInvoiceNumber?: number;
 };
 
 type Props = {
@@ -23,6 +27,8 @@ type Props = {
 };
 
 export function InvoiceDraftPdfPreview({ draft, className = '' }: Props) {
+  const kind: AccountsDocumentPreviewKind = draft?.kind === 'credit_note' ? 'credit_note' : 'invoice';
+  const isCredit = kind === 'credit_note';
   const [hidden, setHidden] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,14 +69,16 @@ export function InvoiceDraftPdfPreview({ draft, className = '' }: Props) {
         credentials: 'include',
         signal: controller.signal,
         body: JSON.stringify({
+          kind,
           clientName: draft.clientName,
           currency: draft.currency,
           issueDate: draft.issueDate,
-          dueDate: draft.dueDate,
+          dueDate: isCredit ? null : draft.dueDate,
           vatRateBps: draft.vatRateBps,
           paymentAccountId: draft.paymentAccountId,
           notes: draft.notes.trim() || null,
           previewInvoiceNumber: draft.previewInvoiceNumber,
+          originalInvoiceNumber: draft.originalInvoiceNumber,
           lines: payloadLines,
         }),
       })
@@ -101,7 +109,7 @@ export function InvoiceDraftPdfPreview({ draft, className = '' }: Props) {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [draft]);
+  }, [draft, isCredit, kind]);
 
   useEffect(() => {
     return () => {
@@ -109,7 +117,9 @@ export function InvoiceDraftPdfPreview({ draft, className = '' }: Props) {
     };
   }, []);
 
-  const canPreview = Boolean(draft?.clientName?.trim() && invoiceLineDraftsToPayload(draft.lines).length > 0);
+  const canPreview = Boolean(
+    draft?.clientName?.trim() && invoiceLineDraftsToPayload(draft.lines).length > 0,
+  );
 
   return (
     <section
@@ -122,7 +132,9 @@ export function InvoiceDraftPdfPreview({ draft, className = '' }: Props) {
             Live PDF preview
           </h2>
           <p className="text-xs text-neutral-500 mt-0.5">
-            Matches the generated invoice — updates as you edit.
+            {isCredit
+              ? 'Matches the generated credit note — updates as you edit.'
+              : 'Matches the generated invoice — updates as you edit.'}
           </p>
         </div>
         <button
@@ -154,8 +166,9 @@ export function InvoiceDraftPdfPreview({ draft, className = '' }: Props) {
           ) : null}
           {!canPreview && !loading ? (
             <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-neutral-500">
-              Select a billing client and add at least one line with a description and amount to
-              preview the PDF.
+              {isCredit
+                ? 'Add at least one line with a description and amount to preview the credit note PDF.'
+                : 'Select a billing client and add at least one line with a description and amount to preview the PDF.'}
             </div>
           ) : null}
           {error ? (
@@ -164,7 +177,11 @@ export function InvoiceDraftPdfPreview({ draft, className = '' }: Props) {
             </div>
           ) : null}
           {pdfUrl && canPreview && !hidden ? (
-            <iframe src={pdfUrl} title="Invoice draft preview" className="w-full h-full min-h-[inherit] border-0" />
+            <iframe
+              src={pdfUrl}
+              title={isCredit ? 'Credit note draft preview' : 'Invoice draft preview'}
+              className="w-full h-full min-h-[inherit] border-0"
+            />
           ) : null}
         </div>
       ) : (
