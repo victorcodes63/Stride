@@ -139,7 +139,7 @@ export function sanitizeInvoiceSetup(raw: unknown): InvoiceSetupSettings {
 /** Default shaded panels on invoice PDFs (table header). Empty → use accent colour. */
 export const DEFAULT_INVOICE_PANEL_BACKGROUND = '';
 
-export function resolveInvoicePanelBackground(stored: string, accentFallback = DEFAULT_PRIMARY_COLOR): string {
+export function resolveInvoicePanelBackground(stored: string, accentFallback: string = DEFAULT_PRIMARY_COLOR): string {
   if (isValidHexColor(stored)) return sanitizeHexColor(stored, accentFallback);
   return sanitizeHexColor(accentFallback, DEFAULT_PRIMARY_COLOR);
 }
