@@ -101,19 +101,50 @@ function InvoicingSetupPageInner() {
     }
   };
 
+  const ensureBrandedForLogo = (current: InvoiceSetupSettings): InvoiceSetupSettings => {
+    if (current.invoiceStyle === 'branded') return current;
+    return {
+      ...current,
+      invoiceStyle: 'branded',
+      letterheadMode: resolveLetterheadModeForStyle('branded', current.letterheadMode),
+    };
+  };
+
   const uploadLogo = async (file: File) => {
     setUploading(true);
     setError(null);
     setMessage(null);
     try {
+      // Logo only appears on branded PDFs — switch style so demos aren't blocked.
+      setForm((f) => (f ? ensureBrandedForLogo(f) : f));
       const body = new FormData();
       body.append('file', file);
       const res = await fetch('/api/accounts/invoice-setup/upload', { method: 'POST', body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Upload failed');
-      setForm((f) => (f ? { ...f, logoSrc: data.logoSrc ?? f.logoSrc } : f));
-      setMessage('Logo uploaded. Save to confirm other changes.');
-      load();
+      setForm((f) =>
+        f
+          ? ensureBrandedForLogo({ ...f, logoSrc: data.logoSrc ?? f.logoSrc })
+          : f,
+      );
+      setMessage('Logo uploaded. Invoice style set to Branded so PDFs use your logo.');
+      // Persist branded + logo together so preview PDF matches immediately.
+      const persistRes = await fetch('/api/accounts/invoice-setup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceStyle: 'branded',
+          letterheadMode: 'embedded_logo',
+          logoSrc: data.logoSrc,
+        }),
+      });
+      if (persistRes.ok) {
+        const next = (await persistRes.json()) as InvoiceSetupSnapshot;
+        setSnapshot(next);
+        setForm(settingsFromSnapshot(next));
+      } else {
+        load();
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
@@ -236,190 +267,11 @@ function InvoicingSetupPageInner() {
             </ul>
           </section>
 
-          <section id="identity" className="dashboard-surface p-5 shadow-sm scroll-mt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Building2 className="h-5 w-5 text-neutral-500" />
-              <h2 className="text-sm font-semibold text-neutral-900">Company identity on invoices</h2>
-            </div>
-            <p className="text-sm text-neutral-600 mb-4">
-              Logo, legal name, address, and colours used on branded invoice and credit note PDFs.
-            </p>
-
-            <div className={`flex flex-col lg:flex-row gap-6 mb-4 ${isBranded ? '' : 'opacity-60'}`}>
-              <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 min-w-[140px] flex items-center justify-center">
-                <img
-                  src={logoPreview}
-                  alt="Invoice logo"
-                  className="max-h-14 max-w-[160px] object-contain"
-                />
-              </div>
-              <div className="flex-1 space-y-3">
-                <input
-                  ref={logoInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void uploadLogo(f);
-                    e.target.value = '';
-                  }}
-                />
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    disabled={uploading || !isBranded}
-                    onClick={() => logoInputRef.current?.click()}
-                    className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60"
-                  >
-                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                    Upload logo
-                  </button>
-                  <input
-                    className={`${inputClass} flex-1 min-w-[200px] font-mono`}
-                    value={form.logoSrc}
-                    onChange={(e) => setForm((f) => (f ? { ...f, logoSrc: e.target.value } : f))}
-                    placeholder="Or paste an image URL"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
-              <div>
-                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Legal / trading name</label>
-                <input
-                  className={inputClass}
-                  value={form.invoiceLegalName}
-                  onChange={(e) => setForm((f) => (f ? { ...f, invoiceLegalName: e.target.value } : f))}
-                  placeholder={snapshot.branding.legalName || 'Your company name'}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Contact email</label>
-                <input
-                  type="email"
-                  className={inputClass}
-                  value={form.contactEmail}
-                  onChange={(e) => setForm((f) => (f ? { ...f, contactEmail: e.target.value } : f))}
-                  placeholder="billing@example.com"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Billing address</label>
-                <textarea
-                  className={inputClass}
-                  rows={2}
-                  value={form.contactAddress}
-                  onChange={(e) => setForm((f) => (f ? { ...f, contactAddress: e.target.value } : f))}
-                  placeholder="Street, city, country"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Phone (optional)</label>
-                <input
-                  className={inputClass}
-                  value={form.contactPhone}
-                  onChange={(e) => setForm((f) => (f ? { ...f, contactPhone: e.target.value } : f))}
-                />
-              </div>
-              <div className={isBranded ? '' : 'opacity-60 pointer-events-none'}>
-                <label className="block text-sm font-medium text-neutral-800 mb-1.5">PDF accent colour</label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={accentPickerValue}
-                    onChange={(e) =>
-                      setForm((f) => (f ? { ...f, primaryColor: e.target.value.toUpperCase() } : f))
-                    }
-                    className="h-10 w-12 rounded border border-neutral-300 cursor-pointer"
-                  />
-                  <input
-                    className={`${inputClass} font-mono uppercase`}
-                    value={form.primaryColor}
-                    onChange={(e) => setForm((f) => (f ? { ...f, primaryColor: e.target.value } : f))}
-                    placeholder={accentFallback}
-                  />
-                </div>
-                <p className="text-xs text-neutral-500 mt-1.5">
-                  Used for headings and highlights on invoice PDFs.
-                  {!isValidHexColor(form.primaryColor)
-                    ? ` Leave blank to use company colour (${accentFallback}).`
-                    : null}
-                </p>
-              </div>
-              <div className={isBranded ? '' : 'opacity-60 pointer-events-none'}>
-                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Header background</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {[
-                    { id: '', label: 'White (none)' },
-                    { id: '#000000', label: 'Black' },
-                    { id: '#1A1714', label: 'Ink' },
-                  ].map((preset) => (
-                    <button
-                      key={preset.id || 'none'}
-                      type="button"
-                      onClick={() =>
-                        setForm((f) => (f ? { ...f, headerBackgroundColor: preset.id } : f))
-                      }
-                      className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                        (form.headerBackgroundColor || '') === preset.id
-                          ? 'border-primary-800 bg-primary-50 text-primary-900'
-                          : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'
-                      }`}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={
-                      isValidHexColor(form.headerBackgroundColor)
-                        ? form.headerBackgroundColor.toLowerCase()
-                        : '#000000'
-                    }
-                    onChange={(e) =>
-                      setForm((f) =>
-                        f ? { ...f, headerBackgroundColor: e.target.value.toUpperCase() } : f,
-                      )
-                    }
-                    className="h-10 w-12 rounded border border-neutral-300 cursor-pointer"
-                  />
-                  <input
-                    className={`${inputClass} font-mono uppercase`}
-                    value={form.headerBackgroundColor}
-                    onChange={(e) =>
-                      setForm((f) => (f ? { ...f, headerBackgroundColor: e.target.value } : f))
-                    }
-                    placeholder="Custom hex or leave empty"
-                  />
-                </div>
-                <p className="text-xs text-neutral-500 mt-1.5">
-                  Optional band behind your logo and company block — ideal for logos that need a dark
-                  background. Text colour switches automatically (white on dark, accent on light).
-                  Use embedded logo mode below.
-                </p>
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Document footer</label>
-                <textarea
-                  className={inputClass}
-                  rows={2}
-                  value={form.documentFooterText}
-                  onChange={(e) => setForm((f) => (f ? { ...f, documentFooterText: e.target.value } : f))}
-                  placeholder="Registered office, company registration number, etc."
-                />
-              </div>
-            </div>
-          </section>
-
           <section id="pdf-options" className="dashboard-surface p-5 shadow-sm scroll-mt-6">
             <h2 className="text-sm font-semibold text-neutral-900 mb-1">Invoice PDF options</h2>
             <p className="text-sm text-neutral-600 mb-4">
-              Choose a plain monochrome layout for pre-printed letterhead, or a branded PDF with your logo
-              and optional colours.
+              Choose branded to embed the client logo on invoices and credit notes, or plain for
+              pre-printed letterhead.
             </p>
 
             <div className="mb-6 max-w-3xl">
@@ -428,16 +280,16 @@ function InvoicingSetupPageInner() {
                 {(
                   [
                     {
-                      value: 'plain' as InvoiceStyle,
-                      title: 'Plain',
-                      description:
-                        'Grey lines only, no logo or colours. Extra top space for pre-printed letterhead.',
-                    },
-                    {
                       value: 'branded' as InvoiceStyle,
                       title: 'Branded',
                       description:
                         'Embeds your company logo with optional accent colours and header styling.',
+                    },
+                    {
+                      value: 'plain' as InvoiceStyle,
+                      title: 'Plain',
+                      description:
+                        'Grey lines only, no logo or colours. Extra top space for pre-printed letterhead.',
                     },
                   ] as const
                 ).map((option) => (
@@ -450,7 +302,10 @@ function InvoicingSetupPageInner() {
                           ? {
                               ...f,
                               invoiceStyle: option.value,
-                              letterheadMode: resolveLetterheadModeForStyle(option.value, f.letterheadMode),
+                              letterheadMode: resolveLetterheadModeForStyle(
+                                option.value,
+                                f.letterheadMode,
+                              ),
                             }
                           : f,
                       )
@@ -534,6 +389,224 @@ function InvoicingSetupPageInner() {
                   sections stay typographic (no box) for a cleaner layout. Text colour adapts
                   automatically on dark shades.
                 </p>
+              </div>
+            </div>
+          </section>
+
+          <section id="identity" className="dashboard-surface p-5 shadow-sm scroll-mt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Building2 className="h-5 w-5 text-neutral-500" />
+              <h2 className="text-sm font-semibold text-neutral-900">Company identity on invoices</h2>
+            </div>
+            <p className="text-sm text-neutral-600 mb-4">
+              Logo, legal name, address, and colours used on branded invoice and credit note PDFs.
+            </p>
+
+            {!isBranded ? (
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 flex flex-wrap items-center justify-between gap-3">
+                <p>
+                  Plain style hides logos on PDFs. Switch to <strong>Branded</strong> to show a
+                  client logo on financial documents.
+                </p>
+                <button
+                  type="button"
+                  className="btn-secondary shrink-0"
+                  onClick={() =>
+                    setForm((f) =>
+                      f
+                        ? {
+                            ...f,
+                            invoiceStyle: 'branded',
+                            letterheadMode: resolveLetterheadModeForStyle(
+                              'branded',
+                              f.letterheadMode,
+                            ),
+                          }
+                        : f,
+                    )
+                  }
+                >
+                  Use branded PDFs
+                </button>
+              </div>
+            ) : null}
+
+            <div className="flex flex-col lg:flex-row gap-6 mb-4">
+              <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 min-w-[140px] flex items-center justify-center">
+                <img
+                  src={logoPreview}
+                  alt="Invoice logo"
+                  className="max-h-14 max-w-[160px] object-contain"
+                />
+              </div>
+              <div className="flex-1 space-y-3">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadLogo(f);
+                    e.target.value = '';
+                  }}
+                />
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={() => logoInputRef.current?.click()}
+                    className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60"
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    Upload logo
+                  </button>
+                  <input
+                    className={`${inputClass} flex-1 min-w-[200px] font-mono`}
+                    value={form.logoSrc}
+                    onChange={(e) => {
+                      const logoSrc = e.target.value;
+                      setForm((f) => {
+                        if (!f) return f;
+                        const next = { ...f, logoSrc };
+                        return logoSrc.trim() ? ensureBrandedForLogo(next) : next;
+                      });
+                    }}
+                    placeholder="Or paste an image URL (PNG/JPG)"
+                  />
+                </div>
+                <p className="text-xs text-neutral-500">
+                  Upload a client logo (PNG/JPG preferred) or paste a public image URL, then save.
+                  Setting a logo automatically switches to branded PDFs.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Legal / trading name</label>
+                <input
+                  className={inputClass}
+                  value={form.invoiceLegalName}
+                  onChange={(e) => setForm((f) => (f ? { ...f, invoiceLegalName: e.target.value } : f))}
+                  placeholder={snapshot.branding.legalName || 'Your company name'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Contact email</label>
+                <input
+                  type="email"
+                  className={inputClass}
+                  value={form.contactEmail}
+                  onChange={(e) => setForm((f) => (f ? { ...f, contactEmail: e.target.value } : f))}
+                  placeholder="billing@example.com"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Billing address</label>
+                <textarea
+                  className={inputClass}
+                  rows={2}
+                  value={form.contactAddress}
+                  onChange={(e) => setForm((f) => (f ? { ...f, contactAddress: e.target.value } : f))}
+                  placeholder="Street, city, country"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Phone (optional)</label>
+                <input
+                  className={inputClass}
+                  value={form.contactPhone}
+                  onChange={(e) => setForm((f) => (f ? { ...f, contactPhone: e.target.value } : f))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">PDF accent colour</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={accentPickerValue}
+                    onChange={(e) =>
+                      setForm((f) => (f ? { ...f, primaryColor: e.target.value.toUpperCase() } : f))
+                    }
+                    className="h-10 w-12 rounded border border-neutral-300 cursor-pointer"
+                  />
+                  <input
+                    className={`${inputClass} font-mono uppercase`}
+                    value={form.primaryColor}
+                    onChange={(e) => setForm((f) => (f ? { ...f, primaryColor: e.target.value } : f))}
+                    placeholder={accentFallback}
+                  />
+                </div>
+                <p className="text-xs text-neutral-500 mt-1.5">
+                  Used for headings and highlights on invoice PDFs.
+                  {!isValidHexColor(form.primaryColor)
+                    ? ` Leave blank to use company colour (${accentFallback}).`
+                    : null}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Header background</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {[
+                    { id: '', label: 'White (none)' },
+                    { id: '#000000', label: 'Black' },
+                    { id: '#1A1714', label: 'Ink' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.id || 'none'}
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => (f ? { ...f, headerBackgroundColor: preset.id } : f))
+                      }
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                        (form.headerBackgroundColor || '') === preset.id
+                          ? 'border-primary-800 bg-primary-50 text-primary-900'
+                          : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={
+                      isValidHexColor(form.headerBackgroundColor)
+                        ? form.headerBackgroundColor.toLowerCase()
+                        : '#000000'
+                    }
+                    onChange={(e) =>
+                      setForm((f) =>
+                        f ? { ...f, headerBackgroundColor: e.target.value.toUpperCase() } : f,
+                      )
+                    }
+                    className="h-10 w-12 rounded border border-neutral-300 cursor-pointer"
+                  />
+                  <input
+                    className={`${inputClass} font-mono uppercase`}
+                    value={form.headerBackgroundColor}
+                    onChange={(e) =>
+                      setForm((f) => (f ? { ...f, headerBackgroundColor: e.target.value } : f))
+                    }
+                    placeholder="Custom hex or leave empty"
+                  />
+                </div>
+                <p className="text-xs text-neutral-500 mt-1.5">
+                  Optional band behind your logo and company block — ideal for logos that need a dark
+                  background. Text colour switches automatically (white on dark, accent on light).
+                </p>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-neutral-800 mb-1.5">Document footer</label>
+                <textarea
+                  className={inputClass}
+                  rows={2}
+                  value={form.documentFooterText}
+                  onChange={(e) => setForm((f) => (f ? { ...f, documentFooterText: e.target.value } : f))}
+                  placeholder="Registered office, company registration number, etc."
+                />
               </div>
             </div>
           </section>
