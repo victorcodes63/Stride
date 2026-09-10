@@ -1,3 +1,5 @@
+import 'server-only';
+
 import type { Prisma } from '@prisma/client';
 import { withOrgContext } from '@/lib/org-context';
 import { resolvePublicBrand, isCustomLogo } from '@/lib/resolve-public-brand';
