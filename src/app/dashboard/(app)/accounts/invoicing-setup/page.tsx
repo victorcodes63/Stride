@@ -18,8 +18,15 @@ import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DEFAULT_BRAND_LOGO_SRC } from '@/lib/brand-constants';
 import { isValidHexColor } from '@/lib/brand-theme';
-import type { InvoiceSetupSettings, InvoiceSetupSnapshot, InvoiceStyle } from '@/lib/invoice-setup';
-import { DEFAULT_INVOICE_PANEL_BACKGROUND, resolveLetterheadModeForStyle } from '@/lib/invoice-setup';
+import type {
+  InvoiceSetupSettings,
+  InvoiceSetupSnapshot,
+  InvoiceStyle,
+} from '@/lib/invoice-setup-shared';
+import {
+  DEFAULT_INVOICE_PANEL_BACKGROUND,
+  resolveLetterheadModeForStyle,
+} from '@/lib/invoice-setup-shared';
 
 const inputClass =
   'w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30';
