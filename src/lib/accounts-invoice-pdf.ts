@@ -216,17 +216,17 @@ async function drawEmbeddedLetterhead(
   helvetica: PDFFont,
   helveticaBold: PDFFont,
 ): Promise<number> {
-  const logoMaxW = 128;
-  const logoMaxH = 64;
+  const logoMaxW = 110;
+  const logoMaxH = 48;
   const rightEdge = margin + contentW;
-  const textChars = Math.max(28, Math.floor(contentW * 0.5 / 5.5));
   const accent = branding.primaryColor;
+  const pageH = page.getSize().height;
 
-  // Full-bleed accent bar (SHA-style) — colours show immediately at the top edge.
-  const barH = 5;
+  // Slim full-bleed accent bar
+  const barH = 4;
   page.drawRectangle({
     x: 0,
-    y: page.getSize().height - barH,
+    y: pageH - barH,
     width: pageWidth,
     height: barH,
     color: accent,
@@ -241,24 +241,35 @@ async function drawEmbeddedLetterhead(
     logoH = logo.height * scale;
   }
 
+  // Leave room for the logo + gutter so legal name never crowds it.
+  const logoGutter = logo ? 20 : 0;
+  const textMaxW = Math.max(180, contentW - logoW - logoGutter);
+  const textChars = Math.max(22, Math.floor(textMaxW / 6.2));
+
   const nameLines = branding.legalName ? wrapText(branding.legalName, textChars) : [];
   const addressLines = branding.address ? wrapText(branding.address, textChars) : [];
-  const contactBits = [branding.vatPin ? `VAT PIN: ${branding.vatPin}` : '']
-    .filter(Boolean) as string[];
-  // contactEmail/phone are on InvoicePdfBranding via resolve — check resolveBranding return
+  const metaLines = [branding.vatPin ? `VAT PIN: ${branding.vatPin}` : ''].filter(Boolean);
+
+  const nameLineH = 13;
+  const bodyLineH = 11;
   const textBlockH =
-    nameLines.length * 14 + addressLines.length * 11 + contactBits.length * 11 + 4;
-  const blockH = Math.max(logoH, textBlockH, 52);
-  const bandPad = 12;
-  const bandTop = yTop - 4;
-  const bandBottom = bandTop - blockH - bandPad;
+    nameLines.length * nameLineH +
+    addressLines.length * bodyLineH +
+    metaLines.length * bodyLineH;
+  const blockH = Math.max(logoH, textBlockH, 36);
+
+  // Breathing room under the top bar, then content, then space before the rule.
+  const topPad = 14;
+  const bottomPad = 10;
+  const bandTop = Math.min(yTop, pageH - barH - topPad) - 2;
+  const ruleY = bandTop - blockH - bottomPad;
 
   if (branding.headerBackgroundColor) {
     page.drawRectangle({
       x: margin,
-      y: bandBottom,
+      y: ruleY,
       width: contentW,
-      height: bandTop - bandBottom,
+      height: bandTop + 4 - ruleY,
       color: branding.headerBackgroundColor,
     });
   }
@@ -267,49 +278,70 @@ async function drawEmbeddedLetterhead(
   const titleColor = branding.headerBackgroundColor ? contrast.heading : accent;
   const bodyColor = branding.headerBackgroundColor ? contrast.body : GRAY_600;
 
-  // Company identity on the left with accent tick (SHA section marker).
-  const tickX = margin;
+  const tickW = 2.5;
+  const tickGap = 8;
+  const textX = margin + tickW + tickGap;
+  // Tick matches the text block height only (not empty logo space).
+  const tickH = Math.max(textBlockH || blockH * 0.7, 22);
   page.drawRectangle({
-    x: tickX,
-    y: bandBottom + 4,
-    width: 3,
-    height: Math.max(blockH - 4, 28),
+    x: margin,
+    y: bandTop - tickH,
+    width: tickW,
+    height: tickH,
     color: accent,
   });
 
-  let ty = bandTop - 10;
-  const textX = margin + 10;
+  let ty = bandTop - 2;
   for (const line of nameLines) {
-    page.drawText(line, { x: textX, y: ty, size: 12, font: helveticaBold, color: titleColor });
-    ty -= 14;
+    page.drawText(line, {
+      x: textX,
+      y: ty - 10,
+      size: 11,
+      font: helveticaBold,
+      color: titleColor,
+    });
+    ty -= nameLineH;
   }
   for (const line of addressLines) {
-    page.drawText(line, { x: textX, y: ty, size: 8, font: helvetica, color: bodyColor });
-    ty -= 11;
+    page.drawText(line, {
+      x: textX,
+      y: ty - 8,
+      size: 8,
+      font: helvetica,
+      color: bodyColor,
+    });
+    ty -= bodyLineH;
   }
-  for (const line of contactBits) {
-    page.drawText(line, { x: textX, y: ty, size: 8, font: helvetica, color: bodyColor });
-    ty -= 11;
+  for (const line of metaLines) {
+    page.drawText(line, {
+      x: textX,
+      y: ty - 8,
+      size: 8,
+      font: helvetica,
+      color: bodyColor,
+    });
+    ty -= bodyLineH;
   }
 
-  // Logo on the right — large and readable for client demos.
+  // Top-align logo with the company name.
   if (logo) {
     page.drawImage(logo, {
       x: rightEdge - logoW,
-      y: bandTop - 8 - logoH,
+      y: bandTop - logoH,
       width: logoW,
       height: logoH,
     });
   }
 
   page.drawLine({
-    start: { x: margin, y: bandBottom },
-    end: { x: rightEdge, y: bandBottom },
-    thickness: 1.25,
+    start: { x: margin, y: ruleY },
+    end: { x: rightEdge, y: ruleY },
+    thickness: 1,
     color: accent,
   });
 
-  return yTop - bandBottom + SECTION_GAP_PT;
+  // Extra gap after the rule before INVOICE title.
+  return yTop - ruleY + 18;
 }
 
 function drawDocumentFooter(
@@ -349,7 +381,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const helvetica = await doc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
 
-  const margin = 54;
+  const margin = 56;
   const contentW = width - margin * 2;
   const bank = data.paymentDetails;
   const docKind = data.kind ?? 'invoice';
@@ -648,22 +680,22 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
       ['Bank code', bank.bankCode],
       ['Branch code', bank.branchCode],
       ['SWIFT', bank.swiftCode],
-    ];
-    const bankLineStep = 13;
-    const bankBlockH = bankLines.length * bankLineStep + 8;
+    ].filter(([, value]) => Boolean(value?.trim()));
 
+    const bankLineStep = 14;
+    const bankBlockH = bankLines.length * bankLineStep + 28;
     ensureSpace(cursor, bankBlockH + 24);
 
-    cursor.y -= 4;
+    cursor.y -= 2;
     drawLineH(cursor.y, margin, margin + contentW);
-    cursor.y -= SECTION_GAP_PT;
+    cursor.y -= 18;
 
     if (!branding.isPlain) {
       cursor.page.drawRectangle({
         x: margin,
         y: cursor.y - 1,
-        width: 3,
-        height: 10,
+        width: 2.5,
+        height: 9,
         color: branding.primaryColor,
       });
     }
@@ -674,21 +706,31 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
       font: helveticaBold,
       color: branding.isPlain ? INK : branding.primaryColor,
     });
-    cursor.y -= 16;
+    cursor.y -= 18;
 
-    const labelW = 108;
+    const labelFont = helvetica;
+    const labelSize = 9;
+    const valueSize = 9;
+    const labelColor = GRAY_500;
+    const colGap = 16;
+    const labelColW = bankLines.reduce((max, [label]) => {
+      const w = labelFont.widthOfTextAtSize(label, labelSize);
+      return Math.max(max, w);
+    }, 0);
+    const valueX = margin + labelColW + colGap;
+
     for (const [label, value] of bankLines) {
       cursor.page.drawText(label, {
         x: margin,
         y: cursor.y,
-        size: 9,
-        font: helveticaBold,
-        color: branding.isPlain ? GRAY_500 : branding.primaryColor,
+        size: labelSize,
+        font: labelFont,
+        color: labelColor,
       });
       cursor.page.drawText(value, {
-        x: margin + labelW,
+        x: valueX,
         y: cursor.y,
-        size: 9,
+        size: valueSize,
         font: helvetica,
         color: INK,
       });
