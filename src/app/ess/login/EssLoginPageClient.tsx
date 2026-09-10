@@ -87,6 +87,20 @@ export function EssLoginForm({
   const from = searchParams.get('from') || '/ess';
   const providers = useOAuthProviders('ess');
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/ess/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.id) return;
+        router.replace(from.startsWith('/ess') ? from : '/ess');
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [from, router]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -127,7 +141,7 @@ export function EssLoginForm({
   return (
     <div className="ess-login flex min-h-[100dvh] flex-col" style={LOGIN_SURFACE}>
       <div
-        className="relative overflow-hidden px-6 pb-12 pt-[max(env(safe-area-inset-top,0px),2.5rem)]"
+        className="relative overflow-hidden px-6 pb-12 pt-[calc(env(safe-area-inset-top,0px)+2.75rem)]"
         style={{
           background:
             'linear-gradient(145deg, var(--ess-login-coral) 0%, var(--ess-login-coral-deep) 55%, var(--ess-login-coral-pressed) 100%)',

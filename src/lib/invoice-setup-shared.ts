@@ -136,10 +136,10 @@ export function sanitizeInvoiceSetup(raw: unknown): InvoiceSetupSettings {
   };
 }
 
-/** Default shaded panels on invoice PDFs (table header, invoice-to box, payment details). */
-export const DEFAULT_INVOICE_PANEL_BACKGROUND = '#F3F4F6';
+/** Default shaded panels on invoice PDFs (table header). Empty → use accent colour. */
+export const DEFAULT_INVOICE_PANEL_BACKGROUND = '';
 
-export function resolveInvoicePanelBackground(stored: string): string {
-  if (isValidHexColor(stored)) return sanitizeHexColor(stored, DEFAULT_INVOICE_PANEL_BACKGROUND);
-  return DEFAULT_INVOICE_PANEL_BACKGROUND;
+export function resolveInvoicePanelBackground(stored: string, accentFallback = DEFAULT_PRIMARY_COLOR): string {
+  if (isValidHexColor(stored)) return sanitizeHexColor(stored, accentFallback);
+  return sanitizeHexColor(accentFallback, DEFAULT_PRIMARY_COLOR);
 }

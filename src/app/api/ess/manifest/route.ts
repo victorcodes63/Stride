@@ -5,10 +5,13 @@ import { STRIDE_MANIFEST_BACKGROUND } from '@/lib/stride-palette';
 
 export async function GET() {
   const manifest = {
+    id: '/ess',
     name: `${brand.appName} — Employee`,
     short_name: 'Stride ESS',
     description: `${brand.orgName} employee self-service`,
-    start_url: '/ess',
+    // Open ESS login directly — /ess redirects here when logged out, but start_url
+    // must not resolve through the staff dashboard PWA (/ → /dashboard/login).
+    start_url: '/ess/login',
     scope: '/ess',
     display: 'standalone',
     orientation: 'portrait-primary',

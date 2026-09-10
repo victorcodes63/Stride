@@ -156,12 +156,16 @@ function resolveBranding(input?: Partial<InvoicePdfBranding>) {
     : (input?.letterheadMode ?? 'embedded_logo');
   const headerBgHex = isPlain ? '' : (input?.headerBackgroundColor?.trim() ?? '');
   const hasHeaderBand = Boolean(headerBgHex && isValidHexColor(headerBgHex));
-  const panelHex = isPlain
+  const panelHexRaw = isPlain
     ? '#FFFFFF'
-    : resolveInvoicePanelBackground(input?.panelBackgroundColor?.trim() ?? '');
+    : (input?.panelBackgroundColor?.trim() ?? '');
   const accentHex = isPlain
     ? '#1A1714'
     : sanitizeHexColor(input?.primaryColor ?? DEFAULT_PRIMARY_COLOR, DEFAULT_PRIMARY_COLOR);
+  // Empty panel colour → use accent so table headers read like SHA (strong brand colour + white text).
+  const panelHex = isPlain
+    ? '#FFFFFF'
+    : resolveInvoicePanelBackground(panelHexRaw, accentHex);
   const headerContrast = resolveContrastOnBackground(
     hasHeaderBand ? headerBgHex : null,
     accentHex,
@@ -207,18 +211,26 @@ async function drawEmbeddedLetterhead(
   yTop: number,
   margin: number,
   contentW: number,
+  pageWidth: number,
   branding: ReturnType<typeof resolveBranding>,
   helvetica: PDFFont,
   helveticaBold: PDFFont,
 ): Promise<number> {
-  const logoMaxW = 96;
-  const logoMaxH = 56;
+  const logoMaxW = 128;
+  const logoMaxH = 64;
   const rightEdge = margin + contentW;
-  const textChars = Math.max(24, Math.floor(contentW * 0.42 / 5.5));
-  const contrast = branding.headerContrast;
-  const titleColor = contrast.heading;
-  const bodyColor = contrast.body;
-  const ruleColor = contrast.border;
+  const textChars = Math.max(28, Math.floor(contentW * 0.5 / 5.5));
+  const accent = branding.primaryColor;
+
+  // Full-bleed accent bar (SHA-style) — colours show immediately at the top edge.
+  const barH = 5;
+  page.drawRectangle({
+    x: 0,
+    y: page.getSize().height - barH,
+    width: pageWidth,
+    height: barH,
+    color: accent,
+  });
 
   let logoH = 0;
   let logoW = 0;
@@ -231,55 +243,73 @@ async function drawEmbeddedLetterhead(
 
   const nameLines = branding.legalName ? wrapText(branding.legalName, textChars) : [];
   const addressLines = branding.address ? wrapText(branding.address, textChars) : [];
-  const vatLineCount = branding.vatPin ? 1 : 0;
+  const contactBits = [branding.vatPin ? `VAT PIN: ${branding.vatPin}` : '']
+    .filter(Boolean) as string[];
+  // contactEmail/phone are on InvoicePdfBranding via resolve — check resolveBranding return
   const textBlockH =
-    nameLines.length * 13 + addressLines.length * 11 + vatLineCount * 11 + (nameLines.length ? 0 : 0);
-  const blockH = Math.max(logoH, textBlockH, 48);
-  const bandPad = 14;
-  const bandTop = yTop + bandPad;
+    nameLines.length * 14 + addressLines.length * 11 + contactBits.length * 11 + 4;
+  const blockH = Math.max(logoH, textBlockH, 52);
+  const bandPad = 12;
+  const bandTop = yTop - 4;
   const bandBottom = bandTop - blockH - bandPad;
-  const bandHeight = bandTop - bandBottom;
 
   if (branding.headerBackgroundColor) {
     page.drawRectangle({
       x: margin,
       y: bandBottom,
       width: contentW,
-      height: bandHeight,
+      height: bandTop - bandBottom,
       color: branding.headerBackgroundColor,
     });
   }
 
-  const logoY = bandTop - 12 - logoH;
-  if (logo) {
-    page.drawImage(logo, { x: margin, y: logoY, width: logoW, height: logoH });
-  }
+  const contrast = branding.headerContrast;
+  const titleColor = branding.headerBackgroundColor ? contrast.heading : accent;
+  const bodyColor = branding.headerBackgroundColor ? contrast.body : GRAY_600;
 
-  let ty = bandTop - 12;
+  // Company identity on the left with accent tick (SHA section marker).
+  const tickX = margin;
+  page.drawRectangle({
+    x: tickX,
+    y: bandBottom + 4,
+    width: 3,
+    height: Math.max(blockH - 4, 28),
+    color: accent,
+  });
+
+  let ty = bandTop - 10;
+  const textX = margin + 10;
   for (const line of nameLines) {
-    drawTextRight(page, line, rightEdge, ty, 11, helveticaBold, titleColor);
-    ty -= 13;
+    page.drawText(line, { x: textX, y: ty, size: 12, font: helveticaBold, color: titleColor });
+    ty -= 14;
   }
   for (const line of addressLines) {
-    drawTextRight(page, line, rightEdge, ty, 8, helvetica, bodyColor);
+    page.drawText(line, { x: textX, y: ty, size: 8, font: helvetica, color: bodyColor });
     ty -= 11;
   }
-  if (branding.vatPin) {
-    drawTextRight(page, `VAT PIN: ${branding.vatPin}`, rightEdge, ty, 8, helvetica, bodyColor);
+  for (const line of contactBits) {
+    page.drawText(line, { x: textX, y: ty, size: 8, font: helvetica, color: bodyColor });
     ty -= 11;
   }
 
-  const blockBottom = bandBottom;
-  if (!contrast.isDark) {
-    page.drawLine({
-      start: { x: margin, y: blockBottom },
-      end: { x: rightEdge, y: blockBottom },
-      thickness: 0.5,
-      color: ruleColor,
+  // Logo on the right — large and readable for client demos.
+  if (logo) {
+    page.drawImage(logo, {
+      x: rightEdge - logoW,
+      y: bandTop - 8 - logoH,
+      width: logoW,
+      height: logoH,
     });
   }
 
-  return yTop - blockBottom + SECTION_GAP_PT;
+  page.drawLine({
+    start: { x: margin, y: bandBottom },
+    end: { x: rightEdge, y: bandBottom },
+    thickness: 1.25,
+    color: accent,
+  });
+
+  return yTop - bandBottom + SECTION_GAP_PT;
 }
 
 function drawDocumentFooter(
@@ -348,6 +378,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
       headerTop,
       margin,
       contentW,
+      width,
       branding,
       helvetica,
       helveticaBold,
@@ -377,7 +408,7 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     y: headerTop - 20,
     size: 20,
     font: helveticaBold,
-    color: INK,
+    color: branding.isPlain ? INK : branding.primaryColor,
   });
 
   const metaRight = margin + contentW;
@@ -411,12 +442,21 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
   const invoiceToLabel = isCredit ? 'Credit to' : 'Invoice to';
   const clientLines = wrapText(data.clientName, Math.max(28, Math.floor(contentW / 4.8)));
 
+  if (!branding.isPlain) {
+    cursor.page.drawRectangle({
+      x: margin,
+      y: cursor.y - 1,
+      width: 3,
+      height: 10,
+      color: branding.primaryColor,
+    });
+  }
   cursor.page.drawText(invoiceToLabel, {
-    x: margin,
+    x: branding.isPlain ? margin : margin + 8,
     y: cursor.y,
     size: 8,
-    font: helvetica,
-    color: GRAY_500,
+    font: helveticaBold,
+    color: branding.isPlain ? GRAY_500 : branding.primaryColor,
   });
   cursor.y -= 14;
 
@@ -500,7 +540,11 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     drawLineH(tTop, margin, margin + contentW);
   }
 
-  const headerLabelColor = branding.isPlain ? GRAY_500 : panelText.muted;
+  const headerLabelColor = branding.isPlain
+    ? GRAY_500
+    : panelText.isDark || hexLuminance(branding.panelBackgroundHex) < 160
+      ? WHITE
+      : INK;
   const hY = tTop - theadH / 2 - 4;
   cursor.page.drawText('#', { x: margin + 10, y: hY, size: 8, font: helveticaBold, color: headerLabelColor });
   cursor.page.drawText('Description', { x: descX, y: hY, size: 8, font: helveticaBold, color: headerLabelColor });
@@ -614,12 +658,21 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
     drawLineH(cursor.y, margin, margin + contentW);
     cursor.y -= SECTION_GAP_PT;
 
+    if (!branding.isPlain) {
+      cursor.page.drawRectangle({
+        x: margin,
+        y: cursor.y - 1,
+        width: 3,
+        height: 10,
+        color: branding.primaryColor,
+      });
+    }
     cursor.page.drawText('Payment details', {
-      x: margin,
+      x: branding.isPlain ? margin : margin + 8,
       y: cursor.y,
       size: 9,
       font: helveticaBold,
-      color: INK,
+      color: branding.isPlain ? INK : branding.primaryColor,
     });
     cursor.y -= 16;
 
@@ -629,8 +682,8 @@ export async function generateAccountsInvoicePdf(data: AccountsInvoicePdfInput):
         x: margin,
         y: cursor.y,
         size: 9,
-        font: helvetica,
-        color: GRAY_500,
+        font: helveticaBold,
+        color: branding.isPlain ? GRAY_500 : branding.primaryColor,
       });
       cursor.page.drawText(value, {
         x: margin + labelW,
