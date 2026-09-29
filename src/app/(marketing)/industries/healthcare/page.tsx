@@ -22,6 +22,7 @@ export default function HealthcareIndustryPage() {
   return (
     <>
       <MarketingPageHeader
+        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: 'Healthcare', path: '/industries/healthcare' }]}
         eyebrow="Healthcare"
         title="Clinical workforce on the Stride core."
         description="Rota, attendance, credentials, and statutory payroll in one system — built for Kenyan hospitals and clinics."

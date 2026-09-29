@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { MOTION_EASE, Reveal } from '@/components/marketing/motion';
 import { SectionBadge, StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
+import { JsonLd } from '@/components/marketing/JsonLd';
+import { faqPageJsonLd } from '@/lib/marketing-schema';
 
 type FaqItem = { question: string; answer: string };
 
@@ -13,6 +15,7 @@ export function MarketingFaq({ items }: { items: readonly FaqItem[] }) {
 
   return (
     <section id="faq" className="scroll-anchor bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
+      <JsonLd data={faqPageJsonLd(items)} />
       <StudioCraftContainer>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,340px)_1fr] lg:gap-20">
           <div className="min-w-0">

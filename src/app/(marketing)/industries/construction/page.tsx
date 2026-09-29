@@ -22,6 +22,7 @@ export default function ConstructionIndustryPage() {
   return (
     <>
       <MarketingPageHeader
+        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: 'Construction', path: '/industries/construction' }]}
         eyebrow="Construction"
         title="Sites, plant, and subcontractors."
         description="Construction vertical pack on the Stride projects and finance core — built for Kenyan contractors."

@@ -49,6 +49,7 @@ export default function LogisticsIndustryPage() {
   return (
     <>
       <MarketingPageHeader
+        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: 'Logistics', path: '/industries/logistics' }]}
         eyebrow="Industry pack · Logistics"
         title="Fleet operations on the same platform as payroll."
         description="Built for cargo operators, transporters and 3PLs who need trip management, compliance and billing without bolting on a separate fleet system."

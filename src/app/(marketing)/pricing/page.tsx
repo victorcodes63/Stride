@@ -21,6 +21,7 @@ export default function PricingPage() {
   return (
     <>
       <MarketingPageHeader
+        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Pricing', path: '/pricing' }]}
         eyebrow="Pricing"
         title="Simple tiers. Kenyan shillings."
         description="Plans for the Stride operations platform — banded by organisation size. HR & payroll and finance on every plan; add plug-ins and industry packs when you need them."
