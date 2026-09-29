@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { JsonLd } from '@/components/marketing/JsonLd';
+import { breadcrumbJsonLd, type Breadcrumb } from '@/lib/marketing-schema';
 import {
   MarketingPageHero,
   MarketingPageHeroDescription,
@@ -13,6 +15,8 @@ type MarketingPageHeaderProps = {
   align?: 'left' | 'center';
   className?: string;
   visual?: ReactNode;
+  /** When set, emits BreadcrumbList JSON-LD (no visual change). */
+  breadcrumb?: readonly Breadcrumb[];
 };
 
 export function MarketingPageHeader({
@@ -22,11 +26,15 @@ export function MarketingPageHeader({
   align = 'left',
   className = '',
   visual,
+  breadcrumb,
 }: MarketingPageHeaderProps) {
   const centered = align === 'center';
 
   return (
     <MarketingPageHero className={className}>
+      {breadcrumb && breadcrumb.length > 0 ? (
+        <JsonLd data={breadcrumbJsonLd(breadcrumb)} />
+      ) : null}
       <div className={centered ? 'text-center' : ''}>
         <div className={centered ? 'mb-5 flex justify-center' : 'mb-5'}>
           <MarketingPageHeroEyebrow>{eyebrow}</MarketingPageHeroEyebrow>

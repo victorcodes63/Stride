@@ -22,6 +22,7 @@ export default function EnergyIndustryPage() {
   return (
     <>
       <MarketingPageHeader
+        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: 'Energy', path: '/industries/energy' }]}
         eyebrow="Oil & Gas / Energy"
         title="Permits and HSE on the Stride core."
         description="Site register, permit compliance, and group HSE rollup for East African energy operators."

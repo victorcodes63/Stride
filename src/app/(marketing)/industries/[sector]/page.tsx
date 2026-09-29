@@ -52,6 +52,7 @@ export default async function IndustrySectorPage({ params }: Props) {
   return (
     <>
       <MarketingPageHeader
+        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: vertical.name, path: `/industries/${sector}` }]}
         eyebrow="Coming soon"
         title={vertical.name}
         description={vertical.description}

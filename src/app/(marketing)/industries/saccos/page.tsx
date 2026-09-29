@@ -49,6 +49,7 @@ export default function SaccosIndustryPage() {
   return (
     <>
       <MarketingPageHeader
+        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: 'SACCOs', path: '/industries/saccos' }]}
         eyebrow="SACCOs"
         title="Member-trusted operations on the Stride core."
         description="Built for regulated SACCOs that need modern member servicing, dividend workflows, and board-ready SASRA reporting without a multi-year core replacement."
