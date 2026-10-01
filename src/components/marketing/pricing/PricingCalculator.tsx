@@ -8,7 +8,6 @@ import {
   PRICING_INTENTS,
   contactHref,
   formatKes,
-  formatMonthlyKes,
   getPricingPlan,
   monthlyPriceKes,
   type PricingPlanId,
@@ -117,23 +116,24 @@ export function PricingCalculator() {
               {plan.name}
             </p>
             <p className="mt-2 font-heading text-[clamp(1.5rem,7vw,2rem)] font-extrabold leading-tight tracking-[-0.02em] tabular-nums text-pub-ink">
-              {formatMonthlyKes(total)}
+              {formatKes(total)}
             </p>
-            <p className="mt-2 text-[13px] leading-relaxed text-pub-ink-muted">
+            <p className="text-sm text-pub-ink-muted">per month</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-pub-ink-subtle">
               {employees} {employees === 1 ? 'employee' : 'employees'} ×{' '}
               {formatKes(plan.rateKesPerEmployee ?? 0)}
             </p>
 
             {overThreshold ? (
-              <p className="mt-4 border-t border-pub-border pt-4 text-[13px] leading-relaxed text-pub-ink-muted">
-                At this size, talk to us about Enterprise pricing{' '}
+              <div className="mt-4 border-t border-pub-border pt-4 text-[13px] leading-relaxed text-pub-ink-muted">
+                <p>At this size, talk to us about Enterprise pricing.</p>
                 <Link
                   href={contactHref(PRICING_INTENTS.enterprise)}
-                  className="font-semibold text-[var(--pub-primary)] underline-offset-4 hover:underline"
+                  className="mt-1 inline-flex font-semibold text-[var(--pub-primary)] underline-offset-4 hover:underline"
                 >
                   Talk to sales
                 </Link>
-              </p>
+              </div>
             ) : null}
           </div>
         </div>
