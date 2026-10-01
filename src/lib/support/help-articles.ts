@@ -90,11 +90,11 @@ export const HELP_ARTICLES: HelpArticle[] = [
   },
   {
     id: 'billing-seats',
-    title: 'Plans, seats, and billing status',
-    summary: 'What happens when you approach seat limits or if billing is past due.',
+    title: 'Plans, headcount, and billing status',
+    summary: 'How your monthly bill is calculated and what happens if billing is past due.',
     category: 'Billing & account',
     body: [
-      'Active employees and dashboard users count toward your seat limit. ESS-only users may be metered separately depending on plan.',
+      'Your plan is billed per active employee per month, aggregated across entities. There is no minimum and no headcount cap — adding people needs no upgrade, and leavers stop counting the month after their exit date.',
       'Past-due accounts retain read access for a grace period; new payroll runs and disbursements may be restricted.',
       'Contact your account owner or raise a billing ticket below for invoice copies or plan changes.',
     ],

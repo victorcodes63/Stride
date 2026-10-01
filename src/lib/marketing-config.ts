@@ -539,9 +539,9 @@ export const PLATFORM_FAQ = [
       'Every Stride account includes two sign-up modules: HR & Payroll and Finance. Switch on procurement, legal, admin, projects and vertical packs when your operations need them — one login, one data layer throughout.',
   },
   {
-    question: 'Which modules are included in each pricing tier?',
+    question: 'Which modules are included in each plan?',
     answer:
-      'Starter includes the two sign-up modules (HR & Payroll and Finance) for up to 25 staff. Growth adds more modules and headcount. Enterprise is the full platform with bespoke rollout for regulated and multi-entity organisations. See pricing for current bands in Kenyan shillings.',
+      'Essentials includes the two sign-up modules (HR & Payroll and Finance) plus two plug-ins of your choice. Growth adds more plug-ins, a vertical pack and multi-entity support. Enterprise is the full platform with bespoke rollout for regulated and multi-entity organisations. Every plan is priced per active employee per month in Kenyan shillings, with no minimum team size.',
   },
   {
     question: 'Do you support M-Pesa for salary disbursements?',
@@ -641,57 +641,6 @@ export const INDUSTRY_VERTICALS: {
   },
 ];
 
-export const PRICING_TIERS = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: 'KES 18K',
-    unit: 'per month · up to 25 staff',
-    description: 'For small teams and consultancies getting their operations onto one platform.',
-    features: [
-      'HR & Payroll and Finance (sign-up modules)',
-      'Up to 25 employees',
-      'M-Pesa disbursements',
-      'KRA / NSSF / SHIF compliance',
-      'Email support',
-    ],
-    cta: 'Book a demo',
-    featured: false,
-  },
-  {
-    id: 'growth',
-    name: 'Growth',
-    price: 'KES 55K',
-    unit: 'per month · up to 100 staff',
-    description: 'For growing organisations running multiple functions across one or more entities.',
-    features: [
-      '4 core modules included',
-      'Up to 100 employees',
-      'Multi-entity support',
-      'Advanced approvals & workflows',
-      'Priority support + onboarding',
-    ],
-    cta: 'Book a demo',
-    featured: true,
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 'Custom',
-    unit: '100+ staff · multi-entity',
-    description: 'For SACCOs and regulated mid-market needing the full platform and bespoke rollout.',
-    features: [
-      'All six modules',
-      'Unlimited employees',
-      'Dedicated success manager',
-      'Custom integrations & SLAs',
-      'On-site implementation',
-    ],
-    cta: 'Talk to sales',
-    featured: false,
-  },
-] as const;
-
 /** Compare-features matrix cells for /pricing (see docs/STRIDE-PACKAGING.md §7). */
 export type PricingCompareMark = 'included' | 'addon' | 'none';
 
@@ -701,7 +650,7 @@ export type PricingCompareCell =
 
 export type PricingCompareRow = {
   label: string;
-  starter: PricingCompareCell;
+  essentials: PricingCompareCell;
   growth: PricingCompareCell;
   enterprise: PricingCompareCell;
 };
@@ -724,15 +673,15 @@ export const PRICING_COMPARE_GROUPS: PricingCompareGroup[] = [
     rows: [
       {
         label: 'Records, profiles, org structure, custom fields, document storage, company branding, unique URL',
-        starter: inc,
+        essentials: inc,
         growth: inc,
         enterprise: inc,
       },
-      { label: 'Employee self-service (ESS) + mobile PWA', starter: inc, growth: inc, enterprise: inc },
-      { label: 'Notifications, email alerts, announcements', starter: inc, growth: inc, enterprise: inc },
-      { label: 'Workflows & approvals', starter: txt('✓ (basic)'), growth: txt('✓ (advanced)'), enterprise: txt('✓ (advanced)') },
-      { label: 'Audit trail', starter: inc, growth: inc, enterprise: inc },
-      { label: 'Standard + custom reporting', starter: inc, growth: inc, enterprise: inc },
+      { label: 'Employee self-service (ESS) + mobile PWA', essentials: inc, growth: inc, enterprise: inc },
+      { label: 'Notifications, email alerts, announcements', essentials: inc, growth: inc, enterprise: inc },
+      { label: 'Workflows & approvals', essentials: txt('✓ (basic)'), growth: txt('✓ (advanced)'), enterprise: txt('✓ (advanced)') },
+      { label: 'Audit trail', essentials: inc, growth: inc, enterprise: inc },
+      { label: 'Standard + custom reporting', essentials: inc, growth: inc, enterprise: inc },
     ],
   },
   {
@@ -741,7 +690,7 @@ export const PRICING_COMPARE_GROUPS: PricingCompareGroup[] = [
     rows: [
       {
         label: 'Policies, balances, calendar/planner, approvals',
-        starter: inc,
+        essentials: inc,
         growth: inc,
         enterprise: inc,
       },
@@ -751,18 +700,19 @@ export const PRICING_COMPARE_GROUPS: PricingCompareGroup[] = [
     id: 'time',
     title: 'Time & attendance',
     rows: [
-      { label: 'Rota/scheduling, attendance', starter: inc, growth: inc, enterprise: inc },
-      { label: 'Biometric device integration', starter: add, growth: inc, enterprise: inc },
-      { label: 'Geo mobile clock-in', starter: add, growth: inc, enterprise: inc },
+      { label: 'Rota/scheduling, attendance', essentials: inc, growth: inc, enterprise: inc },
+      { label: 'Biometric device integration', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Geo mobile clock-in', essentials: add, growth: inc, enterprise: inc },
     ],
   },
   {
     id: 'payroll',
     title: 'Payroll (Kenya)',
     rows: [
-      { label: 'Runs, payslips, KRA/NSSF/SHIF/Housing', starter: inc, growth: inc, enterprise: inc },
-      { label: 'M-Pesa disbursements', starter: inc, growth: inc, enterprise: inc },
-      { label: 'Multi-entity payroll', starter: none, growth: inc, enterprise: inc },
+      { label: 'Runs, payslips, KRA PAYE, NSSF and SHIF', essentials: inc, growth: inc, enterprise: inc },
+      { label: 'Housing Levy', essentials: inc, growth: inc, enterprise: inc },
+      { label: 'M-Pesa disbursements', essentials: inc, growth: inc, enterprise: inc },
+      { label: 'Multi-entity payroll', essentials: none, growth: inc, enterprise: inc },
     ],
   },
   {
@@ -771,37 +721,36 @@ export const PRICING_COMPARE_GROUPS: PricingCompareGroup[] = [
     rows: [
       {
         label: 'Invoicing (AR), vendor bills (AP), expenses, petty cash, budgets',
-        starter: inc,
+        essentials: inc,
         growth: inc,
         enterprise: inc,
       },
-      { label: 'Statements / ageing, M-Pesa reconciliation', starter: add, growth: inc, enterprise: inc },
+      { label: 'Statements / ageing, M-Pesa reconciliation', essentials: add, growth: inc, enterprise: inc },
     ],
   },
   {
     id: 'modules',
     title: 'People & operations modules',
     rows: [
-      { label: 'Disciplinary & grievance', starter: inc, growth: inc, enterprise: inc },
-      { label: 'Recruitment / ATS — jobs, pipeline, interviews, careers', starter: add, growth: inc, enterprise: inc },
-      { label: 'Candidate assessments', starter: add, growth: inc, enterprise: inc },
-      { label: 'Performance — goals, reviews, cycles', starter: add, growth: inc, enterprise: inc },
-      { label: 'Training / learning', starter: add, growth: inc, enterprise: inc },
-      { label: 'Procurement — PR → LPO → GRN, spend', starter: add, growth: inc, enterprise: inc },
-      { label: 'Legal & compliance — contracts, credentials, obligations', starter: add, growth: inc, enterprise: inc },
-      { label: 'Communications', starter: add, growth: inc, enterprise: inc },
+      { label: 'Disciplinary & grievance', essentials: inc, growth: inc, enterprise: inc },
+      { label: 'Recruitment / ATS — jobs, pipeline, interviews, careers', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Candidate assessments', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Performance — goals, reviews, cycles', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Training / learning', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Procurement — PR → LPO → GRN, spend', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Legal & compliance — contracts, credentials, obligations', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Communications', essentials: add, growth: inc, enterprise: inc },
     ],
   },
   {
     id: 'platform',
     title: 'Platform & scale',
     rows: [
-      { label: 'Horizontal modules included', starter: txt('up to 2'), growth: txt('up to 4'), enterprise: txt('all') },
-      { label: 'Vertical packs — Fleet, Assets, HSE', starter: add, growth: txt('1 included'), enterprise: txt('full suite') },
-      { label: 'Multi-entity / regional cells', starter: none, growth: inc, enterprise: inc },
-      { label: 'Dedicated instance + custom integrations + SLAs', starter: none, growth: none, enterprise: inc },
-      { label: 'Staff band', starter: txt('up to 25'), growth: txt('up to 100'), enterprise: txt('100+ / unlimited') },
-      { label: 'Support', starter: txt('Email'), growth: txt('Priority + onboarding'), enterprise: txt('Dedicated success mgr + on-site') },
+      { label: 'Horizontal modules included', essentials: txt('up to 2'), growth: txt('up to 4'), enterprise: txt('all') },
+      { label: 'Vertical packs — Fleet, Assets, HSE', essentials: add, growth: txt('1 included'), enterprise: txt('full suite') },
+      { label: 'Multi-entity / regional cells', essentials: none, growth: inc, enterprise: inc },
+      { label: 'Dedicated instance + custom integrations + SLAs', essentials: none, growth: none, enterprise: inc },
+      { label: 'Support', essentials: txt('Email'), growth: txt('Priority + onboarding'), enterprise: txt('Dedicated success mgr + on-site') },
     ],
   },
 ];
@@ -810,12 +759,12 @@ export const FAQ_ITEMS = [
   {
     question: 'Is Stride compliant with Kenyan payroll regulations?',
     answer:
-      'Yes. KRA PAYE, NSSF, SHIF and statutory deductions are built in from day one — not bolted on as an afterthought. Payslips, P9s and filing exports are included.',
+      'Yes. KRA PAYE, NSSF, SHIF, Housing Levy and statutory deductions are built in from day one — not bolted on as an afterthought. Payslips, P9s and filing exports are included.',
   },
   {
     question: 'How is Stride different from other HR platforms?',
     answer:
-      "Most HR platforms either focus narrowly on payroll or are foreign tools retrofitted for Kenya. Stride is built from the ground up for East Africa — M-Pesa, KRA, NSSF and SHIF aren't add-ons — and grows beyond HR into finance, procurement, projects and industry-specific modules like fleet management, all on one login. Pricing is banded by organisation size, not per seat, so it fits a 12-person consultancy and a 300-staff SACCO alike.",
+      "Most HR platforms either focus narrowly on payroll or are foreign tools retrofitted for Kenya. Stride is built from the ground up for East Africa — M-Pesa, KRA, NSSF and SHIF aren't add-ons — and grows beyond HR into finance, procurement, projects and industry-specific modules like fleet management, all on one login. Pricing is a flat rate per active employee per month in Kenyan shillings with no minimum, so it fits a 12-person consultancy and a 300-staff SACCO alike.",
   },
   {
     question: 'What modules do we sign up with?',
@@ -883,7 +832,7 @@ export const ABOUT_ORIGIN = {
   paragraphs: [
     {
       text:
-        'Raven Tech Group builds software for East African businesses. Along the way we kept seeing the same gap in HR, payroll and operations: global platforms that approximated KRA rules, billed in dollars per seat and queued support in another timezone — or spreadsheets and disconnected tools holding the rest together.',
+        'Raven Tech Group builds software for East African businesses. Along the way we kept seeing the same gap in HR, payroll and operations: global platforms that approximated KRA rules, billed in dollars and queued support in another timezone — or spreadsheets and disconnected tools holding the rest together.',
     },
     {
       text: 'So we built the system we wished existed, and ',

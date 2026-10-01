@@ -15,6 +15,7 @@ import {
   MARKETING_SALES_EMAIL,
   getMarketingLoginUrl,
 } from '@/lib/marketing-config';
+import { CONTACT_ENQUIRY_TYPES, DEFAULT_CONTACT_ENQUIRY_TYPE } from '@/lib/pricing';
 import { trackMarketingEvent } from '@/lib/marketing-analytics';
 import './book-demo.css';
 
@@ -111,6 +112,11 @@ function InputGroup({
     </label>
   );
 }
+
+const ENQUIRY_TYPE_OPTIONS = CONTACT_ENQUIRY_TYPES.map((option) => ({
+  value: option.value,
+  label: option.value,
+}));
 
 const TEAM_SIZE_OPTIONS = [
   { value: '', label: 'Select team size' },
@@ -235,12 +241,18 @@ function MobileProgress({ currentStep }: { currentStep: number }) {
   );
 }
 
-export function BookDemoPage() {
+export function BookDemoPage({
+  defaultEnquiryType = DEFAULT_CONTACT_ENQUIRY_TYPE,
+}: {
+  /** Pre-selected from the `intent` query string on the pricing CTAs. */
+  defaultEnquiryType?: string;
+}) {
   const [step, setStep] = useState(1);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
+  const [enquiryType, setEnquiryType] = useState(defaultEnquiryType);
   const [teamSize, setTeamSize] = useState('');
   const [modules, setModules] = useState<string[]>([]);
   const [somethingElse, setSomethingElse] = useState(false);
@@ -335,7 +347,8 @@ export function BookDemoPage() {
           email,
           company,
           teamSize,
-          interest: 'Booking a demo',
+          interest:
+            enquiryType === DEFAULT_CONTACT_ENQUIRY_TYPE ? 'Booking a demo' : enquiryType,
           modules,
           otherModule: somethingElse ? otherModule.trim() : '',
           preferredDate,
@@ -506,6 +519,19 @@ export function BookDemoPage() {
                             onChange={setCompany}
                             required
                           />
+                          <label className="block space-y-2">
+                            <span className="text-[13px] font-medium text-[#fbf8f4]/90">
+                              What is this about?
+                            </span>
+                            <StrideSelect
+                              surface="public"
+                              ariaLabel="Enquiry type"
+                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
+                              value={enquiryType}
+                              onChange={setEnquiryType}
+                              options={ENQUIRY_TYPE_OPTIONS}
+                            />
+                          </label>
                           <label className="block space-y-2">
                             <span className="text-[13px] font-medium text-[#fbf8f4]/90">Team size</span>
                             <StrideSelect

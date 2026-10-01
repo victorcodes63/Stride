@@ -79,7 +79,7 @@ export type DashboardNavBuildOptions = {
   currentUserRole: UserRole | null;
   hasAccountsAccess: boolean;
   canViewSystemAnalytics: boolean;
-  /** When false, hides Company setup from admin nav (Starter tier). */
+  /** When false, hides Company setup from admin nav (Essentials plan). */
   canAccessCompanySetup?: boolean;
   enabledModules?: EnabledModulesMap;
 };

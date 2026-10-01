@@ -1,27 +1,11 @@
+/**
+ * Active-employee metering. Plans are priced per active employee per month
+ * (`@/lib/pricing`) with no headcount cap, so this counts for billing and never blocks.
+ */
 import type { Prisma } from '@prisma/client';
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
 
-import type { DeploymentEntitlements } from '@/lib/entitlements-types';
-import { loadDeploymentEntitlements } from '@/lib/entitlements-store';
-import { parseEntitlementsCookie } from '@/lib/entitlements-cookie';
 import { withOrgContext } from '@/lib/org-context';
 import { prisma } from '@/lib/prisma';
-
-export type SeatLimitCheck = {
-  limit: number | null;
-  active: number;
-  remaining: number | null;
-};
-
-export function seatLimitExceededPayload(check: SeatLimitCheck) {
-  return {
-    error: `Seat limit reached (${check.active}/${check.limit}). Upgrade your plan to add more employees.`,
-    code: 'SEAT_LIMIT_EXCEEDED' as const,
-    seatLimit: check.limit,
-    activeEmployees: check.active,
-  };
-}
 
 export async function countBillableEmployees(
   outsourcingClientId: string,
@@ -47,44 +31,7 @@ export async function countBillableEmployees(
   });
 }
 
-export async function getEntitlementsForSeatCheck(
-  request?: NextRequest,
-): Promise<DeploymentEntitlements | null> {
-  if (request) {
-    const fromCookie = parseEntitlementsCookie(
-      request.cookies.get('hris_entitlements')?.value,
-    );
-    if (fromCookie) return fromCookie;
-  }
-  return loadDeploymentEntitlements();
-}
-
-export async function checkSeatLimitForNewEmployee(
-  outsourcingClientId: string,
-  request?: NextRequest,
-  organizationId?: string,
-): Promise<{ ok: true; check: SeatLimitCheck } | { ok: false; check: SeatLimitCheck }> {
-  const entitlements = await getEntitlementsForSeatCheck(request);
-  const limit = entitlements?.seatLimit ?? null;
-  const active = await countBillableEmployees(outsourcingClientId, organizationId);
-
-  const check: SeatLimitCheck = {
-    limit,
-    active,
-    remaining: limit != null ? Math.max(0, limit - active) : null,
-  };
-
-  if (limit == null || limit <= 0) {
-    return { ok: true, check };
-  }
-
-  if (active >= limit) {
-    return { ok: false, check };
-  }
-
-  return { ok: true, check };
-}
-
+/** Reports the month's billable headcount — the input the control plane invoices on. */
 export async function reportSeatUsageToControlPlane(
   activeEmployees: number,
 ): Promise<void> {

@@ -1,7 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { PRICING_TIERS } from '@/lib/marketing-config';
+import { marketingTierModuleSummary } from '@/lib/marketing-pricing-entitlements';
+import {
+  PRICING_FOOTNOTE,
+  PRICING_PLANS,
+  formatKes,
+  planCtaHref,
+  planExampleLine,
+  type PricingPlan,
+} from '@/lib/pricing';
 import { Reveal, Stagger, StaggerItem } from '@/components/marketing/motion';
 import {
   MarketingOutlineLink,
@@ -10,12 +18,34 @@ import {
   StudioCraftContainer,
 } from '@/components/marketing/v3/studio-craft-shared';
 
-function tierCardClass(featured: boolean) {
-  return `relative marketing-hover-lift flex h-full flex-col rounded-[20px] border p-5 text-center transition hover:shadow-[0_16px_44px_rgba(26,23,20,0.09)] sm:p-8 lg:p-9 ${
-    featured
-      ? 'sc-on-ink border-[var(--sc-ink)] bg-[var(--sc-ink)]'
-      : 'border-[var(--sc-line)] bg-white'
-  }`;
+function PlanPrice({ plan }: { plan: PricingPlan }) {
+  const example = planExampleLine(plan);
+
+  if (plan.rateKesPerEmployee === null) {
+    return (
+      <>
+        <p className="mt-3 text-[2rem] font-medium leading-none tracking-[-0.03em] text-[var(--sc-ink)] sm:mt-4 sm:text-[2.5rem]">
+          {plan.customPriceLabel}
+        </p>
+        <p className="mt-2 text-[13px] text-[var(--sc-ink-muted)]">{plan.unit}</p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--sc-ink-subtle)]">
+        from
+      </p>
+      <p className="text-[2rem] font-medium leading-none tracking-[-0.03em] text-[var(--sc-ink)] sm:text-[2.5rem]">
+        {formatKes(plan.rateKesPerEmployee)}
+      </p>
+      <p className="mt-2 text-[13px] text-[var(--sc-ink-muted)]">{plan.unit}</p>
+      {example ? (
+        <p className="mt-1 text-[13px] text-[var(--sc-ink-subtle)]">{example}</p>
+      ) : null}
+    </>
+  );
 }
 
 export function MarketingPricingSection() {
@@ -28,13 +58,13 @@ export function MarketingPricingSection() {
           </Reveal>
           <Reveal delay={0.06}>
             <h2 className="mx-auto max-w-[640px] text-[clamp(2rem,4.5vw,3.5rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
-              Priced for your <span className="text-[var(--sc-coral)]">size</span>, not per seat.
+              Pay per <span className="text-[var(--sc-coral)]">employee</span>, with no minimum.
             </h2>
           </Reveal>
           <Reveal delay={0.1}>
             <p className="mx-auto mt-5 max-w-[520px] text-base leading-relaxed text-[var(--sc-ink-muted)] sm:text-lg">
-              Platform tiers banded by organisation size, billed in Kenyan shillings. Add modules as you
-              grow.
+              One rate per active employee per month, billed in Kenyan shillings. Your bill grows only
+              as your team does.
             </p>
           </Reveal>
         </div>
@@ -43,61 +73,51 @@ export function MarketingPricingSection() {
           className="mt-10 grid gap-4 sm:mt-12 sm:gap-5 lg:mt-14 lg:grid-cols-3 lg:gap-6"
           delayChildren={0.14}
         >
-          {PRICING_TIERS.map((tier) => (
-            <StaggerItem key={tier.id} as="article" className={tierCardClass(tier.featured)}>
-              {tier.featured ? (
-                <span className="mx-auto mb-4 inline-flex rounded-full bg-[var(--sc-coral)]/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--sc-coral)] sm:text-[11px]">
-                  Most popular
+          {PRICING_PLANS.map((plan) => (
+            <StaggerItem
+              key={plan.id}
+              as="article"
+              className={`relative marketing-hover-lift flex h-full min-w-0 flex-col rounded-[20px] border bg-white p-5 text-center transition hover:shadow-[0_16px_44px_rgba(26,23,20,0.09)] sm:p-8 lg:p-9 ${
+                plan.eyebrow ? 'border-[var(--sc-coral)]/35' : 'border-[var(--sc-line)]'
+              }`}
+            >
+              {plan.eyebrow ? (
+                <span className="mx-auto mb-3 inline-flex rounded-full bg-[var(--sc-coral)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--sc-coral)] sm:text-[11px]">
+                  {plan.eyebrow}
                 </span>
               ) : null}
               <p className="text-sm font-semibold uppercase tracking-wide text-[var(--sc-coral)]">
-                {tier.name}
+                {plan.name}
               </p>
-              <p
-                className={`mt-3 text-[2rem] font-medium leading-none tracking-[-0.03em] sm:mt-4 sm:text-[2.5rem] ${
-                  tier.featured ? 'text-[var(--sc-on-ink-fg)]' : 'text-[var(--sc-ink)]'
-                }`}
-              >
-                {tier.price}
+
+              <PlanPrice plan={plan} />
+
+              <p className="my-6 border-b border-[var(--sc-line)] pb-6 text-sm leading-relaxed text-[var(--sc-ink-muted)]">
+                {plan.description}
               </p>
-              <p
-                className={`mt-2 text-[13px] ${
-                  tier.featured ? 'text-[#9C948A]' : 'text-[var(--sc-ink-muted)]'
-                }`}
-              >
-                {tier.unit}
-              </p>
-              <p
-                className={`my-6 border-b pb-6 text-sm leading-relaxed ${
-                  tier.featured
-                    ? 'border-white/10 text-[#C9C0B6]'
-                    : 'border-[var(--sc-line)] text-[var(--sc-ink-muted)]'
-                }`}
-              >
-                {tier.description}
-              </p>
-              <ul
-                className={`mx-auto mb-8 flex w-full max-w-[16rem] flex-1 flex-col gap-2.5 text-left text-sm sm:max-w-[18rem] ${
-                  tier.featured ? 'text-[#D8D2C9]' : 'text-[var(--sc-ink-muted)]'
-                }`}
-              >
-                {tier.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 leading-snug">
+              <ul className="mx-auto mb-8 flex w-full max-w-[16rem] flex-1 flex-col gap-2.5 text-left text-sm text-[var(--sc-ink-muted)] sm:max-w-[18rem]">
+                {marketingTierModuleSummary(plan.deploymentTier).map((feature) => (
+                  <li key={feature} className="flex items-start gap-2 leading-snug">
                     <span className="mt-0.5 shrink-0 text-[var(--sc-coral)]">✓</span>
-                    <span>{f}</span>
+                    <span>{feature}</span>
                   </li>
                 ))}
               </ul>
-              {tier.featured ? (
-                <MarketingPrimaryLink
-                  href="/contact"
-                  label={tier.cta}
-                  variant="coral"
+              {plan.rateKesPerEmployee === null ? (
+                <MarketingOutlineLink
+                  href={planCtaHref(plan)}
+                  label={plan.ctaLabel}
                   showArrow
                   fullWidth
                 />
               ) : (
-                <MarketingOutlineLink href="/contact" label={tier.cta} showArrow fullWidth />
+                <MarketingPrimaryLink
+                  href={planCtaHref(plan)}
+                  label={plan.ctaLabel}
+                  variant="coral"
+                  showArrow
+                  fullWidth
+                />
               )}
             </StaggerItem>
           ))}
@@ -105,7 +125,7 @@ export function MarketingPricingSection() {
 
         <Reveal delay={0.12} className="mt-10 text-center">
           <p className="mx-auto max-w-[720px] text-[13px] text-[var(--sc-ink-muted)]">
-            All plans include free data migration and no setup fee. Prices exclusive of VAT.{' '}
+            {PRICING_FOOTNOTE} Prices exclusive of VAT.{' '}
             <Link
               href="/pricing"
               className="font-semibold text-[var(--sc-coral)] transition-colors hover:text-[var(--sc-coral-deep)]"

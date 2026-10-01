@@ -4,7 +4,9 @@ vi.mock('server-only', () => ({}));
 
 import {
   canAccessCompanySetup,
+  companySetupTierLabel,
   getDeploymentTier,
+  parseDeploymentTier,
 } from '@/lib/deployment-tier';
 import { resolveDeploymentTier } from '@/lib/deployment-tier-server';
 
@@ -32,6 +34,11 @@ describe('deployment-tier', () => {
       vi.stubEnv('DEPLOYMENT_TIER', tier);
       expect(canAccessCompanySetup()).toBe(true);
     }
+  });
+
+  it('accepts the public Essentials name for the starter planId', () => {
+    expect(parseDeploymentTier('essentials')).toBe('starter');
+    expect(companySetupTierLabel('starter')).toBe('Essentials');
   });
 
   it('resolveDeploymentTier falls back to env when entitlements are unavailable', async () => {

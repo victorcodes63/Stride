@@ -51,7 +51,7 @@ local compliance** (KRA, SHIF, NSSF, Housing Levy, M-Pesa) as the moat.
 | **Deployment** | **Pooled multi-tenant** by default (many orgs per cell), **regional cells** for residency, **dedicated single-tenant** for enterprise. One codebase. |
 | **Audience** | Subscription SMBs (pooled) + enterprise/regulated clients (dedicated); HR outsourcers; logistics as first vertical. |
 | **Edge** | Built by HR practitioners; deep local compliance per country (config packs), workflows and billing that match how EA business is run. |
-| **Pricing** | Transparent modular subscription (Starter/Growth/Enterprise); entitlements enforced by the control plane (see §8). |
+| **Pricing** | Per active employee per month in KES (Essentials/Growth/Enterprise), no minimum; entitlements enforced by the control plane (see §8). |
 | **Scope** | Full lifecycle: hire → onboard → time → pay → perform → develop → exit → bill. |
 
 **What we are NOT building (v1):** a separate statutory *engine* per country (countries are **config
@@ -343,18 +343,19 @@ G is the final gate; do not provision a paid client before G.
 
 ---
 
-## 8. Pricing ↔ module mapping (honest tiers)
+## 8. Pricing ↔ module mapping (honest plans)
 
-Map commercial tiers to **licensed product modules** (`MODULE_*` + control-plane buckets), not
-marketing labels, until Procurement and Projects exist.
+Map commercial plans to **licensed product modules** (`MODULE_*` + control-plane buckets), not
+marketing labels, until Procurement and Projects exist. Rates are per active employee per month
+(`app/src/lib/pricing.ts`); plans differ by modules, never by headcount.
 
-| Tier | Topology | Module bundle | Buckets (see `ENTITLEMENT-SYNC.md`) |
+| Plan (planId) | Topology | Module bundle | Buckets (see `ENTITLEMENT-SYNC.md`) |
 |------|----------|---------------|-------------------------------------|
-| Starter | Pooled cell | `core`, `leave`, `payroll`, `ess` | Foundational; max 2 horizontal; verticals blocked |
-| Growth | Pooled cell | Starter + `time`, `accounts`, `ats`, `reports` | Foundational; max 4 horizontal |
-| Enterprise | **Dedicated instance** (or pooled if they prefer) | All licensed modules + `fleet` + multi-entity | All buckets; verticals as add-on/ops pack |
+| Essentials (`starter`) | Pooled cell | `core`, `leave`, `payroll`, `ess` | Foundational; max 2 horizontal; verticals blocked |
+| Growth (`growth`) | Pooled cell | Essentials + `time`, `accounts`, `ats`, `reports` | Foundational; max 4 horizontal |
+| Enterprise (`enterprise`) | **Dedicated instance** (or pooled if they prefer) | All licensed modules + `fleet` + multi-entity | All buckets; verticals as add-on/ops pack |
 
-Topology is a commercial lever: Starter/Growth live on the shared regional cell; Enterprise can buy a
+Topology is a commercial lever: Essentials/Growth live on the shared regional cell; Enterprise can buy a
 **dedicated instance** (isolation, custom domain, white-label) on the same codebase. Until Phase C/D
 ship, Enterprise = "full platform roadmap + priority vertical packs", **not** "all six marketing
 modules feature-complete."

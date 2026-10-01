@@ -7,6 +7,7 @@ export type DeploymentEntitlements = {
   pastDueSince?: string | null;
   billingEmail?: string | null;
   planId: string;
+  /** @deprecated Plans have no headcount cap — kept only to parse the control-plane payload. */
   seatLimit: number | null;
   periodEnd: string | null;
   modules: Partial<Record<ModuleKey, boolean>>;

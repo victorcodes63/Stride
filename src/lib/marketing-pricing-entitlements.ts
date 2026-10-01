@@ -1,6 +1,9 @@
 /**
- * Maps public marketing tiers to deployment entitlements (ENTITLEMENT-SYNC + modules.ts).
+ * Maps public marketing plans to deployment entitlements (ENTITLEMENT-SYNC + modules.ts).
  * Used on /pricing and in sales copy — keep aligned with control-plane planId values.
+ *
+ * Keyed by runtime planId, so `starter` here is the plan sold as Essentials. Rates and
+ * plan names live in `@/lib/pricing`; plans differ by entitlements, never by headcount.
  */
 import type { DeploymentTier } from '@/lib/deployment-tier';
 import type { ModuleKey } from '@/lib/modules';
@@ -9,7 +12,6 @@ export type MarketingPricingTierId = DeploymentTier;
 
 export type MarketingTierEntitlement = {
   planId: MarketingPricingTierId;
-  maxEmployees: number | null;
   /** Module keys included at this tier (env MODULE_* must also be true). */
   includedModules: ModuleKey[];
   verticalEngines: boolean;
@@ -42,7 +44,6 @@ const ENTERPRISE_MODULES: ModuleKey[] = [
 export const MARKETING_TIER_ENTITLEMENTS: Record<MarketingPricingTierId, MarketingTierEntitlement> = {
   starter: {
     planId: 'starter',
-    maxEmployees: 25,
     includedModules: STARTER_MODULES,
     verticalEngines: false,
     multiEntity: false,
@@ -50,7 +51,6 @@ export const MARKETING_TIER_ENTITLEMENTS: Record<MarketingPricingTierId, Marketi
   },
   growth: {
     planId: 'growth',
-    maxEmployees: 100,
     includedModules: GROWTH_MODULES,
     verticalEngines: true,
     multiEntity: true,
@@ -58,7 +58,6 @@ export const MARKETING_TIER_ENTITLEMENTS: Record<MarketingPricingTierId, Marketi
   },
   enterprise: {
     planId: 'enterprise',
-    maxEmployees: null,
     includedModules: ENTERPRISE_MODULES,
     verticalEngines: true,
     multiEntity: true,
@@ -66,18 +65,17 @@ export const MARKETING_TIER_ENTITLEMENTS: Record<MarketingPricingTierId, Marketi
   },
 };
 
-/** Human labels for pricing bullet copy. */
+/** Human labels for pricing bullet copy. Plans differ by features, never by headcount. */
 export function marketingTierModuleSummary(tierId: MarketingPricingTierId): string[] {
-  const tier = MARKETING_TIER_ENTITLEMENTS[tierId];
   switch (tierId) {
     case 'starter':
       return [
         'HR & Payroll and Finance always included',
         'Choose 2 horizontal plug-in modules (e.g. Procurement, Legal)',
-        `Up to ${tier.maxEmployees} employees`,
+        'Any team size — you pay only for active employees',
         'Employee self-service (ESS)',
         'M-Pesa disbursements',
-        'KRA / NSSF / SHIF compliance',
+        'KRA PAYE, NSSF, SHIF and Housing Levy compliance',
         'Email support',
       ];
     case 'growth':
@@ -85,7 +83,7 @@ export function marketingTierModuleSummary(tierId: MarketingPricingTierId): stri
         'HR & Payroll and Finance always included',
         '4 horizontal plug-in modules included',
         'One vertical pack (e.g. Logistics fleet)',
-        `Up to ${tier.maxEmployees} employees`,
+        'Any team size — you pay only for active employees',
         'Multi-entity support',
         'Advanced approvals & workflows',
         'Priority support + onboarding',
@@ -93,7 +91,7 @@ export function marketingTierModuleSummary(tierId: MarketingPricingTierId): stri
     case 'enterprise':
       return [
         'All modules including Performance & full vertical suite',
-        'Unlimited employees',
+        'Volume rates on your signed order form',
         'Dedicated success manager',
         'Custom integrations & SLAs',
         'On-site implementation',

@@ -3,8 +3,13 @@ import Link from 'next/link';
 import type { LegalSection } from '@/components/marketing/legal/legal-types';
 import { brandConfig } from '@/lib/brand.config';
 import { getMarketingPageUrl, MARKETING_SALES_EMAIL } from '@/lib/marketing-config';
+import { BILLING_UNIT_DESCRIPTION, pricingPlanName } from '@/lib/pricing';
 
-const LEGAL_LAST_UPDATED = '2026-06-27';
+const ESSENTIALS = pricingPlanName('essentials');
+const GROWTH = pricingPlanName('growth');
+const ENTERPRISE = pricingPlanName('enterprise');
+
+const LEGAL_LAST_UPDATED = '2026-10-01';
 
 export const TERMS_LAST_UPDATED = LEGAL_LAST_UPDATED;
 
@@ -58,14 +63,15 @@ export function getTermsSections(): LegalSection[] {
         </>
       ),
     },
+    // TODO: legal review of revised plan clauses
     {
       id: 'subscription',
-      title: 'Subscription, tiers, and billing',
+      title: 'Subscription, plans, and billing',
       content: (
         <>
           <p>
-            Stride is offered on recurring subscription tiers — typically <strong>Starter</strong>,{' '}
-            <strong>Growth</strong>, and <strong>Enterprise</strong> — priced in Kenyan shillings (KES) unless
+            Stride is offered on recurring subscription plans — typically <strong>{ESSENTIALS}</strong>,{' '}
+            <strong>{GROWTH}</strong>, and <strong>{ENTERPRISE}</strong> — priced in Kenyan shillings (KES) unless
             otherwise stated on your order form. Current list pricing and included modules are published at{' '}
             <Link href="/pricing">getstride.co.ke/pricing</Link>.
           </p>
@@ -76,22 +82,24 @@ export function getTermsSections(): LegalSection[] {
             method until cancellation. Failed payments may result in grace-period reminders and, if unresolved,
             read-only or suspended access as described below.
           </p>
-          <h3>Seat bands and headcount</h3>
+          <h3>Per-employee fees</h3>
           <ul>
             <li>
-              <strong>Starter</strong> — up to 25 active employees unless otherwise specified on your order.
+              <strong>{ESSENTIALS}</strong> — billed per active employee per month at the published rate for that
+              plan. There is no minimum charge and no headcount cap.
             </li>
             <li>
-              <strong>Growth</strong> — up to 100 active employees with additional modules and multi-entity support.
+              <strong>{GROWTH}</strong> — billed per active employee per month at the published rate for that plan,
+              with additional modules and multi-entity support. There is no minimum charge and no headcount cap.
             </li>
             <li>
-              <strong>Enterprise</strong> — custom headcount, modules, and rollout terms.
+              <strong>{ENTERPRISE}</strong> — fees, modules, and rollout terms are as set out in your signed order
+              form.
             </li>
           </ul>
           <p>
-            &ldquo;Active employees&rdquo; means individuals with a live profile in your tenant who count toward
-            your plan limit. Exceeding your band may require upgrade or purchase of additional seats; we will
-            notify account administrators before enforcing limits.
+            &ldquo;Active employees&rdquo; means individuals with a live profile in your tenant. {BILLING_UNIT_DESCRIPTION}{' '}
+            Your invoice therefore moves with your headcount, and no upgrade is required to add people.
           </p>
           <h3>Add-ons</h3>
           <p>
@@ -118,12 +126,12 @@ export function getTermsSections(): LegalSection[] {
           </p>
           <p>
             We may change list prices or packaging for new customers at any time. Price changes for existing
-            customers take effect at the next renewal after at least thirty (30) days&rsquo; notice. Downgrades
-            take effect at the next renewal and may require reduction of active employees or modules to fit the
-            selected tier.
+            customers take effect at the next renewal after at least thirty (30) days&rsquo; notice. You may move
+            between {ESSENTIALS} and {GROWTH} at any time; a change of plan applies from the next billing month.
           </p>
           <p>
-            Upgrades (tier, seats, or add-ons) may be applied immediately with pro-rated charges for the remainder
+            Changes to your active employee count need no approval and are reflected in the following month&rsquo;s
+            invoice. Added modules and add-ons may be applied immediately with pro-rated charges for the remainder
             of the current billing period.
           </p>
         </>
@@ -192,24 +200,24 @@ export function getTermsSections(): LegalSection[] {
           <table>
             <thead>
               <tr>
-                <th>Tier</th>
+                <th>Plan</th>
                 <th>Monthly uptime target</th>
                 <th>Support response target (business hours EAT)</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>Starter</td>
+                <td>{ESSENTIALS}</td>
                 <td>99.5%</td>
                 <td>Email — next business day for standard issues</td>
               </tr>
               <tr>
-                <td>Growth</td>
+                <td>{GROWTH}</td>
                 <td>99.9%</td>
                 <td>Priority email/chat — within 8 business hours for critical issues</td>
               </tr>
               <tr>
-                <td>Enterprise</td>
+                <td>{ENTERPRISE}</td>
                 <td>99.95% (or as per signed SLA)</td>
                 <td>Dedicated success manager; custom response times in agreement</td>
               </tr>
@@ -221,9 +229,9 @@ export function getTermsSections(): LegalSection[] {
             and issues caused by Customer configuration or unauthorised changes are excluded from uptime calculations.
           </p>
           <p>
-            Service credits for verified downtime below target may be available for Growth and Enterprise customers
-            as specified in their order form. Starter tier receives good-faith remediation but no financial credits
-            unless required by law.
+            Service credits for verified downtime below target may be available for {GROWTH} and {ENTERPRISE}{' '}
+            customers as specified in their order form. {ESSENTIALS} receives good-faith remediation but no
+            financial credits unless required by law.
           </p>
         </>
       ),
@@ -239,8 +247,8 @@ export function getTermsSections(): LegalSection[] {
             legal or tax advice, or reconciliation of third-party payment rails beyond documented integration behaviour.
           </p>
           <p>
-            Onboarding and implementation for Growth and Enterprise may include configured setup sessions as stated
-            on your order. Documentation and in-app guidance are provided to all tiers.
+            Onboarding and implementation for {GROWTH} and {ENTERPRISE} may include configured setup sessions as
+            stated on your order. Documentation and in-app guidance are provided on all plans.
           </p>
         </>
       ),
