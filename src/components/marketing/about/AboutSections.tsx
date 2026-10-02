@@ -57,7 +57,7 @@ function TrustIconChip({ icon: IconComponent }: { icon: Icon }) {
 
 export function AboutOriginSection() {
   return (
-    <section className="border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-12 sm:py-20 lg:py-24">
+    <section className="border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-16 sm:py-24 lg:py-28">
       <StudioCraftContainer>
         <Reveal>
           <SectionBadge number="01" label={ABOUT_ORIGIN.badge} />
@@ -103,7 +103,7 @@ export function AboutPrinciplesSection() {
   const { principles } = ABOUT_PAGE;
 
   return (
-    <section className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
+    <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <Reveal>
           <SectionBadge number="02" label={principles.badge} />
@@ -144,7 +144,7 @@ export function AboutPrinciplesSection() {
 
 export function AboutTrustSection() {
   return (
-    <section className="border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-16 sm:py-20 lg:py-24">
+    <section className="border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <Reveal>
           <SectionBadge number="03" label={ABOUT_TRUST.badge} />

@@ -118,7 +118,7 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
       className={
         leadSection
           ? 'border-b border-[var(--sc-line)] bg-[var(--sc-paper-2)] pt-4 pb-16 sm:pt-6 sm:pb-20 lg:pb-28'
-          : 'border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-16 sm:py-20 lg:py-28'
+          : 'border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32'
       }
     >
       <StudioCraftContainer>

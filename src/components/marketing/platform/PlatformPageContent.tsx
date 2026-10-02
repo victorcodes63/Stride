@@ -72,7 +72,7 @@ function PlatformAudienceSection() {
   const { audience } = PLATFORM_PAGE;
 
   return (
-    <section className="border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-12 sm:py-20 lg:py-24">
+    <section className="border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-16 sm:py-24 lg:py-28">
       <StudioCraftContainer>
         <SectionBadge number="1" label={audience.badge} />
         <h2 className="max-w-[720px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
@@ -99,7 +99,7 @@ function PlatformAudienceSection() {
 
 function PlatformModulesSection() {
   return (
-    <section className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
+    <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <SectionBadge number="2" label="Core modules" />
         <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
@@ -184,7 +184,7 @@ function PlatformComplianceSection() {
   const { compliance } = PLATFORM_PAGE;
 
   return (
-    <section className="relative overflow-hidden bg-[var(--sc-paper-2)] py-16 sm:py-20 lg:py-24">
+    <section className="relative overflow-hidden bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <SectionBadge number="4" label={compliance.badge} />
         <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
@@ -205,7 +205,7 @@ function PlatformVerticalsSection() {
   const available = INDUSTRY_VERTICALS.filter((v) => v.status === 'available');
 
   return (
-    <section className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-24">
+    <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <SectionBadge number="5" label="Industry verticals" />
         <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
@@ -249,7 +249,7 @@ function PlatformVerticalsSection() {
 
 function PlatformRolloutSection() {
   return (
-    <section className="border-t border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-16 sm:py-20 lg:py-24">
+    <section className="border-t border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <SectionBadge number="6" label="Getting started" />
         <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">

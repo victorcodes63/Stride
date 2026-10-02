@@ -14,7 +14,7 @@ export function MarketingFaq({ items }: { items: readonly FaqItem[] }) {
   const reduceMotion = useReducedMotion();
 
   return (
-    <section id="faq" className="scroll-anchor bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
+    <section id="faq" className="scroll-anchor bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
       <JsonLd data={faqPageJsonLd(items)} />
       <StudioCraftContainer>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,340px)_1fr] lg:gap-20">

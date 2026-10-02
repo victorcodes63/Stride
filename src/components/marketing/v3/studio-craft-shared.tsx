@@ -240,22 +240,17 @@ export function RollLabel({ label }: { label: string }) {
   );
 }
 
+/** Section eyebrow. `number` is kept for call-site compatibility but no longer shown. */
 export function SectionBadge({
-  number,
   label,
 }: {
-  number: string;
+  number?: string;
   label: string;
 }) {
   return (
-    <div className="mb-6 flex items-center gap-3 sm:mb-8">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--sc-coral)]/25 bg-[var(--sc-coral)]/10 text-sm font-medium text-[var(--sc-coral)]">
-        {number}
-      </span>
-      <span className="rounded-full border border-[var(--sc-coral)]/15 bg-[var(--sc-coral)]/[0.06] px-3 py-1 text-[13px] font-medium text-[var(--sc-coral)]">
-        {label}
-      </span>
-    </div>
+    <p className="mb-5 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-coral)] sm:mb-6">
+      {label}
+    </p>
   );
 }
 
@@ -267,7 +262,7 @@ export function StudioCraftContainer({
   className?: string;
 }) {
   return (
-    <div className={`mx-auto w-full min-w-0 max-w-[1440px] px-5 sm:px-8 lg:px-12 ${className}`.trim()}>
+    <div className={`mx-auto w-full min-w-0 max-w-[1280px] px-5 sm:px-8 lg:px-10 ${className}`.trim()}>
       {children}
     </div>
   );

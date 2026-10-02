@@ -3,19 +3,19 @@ import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
 import { MarketingHowSection } from '@/components/marketing/sections/MarketingHowSection';
 import { MarketingPricingSection } from '@/components/marketing/sections/MarketingPricingSection';
 import { HomeComplianceBand } from '@/components/marketing/home/HomeComplianceBand';
-import { HomeConnectedSection } from '@/components/marketing/home/HomeConnectedSection';
+import { HomeHero } from '@/components/marketing/home/HomeHero';
+import { HomeSolutionsTabs } from '@/components/marketing/home/HomeSolutionsTabs';
 import { FAQ_ITEMS } from '@/lib/marketing-config';
-import { StudioCraftHero } from './StudioCraftHero';
 import { StudioCraftIndustriesSection } from './StudioCraftIndustriesSection';
 import { StudioCraftWhySection } from './StudioCraftWhySection';
 
 export function StudioCraftHomePage() {
   return (
     <>
-      <StudioCraftHero />
+      <HomeHero />
+      <HomeSolutionsTabs />
       <StudioCraftWhySection />
       <StudioCraftIndustriesSection />
-      <HomeConnectedSection />
       <HomeComplianceBand />
       <MarketingHowSection />
       <MarketingPricingSection />

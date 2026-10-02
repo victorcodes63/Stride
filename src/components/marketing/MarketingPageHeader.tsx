@@ -44,14 +44,14 @@ export function MarketingPageHeader({
         </MarketingPageHeroTitle>
         {description ? (
           <MarketingPageHeroDescription
-            className={`mt-4 sm:mt-5 ${centered ? 'mx-auto max-w-2xl' : 'max-w-2xl'}`}
+            className={`mt-5 sm:mt-6 ${centered ? 'mx-auto max-w-2xl' : 'max-w-2xl'}`}
           >
             {description}
           </MarketingPageHeroDescription>
         ) : null}
         {visual ? (
           <div
-            className={`mt-8 min-w-0 max-w-full overflow-hidden sm:mt-12 ${centered ? 'mx-auto max-w-4xl' : 'max-w-4xl'}`}
+            className={`mt-8 min-w-0 max-w-full overflow-hidden sm:mt-14 ${centered ? 'mx-auto max-w-4xl' : 'max-w-4xl'}`}
           >
             {visual}
           </div>

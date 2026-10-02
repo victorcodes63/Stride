@@ -76,7 +76,7 @@ export function StudioCraftIndustriesSection() {
   ).filter((vertical): vertical is (typeof INDUSTRY_VERTICALS)[number] => Boolean(vertical));
 
   return (
-    <section className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-28">
+    <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <Reveal>
           <SectionBadge number="02" label={MARKETING_INDUSTRIES_SECTION.badge} />

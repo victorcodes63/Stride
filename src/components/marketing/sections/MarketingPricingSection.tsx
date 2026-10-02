@@ -8,7 +8,7 @@ import { SectionBadge, StudioCraftContainer } from '@/components/marketing/v3/st
 
 export function MarketingPricingSection() {
   return (
-    <section id="pricing" className="scroll-anchor bg-[var(--sc-paper-2)] py-16 sm:py-20 lg:py-28">
+    <section id="pricing" className="scroll-anchor bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <div className="text-center">
           <Reveal className="flex justify-center">

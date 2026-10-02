@@ -9,13 +9,25 @@ import {
   MARKETING_CTAS,
   MARKETING_NAV_LINKS,
   MARKETING_ROUTES,
+  getMarketingLoginUrl,
 } from '@/lib/marketing-config';
 import { MarketingPrimaryLink, MarketingSignInLink, StudioCraftContainer, TextRollLink } from './studio-craft-shared';
 import { studioCraftBrandVars } from './StudioCraftShell';
 
-export function StudioCraftNav() {
+export function StudioCraftNav({ overHero = false }: { overHero?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  /** Light-on-dark only while floating over the homepage's ink hero. */
+  const onDark = overHero && !scrolled && !menuOpen;
 
   useEffect(() => {
     setMounted(true);
@@ -95,35 +107,50 @@ export function StudioCraftNav() {
 
   return (
     <>
-      <nav className="relative z-20" aria-hidden={menuOpen}>
-        <StudioCraftContainer className="p-2 sm:p-3">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center rounded-full bg-white px-3 py-1.5 shadow-[0_8px_32px_rgba(26,23,20,0.06)] sm:px-4 sm:py-2">
+      <nav
+        className={`relative z-20 transition-[background-color,border-color,box-shadow] duration-300 ${
+          onDark
+            ? 'border-b border-transparent bg-transparent'
+            : 'border-b border-[var(--sc-line)] bg-[#FBF8F4]/95 shadow-[0_1px_0_rgba(26,23,20,0.02)] backdrop-blur-md'
+        }`}
+        aria-hidden={menuOpen}
+      >
+        <StudioCraftContainer>
+          <div className="flex h-[var(--nav-h)] items-center justify-between gap-6">
             <Link
               href={MARKETING_ROUTES.home}
-              className="flex shrink-0 items-center justify-self-start"
+              className="flex shrink-0 items-center"
               aria-label="Stride home"
               tabIndex={menuOpen ? -1 : 0}
             >
               <StrideLogo heightClass="h-6 sm:h-7" />
             </Link>
 
-            <nav
-              className="hidden items-center justify-center gap-6 md:flex"
-              aria-label="Primary"
-            >
+            <div className="hidden items-center gap-9 md:flex" role="navigation" aria-label="Primary">
               {MARKETING_NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-[14px] font-medium text-[var(--sc-ink)] transition-colors duration-300 hover:text-[var(--sc-ink-muted)]"
+                  className={`text-[15px] font-medium transition-colors duration-200 ${
+                    onDark
+                      ? 'text-[#FBF8F4]/80 hover:text-[#FBF8F4]'
+                      : 'text-[var(--sc-ink)]/80 hover:text-[var(--sc-ink)]'
+                  }`}
                 >
                   {link.label}
                 </Link>
               ))}
-            </nav>
+            </div>
 
-            <div className="hidden items-center justify-end gap-4 md:flex">
-              <MarketingSignInLink className="px-4 py-2 text-[13px]" />
+            <div className="hidden items-center gap-3 md:flex">
+              <Link
+                href={getMarketingLoginUrl()}
+                className={`px-3 py-2 text-[15px] font-medium transition-colors ${
+                  onDark ? 'text-[#FBF8F4]/85 hover:text-[#FBF8F4]' : 'text-[var(--sc-ink)]/80 hover:text-[var(--sc-ink)]'
+                }`}
+              >
+                {MARKETING_CTAS.signIn}
+              </Link>
               <TextRollLink
                 href={MARKETING_ROUTES.contact}
                 label={MARKETING_CTAS.bookDemo}
@@ -133,7 +160,9 @@ export function StudioCraftNav() {
 
             <button
               type="button"
-              className="col-start-3 flex h-9 w-9 items-center justify-center justify-self-end rounded-full bg-[var(--sc-ink)] text-white md:hidden"
+              className={`flex h-10 w-10 items-center justify-center rounded-full md:hidden ${
+                onDark ? 'bg-white/10 text-white' : 'bg-[var(--sc-ink)] text-white'
+              }`}
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((open) => !open)}

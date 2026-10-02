@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 
 const HERO_SHELL =
-  'marketing-page-hero relative bg-[var(--sc-paper)] pt-6 pb-10 sm:pt-8 sm:pb-12 lg:pt-10 lg:pb-16';
+  'marketing-page-hero relative border-b border-[var(--sc-line)]/70 bg-[var(--sc-paper)] pt-14 pb-16 sm:pt-20 sm:pb-20 lg:pt-24 lg:pb-24';
 
 type MarketingPageHeroProps = {
   children: ReactNode;
@@ -52,7 +52,7 @@ export function MarketingPageHeroTitle({
 }) {
   return (
     <h1
-      className={`text-[clamp(1.875rem,7vw,3.75rem)] font-medium leading-[1.04] tracking-[-0.03em] text-[var(--sc-ink)] ${className}`.trim()}
+      className={`text-[clamp(2.125rem,6.5vw,4rem)] font-medium leading-[1.05] tracking-[-0.035em] text-[var(--sc-ink)] ${className}`.trim()}
     >
       {children}
     </h1>
@@ -68,7 +68,7 @@ export function MarketingPageHeroDescription({
 }) {
   return (
     <p
-      className={`max-w-[540px] text-base leading-relaxed text-[var(--sc-ink-muted)] sm:text-lg ${className}`.trim()}
+      className={`max-w-[600px] text-[17px] leading-[1.65] text-[var(--sc-ink-muted)] sm:text-[19px] ${className}`.trim()}
     >
       {children}
     </p>

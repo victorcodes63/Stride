@@ -16,9 +16,9 @@ export function MarketingShell({ children, navOverlay = false }: MarketingShellP
     <StudioCraftShell>
       <MarketingAnalytics />
       <MarketingStickyScrollFix />
-      <div className="[--nav-h:5.25rem] sm:[--nav-h:5.75rem]">
-        <header className="marketing-fixed-header fixed inset-x-0 top-0 z-[100] pt-[max(0.5rem,env(safe-area-inset-top,0px))] sm:pt-3">
-          <StudioCraftNav />
+      <div className="[--nav-h:4.5rem] sm:[--nav-h:5rem]">
+        <header className="marketing-fixed-header fixed inset-x-0 top-0 z-[100] pt-[env(safe-area-inset-top,0px)]">
+          <StudioCraftNav overHero={navOverlay} />
         </header>
         <main
           className={

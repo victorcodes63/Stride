@@ -55,7 +55,7 @@ function VsBadge({ className = '' }: { className?: string }) {
 
 export function StrideVsAlternativeStrip() {
   return (
-    <section className="bg-[var(--sc-paper)] py-16 sm:py-20 lg:py-24">
+    <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <Reveal>
           <h2 className="text-center font-heading text-[clamp(1.5rem,3.5vw,2.25rem)] font-extrabold tracking-[-0.03em] text-[var(--sc-ink)]">
