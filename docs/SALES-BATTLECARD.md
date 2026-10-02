@@ -7,9 +7,11 @@
 
 ## Positioning (30 seconds)
 
-**Stride** is a Kenya-native HR, payroll, and finance platform with modular vertical packs (fleet, assets, HSE). Unlike global HRIS tools bolted onto spreadsheets, Stride ships **KRA / NSSF / SHIF / Housing Levy**, **M-Pesa disbursements**, and **multi-entity cells** out of the box — sold in clear tiers (Starter / Growth / Enterprise) with honest module entitlements enforced by our control plane.
+**Stride** is a Kenya-native HR, payroll, and finance platform with modular vertical packs (fleet, assets, HSE). Unlike global HRIS tools bolted onto spreadsheets, Stride ships **KRA / NSSF / SHIF / Housing Levy**, **M-Pesa disbursements**, and **multi-entity cells** out of the box — sold on clear plans (Essentials / Growth / Enterprise) priced **per active employee per month**, with honest module entitlements enforced by our control plane.
 
-**Tagline:** *People, pay, and operations — one Stride, priced for how you actually grow.*
+**Tagline:** *People, pay, and operations — one Stride, priced per employee.*
+
+**Opening offer:** the first payroll run is free, in parallel with their current process (teams of 10+).
 
 ---
 
@@ -17,12 +19,12 @@
 
 | They say | You say |
 |----------|---------|
-| "We're fine on Excel." | Payroll errors and statutory filings cost more than Starter. Stride validates PIN/NSSF/bank before every run and keeps an audit trail. |
+| "We're fine on Excel." | One payroll error or late filing costs more than a month of Essentials — KES 350 per employee. Stride validates PIN/NSSF/bank before every run and keeps an audit trail. |
 | "HR is just records." | Leave balances, attendance, ESS mobile, and disciplinary workflows reduce HR inbox load — employees self-serve. |
 | "Finance is separate." | AR/AP, petty cash, and payroll share one employee master — no duplicate employee IDs across systems. |
 
-**Land:** Starter (≤25 staff, foundational + 2 horizontal modules).  
-**Expand:** Growth (multi-entity, 4 horizontal, 1 vertical pack).
+**Land:** Essentials (foundational + 2 horizontal modules) at KES 350 per active employee / month — any team size, no minimum.  
+**Expand:** Growth at KES 550 per active employee / month (multi-entity, 4 horizontal, 1 vertical pack).
 
 ---
 
@@ -43,7 +45,7 @@
 
 - Kenya statutory deductions and filings are first-class.
 - M-Pesa disbursement workflow in-product.
-- KES-native tiers (18K / 55K anchors).
+- KES-native per-employee rates (350 / 550), billed monthly with no minimum and no seat bands.
 - Neon Postgres per cell for data residency preferences.
 
 ---

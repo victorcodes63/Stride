@@ -17,10 +17,8 @@ import {
   normalizeEmployeeSearchPreset,
 } from '@/lib/hr-core-employee';
 import {
-  checkSeatLimitForNewEmployee,
   countBillableEmployees,
   reportSeatUsageToControlPlane,
-  seatLimitExceededPayload,
 } from '@/lib/seat-limit';
 
 export async function GET(request: NextRequest) {
@@ -179,15 +177,6 @@ export async function POST(request: NextRequest) {
         request,
         ctx.organizationId,
       );
-
-      const seatCheck = await checkSeatLimitForNewEmployee(
-        clientId,
-        request,
-        ctx.organizationId,
-      );
-      if (!seatCheck.ok) {
-        return NextResponse.json(seatLimitExceededPayload(seatCheck.check), { status: 403 });
-      }
 
       if (!firstName || !lastName) {
         return NextResponse.json({ error: 'firstName and lastName are required.' }, { status: 400 });

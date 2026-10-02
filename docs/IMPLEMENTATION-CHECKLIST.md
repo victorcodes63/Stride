@@ -4,7 +4,8 @@
 
 - [ ] Plan + module entitlements match contract
 - [ ] Entitlement sync verified
-- [ ] Seat band documented
+- [ ] Per-employee rate on the order form matches `docs/PRICING-SHEET.md`
+- [ ] Opening active-employee count agreed (billing input — no cap to set)
 
 ## Provision
 

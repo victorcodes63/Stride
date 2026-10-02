@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { CaretDown } from '@phosphor-icons/react';
 import type { PricingCompareCell } from '@/lib/marketing-config';
 import { PRICING_COMPARE_GROUPS } from '@/lib/marketing-config';
+import { PRICING_PLANS } from '@/lib/pricing';
 
-const TIER_LABELS = ['Starter', 'Growth', 'Enterprise'] as const;
+const PLAN_LABELS = PRICING_PLANS.map((plan) => plan.name);
 
 const MARK_LABELS: Record<'included' | 'addon' | 'none', string> = {
   included: 'Included',
   addon: 'Available as add-on',
-  none: 'Not in tier',
+  none: 'Not on this plan',
 };
 
 function CompareCell({ cell }: { cell: PricingCompareCell }) {
@@ -72,7 +73,7 @@ function CompareGroup({
                   <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-pub-ink-subtle">
                     Feature
                   </th>
-                  {TIER_LABELS.map((label) => (
+                  {PLAN_LABELS.map((label) => (
                     <th
                       key={label}
                       scope="col"
@@ -90,7 +91,7 @@ function CompareGroup({
                       {row.label}
                     </th>
                     <td className="px-4 py-3 text-center">
-                      <CompareCell cell={row.starter} />
+                      <CompareCell cell={row.essentials} />
                     </td>
                     <td className="px-4 py-3 text-center">
                       <CompareCell cell={row.growth} />
@@ -111,9 +112,9 @@ function CompareGroup({
                 <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
                   {(
                     [
-                      ['Starter', row.starter],
-                      ['Growth', row.growth],
-                      ['Enterprise', row.enterprise],
+                      [PLAN_LABELS[0]!, row.essentials],
+                      [PLAN_LABELS[1]!, row.growth],
+                      [PLAN_LABELS[2]!, row.enterprise],
                     ] as const
                   ).map(([tier, cell]) => (
                     <div key={tier}>
@@ -146,8 +147,8 @@ export function PricingCompareMatrix() {
           Compare features
         </h2>
         <p className="mx-auto mt-3 max-w-[36rem] text-sm leading-relaxed text-pub-ink-muted">
-          Exactly what each tier unlocks by default — horizontal and vertical modules show as add-ons on
-          Starter where that is honest.
+          Exactly what each plan unlocks by default — horizontal and vertical modules show as add-ons on
+          Essentials where that is honest. Plans differ by features, never by team size.
         </p>
         <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-pub-ink-subtle">
           <span>
@@ -157,7 +158,7 @@ export function PricingCompareMatrix() {
             <span className="font-semibold text-pub-ink-muted">➕</span> available as add-on
           </span>
           <span>
-            <span className="font-semibold text-pub-ink-subtle">—</span> not in tier
+            <span className="font-semibold text-pub-ink-subtle">—</span> not on this plan
           </span>
         </p>
       </div>

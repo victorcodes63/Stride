@@ -30,7 +30,7 @@ pick one. Credentials remain a fallback unless `ssoEnforced`.
 - **Credentials** — all tiers.
 - **Microsoft / Google OAuth** — Growth and above.
 - **Enterprise SAML / bring-your-own-IdP, enforced SSO, custom domain** — Enterprise only.
-Company Setup shows Enterprise-only sections in a locked/upgrade state for Starter/Growth.
+Company Setup shows Enterprise-only sections in a locked/upgrade state for Essentials/Growth.
 
 ## Security must-haves
 1. **Domain verification (DNS TXT)** before any domain-based auto-join — otherwise someone could claim

@@ -1,7 +1,7 @@
 /**
  * Domain-specific quick actions for the topbar — primary CTA + secondary items per module.
  *
- * TODO(tier-licensing): Filter domains/actions by DEPLOYMENT_TIER (Starter / Growth / Enterprise).
+ * TODO(tier-licensing): Filter domains/actions by DEPLOYMENT_TIER (Essentials / Growth / Enterprise).
  */
 
 import type { LucideIcon } from 'lucide-react';

@@ -2,9 +2,9 @@
 
 ## Support tiers
 
-| Tier | Channel |
+| Plan | Channel |
 |------|---------|
-| Starter | Email, 2 business days |
+| Essentials | Email, 2 business days |
 | Growth | Priority email + onboarding |
 | Enterprise | Dedicated success + SLA |
 

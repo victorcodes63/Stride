@@ -20,7 +20,7 @@ import {
   computeRateCardBillTotal,
   computeRateCardLineAmount,
 } from '@/lib/outsourcing-client';
-import { resolvePricingBand } from '@/lib/pricing-bands';
+import { monthlyPriceKes, PRICING_CALCULATOR, planExampleLine, getPricingPlan } from '@/lib/pricing';
 
 const R = DEFAULT_KENYA_STATUTORY_RATES;
 
@@ -182,11 +182,26 @@ describe('QA-01 billing golden cases', () => {
   });
 });
 
-describe('QA-01 pricing band resolution', () => {
-  it('maps headcount to standard bands', () => {
-    expect(resolvePricingBand(25).id).toBe('starter');
-    expect(resolvePricingBand(100).id).toBe('growth');
-    expect(resolvePricingBand(300).id).toBe('business');
-    expect(resolvePricingBand(600).id).toBe('enterprise');
+describe('QA-01 per-employee plan pricing', () => {
+  it('bills headcount × rate with no floor', () => {
+    expect(monthlyPriceKes('essentials', 1)).toBe(350);
+    expect(monthlyPriceKes('essentials', 10)).toBe(3_500);
+    expect(monthlyPriceKes('growth', 60)).toBe(33_000);
+    expect(monthlyPriceKes('essentials', 0)).toBe(0);
+  });
+
+  it('quotes Enterprise instead of publishing a rate', () => {
+    expect(getPricingPlan('enterprise').rateKesPerEmployee).toBeNull();
+    expect(monthlyPriceKes('enterprise', 200)).toBeNull();
+  });
+
+  it('derives card example lines from the configured rates', () => {
+    expect(planExampleLine(getPricingPlan('essentials'))).toBe('e.g. 10 staff = KES 3,500 / month');
+    expect(planExampleLine(getPricingPlan('growth'))).toBe('e.g. 60 staff = KES 33,000 / month');
+  });
+
+  it('starts the calculator on a small team and hands 150+ to Enterprise', () => {
+    expect(PRICING_CALCULATOR.defaultEmployees).toBe(10);
+    expect(PRICING_CALCULATOR.enterpriseThreshold).toBe(150);
   });
 });

@@ -6,10 +6,6 @@ export function moduleUpgradeMessage(moduleKey: ModuleKey): string {
   return `${label} is not included on your current Stride plan. Contact Raven Tech Group to upgrade — hello@raventechgroup.com`;
 }
 
-export function seatLimitUpgradeMessage(limit: number): string {
-  return `Your plan includes up to ${limit} employees. Contact Raven Tech Group to add seats — hello@raventechgroup.com`;
-}
-
 export const RAVEN_COMMERCIAL_CONTACT = {
   email: 'hello@raventechgroup.com',
   phone: '+254 700 000 000',

@@ -17,7 +17,10 @@ effectiveModule = entitled ∧ envLicensed ∧ adminEnabled ∧ accountActive
 | `adminEnabled` | Company Setup `moduleAdminFlags` (cookie `hris_module_prefs`) |
 | `accountActive` | `accountStatus` ∉ `{ suspended, churned }` |
 
-Vertical engines (`fleet`, `assets`, `hse`) also require `verticalEnginesAllowed: true` (false on Starter unless add-on).
+Vertical engines (`fleet`, `assets`, `hse`) also require `verticalEnginesAllowed: true` (false on `starter` unless add-on).
+
+Plan ids are unchanged by the per-employee repricing: planId `starter` is the plan sold publicly as
+**Essentials** (see `docs/PRICING-SHEET.md`). The app also accepts `essentials` as a `DEPLOYMENT_TIER` alias.
 
 ## API
 
@@ -86,7 +89,7 @@ If control plane is unreachable:
 
 ## Module buckets
 
-| Bucket | Keys | Starter | Growth |
+| Bucket | Keys | Essentials (`starter`) | Growth |
 |--------|------|---------|--------|
 | Foundational | `core`, `accounts`, HR satellites | Always on | Always on |
 | Horizontal | `procurement`, `legal`, `ats`, … | Max 2 active | Max 4 active |

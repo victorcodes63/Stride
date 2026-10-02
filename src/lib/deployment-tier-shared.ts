@@ -17,6 +17,8 @@ function trimEnv(key: string): string | undefined {
 
 export function parseDeploymentTier(raw: string | undefined): DeploymentTier | null {
   const n = raw?.trim().toLowerCase();
+  // `essentials` is the public name of the `starter` plan — accept both from the control plane.
+  if (n === 'essentials') return 'starter';
   if (n === 'starter' || n === 'growth' || n === 'enterprise') return n;
   return null;
 }
@@ -48,10 +50,11 @@ export function getDeploymentFeatureOverrides(): Record<string, boolean> {
   };
 }
 
+/** Public plan name for a runtime planId — `starter` is sold as Essentials. */
 export function companySetupTierLabel(tier: DeploymentTier = getDeploymentTier()): string {
   switch (tier) {
     case 'starter':
-      return 'Starter';
+      return 'Essentials';
     case 'growth':
       return 'Growth';
     case 'enterprise':

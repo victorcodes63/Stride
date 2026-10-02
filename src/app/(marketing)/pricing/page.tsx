@@ -1,19 +1,32 @@
-import { PRICING_TIERS } from '@/lib/marketing-config';
 import { marketingMetadata } from '@/lib/marketing-metadata';
-import { marketingTierModuleSummary } from '@/lib/marketing-pricing-entitlements';
 import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
 import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
 import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
+import { PricingCalculator } from '@/components/marketing/pricing/PricingCalculator';
 import { PricingCompareMatrix } from '@/components/marketing/pricing/PricingCompareMatrix';
+import { PricingFaq } from '@/components/marketing/pricing/PricingFaq';
+import {
+  PricingFreeRunBand,
+  PricingInternationalBand,
+} from '@/components/marketing/pricing/PricingOfferBands';
+import { PricingPlanCards } from '@/components/marketing/pricing/PricingPlanCards';
 import {
   MarketingOutlineLink,
   MarketingPrimaryLink,
 } from '@/components/marketing/v3/studio-craft-shared';
+import {
+  PRICING_FOOTNOTE,
+  PRICING_INTENTS,
+  contactHref,
+  formatKes,
+  getPricingPlan,
+} from '@/lib/pricing';
+
+const essentialsRate = getPricingPlan('essentials').rateKesPerEmployee ?? 0;
 
 export const metadata = marketingMetadata({
-  title: 'Pricing — Plans for the Stride platform',
-  description:
-    'Size-banded Stride plans in KES (not per-seat). Every plan includes HR & payroll and finance; add plug-in modules and industry packs as you grow.',
+  title: 'Pricing — Stride',
+  description: `Per-employee pricing for HR, payroll and finance in Kenya, from ${formatKes(essentialsRate)} per employee per month. Your first payroll run is free.`,
   path: '/pricing',
 });
 
@@ -23,85 +36,44 @@ export default function PricingPage() {
       <MarketingPageHeader
         breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Pricing', path: '/pricing' }]}
         eyebrow="Pricing"
-        title="Simple tiers. Kenyan shillings."
-        description="Plans for the Stride operations platform — banded by organisation size. HR & payroll and finance on every plan; add plug-ins and industry packs when you need them."
+        title="Pay per employee. Start with a free payroll run."
+        description="HR, payroll and finance on one platform, priced by headcount in Kenyan shillings. We run your first payroll free, alongside your current process, so you can check every figure before you pay."
         align="center"
       />
 
       <MarketingPageBody>
-        <div className="grid gap-5 lg:grid-cols-3">
-          {PRICING_TIERS.map((tier) => (
-            <article
-              key={tier.id}
-              className={`flex flex-col rounded-[20px] border p-5 text-center sm:p-8 ${
-                tier.featured ? 'pub-on-ink border-pub-ink bg-pub-ink text-[#FBF8F4]' : 'border-pub-border bg-white'
-              }`}
-            >
-              {tier.featured ? (
-                <span className="mx-auto mb-4 inline-flex rounded-full bg-[var(--pub-primary)]/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--pub-primary)]">
-                  Most popular
-                </span>
-              ) : null}
-              <p className="font-heading text-sm font-bold uppercase tracking-wide text-[var(--pub-primary)]">
-                {tier.name}
-              </p>
-              <p
-                className={`mt-3 font-heading text-[clamp(1.75rem,8vw,2.25rem)] font-extrabold sm:mt-4 sm:text-4xl ${
-                  tier.featured ? '' : 'text-pub-ink'
-                }`}
-              >
-                {tier.price}
-              </p>
-              <p className={`text-sm ${tier.featured ? 'text-[#9C948A]' : 'text-pub-ink-subtle'}`}>
-                {tier.unit}
-              </p>
-              <p
-                className={`my-6 border-b pb-6 text-sm leading-relaxed ${
-                  tier.featured
-                    ? 'border-white/10 text-[#C9C0B6]'
-                    : 'border-pub-border text-pub-ink-muted'
-                }`}
-              >
-                {tier.description}
-              </p>
-              <ul
-                className={`mx-auto mb-8 flex w-full max-w-[16rem] flex-1 flex-col gap-3 text-left text-sm sm:max-w-[18rem] ${
-                  tier.featured ? 'text-[#D8D2C9]' : 'text-pub-ink-muted'
-                }`}
-              >
-                {marketingTierModuleSummary(tier.id).map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <span className="mt-0.5 shrink-0 text-[var(--pub-primary)]">✓</span>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              {tier.featured ? (
-                <MarketingPrimaryLink
-                  href="/contact"
-                  label={tier.cta}
-                  variant="coral"
-                  showArrow
-                  fullWidth
-                />
-              ) : (
-                <MarketingOutlineLink href="/contact" label={tier.cta} showArrow fullWidth />
-              )}
-            </article>
-          ))}
+        <div className="marketing-cta-stack mb-10 flex flex-col gap-3 sm:mb-12 sm:flex-row sm:justify-center">
+          <MarketingPrimaryLink
+            href={contactHref(PRICING_INTENTS.parallelRun)}
+            label="Get a free payroll run"
+            variant="coral"
+          />
+          <MarketingOutlineLink href={contactHref()} label="Book a demo" />
         </div>
 
-        <p className="mt-10 text-center text-sm text-pub-ink-subtle">
-          All plans include data migration support.
+        <PricingPlanCards />
+
+        <p className="mx-auto mt-10 max-w-[44rem] text-center text-sm text-pub-ink-subtle">
+          {PRICING_FOOTNOTE}
         </p>
 
+        <PricingCalculator />
+      </MarketingPageBody>
+
+      <PricingFreeRunBand />
+
+      <MarketingPageBody className="pt-12 sm:pt-16">
+        <PricingInternationalBand />
+
         <PricingCompareMatrix />
+
+        <PricingFaq />
       </MarketingPageBody>
 
       <MarketingCtaBand
-        title="Not sure which tier fits?"
-        description="Tell us your team size and modules — we will recommend a plan."
-        primary={{ href: '/contact', label: 'Talk to us' }}
+        title="See Stride run your actual payroll."
+        description="Send us your headcount and current setup. We'll do the rest."
+        primary={{ href: contactHref(PRICING_INTENTS.parallelRun), label: 'Get a free payroll run' }}
         variant="coral"
       />
     </>
