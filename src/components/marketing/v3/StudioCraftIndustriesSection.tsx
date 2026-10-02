@@ -125,11 +125,7 @@ function PackCard({
         >
           <IndustryWireframePreview industryId={pack.id as MarketingVerticalScreenshotId} className="h-full" />
         </motion.div>
-        {/* Soft wash so copy always reads over the shot. */}
-        <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[var(--sc-paper-2)] from-[18%] via-[var(--sc-paper-2)]/60 via-[32%] to-transparent to-[50%]"
-          aria-hidden
-        />
+
 
         <div className="relative z-10 flex items-start justify-between gap-4">
           <div>
@@ -167,7 +163,7 @@ function LineupCard() {
     <motion.div
       variants={cardIn}
       transition={{ duration: 0.8, ease: MOTION_EASE }}
-      className="relative flex min-h-[380px] flex-col overflow-hidden rounded-[18px] bg-[var(--sc-coral)] p-7 text-white sm:p-9"
+      className="sc-on-ink relative flex min-h-[380px] flex-col overflow-hidden rounded-[18px] bg-[var(--sc-coral)] p-7 text-white sm:p-9"
     >
       <div className="flex items-center gap-4 text-[14px] font-medium text-white/90">
         <span className="whitespace-nowrap">Industry packs</span>
@@ -201,7 +197,7 @@ function CoreCard() {
     <motion.div
       variants={cardIn}
       transition={{ duration: 0.8, ease: MOTION_EASE }}
-      className="relative flex min-h-[380px] flex-col rounded-[18px] bg-[var(--sc-ink)] p-7 text-white sm:p-9"
+      className="sc-on-ink relative flex min-h-[380px] flex-col rounded-[18px] bg-[var(--sc-ink)] p-7 text-white sm:p-9"
     >
       <h3 className="text-[clamp(1.5rem,2.4vw,2rem)] font-medium leading-tight tracking-[-0.025em]">
         Stride Core <span className="text-white/45">included</span>
