@@ -1,9 +1,8 @@
 'use client';
 
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   motion,
-  useMotionValueEvent,
   useReducedMotion,
   useScroll,
   useSpring,
@@ -203,10 +202,39 @@ export function HomeComplianceProcess() {
   const { scrollYProgress } = useScroll({ target: stepsRef, offset: ['start 55%', 'end 55%'] });
   const rail = useSpring(scrollYProgress, { stiffness: 140, damping: 30 });
 
-  useMotionValueEvent(scrollYProgress, 'change', (value) => {
-    const next = Math.min(STEPS.length - 1, Math.max(0, Math.floor(value * STEPS.length)));
-    setActive((current) => (current === next ? current : next));
-  });
+  // Active step = the visual panel closest to 55% of the viewport. Plain scroll
+  // events, so it stays correct even when animation frames are throttled.
+  const panelRefs = useRef<(HTMLDivElement | null)[]>([]);
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const target = window.innerHeight * 0.55;
+      let best = 0;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      panelRefs.current.forEach((panel, index) => {
+        if (!panel) return;
+        const rect = panel.getBoundingClientRect();
+        const distance = Math.abs(rect.top + rect.height / 2 - target);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = index;
+        }
+      });
+      setActive((current) => (current === best ? current : best));
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.setTimeout(update, 50);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (frame) window.clearTimeout(frame);
+    };
+  }, []);
 
   const step = STEPS[active]!;
 
@@ -299,7 +327,13 @@ export function HomeComplianceProcess() {
           {/* Scrolling visuals; on mobile each carries its own copy. */}
           <div ref={stepsRef} className="space-y-8 lg:space-y-0">
             {STEPS.map((item, index) => (
-              <div key={item.key} className="flex min-h-0 flex-col justify-center lg:min-h-[78vh]">
+              <div
+                key={item.key}
+                ref={(node) => {
+                  panelRefs.current[index] = node;
+                }}
+                className="flex min-h-0 flex-col justify-center lg:min-h-[78vh]"
+              >
                 <div className="mb-6 lg:hidden">
                   <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--sc-coral)]">
                     Step {index + 1} — {item.label}
