@@ -219,10 +219,10 @@ export const MARKETING_BRAND = {
   coral: '#FF5436',
   coralDeep: '#E63E22',
   ink: '#1A1714',
-  inkMuted: '#3D3833',
-  paper: '#FBF8F4',
-  paper2: '#F4EFE8',
-  line: '#E6DED4',
+  inkMuted: '#44403C',
+  paper: '#FFFFFF',
+  paper2: '#F5F5F7',
+  line: '#E7E7EB',
 } as const;
 
 /** Product screenshot for homepage hero showcase — clipped to hero viewport. */

@@ -45,7 +45,7 @@ export function CoreCapabilitiesBand() {
 function VsBadge({ className = '' }: { className?: string }) {
   return (
     <span
-      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--sc-line)] bg-white text-[11px] font-bold uppercase tracking-wide text-[var(--sc-ink-subtle,#8A8076)] shadow-[0_4px_12px_rgba(26,23,20,0.08)] ${className}`.trim()}
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--sc-line)] bg-white text-[11px] font-bold uppercase tracking-wide text-[var(--sc-ink-subtle,#78716C)] shadow-[0_4px_12px_rgba(26,23,20,0.08)] ${className}`.trim()}
       aria-hidden
     >
       vs
@@ -66,13 +66,13 @@ export function StrideVsAlternativeStrip() {
         {/* Mobile — stacked cards with vs between */}
         <div className="mt-12 flex flex-col gap-6 sm:gap-8 lg:hidden">
           <Reveal className="rounded-2xl border border-[var(--sc-line)] bg-[var(--sc-paper-2)] p-6 sm:p-8">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#8A8076)]">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#78716C)]">
               {STRIDE_VS_ALTERNATIVE.alternative.heading}
             </h3>
             <ul className="mt-5 space-y-3">
               {STRIDE_VS_ALTERNATIVE.alternative.items.map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm text-[var(--sc-ink-muted)]">
-                  <X size={16} weight="bold" className="mt-0.5 shrink-0 text-[var(--sc-ink-subtle,#8A8076)]" aria-hidden />
+                  <X size={16} weight="bold" className="mt-0.5 shrink-0 text-[var(--sc-ink-subtle,#78716C)]" aria-hidden />
                   {item}
                 </li>
               ))}
@@ -104,7 +104,7 @@ export function StrideVsAlternativeStrip() {
         {/* Desktop — vs in its own gutter column, aligned with headings */}
         <Reveal delay={0.05} className="mt-12 hidden overflow-hidden rounded-2xl border border-[var(--sc-line)] lg:grid lg:grid-cols-[minmax(0,1fr)_3.75rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
           <div className="col-start-1 row-start-1 border-b border-[var(--sc-line)] bg-[var(--sc-paper-2)] px-8 pb-5 pt-8">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#8A8076)]">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#78716C)]">
               {STRIDE_VS_ALTERNATIVE.alternative.heading}
             </h3>
           </div>
@@ -123,7 +123,7 @@ export function StrideVsAlternativeStrip() {
             <ul className="space-y-3">
               {STRIDE_VS_ALTERNATIVE.alternative.items.map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm text-[var(--sc-ink-muted)]">
-                  <X size={16} weight="bold" className="mt-0.5 shrink-0 text-[var(--sc-ink-subtle,#8A8076)]" aria-hidden />
+                  <X size={16} weight="bold" className="mt-0.5 shrink-0 text-[var(--sc-ink-subtle,#78716C)]" aria-hidden />
                   {item}
                 </li>
               ))}

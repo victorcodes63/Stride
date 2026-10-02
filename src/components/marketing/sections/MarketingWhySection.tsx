@@ -25,7 +25,7 @@ export function MarketingWhySection() {
             <MarketingEyebrow tone="dark">Why Stride</MarketingEyebrow>
           </MarketingReveal>
           <MarketingReveal delay={0.08}>
-            <h2 className="font-heading text-[clamp(2rem,4vw,3.25rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-[#FBF8F4]">
+            <h2 className="font-heading text-[clamp(2rem,4vw,3.25rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-[#FFFFFF]">
               Built for
               <br />
               <span className="text-[var(--pub-primary)]">East Africa.</span>

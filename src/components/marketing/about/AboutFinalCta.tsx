@@ -10,7 +10,7 @@ import {
 
 export function AboutFinalCta() {
   return (
-    <section className="pub-on-ink sc-on-ink relative overflow-hidden bg-[var(--sc-ink)] py-16 text-center text-[#FBF8F4] sm:py-24 lg:py-32">
+    <section className="pub-on-ink sc-on-ink relative overflow-hidden bg-[var(--sc-ink)] py-16 text-center text-[#FFFFFF] sm:py-24 lg:py-32">
       <div
         className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/2"
         style={{
@@ -27,14 +27,14 @@ export function AboutFinalCta() {
           </p>
         </Reveal>
         <Reveal delay={0.06}>
-          <h2 className="!text-[#FBF8F4] text-[clamp(1.875rem,7vw,4rem)] font-medium leading-[1.05] tracking-[-0.02em] sm:leading-[1.02]">
+          <h2 className="!text-[#FFFFFF] text-[clamp(1.875rem,7vw,4rem)] font-medium leading-[1.05] tracking-[-0.02em] sm:leading-[1.02]">
             Ready to
             <br />
             hit your <span className="text-[var(--sc-coral)]">stride?</span>
           </h2>
         </Reveal>
         <Reveal delay={0.12}>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#FBF8F4]/70 sm:mt-5 sm:text-base lg:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#FFFFFF]/70 sm:mt-5 sm:text-base lg:text-lg">
             No setup fee. No lock-in. Local support from day one.
             <span className="hidden sm:inline">
               <br />

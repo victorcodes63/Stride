@@ -22,9 +22,9 @@
   --color-primary-900: #852c1c;
   --color-secondary-50: #f1f1f1;
   --color-secondary-100: #e4e3e3;
-  --color-secondary-200: #d8cdbf;
-  --color-secondary-300: #b8ada0;
-  --color-secondary-400: #8a8076;
+  --color-secondary-200: #D4D4D8;
+  --color-secondary-300: #A8A29E;
+  --color-secondary-400: #78716C;
   --color-secondary-500: #1a1714;
   --color-secondary-600: #181512;
   --color-secondary-700: #151310;
@@ -35,21 +35,21 @@
   --stride-coral-rgb: 255, 84, 54;
   --stride-coral-deep: #e63e22;
   --stride-ink: var(--brand-ink);
-  --stride-paper: #fbf8f4;
+  --stride-paper: #FFFFFF;
   --stride-logo: var(--brand-primary);
 
   --sc-coral: var(--stride-coral);
   --sc-coral-deep: var(--stride-coral-deep);
   --sc-ink: var(--stride-ink);
-  --sc-ink-muted: #3d3833;
-  --sc-ink-subtle: #8a8076;
+  --sc-ink-muted: #44403C;
+  --sc-ink-subtle: #78716C;
   --sc-paper: var(--stride-paper);
-  --sc-paper-2: #f4efe8;
-  --sc-line: #e6ded4;
+  --sc-paper-2: #F5F5F7;
+  --sc-line: #E7E7EB;
   /** Foreground on ink bands — fixed cream; not remapped when html.dark flips --stride-paper */
-  --sc-on-ink-fg: #fbf8f4;
-  --sc-on-ink-fg-muted: rgba(251, 248, 244, 0.7);
-  --sc-on-ink-fg-subtle: rgba(251, 248, 244, 0.65);
+  --sc-on-ink-fg: #FFFFFF;
+  --sc-on-ink-fg-muted: rgba(255, 255, 255, 0.7);
+  --sc-on-ink-fg-subtle: rgba(255, 255, 255, 0.65);
 
   --brand-navy-subtle: var(--sc-paper-2);
   --brand-canvas: var(--stride-paper);
@@ -65,13 +65,13 @@
   --pub-surface: var(--stride-paper);
   --pub-surface-muted: var(--sc-paper-2);
   --pub-border: var(--sc-line);
-  --pub-border-strong: #d8cdbf;
+  --pub-border-strong: #D4D4D8;
   --pub-gradient-start: var(--brand-primary);
   --pub-gradient-mid: #ffe9e4;
   --pub-gradient-end: var(--stride-coral-deep);
 
   --neutral-50: var(--sc-paper-2);
-  --neutral-100: #ede6dc;
+  --neutral-100: #EEEEF1;
   --neutral-200: var(--sc-line);
   --neutral-400: var(--sc-ink-subtle);
   --neutral-500: var(--sc-ink-subtle);

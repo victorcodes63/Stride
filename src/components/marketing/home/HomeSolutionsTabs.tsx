@@ -176,7 +176,7 @@ export function HomeSolutionsTabs() {
                   }}
                   className={`relative min-h-11 flex-1 overflow-hidden whitespace-nowrap rounded-xl px-4 text-[14px] font-semibold transition-colors sm:text-[15px] ${
                     selected
-                      ? 'bg-[var(--sc-ink)] text-[#FBF8F4] shadow-sm'
+                      ? 'bg-[var(--sc-ink)] text-[#FFFFFF] shadow-sm'
                       : 'text-[var(--sc-ink-muted)] hover:bg-white hover:text-[var(--sc-ink)]'
                   }`}
                 >

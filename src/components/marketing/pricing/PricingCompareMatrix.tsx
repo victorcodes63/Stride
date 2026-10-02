@@ -69,7 +69,7 @@ function CompareGroup({
           <div className="marketing-compare-table-wrap hidden overflow-x-auto rounded-xl border border-pub-border bg-white sm:block">
             <table className="w-full min-w-[640px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-pub-border bg-[var(--pub-paper-2,#FBF8F4)]">
+                <tr className="border-b border-pub-border bg-[var(--pub-paper-2,#FFFFFF)]">
                   <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-pub-ink-subtle">
                     Feature
                   </th>

@@ -51,27 +51,27 @@
 
 .bd-demo-copy h1,
 .public-app .bd-demo-panel .bd-demo-copy :where(h1, h2, h3, h4) {
-  color: #fbf8f4 !important;
+  color: #FFFFFF !important;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
 }
 
 /* Right column (incl. success state) — beat studio-craft dark heading override. */
 .public-app .bd-demo-form :where(h1, h2, h3, h4),
 html.dark .public-app .bd-demo-form :where(h1, h2, h3, h4) {
-  color: #fbf8f4 !important;
+  color: #FFFFFF !important;
 }
 
 .public-app .bd-demo-form p,
 html.dark .public-app .bd-demo-form p {
-  color: rgba(251, 248, 244, 0.75);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .bd-demo-copy p {
-  color: rgba(251, 248, 244, 0.82);
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .bd-demo-copy .bd-demo-tagline {
-  color: rgba(251, 248, 244, 0.45);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .bd-demo-steps {
@@ -125,8 +125,8 @@ html.dark .public-app .bd-demo-form p {
 .bd-demo-form input:-webkit-autofill:hover,
 .bd-demo-form input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #2a2520 inset;
-  -webkit-text-fill-color: #fbf8f4;
-  caret-color: #fbf8f4;
+  -webkit-text-fill-color: #FFFFFF;
+  caret-color: #FFFFFF;
   transition: background-color 9999s ease-out 0s;
 }
 
@@ -138,11 +138,11 @@ html.dark .public-app .bd-demo-form p {
  * on the credentials step) stays legible on the dark surface.
  */
 .auth-studio-form {
-  --dash-text-strong: #fbf8f4;
+  --dash-text-strong: #FFFFFF;
 }
 
 .auth-studio-form .dash-auth-title {
-  color: #fbf8f4;
+  color: #FFFFFF;
   font-size: clamp(1.5rem, 3.5vw, 2rem);
   font-weight: 400;
   letter-spacing: -0.02em;
@@ -150,11 +150,11 @@ html.dark .public-app .bd-demo-form p {
 
 .auth-studio-form .dash-auth-label,
 .auth-studio-form .dash-auth-body {
-  color: rgba(251, 248, 244, 0.9);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .auth-studio-form .dash-auth-muted {
-  color: rgba(251, 248, 244, 0.55);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .auth-studio-form .dash-auth-link {
@@ -169,7 +169,7 @@ html.dark .public-app .bd-demo-form p {
   height: 2.75rem;
   border-color: rgba(255, 255, 255, 0.1);
   background-color: rgba(255, 255, 255, 0.06);
-  color: #fbf8f4;
+  color: #FFFFFF;
 }
 
 .auth-studio-form .dash-auth-input::placeholder {
@@ -218,7 +218,7 @@ html.dark .public-app .bd-demo-form p {
 .auth-studio-form .dash-auth-oauth-btn {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
-  color: #fbf8f4;
+  color: #FFFFFF;
 }
 
 .auth-studio-form .dash-auth-oauth-btn:hover {
@@ -231,7 +231,7 @@ html.dark .public-app .bd-demo-form p {
 }
 
 .auth-studio-form .dash-auth-divider-label {
-  color: rgba(251, 248, 244, 0.72);
+  color: rgba(255, 255, 255, 0.72);
   background: var(--sc-ink, #1a1714);
 }
 
@@ -243,7 +243,7 @@ html.dark .public-app .bd-demo-form p {
 
 .auth-studio-form .dash-auth-footer {
   border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(251, 248, 244, 0.55);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -34,7 +34,7 @@ export function IndustriesSectorNav() {
                   className={`text-[10px] font-semibold uppercase tracking-wide ${
                     industry.status === 'available'
                       ? 'text-[var(--sc-coral)]'
-                      : 'text-[var(--sc-ink-subtle,#8A8076)]'
+                      : 'text-[var(--sc-ink-subtle,#78716C)]'
                   }`}
                 >
                   {industry.status === 'available' ? 'Live' : 'Roadmap'}

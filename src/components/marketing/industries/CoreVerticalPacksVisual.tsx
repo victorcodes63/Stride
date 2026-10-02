@@ -170,7 +170,7 @@ function PinnedSequence() {
 
           {/* Synced detail panel */}
           <div className="lg:sticky lg:top-6">
-            <p className="font-mono text-xs text-[var(--sc-ink-subtle,#8A8076)]">
+            <p className="font-mono text-xs text-[var(--sc-ink-subtle,#78716C)]">
               {String(activeIndex + 1).padStart(2, '0')} / {String(PACK_COUNT).padStart(2, '0')}
             </p>
             <div className="mt-3 min-h-[120px]">

@@ -35,7 +35,7 @@ describe('stride-palette RAV-157 locked brand', () => {
   it('exports the locked coral / ink / paper triple', () => {
     expect(STRIDE_LOCKED_BRAND.coral).toBe('#FF5436');
     expect(STRIDE_LOCKED_BRAND.ink).toBe('#1A1714');
-    expect(STRIDE_LOCKED_BRAND.paper).toBe('#FBF8F4');
+    expect(STRIDE_LOCKED_BRAND.paper).toBe('#FFFFFF');
     expect(STRIDE_PALETTE.paper).toBe(STRIDE_LOCKED_BRAND.paper);
   });
 

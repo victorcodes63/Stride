@@ -13,7 +13,7 @@ import {
 export function PricingFreeRunBand() {
   return (
     <section
-      className="pub-on-ink bg-pub-ink px-5 py-12 text-[#FBF8F4] sm:px-8 sm:py-16 lg:px-12 lg:py-20"
+      className="pub-on-ink bg-pub-ink px-5 py-12 text-[#FFFFFF] sm:px-8 sm:py-16 lg:px-12 lg:py-20"
       aria-labelledby="pricing-free-run-heading"
     >
       <div className="mx-auto min-w-0 max-w-[1100px]">
@@ -38,7 +38,7 @@ export function PricingFreeRunBand() {
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--pub-primary)]/20 text-sm font-semibold text-[var(--pub-primary)]">
                 {index + 1}
               </span>
-              <p className="mt-4 font-heading text-base font-bold text-[#FBF8F4]">{step.title}</p>
+              <p className="mt-4 font-heading text-base font-bold text-[#FFFFFF]">{step.title}</p>
               <p className="mt-2 text-[13px] leading-relaxed text-[#C9C0B6]">{step.body}</p>
             </li>
           ))}

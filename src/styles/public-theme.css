@@ -89,20 +89,20 @@
  * Only intentional sc-on-ink / pub-on-ink bands stay dark with cream foreground text.
  */
 html.dark .public-app.studio-craft-marketing {
-  --stride-paper: #fbf8f4;
-  --sc-paper: #fbf8f4;
-  --sc-paper-2: #f4efe8;
-  --sc-line: #e6ded4;
+  --stride-paper: #FFFFFF;
+  --sc-paper: #FFFFFF;
+  --sc-paper-2: #F5F5F7;
+  --sc-line: #E7E7EB;
   --sc-ink: #1a1714;
-  --sc-ink-muted: #3d3833;
-  --sc-ink-subtle: #8a8076;
-  --pub-surface: #fbf8f4;
-  --pub-surface-muted: #f4efe8;
-  --pub-surface-elevated: #fbf8f4;
+  --sc-ink-muted: #44403C;
+  --sc-ink-subtle: #78716C;
+  --pub-surface: #FFFFFF;
+  --pub-surface-muted: #F5F5F7;
+  --pub-surface-elevated: #FFFFFF;
   --pub-ink: #1a1714;
-  --pub-ink-muted: #3d3833;
-  --pub-ink-subtle: #8a8076;
-  --pub-border: #e6ded4;
+  --pub-ink-muted: #44403C;
+  --pub-ink-subtle: #78716C;
+  --pub-border: #E7E7EB;
   color: var(--sc-ink-muted);
 }
 
@@ -748,4 +748,14 @@ html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-pan
 .public-app.studio-craft-marketing .font-sans,
 .public-app.studio-craft-marketing .font-pub {
   font-family: var(--pub-font-display);
+}
+
+/* Homepage capability ticker — two identical rows, so -50% loops seamlessly. */
+@keyframes stride-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }

@@ -35,10 +35,10 @@ function StepItem({ number, text, state }: StepItemProps) {
     <div
       className={`flex items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-medium transition-all duration-300 ${
         active
-          ? 'bg-[#fbf8f4] text-[#1a1714] shadow-[0_12px_40px_rgba(26,23,20,0.18)]'
+          ? 'bg-[#FFFFFF] text-[#1a1714] shadow-[0_12px_40px_rgba(26,23,20,0.18)]'
           : complete
-            ? 'border border-white/15 bg-white/[0.1] text-[#fbf8f4]'
-            : 'border border-white/10 bg-white/[0.05] text-[#fbf8f4]/55'
+            ? 'border border-white/15 bg-white/[0.1] text-[#FFFFFF]'
+            : 'border border-white/10 bg-white/[0.05] text-[#FFFFFF]/55'
       }`}
     >
       <span
@@ -46,8 +46,8 @@ function StepItem({ number, text, state }: StepItemProps) {
           active
             ? 'bg-[var(--sc-coral)] text-white'
             : complete
-              ? 'bg-white/20 text-[#fbf8f4]'
-              : 'bg-white/10 text-[#fbf8f4]/50'
+              ? 'bg-white/20 text-[#FFFFFF]'
+              : 'bg-white/10 text-[#FFFFFF]/50'
         }`}
       >
         {complete ? <Check className="h-3.5 w-3.5" aria-hidden /> : number}
@@ -67,7 +67,7 @@ function SocialButton({ icon, label, href }: SocialButtonProps) {
   return (
     <a
       href={href}
-      className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-[#fbf8f4] transition-all duration-300 hover:border-white/20 hover:bg-white/[0.08]"
+      className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-[#FFFFFF] transition-all duration-300 hover:border-white/20 hover:bg-white/[0.08]"
     >
       {icon}
       {label}
@@ -98,7 +98,7 @@ function InputGroup({
 }: InputGroupProps) {
   return (
     <label className="block space-y-2">
-      <span className="text-[13px] font-medium text-[#fbf8f4]/90">{label}</span>
+      <span className="text-[13px] font-medium text-[#FFFFFF]/90">{label}</span>
       <input
         type={type}
         name={name}
@@ -150,10 +150,10 @@ const STEP_COPY = [
 ] as const;
 
 const fieldClass =
-  'h-11 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 text-[#fbf8f4] focus:outline-none focus:ring-0';
+  'h-11 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 text-[#FFFFFF] focus:outline-none focus:ring-0';
 
 const textareaClass =
-  'w-full resize-none rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[#fbf8f4] placeholder:text-white/30 focus:outline-none focus:ring-0';
+  'w-full resize-none rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[#FFFFFF] placeholder:text-white/30 focus:outline-none focus:ring-0';
 
 function stepState(stepNumber: number, currentStep: number): StepItemProps['state'] {
   if (stepNumber === currentStep) return 'active';
@@ -231,7 +231,7 @@ function MobileProgress({ currentStep }: { currentStep: number }) {
               state === 'active'
                 ? 'bg-[var(--sc-coral)]'
                 : state === 'complete'
-                  ? 'bg-[#fbf8f4]/70'
+                  ? 'bg-[#FFFFFF]/70'
                   : 'bg-white/15'
             }`}
           />
@@ -390,10 +390,10 @@ export function BookDemoPage({
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--sc-coral)]/15 text-[var(--sc-coral)]">
                   <Mail className="h-4 w-4" aria-hidden />
                 </span>
-                <h2 className="text-3xl font-normal tracking-tight text-[#fbf8f4]">
+                <h2 className="text-3xl font-normal tracking-tight text-[#FFFFFF]">
                   Request received
                 </h2>
-                <p className="text-[15px] leading-relaxed text-[#fbf8f4]/75">
+                <p className="text-[15px] leading-relaxed text-[#FFFFFF]/75">
                   Thanks, {firstName}. We will confirm your walkthrough for{' '}
                   {new Date(`${preferredDate}T12:00:00`).toLocaleDateString('en-KE', {
                     weekday: 'long',
@@ -423,28 +423,28 @@ export function BookDemoPage({
                   <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--sc-coral)]">
                     Step {step} of {TOTAL_STEPS}
                   </p>
-                  <h2 className="text-[clamp(1.4rem,4.2vw,2rem)] font-normal leading-tight tracking-tight text-[#fbf8f4]">
+                  <h2 className="text-[clamp(1.4rem,4.2vw,2rem)] font-normal leading-tight tracking-tight text-[#FFFFFF]">
                     {stepMeta.title}
                   </h2>
-                  <p className="text-[13px] leading-relaxed text-[#fbf8f4]/60 sm:text-[14px]">
+                  <p className="text-[13px] leading-relaxed text-[#FFFFFF]/60 sm:text-[14px]">
                     {stepMeta.description}
                   </p>
                 </div>
 
                 {step === 1 ? (
                   <>
-                    <p className="shrink-0 pb-3 text-[13px] text-[#fbf8f4]/55 sm:hidden">
+                    <p className="shrink-0 pb-3 text-[13px] text-[#FFFFFF]/55 sm:hidden">
                       Prefer email?{' '}
                       <a
                         href={`mailto:${MARKETING_SALES_EMAIL}`}
-                        className="font-medium text-[#fbf8f4] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
+                        className="font-medium text-[#FFFFFF] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
                       >
                         Email us
                       </a>
                       {' · '}
                       <a
                         href={`mailto:${MARKETING_SALES_EMAIL}?subject=${encodeURIComponent('Stride sales enquiry')}`}
-                        className="font-medium text-[#fbf8f4] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
+                        className="font-medium text-[#FFFFFF] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
                       >
                         Talk to sales
                       </a>
@@ -520,24 +520,24 @@ export function BookDemoPage({
                             required
                           />
                           <label className="block space-y-2">
-                            <span className="text-[13px] font-medium text-[#fbf8f4]/90">
+                            <span className="text-[13px] font-medium text-[#FFFFFF]/90">
                               What is this about?
                             </span>
                             <StrideSelect
                               surface="public"
                               ariaLabel="Enquiry type"
-                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
+                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#FFFFFF]"
                               value={enquiryType}
                               onChange={setEnquiryType}
                               options={ENQUIRY_TYPE_OPTIONS}
                             />
                           </label>
                           <label className="block space-y-2">
-                            <span className="text-[13px] font-medium text-[#fbf8f4]/90">Team size</span>
+                            <span className="text-[13px] font-medium text-[#FFFFFF]/90">Team size</span>
                             <StrideSelect
                               surface="public"
                               ariaLabel="Team size"
-                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
+                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#FFFFFF]"
                               value={teamSize}
                               onChange={setTeamSize}
                               options={TEAM_SIZE_OPTIONS.map((option) => ({
@@ -585,10 +585,10 @@ export function BookDemoPage({
                                   <Check className="h-3 w-3" strokeWidth={3} />
                                 </span>
                                 <span className="min-w-0 flex-1">
-                                  <span className="block text-[15px] font-medium tracking-tight text-[#fbf8f4]">
+                                  <span className="block text-[15px] font-medium tracking-tight text-[#FFFFFF]">
                                     {mod.name}
                                   </span>
-                                  <span className="mt-0.5 block text-[12px] leading-snug text-[#fbf8f4]/52 line-clamp-2 sm:line-clamp-none sm:leading-relaxed">
+                                  <span className="mt-0.5 block text-[12px] leading-snug text-[#FFFFFF]/52 line-clamp-2 sm:line-clamp-none sm:leading-relaxed">
                                     {mod.description}
                                   </span>
                                 </span>
@@ -620,10 +620,10 @@ export function BookDemoPage({
                                 <Check className="h-3 w-3" strokeWidth={3} />
                               </span>
                               <span className="min-w-0 flex-1">
-                                <span className="block text-[15px] font-medium tracking-tight text-[#fbf8f4]">
+                                <span className="block text-[15px] font-medium tracking-tight text-[#FFFFFF]">
                                   {SOMETHING_ELSE_LABEL}
                                 </span>
-                                <span className="mt-0.5 block text-[12px] leading-snug text-[#fbf8f4]/52 line-clamp-2 sm:line-clamp-none">
+                                <span className="mt-0.5 block text-[12px] leading-snug text-[#FFFFFF]/52 line-clamp-2 sm:line-clamp-none">
                                   Tell us about a module or workflow your business needs.
                                 </span>
                               </span>
@@ -631,7 +631,7 @@ export function BookDemoPage({
 
                             {somethingElse ? (
                               <label className="block space-y-2 pl-1">
-                                <span className="text-[12px] font-medium text-[#fbf8f4]/75">
+                                <span className="text-[12px] font-medium text-[#FFFFFF]/75">
                                   Which module or capability?
                                 </span>
                                 <input
@@ -668,13 +668,13 @@ export function BookDemoPage({
                             min={minDate}
                           />
                           <label className="block space-y-2">
-                            <span className="text-[13px] font-medium text-[#fbf8f4]/90">
+                            <span className="text-[13px] font-medium text-[#FFFFFF]/90">
                               Preferred time (EAT)
                             </span>
                             <StrideSelect
                               surface="public"
                               ariaLabel="Preferred time (EAT)"
-                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#fbf8f4]"
+                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#FFFFFF]"
                               value={preferredTime}
                               onChange={setPreferredTime}
                               options={TIME_OPTIONS.map((option) => ({
@@ -684,7 +684,7 @@ export function BookDemoPage({
                             />
                           </label>
                           <label className="block space-y-2">
-                            <span className="text-[13px] font-medium text-[#fbf8f4]/90">
+                            <span className="text-[13px] font-medium text-[#FFFFFF]/90">
                               Anything else?
                             </span>
                             <textarea
@@ -697,7 +697,7 @@ export function BookDemoPage({
                             />
                           </label>
                           {modules.length > 0 || otherModule ? (
-                            <p className="text-[12px] text-[#fbf8f4]/50">
+                            <p className="text-[12px] text-[#FFFFFF]/50">
                               Modules selected:{' '}
                               {[
                                 ...modules,
@@ -724,7 +724,7 @@ export function BookDemoPage({
                         <button
                           type="button"
                           onClick={goBack}
-                          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/12 text-sm font-medium text-[#fbf8f4] transition hover:bg-white/[0.06] active:scale-[0.99]"
+                          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/12 text-sm font-medium text-[#FFFFFF] transition hover:bg-white/[0.06] active:scale-[0.99]"
                         >
                           <ArrowLeft className="h-4 w-4" aria-hidden />
                           Back
@@ -733,7 +733,7 @@ export function BookDemoPage({
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="inline-flex h-12 flex-[2] items-center justify-center gap-2 rounded-2xl bg-[#fbf8f4] text-[14px] font-semibold text-[#1a1714] transition hover:bg-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                        className="inline-flex h-12 flex-[2] items-center justify-center gap-2 rounded-2xl bg-[#FFFFFF] text-[14px] font-semibold text-[#1a1714] transition hover:bg-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         {submitting ? (
                           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -748,11 +748,11 @@ export function BookDemoPage({
                       </button>
                     </div>
 
-                    <p className="mt-3 hidden text-center text-sm text-[#fbf8f4]/55 lg:block">
+                    <p className="mt-3 hidden text-center text-sm text-[#FFFFFF]/55 lg:block">
                       Already on Stride?{' '}
                       <Link
                         href={getMarketingLoginUrl()}
-                        className="font-medium text-[#fbf8f4] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
+                        className="font-medium text-[#FFFFFF] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
                       >
                         {MARKETING_CTAS.signIn}
                       </Link>

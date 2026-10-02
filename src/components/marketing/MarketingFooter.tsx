@@ -121,7 +121,7 @@ export function MarketingFooter() {
           </div>
         </div>
 
-        <div className="marketing-footer-meta mt-10 border-t border-white/10 pt-8 text-xs text-[#8A8076] max-lg:text-center sm:mt-12">
+        <div className="marketing-footer-meta mt-10 border-t border-white/10 pt-8 text-xs text-[#78716C] max-lg:text-center sm:mt-12">
           <p suppressHydrationWarning>
             © {new Date().getFullYear()} Stride. A Raven Tech Group product.
           </p>

@@ -203,7 +203,7 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
                     animate={{ opacity: isActive ? 1 : 0.4 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <p className="font-mono text-[11px] text-[var(--sc-ink-subtle,#8A8076)]">
+                    <p className="font-mono text-[11px] text-[var(--sc-ink-subtle,#78716C)]">
                       {String(i).padStart(2, '0')} / {String(LAYERS.length - 1).padStart(2, '0')}
                     </p>
                     <h3 className="mt-2 text-2xl font-medium tracking-tight text-[var(--sc-ink)] sm:text-3xl">
@@ -212,7 +212,7 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
                     <p className="mt-3 max-w-md text-base leading-relaxed text-[var(--sc-ink-muted)]">
                       {layer.positioning}
                     </p>
-                    <p className="mt-2 max-w-md text-sm leading-relaxed text-[var(--sc-ink-subtle,#8A8076)]">
+                    <p className="mt-2 max-w-md text-sm leading-relaxed text-[var(--sc-ink-subtle,#78716C)]">
                       {layer.detail}
                     </p>
                     {layer.href && (

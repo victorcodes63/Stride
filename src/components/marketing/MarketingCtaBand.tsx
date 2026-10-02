@@ -30,7 +30,7 @@ export function MarketingCtaBand({
   return (
     <section
       className={`px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20 ${
-        onInk ? 'pub-on-ink bg-pub-ink text-[#FBF8F4]' : 'bg-[var(--pub-primary)] text-white'
+        onInk ? 'pub-on-ink bg-pub-ink text-[#FFFFFF]' : 'bg-[var(--pub-primary)] text-white'
       } ${className}`.trim()}
     >
       <div className="mx-auto max-w-[720px] min-w-0 text-center">

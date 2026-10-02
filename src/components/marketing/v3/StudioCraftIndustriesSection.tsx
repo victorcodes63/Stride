@@ -44,7 +44,7 @@ function IndustryCard({
         <h3 className="text-xl font-medium text-[var(--sc-ink)]">{title}</h3>
         <span
           className={`font-mono text-[10px] font-medium uppercase tracking-[0.08em] ${
-            isAvailable ? 'text-[var(--sc-coral)]' : 'text-[var(--sc-ink-subtle,#8A8076)]'
+            isAvailable ? 'text-[var(--sc-coral)]' : 'text-[var(--sc-ink-subtle,#78716C)]'
           }`}
         >
           {statusLabel}

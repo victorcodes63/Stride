@@ -4,10 +4,10 @@
 
 :root {
   /* Dashboard KPI swatches — warm ink scale (no legacy blue/teal primaries) */
-  --swatch-sky-bg: #f4efe8;
-  --swatch-sky-fg: #3d3833;
-  --swatch-sky-accent: #8a8076;
-  --swatch-sky-border: #e6ded4;
+  --swatch-sky-bg: #F5F5F7;
+  --swatch-sky-fg: #44403C;
+  --swatch-sky-accent: #78716C;
+  --swatch-sky-border: #E7E7EB;
   --swatch-emerald-bg: #dcfce7;
   --swatch-emerald-fg: #15803d;
   --swatch-emerald-accent: #10b981;

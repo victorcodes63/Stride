@@ -34,12 +34,12 @@ export function IndustryDeepDiveSection({ industry, index }: IndustryDeepDiveSec
 
           <div className={mediaRight ? 'order-2 lg:order-1' : 'order-2 lg:order-2'}>
             <Reveal>
-              <p className="font-mono text-[11px] text-[var(--sc-ink-subtle,#8A8076)]">
+              <p className="font-mono text-[11px] text-[var(--sc-ink-subtle,#78716C)]">
                 <span
                   className={
                     industry.status === 'available'
                       ? 'text-[var(--sc-coral)]'
-                      : 'text-[var(--sc-ink-subtle,#8A8076)]'
+                      : 'text-[var(--sc-ink-subtle,#78716C)]'
                   }
                 >
                   {industry.status === 'available' ? 'Live' : 'Roadmap'}
@@ -62,7 +62,7 @@ export function IndustryDeepDiveSection({ industry, index }: IndustryDeepDiveSec
             <Reveal delay={0.1}>
               <div className="mt-6 space-y-5">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#8A8076)]">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#78716C)]">
                     The pain
                   </h3>
                   <p className="mt-2 text-base leading-relaxed text-[var(--sc-ink-muted)]">
@@ -70,7 +70,7 @@ export function IndustryDeepDiveSection({ industry, index }: IndustryDeepDiveSec
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#8A8076)]">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#78716C)]">
                     What Stride runs
                   </h3>
                   <p className="mt-2 text-base leading-relaxed text-[var(--sc-ink-muted)]">
@@ -78,7 +78,7 @@ export function IndustryDeepDiveSection({ industry, index }: IndustryDeepDiveSec
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#8A8076)]">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle,#78716C)]">
                     The opportunity
                   </h3>
                   <p className="mt-2 text-base leading-relaxed text-[var(--sc-ink-muted)]">
@@ -101,7 +101,7 @@ export function IndustryDeepDiveSection({ industry, index }: IndustryDeepDiveSec
                       prefix={stat.prefix}
                     />
                   </p>
-                  <p className="mt-1 text-xs leading-snug text-[var(--sc-ink-subtle,#8A8076)]">
+                  <p className="mt-1 text-xs leading-snug text-[var(--sc-ink-subtle,#78716C)]">
                     {stat.label}
                   </p>
                 </StaggerItem>

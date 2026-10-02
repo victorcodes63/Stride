@@ -77,7 +77,7 @@ export function PricingCalculator() {
                     onClick={() => setPlanId(option.id)}
                     className={`min-h-11 flex-1 rounded-full px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pub-primary)]/30 ${
                       selected
-                        ? 'bg-pub-ink text-[#FBF8F4]'
+                        ? 'bg-pub-ink text-[#FFFFFF]'
                         : 'text-pub-ink-muted hover:text-pub-ink'
                     }`}
                   >

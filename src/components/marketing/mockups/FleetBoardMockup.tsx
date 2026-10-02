@@ -19,7 +19,7 @@ export function FleetBoardMockup({ className = '' }: { className?: string }) {
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-[#E6DED4] bg-[#1A1714] shadow-[0_24px_60px_-24px_rgba(26,23,20,0.35)] ${className}`.trim()}
+      className={`overflow-hidden rounded-xl border border-[#E7E7EB] bg-[#1A1714] shadow-[0_24px_60px_-24px_rgba(26,23,20,0.35)] ${className}`.trim()}
     >
       <div className="flex items-center justify-between border-b border-white/10 px-3 py-2.5 sm:px-4">
         <div>
