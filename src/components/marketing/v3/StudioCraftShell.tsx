@@ -22,7 +22,7 @@ type StudioCraftShellProps = {
 export function StudioCraftShell({ children }: StudioCraftShellProps) {
   return (
     <PublicAppShell
-      className="studio-craft-marketing max-w-[100vw] bg-[var(--sc-paper)] font-[var(--font-inter)] text-[var(--sc-ink-muted)]"
+      className="studio-craft-marketing max-w-[100vw] bg-[var(--sc-paper)] text-[var(--sc-ink-muted)]"
       style={studioCraftBrandVars}
     >
       {children}

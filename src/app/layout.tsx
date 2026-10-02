@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Bricolage_Grotesque, IBM_Plex_Mono, Inter } from 'next/font/google';
+import { Bricolage_Grotesque, IBM_Plex_Mono, Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import '@/styles/stride-palette.css';
 import '@/styles/stride-primitives.css';
 import '@/styles/ess-theme.css';
@@ -15,6 +15,14 @@ const bricolage = Bricolage_Grotesque({
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+  display: 'swap',
+});
+
+/** Marketing site face — scoped to .studio-craft-marketing in public-theme.css. */
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
   display: 'swap',
 });
 
@@ -180,7 +188,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bricolage.variable} ${inter.variable} ${ibmPlexMono.variable}`}
+      className={`${bricolage.variable} ${inter.variable} ${jakarta.variable} ${ibmPlexMono.variable}`}
       style={themeStyle}
       data-table-zebra={publicBrand.dashboardTableZebraStriping ? 'true' : 'false'}
       suppressHydrationWarning

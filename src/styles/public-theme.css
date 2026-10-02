@@ -730,3 +730,22 @@ html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-pan
 html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-panel)) .pub-on-ink {
   color: rgba(240, 239, 233, 0.7);
 }
+
+/*
+ * Marketing typeface — Plus Jakarta Sans for headings and body.
+ * Scoped to the marketing shell so the dashboard and ESS keep Inter/Bricolage.
+ * Overrides Tailwind's font-heading / font-display utilities inside marketing only.
+ */
+.public-app.studio-craft-marketing {
+  --pub-font-display: var(--font-jakarta), var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--pub-font-display);
+  font-feature-settings: 'ss01' 0;
+  letter-spacing: -0.005em;
+}
+
+.public-app.studio-craft-marketing .font-heading,
+.public-app.studio-craft-marketing .font-display,
+.public-app.studio-craft-marketing .font-sans,
+.public-app.studio-craft-marketing .font-pub {
+  font-family: var(--pub-font-display);
+}
