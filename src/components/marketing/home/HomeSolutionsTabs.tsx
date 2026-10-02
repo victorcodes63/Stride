@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion, useInView, useReducedMotion } from 'motion/react';
 import { ArrowRight, Check } from '@phosphor-icons/react';
-import { Reveal } from '@/components/marketing/motion';
+import { MOTION_EASE, Reveal } from '@/components/marketing/motion';
 import { CoreDashboardWireframe } from '@/components/marketing/mockups/CoreDashboardWireframe';
 import {
   IndustryWireframePreview,
@@ -21,8 +22,16 @@ type Solution = {
   body: string;
   points: readonly string[];
   link: { href: string; label: string };
+  /** Coded mock shown until a real screenshot is set below. */
   visual: ReactNode;
+  /**
+   * Real product screenshot. When set, it replaces `visual`. Drop the PNG in
+   * /public/marketing/ and point `src` at it, e.g. '/marketing/solutions-payroll.png'.
+   */
+  screenshot?: { src: string; alt: string };
 };
+
+const AUTO_ADVANCE_MS = 7000;
 
 const SOLUTIONS: readonly Solution[] = [
   {
@@ -97,7 +106,30 @@ const SOLUTIONS: readonly Solution[] = [
 
 export function HomeSolutionsTabs() {
   const [activeId, setActiveId] = useState(SOLUTIONS[0]!.id);
+  const [paused, setPaused] = useState(false);
+  const [userPicked, setUserPicked] = useState(false);
+  const [cycle, setCycle] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(panelRef, { margin: '-20% 0px -20% 0px' });
+  const reduceMotion = useReducedMotion();
   const active = SOLUTIONS.find((solution) => solution.id === activeId) ?? SOLUTIONS[0]!;
+
+  // Auto-advance while the panel is on screen; stops for good once someone picks a tab.
+  const autoplay = !reduceMotion && !userPicked && !paused && inView;
+
+  const advance = useCallback(() => {
+    setActiveId((current) => {
+      const index = SOLUTIONS.findIndex((solution) => solution.id === current);
+      return SOLUTIONS[(index + 1) % SOLUTIONS.length]!.id;
+    });
+    setCycle((value) => value + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!autoplay) return;
+    const timer = window.setTimeout(advance, AUTO_ADVANCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [autoplay, advance, activeId, cycle]);
 
   return (
     <section className="bg-[var(--sc-paper)] py-24 sm:py-28 lg:py-36" aria-labelledby="home-solutions-heading">
@@ -117,7 +149,12 @@ export function HomeSolutionsTabs() {
           </p>
         </Reveal>
 
-        <div className="mt-14 rounded-[28px] bg-[var(--sc-paper-2)] p-3 sm:p-4 lg:mt-16">
+        <div
+          ref={panelRef}
+          className="mt-14 rounded-[28px] bg-[var(--sc-paper-2)] p-3 sm:p-4 lg:mt-16"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
           <div
             role="tablist"
             aria-label="Stride solutions"
@@ -133,14 +170,27 @@ export function HomeSolutionsTabs() {
                   id={`solution-tab-${solution.id}`}
                   aria-selected={selected}
                   aria-controls={`solution-panel-${solution.id}`}
-                  onClick={() => setActiveId(solution.id)}
-                  className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-4 text-[14px] font-semibold transition-colors sm:text-[15px] ${
+                  onClick={() => {
+                    setUserPicked(true);
+                    setActiveId(solution.id);
+                  }}
+                  className={`relative min-h-11 flex-1 overflow-hidden whitespace-nowrap rounded-xl px-4 text-[14px] font-semibold transition-colors sm:text-[15px] ${
                     selected
                       ? 'bg-[var(--sc-ink)] text-[#FBF8F4] shadow-sm'
                       : 'text-[var(--sc-ink-muted)] hover:bg-white hover:text-[var(--sc-ink)]'
                   }`}
                 >
                   {solution.tab}
+                  {selected && autoplay ? (
+                    <motion.span
+                      key={`${solution.id}-${cycle}`}
+                      aria-hidden
+                      className="absolute inset-x-3 bottom-1 h-[2px] origin-left rounded-full bg-[var(--sc-coral)]"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ duration: AUTO_ADVANCE_MS / 1000, ease: 'linear' }}
+                    />
+                  ) : null}
                 </button>
               );
             })}
@@ -152,7 +202,15 @@ export function HomeSolutionsTabs() {
             aria-labelledby={`solution-tab-${active.id}`}
             className="grid items-center gap-10 px-3 pb-6 pt-10 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14 lg:px-10 lg:pb-10 lg:pt-12"
           >
-            <div key={active.id} className="sc-animate-fade-up min-w-0">
+            <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={active.id}
+              className="min-w-0"
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: 0.45, ease: MOTION_EASE }}
+            >
               <h3 className="text-[clamp(1.5rem,2.6vw,2.125rem)] font-medium leading-[1.15] tracking-[-0.02em] text-[var(--sc-ink)]">
                 {active.title}
               </h3>
@@ -176,11 +234,30 @@ export function HomeSolutionsTabs() {
                 {active.link.label}
                 <ArrowRight size={16} weight="bold" className="transition-transform group-hover:translate-x-0.5" aria-hidden />
               </Link>
-            </div>
+            </motion.div>
+            </AnimatePresence>
 
-            <div key={`${active.id}-visual`} className="sc-animate-hero-fade-in h-[320px] min-w-0 sm:h-[400px] lg:h-[440px]">
-              {active.visual}
-            </div>
+            <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={`${active.id}-visual`}
+              className="h-[320px] min-w-0 sm:h-[400px] lg:h-[440px]"
+              initial={reduceMotion ? false : { opacity: 0, x: 24, scale: 0.98 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0, x: -16, scale: 0.99 }}
+              transition={{ duration: 0.55, ease: MOTION_EASE }}
+            >
+              {active.screenshot ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={active.screenshot.src}
+                  alt={active.screenshot.alt}
+                  className="h-full w-full rounded-xl border border-[var(--sc-line)] object-cover object-left-top shadow-[0_24px_60px_-28px_rgba(26,23,20,0.35)]"
+                />
+              ) : (
+                active.visual
+              )}
+            </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </StudioCraftContainer>

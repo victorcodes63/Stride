@@ -6,6 +6,8 @@ import {
   MARKETING_ROUTES,
 } from '@/lib/marketing-config';
 import { PRICING_INTENTS, contactHref, formatKes, getPricingPlan } from '@/lib/pricing';
+import { CountUp } from '@/components/marketing/motion';
+import { HomeHeroShowcase } from '@/components/marketing/home/HomeHeroShowcase';
 import { StrideHeroDashboardMockup } from '@/components/marketing/v3/StrideHeroDashboardMockup';
 import {
   MarketingPrimaryLink,
@@ -16,12 +18,16 @@ import '@/components/marketing/v3/studio-craft-hero.css';
 const essentialsRate = getPricingPlan('essentials').rateKesPerEmployee ?? 0;
 
 /** Facts only — every line here must stay true of the product. */
-const PROOF_POINTS = [
-  { value: formatKes(essentialsRate), label: 'per employee a month, no minimums' },
-  { value: '4', label: 'statutory deductions on every run: PAYE, NSSF, SHIF, Housing Levy' },
+const PROOF_POINTS: readonly { value: string; count?: { to: number; prefix?: string }; label: string }[] = [
+  {
+    value: formatKes(essentialsRate),
+    count: { to: essentialsRate, prefix: 'KES ' },
+    label: 'per employee a month, no minimums',
+  },
+  { value: '4', count: { to: 4 }, label: 'statutory deductions on every run: PAYE, NSSF, SHIF, Housing Levy' },
   { value: 'M-Pesa', label: 'bulk salary payouts, reconciled to payroll' },
   { value: 'KE + UG', label: 'entities run from one account' },
-] as const;
+];
 
 function HeroTitle() {
   const [lead, accentLine] = MARKETING_HERO.titleLines;
@@ -123,26 +129,7 @@ export function HomeHero() {
               <StrideHeroDashboardMockup />
             </div>
             <div className="relative hidden lg:block">
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#12100E] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.75)] ring-1 ring-white/5">
-                <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-4 py-3" aria-hidden>
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-                  <span className="ml-3 truncate font-mono text-[11px] text-white/35">
-                    app.getstride.co.ke/dashboard
-                  </span>
-                </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={src}
-                  alt={alt}
-                  width={width}
-                  height={height}
-                  decoding="async"
-                  fetchPriority="high"
-                  className="block h-auto w-full"
-                />
-              </div>
+              <HomeHeroShowcase screenshot={{ src, alt, width, height }} />
             </div>
           </div>
         </div>
@@ -156,7 +143,11 @@ export function HomeHero() {
               } ${index === 2 ? 'lg:border-l lg:pl-6' : ''}`}
             >
               <dt className="text-[clamp(1.5rem,2.6vw,2rem)] font-medium leading-none tracking-[-0.02em] text-[#FBF8F4]">
-                {point.value}
+                {point.count ? (
+                  <CountUp value={point.count.to} prefix={point.count.prefix} duration={1.6} />
+                ) : (
+                  point.value
+                )}
               </dt>
               <dd className="mt-3 max-w-[16rem] text-[14px] leading-relaxed text-[#FBF8F4]/55">
                 {point.label}
