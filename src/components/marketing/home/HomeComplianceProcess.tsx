@@ -2,7 +2,6 @@
 
 import { useRef, useState, type ReactNode } from 'react';
 import {
-  AnimatePresence,
   motion,
   useMotionValueEvent,
   useReducedMotion,
@@ -266,12 +265,11 @@ export function HomeComplianceProcess() {
                   </ol>
 
                   <div className="mt-12 min-h-[300px]">
-                    <AnimatePresence mode="wait" initial={false}>
+                    {/* Keyed swap with an entrance only: content never waits on an exit animation. */}
                       <motion.div
                         key={step.key}
                         initial={reduceMotion ? false : { opacity: 0, y: 18 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={reduceMotion ? undefined : { opacity: 0, y: -12 }}
                         transition={{ duration: 0.45, ease: MOTION_EASE }}
                       >
                         <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--sc-coral)]">
@@ -292,7 +290,6 @@ export function HomeComplianceProcess() {
                           </span>
                         </div>
                       </motion.div>
-                    </AnimatePresence>
                   </div>
                 </div>
               </div>
