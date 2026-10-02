@@ -13,7 +13,7 @@ export function CoreCapabilitiesBand() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--sc-coral)]">
             {CORE_CAPABILITIES_BAND.eyebrow}
           </p>
-          <h2 className="mt-3 max-w-xl font-heading text-[clamp(1.5rem,3.5vw,2.25rem)] font-extrabold tracking-[-0.03em] text-white">
+          <h2 className="mt-3 max-w-xl font-heading text-[clamp(1.5rem,3.5vw,2.25rem)] font-extrabold tracking-[-0.02em] text-white">
             {CORE_CAPABILITIES_BAND.title}
           </h2>
           <p className="mt-3 max-w-lg text-sm leading-relaxed text-white/65 sm:text-base">
@@ -58,7 +58,7 @@ export function StrideVsAlternativeStrip() {
     <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <Reveal>
-          <h2 className="text-center font-heading text-[clamp(1.5rem,3.5vw,2.25rem)] font-extrabold tracking-[-0.03em] text-[var(--sc-ink)]">
+          <h2 className="text-center font-heading text-[clamp(1.5rem,3.5vw,2.25rem)] font-extrabold tracking-[-0.02em] text-[var(--sc-ink)]">
             {STRIDE_VS_ALTERNATIVE.title}
           </h2>
         </Reveal>

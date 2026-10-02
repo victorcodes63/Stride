@@ -34,7 +34,7 @@ export function MarketingCtaBand({
       } ${className}`.trim()}
     >
       <div className="mx-auto max-w-[720px] min-w-0 text-center">
-        <h2 className="font-heading text-[clamp(1.5rem,6vw,2.5rem)] font-extrabold tracking-[-0.03em] text-inherit sm:tracking-[-1px]">
+        <h2 className="font-heading text-[clamp(1.5rem,6vw,2.5rem)] font-extrabold tracking-[-0.02em] text-inherit sm:tracking-[-1px]">
           {title}
         </h2>
         {description ? (

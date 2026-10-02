@@ -69,7 +69,7 @@ export function IndustriesHero() {
           — {INDUSTRIES_HERO.eyebrow.toUpperCase()}
         </p>
 
-        <h1 className="font-heading text-[clamp(1.875rem,7vw,3.75rem)] font-extrabold tracking-[-0.04em] text-[var(--sc-ink)] sm:tracking-[-1.5px]">
+        <h1 className="font-heading text-[clamp(1.875rem,7vw,3.75rem)] font-extrabold tracking-[-0.025em] text-[var(--sc-ink)] sm:tracking-[-0.025em]">
           {words.map((word, i) => (
             <HeroWord key={`${word}-${i}`} word={word} index={i} />
           ))}

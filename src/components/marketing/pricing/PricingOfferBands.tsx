@@ -20,7 +20,7 @@ export function PricingFreeRunBand() {
         <div className="max-w-[40rem]">
           <h2
             id="pricing-free-run-heading"
-            className="font-heading text-[clamp(1.5rem,6vw,2.5rem)] font-extrabold tracking-[-0.03em]"
+            className="font-heading text-[clamp(1.5rem,6vw,2.5rem)] font-extrabold tracking-[-0.02em]"
           >
             {FREE_PARALLEL_RUN.heading}
           </h2>

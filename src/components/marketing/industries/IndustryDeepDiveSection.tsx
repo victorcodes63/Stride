@@ -50,7 +50,7 @@ export function IndustryDeepDiveSection({ industry, index }: IndustryDeepDiveSec
             <Reveal delay={0.06}>
               <h2
                 id={`industry-${industry.id}-title`}
-                className="mt-3 font-heading text-[clamp(1.5rem,3.5vw,2.25rem)] font-extrabold tracking-[-0.03em] text-[var(--sc-ink)]"
+                className="mt-3 font-heading text-[clamp(1.5rem,3.5vw,2.25rem)] font-extrabold tracking-[-0.02em] text-[var(--sc-ink)]"
               >
                 {industry.name}
               </h2>

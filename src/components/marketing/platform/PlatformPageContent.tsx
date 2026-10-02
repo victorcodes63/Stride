@@ -75,7 +75,7 @@ function PlatformAudienceSection() {
     <section className="border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-16 sm:py-24 lg:py-28">
       <StudioCraftContainer>
         <SectionBadge number="1" label={audience.badge} />
-        <h2 className="max-w-[720px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+        <h2 className="max-w-[720px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
           {audience.title}
         </h2>
         <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
@@ -102,7 +102,7 @@ function PlatformModulesSection() {
     <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <SectionBadge number="2" label="Core modules" />
-        <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+        <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
           Core first. <span className="text-[var(--sc-coral)]">Packs when you need them.</span>
         </h2>
         <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
@@ -153,7 +153,7 @@ function PlatformConnectedSection() {
     <section className="sc-on-ink bg-[var(--sc-ink)] py-16 text-[var(--sc-on-ink-fg-muted)] sm:py-20 lg:py-28">
       <StudioCraftContainer>
         <SectionBadge number="3" label={connected.badge} />
-        <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-on-ink-fg)]">
+        <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-on-ink-fg)]">
           <span className="block text-[var(--sc-on-ink-fg)]">Modules that actually</span>
           <span className="block text-[var(--sc-coral)]">talk to each other.</span>
         </h2>
@@ -187,7 +187,7 @@ function PlatformComplianceSection() {
     <section className="relative overflow-hidden bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <SectionBadge number="4" label={compliance.badge} />
-        <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+        <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
           <span className="block">Compliance is not</span>
           <span className="block text-[var(--sc-coral)]">an add-on.</span>
         </h2>
@@ -208,7 +208,7 @@ function PlatformVerticalsSection() {
     <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <SectionBadge number="5" label="Industry verticals" />
-        <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+        <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
           Same core. <span className="text-[var(--sc-coral)]">Sector depth when you need it.</span>
         </h2>
         <p className="mt-4 max-w-[620px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
@@ -252,7 +252,7 @@ function PlatformRolloutSection() {
     <section className="border-t border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32">
       <StudioCraftContainer>
         <SectionBadge number="6" label="Getting started" />
-        <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+        <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
           Live in <span className="text-[var(--sc-coral)]">days, not months.</span>
         </h2>
 

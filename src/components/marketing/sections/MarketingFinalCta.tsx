@@ -21,7 +21,7 @@ export function MarketingFinalCta() {
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sc-coral)]" aria-hidden />
           Get started
         </p>
-        <h2 className="!text-[#FBF8F4] text-[clamp(1.875rem,7vw,4rem)] font-medium leading-[1.05] tracking-[-0.03em] sm:leading-[1.02]">
+        <h2 className="!text-[#FBF8F4] text-[clamp(1.875rem,7vw,4rem)] font-medium leading-[1.05] tracking-[-0.02em] sm:leading-[1.02]">
           Ready to
           <br />
           hit your <span className="text-[var(--sc-coral)]">stride?</span>

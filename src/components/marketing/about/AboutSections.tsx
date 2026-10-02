@@ -35,13 +35,13 @@ function StatValue({ value }: { value: string }) {
       <CountUp
         value={num}
         suffix={suffix}
-        className="text-[clamp(2rem,4.5vw,3rem)] font-medium leading-none tracking-[-0.03em] text-[var(--sc-coral)]"
+        className="text-[clamp(2rem,4.5vw,3rem)] font-medium leading-none tracking-[-0.02em] text-[var(--sc-coral)]"
       />
     );
   }
 
   return (
-    <span className="text-[clamp(2rem,4.5vw,3rem)] font-medium leading-none tracking-[-0.03em] text-[var(--sc-coral)]">
+    <span className="text-[clamp(2rem,4.5vw,3rem)] font-medium leading-none tracking-[-0.02em] text-[var(--sc-coral)]">
       {value}
     </span>
   );
@@ -64,7 +64,7 @@ export function AboutOriginSection() {
         </Reveal>
 
         <Reveal delay={0.06}>
-          <h2 className="max-w-[720px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+          <h2 className="max-w-[720px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
             {ABOUT_ORIGIN.heading}
           </h2>
         </Reveal>
@@ -109,7 +109,7 @@ export function AboutPrinciplesSection() {
           <SectionBadge number="02" label={principles.badge} />
         </Reveal>
         <Reveal delay={0.06}>
-          <h2 className="max-w-[680px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+          <h2 className="max-w-[680px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
             {principles.title}
           </h2>
         </Reveal>
@@ -150,7 +150,7 @@ export function AboutTrustSection() {
           <SectionBadge number="03" label={ABOUT_TRUST.badge} />
         </Reveal>
         <Reveal delay={0.06}>
-          <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+          <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
             {ABOUT_TRUST.heading}
           </h2>
         </Reveal>

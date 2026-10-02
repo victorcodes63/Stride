@@ -108,7 +108,7 @@ export function HomeSolutionsTabs() {
           </p>
           <h2
             id="home-solutions-heading"
-            className="mt-4 text-[clamp(2rem,4.2vw,3.25rem)] font-medium leading-[1.08] [text-wrap:balance] tracking-[-0.035em] text-[var(--sc-ink)]"
+            className="mt-4 text-[clamp(2rem,4.2vw,3.25rem)] font-medium leading-[1.08] [text-wrap:balance] tracking-[-0.022em] text-[var(--sc-ink)]"
           >
             Everything your operations run on.
           </h2>
@@ -153,7 +153,7 @@ export function HomeSolutionsTabs() {
             className="grid items-center gap-10 px-3 pb-6 pt-10 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14 lg:px-10 lg:pb-10 lg:pt-12"
           >
             <div key={active.id} className="sc-animate-fade-up min-w-0">
-              <h3 className="text-[clamp(1.5rem,2.6vw,2.125rem)] font-medium leading-[1.15] tracking-[-0.03em] text-[var(--sc-ink)]">
+              <h3 className="text-[clamp(1.5rem,2.6vw,2.125rem)] font-medium leading-[1.15] tracking-[-0.02em] text-[var(--sc-ink)]">
                 {active.title}
               </h3>
               <p className="mt-5 text-[16px] leading-[1.7] text-[var(--sc-ink-muted)] sm:text-[17px]">

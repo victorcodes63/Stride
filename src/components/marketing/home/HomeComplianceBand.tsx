@@ -32,7 +32,7 @@ export function HomeComplianceBand() {
           <SectionBadge number="4" label={compliance.badge} />
         </Reveal>
         <Reveal delay={0.06}>
-          <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.06] tracking-[-0.03em] text-[var(--sc-ink)]">
+          <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.06] tracking-[-0.02em] text-[var(--sc-ink)]">
             <span className="block">Compliance is not</span>
             <span className="block text-[var(--sc-coral)]">an add-on.</span>
           </h2>

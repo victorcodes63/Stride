@@ -15,7 +15,7 @@ export function MarketingPricingSection() {
             <SectionBadge number="6" label="Pricing" />
           </Reveal>
           <Reveal delay={0.06}>
-            <h2 className="mx-auto max-w-[640px] text-[clamp(2rem,4.5vw,3.5rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+            <h2 className="mx-auto max-w-[640px] text-[clamp(2rem,4.5vw,3.5rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
               Pay per <span className="text-[var(--sc-coral)]">employee</span>, with no minimum.
             </h2>
           </Reveal>

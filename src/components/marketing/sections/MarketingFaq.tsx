@@ -23,7 +23,7 @@ export function MarketingFaq({ items }: { items: readonly FaqItem[] }) {
               <SectionBadge number="7" label="FAQ" />
             </Reveal>
             <Reveal delay={0.06}>
-              <h2 className="text-[clamp(1.75rem,6vw,3rem)] font-medium tracking-[-0.03em] text-[var(--sc-ink)]">
+              <h2 className="text-[clamp(1.75rem,6vw,3rem)] font-medium tracking-[-0.02em] text-[var(--sc-ink)]">
                 Questions, <span className="text-[var(--sc-coral)]">answered.</span>
               </h2>
             </Reveal>

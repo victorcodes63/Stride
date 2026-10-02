@@ -29,7 +29,7 @@ function HeroTitle() {
   const before = accentLine.endsWith(accent) ? accentLine.slice(0, -accent.length) : accentLine;
 
   return (
-    <h1 className="sc-animate-fade-up text-[clamp(2.5rem,4.9vw,4.25rem)] font-medium leading-[1.03] [text-wrap:balance] tracking-[-0.04em] text-[#FBF8F4]">
+    <h1 className="sc-animate-fade-up text-[clamp(2.5rem,4.9vw,4.25rem)] font-medium leading-[1.03] [text-wrap:balance] tracking-[-0.025em] text-[#FBF8F4]">
       <span className="block">{lead}</span>
       <span className="block">
         {before}
@@ -155,7 +155,7 @@ export function HomeHero() {
                 index >= 2 ? 'border-t border-white/10 lg:border-t-0' : ''
               } ${index === 2 ? 'lg:border-l lg:pl-6' : ''}`}
             >
-              <dt className="text-[clamp(1.5rem,2.6vw,2rem)] font-medium leading-none tracking-[-0.03em] text-[#FBF8F4]">
+              <dt className="text-[clamp(1.5rem,2.6vw,2rem)] font-medium leading-none tracking-[-0.02em] text-[#FBF8F4]">
                 {point.value}
               </dt>
               <dd className="mt-3 max-w-[16rem] text-[14px] leading-relaxed text-[#FBF8F4]/55">

@@ -126,7 +126,7 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--sc-coral)]">
             Platform architecture
           </p>
-          <h2 className="mt-3 max-w-2xl text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+          <h2 className="mt-3 max-w-2xl text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
             {CORE_PACKS_EXPLAINER.title}
           </h2>
         </Reveal>

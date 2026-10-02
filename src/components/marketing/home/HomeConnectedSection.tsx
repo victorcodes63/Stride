@@ -15,7 +15,7 @@ export function HomeConnectedSection() {
           <SectionBadge number="3" label={connected.badge} />
         </Reveal>
         <Reveal delay={0.06}>
-          <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-on-ink-fg)]">
+          <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-on-ink-fg)]">
             <span className="block text-[var(--sc-on-ink-fg)]">Modules that actually</span>
             <span className="block text-[var(--sc-coral)]">talk to each other.</span>
           </h2>

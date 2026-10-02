@@ -82,7 +82,7 @@ export function StudioCraftIndustriesSection() {
           <SectionBadge number="02" label={MARKETING_INDUSTRIES_SECTION.badge} />
         </Reveal>
         <Reveal delay={0.06}>
-          <h2 className="max-w-[640px] text-[clamp(2rem,4.5vw,3.5rem)] font-medium leading-[1.08] tracking-[-0.03em] text-[var(--sc-ink)]">
+          <h2 className="max-w-[640px] text-[clamp(2rem,4.5vw,3.5rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
             Then it gets <span className="text-[var(--sc-coral)]">specific.</span>
           </h2>
         </Reveal>

@@ -21,7 +21,7 @@ export function IndustriesClosingCta({
   return (
     <section className="bg-[var(--sc-coral)] px-5 py-14 text-white sm:px-8 sm:py-16 lg:px-12 lg:py-20">
       <div className="mx-auto max-w-[720px] min-w-0 text-center">
-        <h2 className="font-heading text-[clamp(1.5rem,6vw,2.5rem)] font-extrabold tracking-[-0.03em] text-white">
+        <h2 className="font-heading text-[clamp(1.5rem,6vw,2.5rem)] font-extrabold tracking-[-0.02em] text-white">
           {title}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-white/90 sm:mt-4 sm:text-[15px]">
