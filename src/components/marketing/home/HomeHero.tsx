@@ -75,7 +75,7 @@ export function HomeHero() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--sc-coral)] opacity-60 motion-reduce:animate-none" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--sc-coral)]" />
             </span>
-            Payroll, HR &amp; finance software for businesses in Kenya
+            Payroll, HR &amp; Finance software for businesses in Kenya
           </h1>
 
           <HeroTitle />
