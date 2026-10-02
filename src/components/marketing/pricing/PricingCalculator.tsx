@@ -22,8 +22,23 @@ function clampEmployees(value: number): number {
 }
 
 export function PricingCalculator() {
-  const [employees, setEmployees] = useState(defaultEmployees);
+  const [employees, setEmployees] = useState<number>(defaultEmployees);
+  // The number box keeps its own draft so it can be cleared and retyped; it is clamped on blur.
+  const [draft, setDraft] = useState<string>(String(defaultEmployees));
   const [planId, setPlanId] = useState<PricingPlanId>(defaultPlanId);
+
+  function updateEmployees(value: number) {
+    const next = clampEmployees(value);
+    setEmployees(next);
+    setDraft(String(next));
+  }
+
+  function handleDraftChange(raw: string) {
+    setDraft(raw);
+    if (raw.trim() === '') return;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) setEmployees(clampEmployees(parsed));
+  }
 
   const plan = getPricingPlan(planId);
   const total = monthlyPriceKes(planId, employees) ?? 0;
@@ -89,8 +104,9 @@ export function PricingCalculator() {
                   inputMode="numeric"
                   min={minEmployees}
                   max={maxEmployees}
-                  value={employees}
-                  onChange={(event) => setEmployees(clampEmployees(Number(event.target.value)))}
+                  value={draft}
+                  onChange={(event) => handleDraftChange(event.target.value)}
+                  onBlur={() => updateEmployees(draft.trim() === '' ? employees : Number(draft))}
                   className="h-11 w-24 shrink-0 rounded-xl border border-pub-border bg-white px-3 text-base font-semibold tabular-nums text-pub-ink focus:border-[var(--pub-primary)] focus:outline-none"
                 />
                 <input
@@ -99,7 +115,7 @@ export function PricingCalculator() {
                   max={maxEmployees}
                   step={1}
                   value={employees}
-                  onChange={(event) => setEmployees(clampEmployees(Number(event.target.value)))}
+                  onChange={(event) => updateEmployees(Number(event.target.value))}
                   aria-label="Active employees"
                   className="h-11 min-w-0 flex-1 accent-[var(--pub-primary)]"
                 />
