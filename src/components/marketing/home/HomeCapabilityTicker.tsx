@@ -37,7 +37,7 @@ export function HomeCapabilityTicker() {
   return (
     <section
       aria-label="What Stride handles"
-      className="group relative overflow-hidden border-b border-[var(--sc-line)] bg-white py-6 sm:py-7"
+      className="group relative overflow-hidden bg-white py-7 sm:py-8"
     >
       <div
         className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent sm:w-40"
