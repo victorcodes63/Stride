@@ -1,11 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { MOTION_EASE, Reveal } from '@/components/marketing/motion';
 import { SectionBadge, StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import { JsonLd } from '@/components/marketing/JsonLd';
 import { faqPageJsonLd } from '@/lib/marketing-schema';
+import { MARKETING_ROUTES } from '@/lib/marketing-config';
 
 type FaqItem = { question: string; answer: string };
 
@@ -18,7 +20,8 @@ export function MarketingFaq({ items }: { items: readonly FaqItem[] }) {
       <JsonLd data={faqPageJsonLd(items)} />
       <StudioCraftContainer>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,340px)_1fr] lg:gap-20">
-          <div className="min-w-0">
+          {/* Pinned while the questions scroll past on desktop. */}
+          <div className="min-w-0 lg:sticky lg:top-[calc(var(--nav-h)+3rem)] lg:self-start">
             <Reveal>
               <SectionBadge number="7" label="FAQ" />
             </Reveal>
@@ -31,6 +34,23 @@ export function MarketingFaq({ items }: { items: readonly FaqItem[] }) {
               <p className="mt-4 text-base leading-relaxed text-[var(--sc-ink-muted)]">
                 Straight answers about compliance, modules, and getting started.
               </p>
+            </Reveal>
+            <Reveal delay={0.14}>
+              <div className="mt-10 hidden rounded-2xl border border-[var(--sc-line)] bg-white p-6 lg:block">
+                <p className="text-[15px] font-semibold text-[var(--sc-ink)]">Still have a question?</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-[var(--sc-ink-muted)]">
+                  Talk to the team that builds Stride, here in Nairobi.
+                </p>
+                <Link
+                  href={MARKETING_ROUTES.contact}
+                  className="group mt-4 inline-flex items-center gap-2 text-[14px] font-semibold text-[var(--sc-coral)] transition-colors hover:text-[var(--sc-coral-deep)]"
+                >
+                  Talk to us
+                  <span className="transition-transform group-hover:translate-x-0.5" aria-hidden>
+                    →
+                  </span>
+                </Link>
+              </div>
             </Reveal>
           </div>
 
