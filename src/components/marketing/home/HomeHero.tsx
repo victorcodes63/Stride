@@ -7,7 +7,6 @@ import {
 } from '@/lib/marketing-config';
 import { PRICING_INTENTS, contactHref, formatKes, getPricingPlan } from '@/lib/pricing';
 import { CountUp } from '@/components/marketing/motion';
-import { HomeHeroBackground } from '@/components/marketing/home/HomeHeroBackground';
 import { HomeHeroShowcase } from '@/components/marketing/home/HomeHeroShowcase';
 import { StrideHeroDashboardMockup } from '@/components/marketing/v3/StrideHeroDashboardMockup';
 import {
@@ -51,7 +50,22 @@ export function HomeHero() {
 
   return (
     <section className="relative isolate overflow-hidden bg-[var(--sc-ink)] pt-[var(--nav-h)] text-white">
-      <HomeHeroBackground />
+      {/* Atmosphere: a top light and a faint grid that fades out. */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-[-18rem] -z-10 h-[46rem] w-[72rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.22),rgba(255,84,54,0.06)_55%,transparent)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.06]"
+        aria-hidden
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)',
+          backgroundSize: '64px 64px',
+          maskImage: 'radial-gradient(ellipse 60% 45% at 50% 22%, black 0%, transparent 80%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 60% 45% at 50% 22%, black 0%, transparent 80%)',
+        }}
+      />
 
       <StudioCraftContainer>
         <div className="mx-auto flex max-w-[980px] flex-col items-center pt-14 text-center sm:pt-20 lg:pt-24">
