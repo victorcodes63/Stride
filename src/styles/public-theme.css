@@ -749,13 +749,3 @@ html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-pan
 .public-app.studio-craft-marketing .font-pub {
   font-family: var(--pub-font-display);
 }
-
-/* Homepage capability ticker — two identical rows, so -50% loops seamlessly. */
-@keyframes stride-ticker {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}

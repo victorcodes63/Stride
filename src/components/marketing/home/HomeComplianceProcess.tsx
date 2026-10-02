@@ -7,6 +7,8 @@ import {
   useScroll,
   useSpring,
 } from 'motion/react';
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
+import { Bank, DeviceMobile, FileText, Files, Notebook, UsersThree } from '@phosphor-icons/react';
 import { CountUp, MOTION_EASE } from '@/components/marketing/motion';
 import { SectionBadge, StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import { PLATFORM_PAGE } from '@/lib/marketing-config';
@@ -31,46 +33,18 @@ type Step = {
 
 type IconName = 'users' | 'scale' | 'phone' | 'book' | 'file';
 
-const ICON_PATHS: Record<IconName, ReactNode> = {
-  users: (
-    <>
-      <circle cx="9" cy="8" r="3.2" />
-      <path d="M3 19c.8-3.2 3.2-5 6-5s5.2 1.8 6 5" />
-      <path d="M16 5.2a3 3 0 0 1 0 5.6M18.5 14.4c1.3.8 2.1 2.4 2.5 4.6" />
-    </>
-  ),
-  scale: (
-    <>
-      <path d="M12 4v16M5 20h14M6 8h12" />
-      <path d="M6 8l-3 6a3 3 0 0 0 6 0L6 8zM18 8l-3 6a3 3 0 0 0 6 0l-3-6z" />
-    </>
-  ),
-  phone: (
-    <>
-      <rect x="7" y="3" width="10" height="18" rx="2.5" />
-      <path d="M11 17.5h2" />
-    </>
-  ),
-  book: (
-    <>
-      <path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z" />
-      <path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19M9 7h6M9 10.5h6" />
-    </>
-  ),
-  file: (
-    <>
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-      <path d="M14 3v5h5M9 13h6M9 16.5h4" />
-    </>
-  ),
+/** Phosphor duotone icons, chosen for the job each card represents. */
+const ICONS: Record<IconName, PhosphorIcon> = {
+  users: UsersThree,
+  scale: Bank,
+  phone: DeviceMobile,
+  book: Notebook,
+  file: Files,
 };
 
-function Icon({ name, className = 'h-5 w-5' }: { name: IconName; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      {ICON_PATHS[name]}
-    </svg>
-  );
+function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
+  const Component = ICONS[name];
+  return <Component size={size} weight="duotone" aria-hidden />;
 }
 
 function Check() {
@@ -264,7 +238,7 @@ function FiledVisual() {
         {files.map(([name, detail, tone]) => (
           <div key={name} className="flex items-center gap-3.5 rounded-2xl border border-[var(--sc-line)] p-3.5">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-paper-2)] text-[var(--sc-ink-muted)]">
-              <Icon name="file" className="h-[18px] w-[18px]" />
+              <FileText size={19} weight="duotone" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-semibold text-[var(--sc-ink)]">{name}</p>

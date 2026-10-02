@@ -26,7 +26,7 @@ const PROOF_POINTS: readonly { value: string; count?: { to: number; prefix?: str
   },
   { value: '4', count: { to: 4 }, label: 'statutory deductions on every run: PAYE, NSSF, SHIF, Housing Levy' },
   { value: 'M-Pesa', label: 'bulk salary payouts, reconciled to payroll' },
-  { value: 'KE + UG', label: 'entities run from one account' },
+  { value: '2', count: { to: 2 }, label: 'countries: Kenya and Uganda entities, one account' },
 ];
 
 function HeroTitle() {
@@ -70,12 +70,10 @@ export function HomeHero() {
       <StudioCraftContainer>
         <div className="mx-auto flex max-w-[980px] flex-col items-center pt-14 text-center sm:pt-20 lg:pt-24">
           {/* SEO: the page's single H1 carries the search phrase; the big line below is visual. */}
-          <h1 className="sc-animate-fade-up mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] py-1.5 pl-1.5 pr-4 text-[13px] font-medium text-white/80 backdrop-blur sm:text-[14px]">
-            <span
-              className="rounded-full bg-[var(--sc-coral)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white"
-              aria-hidden
-            >
-              Kenya
+          <h1 className="sc-animate-fade-up mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] py-2 pl-3.5 pr-4 text-[13px] font-medium text-white/80 backdrop-blur sm:text-[14px]">
+            <span className="relative flex h-2 w-2" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--sc-coral)] opacity-60 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--sc-coral)]" />
             </span>
             Payroll, HR &amp; finance software for Kenyan businesses
           </h1>
