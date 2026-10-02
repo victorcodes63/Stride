@@ -59,11 +59,14 @@ export function HomeHeroShowcase({ screenshot }: { screenshot: HeroScreenshot })
 
   return (
     <div ref={ref} className="relative [perspective:1600px]">
+      {/* Entrance lives on this wrapper; scroll-driven lift lives on the frame below. */}
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, translateY: 40 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ duration: 1.1, ease: MOTION_EASE, delay: 0.25 }}
+      >
       <motion.div
         style={{ y, rotateX }}
-        initial={reduceMotion ? false : { opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.1, ease: MOTION_EASE, delay: 0.25 }}
         className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#12100E] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.75)] ring-1 ring-white/5"
       >
         <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-4 py-3" aria-hidden>
@@ -91,6 +94,7 @@ export function HomeHeroShowcase({ screenshot }: { screenshot: HeroScreenshot })
             transition={{ duration: 5.5, ease: 'easeInOut', repeat: Infinity, repeatDelay: 4, delay: 2 }}
           />
         )}
+      </motion.div>
       </motion.div>
 
       {ACTIVITY_CARDS.map((card) => (
