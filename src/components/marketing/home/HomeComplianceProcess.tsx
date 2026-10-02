@@ -29,117 +29,252 @@ type Step = {
 
 /* ---------- visuals ---------- */
 
-function Panel({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
+type IconName = 'users' | 'scale' | 'phone' | 'book' | 'file';
+
+const ICON_PATHS: Record<IconName, ReactNode> = {
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 19c.8-3.2 3.2-5 6-5s5.2 1.8 6 5" />
+      <path d="M16 5.2a3 3 0 0 1 0 5.6M18.5 14.4c1.3.8 2.1 2.4 2.5 4.6" />
+    </>
+  ),
+  scale: (
+    <>
+      <path d="M12 4v16M5 20h14M6 8h12" />
+      <path d="M6 8l-3 6a3 3 0 0 0 6 0L6 8zM18 8l-3 6a3 3 0 0 0 6 0l-3-6z" />
+    </>
+  ),
+  phone: (
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="2.5" />
+      <path d="M11 17.5h2" />
+    </>
+  ),
+  book: (
+    <>
+      <path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z" />
+      <path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19M9 7h6M9 10.5h6" />
+    </>
+  ),
+  file: (
+    <>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5M9 13h6M9 16.5h4" />
+    </>
+  ),
+};
+
+function Icon({ name, className = 'h-5 w-5' }: { name: IconName; className?: string }) {
   return (
-    <div className="sc-on-ink w-full overflow-hidden rounded-[20px] bg-[var(--sc-ink)] p-6 text-white shadow-[0_40px_80px_-40px_rgba(26,23,20,0.55)] sm:p-8">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--sc-coral)]">{eyebrow}</p>
-          <p className="mt-2 text-[20px] font-medium tracking-[-0.02em] text-white">{title}</p>
-        </div>
-        <span className="flex gap-1.5" aria-hidden>
-          <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-          <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--sc-coral)]" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {ICON_PATHS[name]}
+    </svg>
+  );
+}
+
+function Check() {
+  return (
+    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white" aria-hidden>
+      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 8.5l2.5 2.5L12 5.5" />
+      </svg>
+    </span>
+  );
+}
+
+function Pill({ children, tone = 'green' }: { children: ReactNode; tone?: 'green' | 'coral' | 'grey' }) {
+  const toneClass =
+    tone === 'coral'
+      ? 'bg-[var(--sc-coral)]/10 text-[var(--sc-coral-deep)]'
+      : tone === 'grey'
+        ? 'bg-[var(--sc-paper-2)] text-[var(--sc-ink-muted)]'
+        : 'bg-emerald-50 text-emerald-700';
+  return <span className={`rounded-full px-2.5 py-1 text-[12px] font-medium ${toneClass}`}>{children}</span>;
+}
+
+/** Clean light product card: icon tile, title + subtitle, then content. */
+function Card({
+  icon,
+  title,
+  subtitle,
+  aside,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  aside?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="w-full rounded-[20px] border border-[var(--sc-line)] bg-white p-5 shadow-[0_1px_2px_rgba(26,23,20,0.04),0_24px_60px_-28px_rgba(26,23,20,0.22)] sm:p-7">
+      <div className="flex items-center gap-3.5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-coral)]/10 text-[var(--sc-coral)]">
+          <Icon name={icon} />
         </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[16px] font-semibold tracking-[-0.01em] text-[var(--sc-ink)]">{title}</p>
+          <p className="truncate text-[13px] text-[var(--sc-ink-subtle)]">{subtitle}</p>
+        </div>
+        {aside}
       </div>
       <div className="mt-6">{children}</div>
     </div>
   );
 }
 
-function Row({ left, right, tone = 'muted' }: { left: string; right: string; tone?: 'muted' | 'done' | 'coral' }) {
-  const toneClass =
-    tone === 'done'
-      ? 'border-emerald-400/30 text-emerald-300'
-      : tone === 'coral'
-        ? 'border-[var(--sc-coral)]/50 text-[var(--sc-coral)]'
-        : 'border-white/15 text-white/55';
+function CheckRow({ label, pill, tone }: { label: string; pill: string; tone?: 'green' | 'coral' | 'grey' }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-t border-white/[0.07] py-3.5 first:border-t-0">
-      <span className="text-[14px] text-white/80">{left}</span>
-      <span className={`rounded-md border px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] ${toneClass}`}>
-        {right}
-      </span>
+    <div className="flex items-center gap-3 rounded-xl px-1 py-3">
+      <Check />
+      <span className="flex-1 text-[14px] text-[var(--sc-ink)]">{label}</span>
+      <Pill tone={tone}>{pill}</Pill>
     </div>
   );
 }
 
+const AVATAR_TONES = ['#FF5436', '#1A1714', '#78716C', '#E63E22', '#44403C'];
+const AVATAR_INITIALS = ['AN', 'JM', 'FW', 'BO', 'MK'];
+
 function RunVisual() {
   return (
-    <Panel eyebrow="Payroll · September" title={`Pay run · ${TEAM_SIZE} employees`}>
-      <Row left="Employee records" right={`${TEAM_SIZE} active`} tone="done" />
-      <Row left="Leave applied" right="Synced" tone="done" />
-      <Row left="Attendance & overtime" right="Synced" tone="done" />
-      <Row left="Allowances & deductions" right="Synced" tone="done" />
-      <Row left="Run status" right="Approved" tone="coral" />
-    </Panel>
+    <Card icon="users" title="September pay run" subtitle={`${TEAM_SIZE} employees · Head office`} aside={<Pill tone="coral">Approved</Pill>}>
+      <div className="flex items-center justify-between rounded-2xl bg-[var(--sc-paper-2)] px-4 py-3.5">
+        <div className="flex -space-x-2">
+          {AVATAR_INITIALS.map((initials, index) => (
+            <span
+              key={initials}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-semibold text-white ring-2 ring-[var(--sc-paper-2)]"
+              style={{ backgroundColor: AVATAR_TONES[index] }}
+            >
+              {initials}
+            </span>
+          ))}
+          <span className="flex h-8 items-center justify-center rounded-full bg-white px-2.5 text-[11px] font-semibold text-[var(--sc-ink-muted)] ring-2 ring-[var(--sc-paper-2)]">
+            +{TEAM_SIZE - AVATAR_INITIALS.length}
+          </span>
+        </div>
+        <span className="text-[13px] font-medium text-[var(--sc-ink-muted)]">All records active</span>
+      </div>
+      <div className="mt-3 divide-y divide-[var(--sc-line)]/70">
+        <CheckRow label="Leave applied" pill="Synced" />
+        <CheckRow label="Attendance & overtime" pill="Synced" />
+        <CheckRow label="Allowances & deductions" pill="Synced" />
+      </div>
+    </Card>
   );
 }
 
 function StatutoryVisual() {
   return (
-    <Panel eyebrow="Statutory · Kenya" title="Deductions per payslip">
-      {['PAYE', 'NSSF', 'SHIF', 'Housing Levy'].map((item) => (
-        <Row key={item} left={item} right="Calculated" tone="done" />
-      ))}
-      <p className="mt-4 text-[13px] leading-relaxed text-white/45">
-        Kenyan statutory rules applied on every payslip, every run.
-      </p>
-    </Panel>
+    <Card icon="scale" title="Statutory deductions" subtitle="Applied to every payslip" aside={<Pill>4 of 4</Pill>}>
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          ['PAYE', 'KRA income tax'],
+          ['NSSF', 'Pension contribution'],
+          ['SHIF', 'Health insurance'],
+          ['Housing Levy', 'Affordable housing'],
+        ].map(([name, detail]) => (
+          <div key={name} className="rounded-2xl border border-[var(--sc-line)] p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[15px] font-semibold text-[var(--sc-ink)]">{name}</span>
+              <Check />
+            </div>
+            <p className="mt-1.5 text-[12.5px] text-[var(--sc-ink-subtle)]">{detail}</p>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
 function PayoutVisual() {
   const reduceMotion = useReducedMotion();
   return (
-    <Panel eyebrow="Disbursement · M-Pesa" title="Bulk salary batch">
-      <div className="flex items-end justify-between">
-        <p className="text-[44px] font-medium leading-none tracking-[-0.03em]">{TEAM_SIZE}</p>
-        <p className="pb-1 text-[14px] text-white/55">payouts in one batch</p>
+    <Card icon="phone" title="M-Pesa bulk payout" subtitle="Salaries · September" aside={<Pill>Sent</Pill>}>
+      <div className="rounded-2xl bg-[var(--sc-paper-2)] p-5">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[40px] font-semibold leading-none tracking-[-0.03em] text-[var(--sc-ink)]">{TEAM_SIZE}</span>
+          <span className="text-[13px] font-medium text-[var(--sc-ink-muted)]">payouts in one batch</span>
+        </div>
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-white">
+          <motion.div
+            className="h-full rounded-full bg-[var(--sc-coral)]"
+            initial={{ width: reduceMotion ? '100%' : '6%' }}
+            whileInView={{ width: '100%' }}
+            viewport={{ once: false, margin: '-20% 0px' }}
+            transition={{ duration: 2.2, ease: MOTION_EASE }}
+          />
+        </div>
+        <div className="mt-2 flex justify-between text-[12px] text-[var(--sc-ink-subtle)]">
+          <span>Batch submitted</span>
+          <span>{TEAM_SIZE} / {TEAM_SIZE} delivered</span>
+        </div>
       </div>
-      <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/10">
-        <motion.div
-          className="h-full rounded-full bg-[var(--sc-coral)]"
-          initial={{ width: reduceMotion ? '100%' : '8%' }}
-          whileInView={{ width: '100%' }}
-          viewport={{ once: false, margin: '-20% 0px' }}
-          transition={{ duration: 2.2, ease: MOTION_EASE }}
-        />
+      <div className="mt-3">
+        <CheckRow label="Reconciled against payroll" pill="Matched" />
       </div>
-      <div className="mt-5">
-        <Row left="Batch" right="Sent" tone="done" />
-        <Row left="Reconciled to payroll" right="Matched" tone="done" />
-      </div>
-    </Panel>
+    </Card>
   );
 }
 
 function LedgerVisual() {
+  const lines: [string, 'Dr' | 'Cr'][] = [
+    ['Salaries & wages', 'Dr'],
+    ['PAYE payable', 'Cr'],
+    ['NSSF payable', 'Cr'],
+    ['SHIF payable', 'Cr'],
+    ['Housing Levy payable', 'Cr'],
+    ['Net pay clearing', 'Cr'],
+  ];
   return (
-    <Panel eyebrow="Finance · General ledger" title="Journal posted automatically">
-      {[
-        ['Dr  Salaries & wages', 'Posted'],
-        ['Cr  PAYE payable', 'Posted'],
-        ['Cr  NSSF payable', 'Posted'],
-        ['Cr  SHIF payable', 'Posted'],
-        ['Cr  Housing Levy payable', 'Posted'],
-        ['Cr  Net pay clearing', 'Posted'],
-      ].map(([left, right]) => (
-        <Row key={left} left={left!} right={right!} tone="done" />
-      ))}
-    </Panel>
+    <Card icon="book" title="Payroll journal" subtitle="General ledger · auto-posted" aside={<Pill>Posted</Pill>}>
+      <div className="overflow-hidden rounded-2xl border border-[var(--sc-line)]">
+        <div className="grid grid-cols-[1fr_auto] bg-[var(--sc-paper-2)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--sc-ink-subtle)]">
+          <span>Account</span>
+          <span>Entry</span>
+        </div>
+        {lines.map(([account, side]) => (
+          <div key={account} className="grid grid-cols-[1fr_auto] items-center border-t border-[var(--sc-line)]/70 px-4 py-3">
+            <span className={`text-[14px] text-[var(--sc-ink)] ${side === 'Cr' ? 'pl-4' : ''}`}>{account}</span>
+            <span
+              className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                side === 'Dr' ? 'bg-[var(--sc-ink)] text-white' : 'bg-[var(--sc-paper-2)] text-[var(--sc-ink-muted)]'
+              }`}
+            >
+              {side}
+            </span>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
 function FiledVisual() {
+  const files: [string, string, 'green' | 'coral'][] = [
+    ['Payslips', `${TEAM_SIZE} sent to self-service`, 'green'],
+    ['PAYE return', 'Exported for iTax', 'coral'],
+    ['Statutory schedules', 'NSSF · SHIF · Housing Levy', 'green'],
+  ];
   return (
-    <Panel eyebrow="Outputs · Ready to file" title="Payslips and returns">
-      <Row left="Payslips issued to ESS" right={`${TEAM_SIZE} sent`} tone="done" />
-      <Row left="PAYE return" right="iTax-ready" tone="coral" />
-      <Row left="Statutory schedules" right="Exported" tone="done" />
-      <Row left="Audit trail" right="Complete" tone="done" />
-    </Panel>
+    <Card icon="file" title="Ready to file" subtitle="September outputs" aside={<Pill>Complete</Pill>}>
+      <div className="space-y-2.5">
+        {files.map(([name, detail, tone]) => (
+          <div key={name} className="flex items-center gap-3.5 rounded-2xl border border-[var(--sc-line)] p-3.5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-paper-2)] text-[var(--sc-ink-muted)]">
+              <Icon name="file" className="h-[18px] w-[18px]" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold text-[var(--sc-ink)]">{name}</p>
+              <p className="truncate text-[12.5px] text-[var(--sc-ink-subtle)]">{detail}</p>
+            </div>
+            <Pill tone={tone}>{tone === 'coral' ? 'iTax-ready' : 'Done'}</Pill>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

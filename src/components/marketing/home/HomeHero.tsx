@@ -35,13 +35,13 @@ function HeroTitle() {
   const before = accentLine.endsWith(accent) ? accentLine.slice(0, -accent.length) : accentLine;
 
   return (
-    <h1 className="sc-animate-fade-up text-[clamp(2.75rem,7.4vw,6.25rem)] font-medium leading-[0.98] [text-wrap:balance] tracking-[-0.025em] text-[#FFFFFF]">
+    <p className="sc-animate-fade-up text-[clamp(2.75rem,7.4vw,6.25rem)] font-medium leading-[0.98] [text-wrap:balance] tracking-[-0.025em] text-[#FFFFFF]">
       <span className="block">{lead}</span>
       <span className="block">
         {before}
         <span className="text-[var(--sc-coral)]">{accent}</span>
       </span>
-    </h1>
+    </p>
   );
 }
 
@@ -69,12 +69,16 @@ export function HomeHero() {
 
       <StudioCraftContainer>
         <div className="mx-auto flex max-w-[980px] flex-col items-center pt-14 text-center sm:pt-20 lg:pt-24">
-          <p className="sc-animate-fade-up mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] py-1.5 pl-1.5 pr-4 text-[13px] font-medium text-white/75 backdrop-blur">
-            <span className="rounded-full bg-[var(--sc-coral)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white">
+          {/* SEO: the page's single H1 carries the search phrase; the big line below is visual. */}
+          <h1 className="sc-animate-fade-up mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] py-1.5 pl-1.5 pr-4 text-[13px] font-medium text-white/80 backdrop-blur sm:text-[14px]">
+            <span
+              className="rounded-full bg-[var(--sc-coral)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white"
+              aria-hidden
+            >
               Kenya
             </span>
-            Built in Nairobi for East African business
-          </p>
+            Payroll, HR &amp; finance software for Kenyan businesses
+          </h1>
 
           <HeroTitle />
 
