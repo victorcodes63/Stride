@@ -29,7 +29,7 @@ function HeroTitle() {
   const before = accentLine.endsWith(accent) ? accentLine.slice(0, -accent.length) : accentLine;
 
   return (
-    <h1 className="sc-animate-fade-up text-[clamp(2.5rem,6.2vw,4.5rem)] font-medium leading-[1.02] tracking-[-0.04em] text-[#FBF8F4]">
+    <h1 className="sc-animate-fade-up text-[clamp(2.5rem,4.9vw,4.25rem)] font-medium leading-[1.03] [text-wrap:balance] tracking-[-0.04em] text-[#FBF8F4]">
       <span className="block">{lead}</span>
       <span className="block">
         {before}

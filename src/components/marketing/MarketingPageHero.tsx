@@ -52,7 +52,7 @@ export function MarketingPageHeroTitle({
 }) {
   return (
     <h1
-      className={`text-[clamp(2.125rem,6.5vw,4rem)] font-medium leading-[1.05] tracking-[-0.035em] text-[var(--sc-ink)] ${className}`.trim()}
+      className={`text-[clamp(2.125rem,6.5vw,4rem)] font-medium leading-[1.05] tracking-[-0.035em] [text-wrap:balance] text-[var(--sc-ink)] ${className}`.trim()}
     >
       {children}
     </h1>

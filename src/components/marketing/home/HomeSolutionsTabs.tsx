@@ -108,7 +108,7 @@ export function HomeSolutionsTabs() {
           </p>
           <h2
             id="home-solutions-heading"
-            className="mt-4 text-[clamp(2rem,4.2vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.035em] text-[var(--sc-ink)]"
+            className="mt-4 text-[clamp(2rem,4.2vw,3.25rem)] font-medium leading-[1.08] [text-wrap:balance] tracking-[-0.035em] text-[var(--sc-ink)]"
           >
             Everything your operations run on.
           </h2>
