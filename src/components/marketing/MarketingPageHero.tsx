@@ -35,9 +35,8 @@ export function MarketingPageHeroEyebrow({
 }) {
   return (
     <p
-      className={`inline-flex items-center gap-2 rounded-full border border-[var(--sc-coral)]/15 bg-[var(--sc-coral)]/[0.06] px-3 py-1 text-[13px] font-medium uppercase tracking-[0.12em] text-[var(--sc-coral)] ${className}`.trim()}
+      className={`text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-coral)] ${className}`.trim()}
     >
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sc-coral)]" aria-hidden />
       {children}
     </p>
   );
