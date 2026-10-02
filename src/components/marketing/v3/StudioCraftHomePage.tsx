@@ -2,7 +2,7 @@ import { AboutFinalCta } from '@/components/marketing/about/AboutFinalCta';
 import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
 import { MarketingHowSection } from '@/components/marketing/sections/MarketingHowSection';
 import { MarketingPricingSection } from '@/components/marketing/sections/MarketingPricingSection';
-import { HomeComplianceBand } from '@/components/marketing/home/HomeComplianceBand';
+import { HomeComplianceProcess } from '@/components/marketing/home/HomeComplianceProcess';
 import { HomeCapabilityTicker } from '@/components/marketing/home/HomeCapabilityTicker';
 import { HomeHero } from '@/components/marketing/home/HomeHero';
 import { HomeScrollStatement } from '@/components/marketing/home/HomeScrollStatement';
@@ -20,7 +20,7 @@ export function StudioCraftHomePage() {
       <HomeScrollStatement />
       <StudioCraftWhySection />
       <StudioCraftIndustriesSection />
-      <HomeComplianceBand />
+      <HomeComplianceProcess />
       <MarketingHowSection />
       <MarketingPricingSection />
       <MarketingFaq items={FAQ_ITEMS} />
