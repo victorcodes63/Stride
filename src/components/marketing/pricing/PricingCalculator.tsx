@@ -107,7 +107,7 @@ export function PricingCalculator() {
                   value={draft}
                   onChange={(event) => handleDraftChange(event.target.value)}
                   onBlur={() => updateEmployees(draft.trim() === '' ? employees : Number(draft))}
-                  className="h-11 w-24 shrink-0 rounded-xl border border-pub-border bg-white px-3 text-base font-semibold tabular-nums text-pub-ink focus:border-[var(--pub-primary)] focus:outline-none"
+                  className="h-11 w-24 shrink-0 rounded-xl border border-pub-border bg-white px-3 text-base font-semibold text-pub-ink focus:border-[var(--pub-primary)] focus:outline-none"
                 />
                 <input
                   type="range"
@@ -131,7 +131,7 @@ export function PricingCalculator() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-pub-ink-subtle">
               {plan.name}
             </p>
-            <p className="mt-2 font-heading text-[clamp(1.5rem,7vw,2rem)] font-extrabold leading-tight tracking-[-0.02em] tabular-nums text-pub-ink">
+            <p className="mt-2 font-heading text-[clamp(1.5rem,7vw,2rem)] font-extrabold leading-tight tracking-[-0.02em] text-pub-ink">
               {formatKes(total)}
             </p>
             <p className="text-sm text-pub-ink-muted">per month</p>
