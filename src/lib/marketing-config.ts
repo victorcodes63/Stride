@@ -225,19 +225,23 @@ export const MARKETING_BRAND = {
   line: '#E7E7EB',
 } as const;
 
-/** Product screenshot for homepage hero showcase — clipped to hero viewport. */
+/**
+ * Product screenshot for the homepage hero showcase — clipped to hero viewport.
+ * To swap in a new capture: export at 2880×1800 (light mode, demo tenant, no money amounts),
+ * save it in /public/images/ and update src/width/height here. /platform uses its own entry below.
+ */
 export const MARKETING_DASHBOARD_HERO = {
   src: '/images/dashboard_home.png',
-  width: 2984,
-  height: 1792,
+  width: 2880,
+  height: 1800,
   alt: 'Stride People & workforce module — HR, employees, leave, and payroll home',
 } as const;
 
 /** Statutory compliance screenshot for “Why we built it”. */
 export const MARKETING_STATUTORY_SCREENSHOT = {
   src: '/images/payroll_screenshot.png',
-  width: 3230,
-  height: 1944,
+  width: 2880,
+  height: 1800,
   alt: 'Stride statutory compliance — PAYE, NSSF, SHIF and Housing Levy in one Kenya payroll view',
 } as const;
 

@@ -4,10 +4,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import {
-  CoreDashboardWireframePreview,
-  IndustryWireframePreview,
-} from '@/components/marketing/mockups/IndustryWireframePreview';
+import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { ProductOverviewSlice } from '@/components/marketing/product/ProductSlices';
 import { Reveal } from '@/components/marketing/motion/Reveal';
 import { PlatformSectionHead } from '@/components/marketing/platform/PlatformSectionHead';
 import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
@@ -98,7 +96,7 @@ function useActiveLayer(count: number) {
 
 function LayerVisual({ layer }: { layer: Layer }) {
   if (layer.isCore) {
-    return <CoreDashboardWireframePreview className="h-full w-full" />;
+    return <ProductOverviewSlice fill className="h-full w-full" />;
   }
   return (
     <IndustryWireframePreview

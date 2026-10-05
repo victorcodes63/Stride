@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { type DashboardModuleDomain } from '@/lib/dashboard-module-domains';
-import { useDashboardModuleOrder } from '@/contexts/dashboard-module-order';
+import { useOptionalDashboardModuleOrder } from '@/contexts/dashboard-module-order';
 import type { OverviewAttentionItem, OverviewDomainSnapshot } from '@/lib/dashboard-overview-personalization';
 import { OverviewWidgetHeader } from '@/components/dashboard/overview/OverviewWidgetHeader';
 import { domainReadinessDotClass } from '@/lib/dashboard-nav-readiness';
@@ -12,6 +12,8 @@ import { domainReadinessDotClass } from '@/lib/dashboard-nav-readiness';
 type OverviewModuleCommandCenterProps = {
   attentionByDomain: Partial<Record<string, OverviewAttentionItem[]>>;
   domainSnapshots: OverviewDomainSnapshot[];
+  /** Domains to show when rendered outside DashboardModuleOrderProvider (marketing previews). */
+  domains?: DashboardModuleDomain[];
 };
 
 function ModuleRow({
@@ -71,8 +73,10 @@ function ModuleRow({
 export function OverviewModuleCommandCenter({
   attentionByDomain,
   domainSnapshots,
+  domains,
 }: OverviewModuleCommandCenterProps) {
-  const { visibleDomains } = useDashboardModuleOrder();
+  const moduleOrder = useOptionalDashboardModuleOrder();
+  const visibleDomains = useMemo(() => domains ?? moduleOrder?.visibleDomains ?? [], [domains, moduleOrder]);
   const snapshotByDomain = Object.fromEntries(domainSnapshots.map((s) => [s.domainId, s.lines]));
 
   const sortedDomains = useMemo(() => {

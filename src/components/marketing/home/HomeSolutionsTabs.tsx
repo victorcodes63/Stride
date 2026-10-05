@@ -5,12 +5,11 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'motion/react';
 import { ArrowRight, Check } from '@phosphor-icons/react';
 import { MOTION_EASE, Reveal } from '@/components/marketing/motion';
-import { CoreDashboardWireframe } from '@/components/marketing/mockups/CoreDashboardWireframe';
 import {
   IndustryWireframePreview,
   MarketingScreenshotFrame,
 } from '@/components/marketing/mockups/IndustryWireframePreview';
-import { PlatformModulesWireframe } from '@/components/marketing/mockups/PlatformModulesWireframe';
+import { ProductBusinessPulseSlice, ProductOverviewSlice } from '@/components/marketing/product/ProductSlices';
 import { StatutoryWireframe } from '@/components/marketing/mockups/StatutoryWireframe';
 import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import { MARKETING_ROUTES } from '@/lib/marketing-config';
@@ -22,7 +21,7 @@ type Solution = {
   body: string;
   points: readonly string[];
   link: { href: string; label: string };
-  /** Coded mock shown until a real screenshot is set below. */
+  /** Product preview: real dashboard components with demo data, or a coded mock until one exists. */
   visual: ReactNode;
   /**
    * Real product screenshot. When set, it replaces `visual`. Drop the PNG in
@@ -45,11 +44,7 @@ const SOLUTIONS: readonly Solution[] = [
       'Payslips and P9s generated on every run',
     ],
     link: { href: MARKETING_ROUTES.platform, label: 'Explore HR & Payroll' },
-    visual: (
-      <MarketingScreenshotFrame moduleLabel="HR & Payroll" screenTitle="People overview" path="/dashboard">
-        <CoreDashboardWireframe />
-      </MarketingScreenshotFrame>
-    ),
+    visual: <ProductOverviewSlice domains={['hr-payroll']} fill />,
   },
   {
     id: 'compliance',
@@ -83,11 +78,7 @@ const SOLUTIONS: readonly Solution[] = [
       'Multi-entity across Kenya and Uganda',
     ],
     link: { href: MARKETING_ROUTES.platform, label: 'View all modules' },
-    visual: (
-      <MarketingScreenshotFrame moduleLabel="Stride Core" screenTitle="Platform overview" path="/dashboard">
-        <PlatformModulesWireframe />
-      </MarketingScreenshotFrame>
-    ),
+    visual: <ProductBusinessPulseSlice withKpis fill />,
   },
   {
     id: 'industries',

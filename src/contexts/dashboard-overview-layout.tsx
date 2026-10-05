@@ -189,6 +189,11 @@ export function DashboardOverviewLayoutProvider({
   );
 }
 
+/** Like {@link useDashboardOverviewLayout}, but returns null outside the provider (e.g. marketing previews). */
+export function useOptionalDashboardOverviewLayout(): DashboardOverviewLayoutContextValue | null {
+  return useContext(DashboardOverviewLayoutContext);
+}
+
 export function useDashboardOverviewLayout(): DashboardOverviewLayoutContextValue {
   const context = useContext(DashboardOverviewLayoutContext);
   if (!context) {

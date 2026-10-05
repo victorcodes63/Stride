@@ -749,3 +749,25 @@ html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-pan
 .public-app.studio-craft-marketing .font-pub {
   font-family: var(--pub-font-display);
 }
+
+/**
+ * Real dashboard components rendered inside marketing pages (ProductFrame).
+ * Restores the product's own typography and heading colours, which the marketing
+ * heading rules would otherwise override (including inside dark sc-on-ink bands).
+ */
+.public-app .stride-product-frame {
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: var(--dash-text);
+  text-align: left;
+}
+
+.public-app.studio-craft-marketing .stride-product-frame :where(h1, h2, h3, h4, h5, h6),
+.public-app.studio-craft-marketing .sc-on-ink .stride-product-frame :where(h1, h2, h3, h4, h5, h6),
+.public-app.studio-craft-marketing .pub-on-ink .stride-product-frame :where(h1, h2, h3, h4, h5, h6) {
+  color: var(--dash-text-strong);
+  font-family: inherit;
+  letter-spacing: normal;
+}

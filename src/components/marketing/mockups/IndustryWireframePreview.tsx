@@ -8,7 +8,6 @@ import {
   type MarketingVerticalScreenshotId,
 } from '@/lib/marketing-config';
 import { ConstructionWireframe } from './ConstructionWireframe';
-import { CoreDashboardWireframe } from './CoreDashboardWireframe';
 import { EnergyWireframe } from './EnergyWireframe';
 import { FleetBoardWireframe } from './FleetBoardWireframe';
 import { HealthcareWireframe } from './HealthcareWireframe';
@@ -98,19 +97,6 @@ export function MarketingScreenshotFrame({
         </div>
       </WireframeShell>
     </div>
-  );
-}
-
-export function CoreDashboardWireframePreview({ className = '' }: { className?: string }) {
-  return (
-    <MarketingScreenshotFrame
-      moduleLabel="Stride Core"
-      screenTitle="Operations overview"
-      path="/dashboard"
-      className={className}
-    >
-      <CoreDashboardWireframe className="h-full p-2" />
-    </MarketingScreenshotFrame>
   );
 }
 

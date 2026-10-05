@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { OverviewPinButton } from '@/components/dashboard/overview/OverviewPinButton';
-import { useDashboardOverviewLayout } from '@/contexts/dashboard-overview-layout';
+import { useOptionalDashboardOverviewLayout } from '@/contexts/dashboard-overview-layout';
 import type { OverviewWidgetId } from '@/lib/dashboard-overview-layout';
 
 type Props = {
@@ -13,7 +13,8 @@ type Props = {
 };
 
 export function OverviewWidgetHeader({ widgetId, title, description, trailing }: Props) {
-  const { isWidgetPinned, toggleWidgetPin } = useDashboardOverviewLayout();
+  // Optional so the widget can render outside the dashboard (marketing product previews); no pin there.
+  const layout = useOptionalDashboardOverviewLayout();
 
   return (
     <div className="dashboard-panel-header group/pin-target flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
@@ -25,11 +26,13 @@ export function OverviewWidgetHeader({ widgetId, title, description, trailing }:
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {trailing}
-        <OverviewPinButton
-          isPinned={isWidgetPinned(widgetId)}
-          label={title}
-          onToggle={() => void toggleWidgetPin(widgetId)}
-        />
+        {layout ? (
+          <OverviewPinButton
+            isPinned={layout.isWidgetPinned(widgetId)}
+            label={title}
+            onToggle={() => void layout.toggleWidgetPin(widgetId)}
+          />
+        ) : null}
       </div>
     </div>
   );
