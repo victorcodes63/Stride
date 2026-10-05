@@ -1,298 +1,291 @@
-import { ComplianceBento } from '@/components/marketing/home/ComplianceBento';
 import Link from 'next/link';
-import {
-  MarketingPageHero,
-  MarketingPageHeroDescription,
-  MarketingPageHeroEyebrow,
-  MarketingPageHeroTitle,
-} from '@/components/marketing/MarketingPageHero';
-import { PlatformModulesShowcase } from '@/components/marketing/platform/PlatformModulesShowcase';
+import { AboutFinalCta } from '@/components/marketing/about/AboutFinalCta';
+import { HomeCapabilityTicker } from '@/components/marketing/home/HomeCapabilityTicker';
+import { HomeComplianceProcess } from '@/components/marketing/home/HomeComplianceProcess';
+import { HomeHeroShowcase } from '@/components/marketing/home/HomeHeroShowcase';
+import { MarketingModuleBadge } from '@/components/marketing/MarketingModuleBadge';
+import { CountUp, Reveal, Stagger, StaggerItem } from '@/components/marketing/motion';
 import { PlatformArchitectureSection } from '@/components/marketing/platform/PlatformArchitectureSection';
+import { PlatformAudienceCards } from '@/components/marketing/platform/PlatformAudienceCards';
+import { PlatformModuleExplorer } from '@/components/marketing/platform/PlatformModuleExplorer';
 import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
-import { MarketingFinalCta } from '@/components/marketing/sections/MarketingFinalCta';
+import { StrideHeroDashboardMockup } from '@/components/marketing/v3/StrideHeroDashboardMockup';
 import {
-  MarketingOutlineLink,
   MarketingPrimaryLink,
   SectionBadge,
   StudioCraftContainer,
-  TextRollLink,
 } from '@/components/marketing/v3/studio-craft-shared';
 import {
   HOW_IT_WORKS_STEPS,
   INDUSTRY_VERTICALS,
   MARKETING_CTAS,
+  MARKETING_PLATFORM_MODULES_SCREENSHOT,
   MARKETING_ROUTES,
-  PLATFORM_AUDIENCE,
   PLATFORM_FAQ,
   PLATFORM_MODULES,
   PLATFORM_PAGE,
   PLATFORM_WORKFLOWS,
-  MARKETING_HERO,
 } from '@/lib/marketing-config';
+import '@/components/marketing/v3/studio-craft-hero.css';
+
+/** Facts only — derived from the module and pack registries so they stay true. */
+const PROOF_POINTS: readonly { count: number; label: string }[] = [
+  { count: PLATFORM_MODULES.length, label: 'product areas on one login' },
+  { count: 2, label: 'included on every plan: HR & Payroll and Finance' },
+  { count: INDUSTRY_VERTICALS.filter((v) => v.status === 'available').length, label: 'industry packs on the same core' },
+  { count: 1, label: 'employee record shared by every module' },
+];
+
+/* ---------------- Hero ---------------- */
 
 function PlatformHero() {
   const { hero } = PLATFORM_PAGE;
+  const { src, width, height, alt } = MARKETING_PLATFORM_MODULES_SCREENSHOT;
 
   return (
-    <MarketingPageHero>
-      <div className="grid min-w-0 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
-        <div className="min-w-0">
-          <MarketingPageHeroEyebrow className="mb-5">{hero.eyebrow}</MarketingPageHeroEyebrow>
-          <MarketingPageHeroTitle>
+    <section className="relative isolate overflow-hidden bg-[var(--sc-ink)] pt-[var(--nav-h)] text-white">
+      {/* Same atmosphere as the homepage hero: coral top glow and a faint grid. */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-[-18rem] -z-10 h-[46rem] w-[72rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.22),rgba(255,84,54,0.06)_55%,transparent)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.06]"
+        aria-hidden
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)',
+          backgroundSize: '64px 64px',
+          maskImage: 'radial-gradient(ellipse 60% 45% at 50% 22%, black 0%, transparent 80%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 60% 45% at 50% 22%, black 0%, transparent 80%)',
+        }}
+      />
+
+      <StudioCraftContainer>
+        <div className="mx-auto flex max-w-[980px] flex-col items-center pt-14 text-center sm:pt-20 lg:pt-24">
+          {/* SEO: the page's single H1 carries the search phrase. */}
+          <h1 className="sc-animate-fade-up mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] py-2 pl-3.5 pr-4 text-[13px] font-medium text-white/80 backdrop-blur sm:text-[14px]">
+            <span className="relative flex h-2 w-2" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--sc-coral)] opacity-60 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--sc-coral)]" />
+            </span>
+            The Stride platform: HR, Payroll, Finance &amp; industry modules
+          </h1>
+
+          <p className="sc-animate-fade-up text-[clamp(2.5rem,6.4vw,5.5rem)] font-medium leading-[1] tracking-[-0.025em] text-white [text-wrap:balance]">
             <span className="block">{hero.titleLines[0]}</span>
             <span className="block text-[var(--sc-coral)]">{hero.titleLines[1]}</span>
-          </MarketingPageHeroTitle>
-          <MarketingPageHeroDescription className="mt-6">{hero.description}</MarketingPageHeroDescription>
-          <ul className="mt-8 space-y-3">
-            {hero.highlights.map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[var(--sc-ink-muted)]">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sc-coral)]" aria-hidden />
-                {item}
-              </li>
-            ))}
-          </ul>
-          <div className="marketing-cta-stack mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap">
-            <TextRollLink href={MARKETING_ROUTES.contact} label={MARKETING_CTAS.bookDemo} variant="coral" />
-            <MarketingOutlineLink href={MARKETING_ROUTES.pricing} label="View pricing" />
-          </div>
-          <p className="mt-6 text-[12px] leading-relaxed text-[var(--sc-ink-muted)] sm:mt-8 sm:text-[13px]">
-            {MARKETING_HERO.trustBadge} · {MARKETING_HERO.trustTags}
           </p>
+
+          <p
+            className="sc-animate-fade-up mt-8 max-w-[640px] text-[17px] leading-[1.7] text-white/65 sm:text-[19px]"
+            style={{ animationDelay: '120ms' }}
+          >
+            {hero.description}
+          </p>
+
+          <div
+            className="sc-animate-fade-up mt-10 flex flex-col items-center gap-3 sm:flex-row sm:gap-6"
+            style={{ animationDelay: '220ms' }}
+          >
+            <MarketingPrimaryLink href={MARKETING_ROUTES.contact} label={MARKETING_CTAS.bookDemo} variant="coral" showArrow />
+            <Link
+              href={MARKETING_ROUTES.pricing}
+              className="group inline-flex min-h-11 items-center gap-2 px-2 text-[15px] font-semibold text-white transition-colors hover:text-[var(--sc-coral)]"
+            >
+              View pricing
+              <span className="transition-transform group-hover:translate-x-0.5" aria-hidden>
+                →
+              </span>
+            </Link>
+          </div>
         </div>
 
-        <div className="min-w-0">
-          <PlatformModulesShowcase />
+        <div className="mt-16 sm:mt-20 lg:mt-24">
+          <div className="md:hidden">
+            <StrideHeroDashboardMockup />
+          </div>
+          <div className="hidden md:block">
+            <HomeHeroShowcase screenshot={{ src, alt, width, height }} />
+          </div>
         </div>
-      </div>
-    </MarketingPageHero>
+
+        <dl className="mt-20 grid grid-cols-2 border-t border-white/10 lg:mt-24 lg:grid-cols-4">
+          {PROOF_POINTS.map((point, index) => (
+            <div
+              key={point.label}
+              className={`py-8 pr-6 sm:py-10 ${index % 2 === 1 ? 'border-l border-white/10 pl-6' : ''} ${
+                index >= 2 ? 'border-t border-white/10 lg:border-t-0' : ''
+              } ${index === 2 ? 'lg:border-l lg:pl-6' : ''}`}
+            >
+              <dt className="text-[clamp(1.5rem,2.6vw,2rem)] font-medium leading-none tracking-[-0.03em] text-white">
+                <CountUp value={point.count} duration={1.4} />
+              </dt>
+              <dd className="mt-3 max-w-[16rem] text-[14px] leading-relaxed text-white/50">{point.label}</dd>
+            </div>
+          ))}
+        </dl>
+      </StudioCraftContainer>
+    </section>
   );
 }
+
+/* ---------------- Who it's for ---------------- */
 
 function PlatformAudienceSection() {
   const { audience } = PLATFORM_PAGE;
-
   return (
-    <section className="border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-16 sm:py-24 lg:py-28">
+    <section className="bg-white py-24 sm:py-28 lg:py-36" aria-labelledby="platform-audience-heading">
       <StudioCraftContainer>
-        <SectionBadge number="1" label={audience.badge} />
-        <h2 className="max-w-[720px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
-          {audience.title}
-        </h2>
-        <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
-          {audience.body}
-        </p>
-        <div className="mt-12 grid gap-5 md:grid-cols-3">
-          {PLATFORM_AUDIENCE.map((segment) => (
-            <article
-              key={segment.title}
-              className="rounded-2xl border border-[var(--sc-line)] bg-[var(--sc-paper)] p-6"
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-end lg:gap-16">
+          <Reveal>
+            <SectionBadge label={audience.badge} />
+            <h2
+              id="platform-audience-heading"
+              className="max-w-[760px] text-[clamp(2.25rem,5vw,4rem)] font-medium leading-[1.04] tracking-[-0.03em] text-[var(--sc-ink)] [text-wrap:balance]"
             >
-              <h3 className="text-lg font-medium tracking-tight text-[var(--sc-ink)]">{segment.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--sc-ink-muted)]">{segment.body}</p>
-            </article>
-          ))}
+              Built for teams that have <span className="text-[var(--sc-coral)]">outgrown spreadsheets.</span>
+            </h2>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <p className="text-[16px] leading-[1.7] text-[var(--sc-ink-muted)]">{audience.body}</p>
+          </Reveal>
         </div>
+        <PlatformAudienceCards />
       </StudioCraftContainer>
     </section>
   );
 }
 
-function PlatformModulesSection() {
-  return (
-    <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
-      <StudioCraftContainer>
-        <SectionBadge number="2" label="Core modules" />
-        <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
-          Core first. <span className="text-[var(--sc-coral)]">Packs when you need them.</span>
-        </h2>
-        <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
-          Sign up with HR & Payroll and Finance — your two included modules — then switch on legal,
-          admin, procurement or projects. Industry packs like logistics sit on the same data layer.
-        </p>
-
-        <div className="mt-12 space-y-5">
-          {PLATFORM_MODULES.map((mod) => (
-            <article
-              key={mod.num}
-              className="grid gap-5 rounded-2xl border border-[var(--sc-line)] bg-[var(--sc-paper-2)] p-5 sm:gap-6 sm:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10"
-            >
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--sc-coral)]">
-                  {mod.num} — {mod.name}
-                </p>
-                <h3 className="mt-2 text-xl font-medium tracking-tight text-[var(--sc-ink)] sm:text-2xl">
-                  {mod.headline}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--sc-ink-muted)] sm:text-[15px]">
-                  {mod.description}
-                </p>
-              </div>
-              <ul className="grid min-w-0 gap-2.5 sm:grid-cols-1">
-                {mod.features.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2.5 rounded-xl border border-[var(--sc-line)] bg-[var(--sc-paper)] px-4 py-3 text-sm leading-snug text-[var(--sc-ink-muted)]"
-                  >
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sc-coral)]" aria-hidden />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </div>
-      </StudioCraftContainer>
-    </section>
-  );
-}
+/* ---------------- Connected workflows (dark band) ---------------- */
 
 function PlatformConnectedSection() {
   const { connected } = PLATFORM_PAGE;
-
   return (
-    <section className="sc-on-ink bg-[var(--sc-ink)] py-16 text-[var(--sc-on-ink-fg-muted)] sm:py-20 lg:py-28">
-      <StudioCraftContainer>
-        <SectionBadge number="3" label={connected.badge} />
-        <h2 className="max-w-[720px] text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-on-ink-fg)]">
-          <span className="block text-[var(--sc-on-ink-fg)]">Modules that actually</span>
-          <span className="block text-[var(--sc-coral)]">talk to each other.</span>
-        </h2>
-        <p className="mt-4 max-w-[640px] text-base leading-relaxed text-[var(--sc-on-ink-fg-muted)]">
-          {connected.body}
-        </p>
-
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
-          {PLATFORM_WORKFLOWS.map((workflow) => (
-            <article
-              key={workflow.title}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] p-6"
+    <section className="sc-on-ink relative overflow-hidden bg-[var(--sc-ink)] py-24 text-white sm:py-28 lg:py-36" aria-labelledby="platform-connected-heading">
+      <div
+        className="pointer-events-none absolute left-1/2 top-0 h-[30rem] w-[60rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.16),transparent)]"
+        aria-hidden
+      />
+      <StudioCraftContainer className="relative">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-end lg:gap-16">
+          <Reveal>
+            <SectionBadge label={connected.badge} />
+            <h2
+              id="platform-connected-heading"
+              className="max-w-[760px] text-[clamp(2.25rem,5vw,4rem)] font-medium leading-[1.04] tracking-[-0.03em] text-white [text-wrap:balance]"
             >
-              <h3 className="text-lg font-medium text-[var(--sc-on-ink-fg)]">{workflow.title}</h3>
-              <p className="mt-3 break-words font-mono text-[10px] uppercase leading-relaxed tracking-[0.06em] text-[var(--sc-coral)] sm:text-[11px] sm:tracking-[0.08em]">
-                {workflow.flow}
-              </p>
-              <p className="mt-4 text-sm leading-relaxed text-[var(--sc-on-ink-fg-subtle)]">{workflow.body}</p>
-            </article>
-          ))}
+              Modules that actually <span className="text-[var(--sc-coral)]">talk to each other.</span>
+            </h2>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <p className="text-[16px] leading-[1.7] text-white/60">{connected.body}</p>
+          </Reveal>
         </div>
+
+        <Stagger className="mt-14 grid gap-4 lg:mt-20 lg:grid-cols-3" delayChildren={0.1}>
+          {PLATFORM_WORKFLOWS.map((workflow) => {
+            const steps = workflow.flow.split('→').map((step) => step.trim());
+            return (
+              <StaggerItem
+                key={workflow.title}
+                as="article"
+                className="flex flex-col rounded-[20px] border border-white/10 bg-white/[0.04] p-6 sm:p-7"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-[22px] font-medium tracking-[-0.02em] text-white">{workflow.title}</h3>
+                  <MarketingModuleBadge readiness={workflow.status} variant="dark" className="shrink-0" />
+                </div>
+                <ol className="mt-6 space-y-2">
+                  {steps.map((step, index) => (
+                    <li key={step} className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--sc-coral)]/15 text-[11px] font-semibold text-[var(--sc-coral)]">
+                        {index + 1}
+                      </span>
+                      <span className="text-[14px] text-white/85">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-6 border-t border-white/10 pt-5 text-[14px] leading-[1.65] text-white/55">{workflow.body}</p>
+              </StaggerItem>
+            );
+          })}
+        </Stagger>
       </StudioCraftContainer>
     </section>
   );
 }
 
-function PlatformComplianceSection() {
-  const { compliance } = PLATFORM_PAGE;
-
-  return (
-    <section className="relative overflow-hidden bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32">
-      <StudioCraftContainer>
-        <SectionBadge number="4" label={compliance.badge} />
-        <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
-          <span className="block">Compliance is not</span>
-          <span className="block text-[var(--sc-coral)]">an add-on.</span>
-        </h2>
-        <p className="mt-4 max-w-[560px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
-          {compliance.body}
-        </p>
-
-        <ComplianceBento className="mt-10" />
-      </StudioCraftContainer>
-    </section>
-  );
-}
-
-function PlatformVerticalsSection() {
-  const available = INDUSTRY_VERTICALS.filter((v) => v.status === 'available');
-
-  return (
-    <section className="bg-[var(--sc-paper)] py-20 sm:py-28 lg:py-32">
-      <StudioCraftContainer>
-        <SectionBadge number="5" label="Industry verticals" />
-        <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
-          Same core. <span className="text-[var(--sc-coral)]">Sector depth when you need it.</span>
-        </h2>
-        <p className="mt-4 max-w-[620px] text-base leading-relaxed text-[var(--sc-ink-muted)]">
-          Vertical packs add specialised workflows on top of the horizontal platform — not a separate
-          product to integrate. Six sector packs cover logistics and SACCOs through healthcare,
-          energy, and construction.
-        </p>
-
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {available.map((vertical) => (
-            <Link
-              key={vertical.id}
-              href={vertical.href}
-              className="group rounded-2xl border border-[var(--sc-coral)]/25 bg-[var(--sc-coral)]/[0.06] p-6 transition hover:border-[var(--sc-coral)]/40"
-            >
-              <h3 className="text-xl font-medium text-[var(--sc-ink)]">{vertical.name}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--sc-ink-muted)]">{vertical.description}</p>
-              <ul className="mt-4 flex flex-wrap gap-2">
-                {vertical.features.slice(0, 4).map((feature) => (
-                  <li
-                    key={feature}
-                    className="rounded-full border border-[var(--sc-line)] bg-[var(--sc-paper)] px-3 py-1 text-[12px] text-[var(--sc-ink-muted)]"
-                  >
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <span className="mt-5 inline-flex text-sm font-semibold text-[var(--sc-coral)] group-hover:underline">
-                Explore {vertical.name} →
-              </span>
-            </Link>
-          ))}
-        </div>
-      </StudioCraftContainer>
-    </section>
-  );
-}
+/* ---------------- Rollout ---------------- */
 
 function PlatformRolloutSection() {
   return (
-    <section className="border-t border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32">
+    <section className="bg-white py-24 sm:py-28 lg:py-36" aria-labelledby="platform-rollout-heading">
       <StudioCraftContainer>
-        <SectionBadge number="6" label="Getting started" />
-        <h2 className="max-w-[640px] text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
-          Live in <span className="text-[var(--sc-coral)]">days, not months.</span>
-        </h2>
-
-        <div className="mt-12 grid gap-8 md:grid-cols-3 lg:mt-14">
-          {HOW_IT_WORKS_STEPS.map((step, i) => (
-            <div
-              key={step.step}
-              className="border-t-2 border-[var(--sc-coral)] pt-6"
-              style={{
-                borderColor: `color-mix(in srgb, var(--sc-coral, #ff5436) ${100 - i * 22}%, transparent)`,
-              }}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-end lg:gap-16">
+          <Reveal>
+            <SectionBadge label="Getting started" />
+            <h2
+              id="platform-rollout-heading"
+              className="max-w-[760px] text-[clamp(2.25rem,5vw,4rem)] font-medium leading-[1.04] tracking-[-0.03em] text-[var(--sc-ink)]"
             >
-              <p className="mb-3 text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--sc-coral)]">
-                {step.step}
-              </p>
-              <h3 className="mb-3 text-xl font-medium leading-tight tracking-[-0.02em] text-[var(--sc-ink)]">
+              Live in <span className="text-[var(--sc-coral)]">days, not months.</span>
+            </h2>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <p className="text-[16px] leading-[1.7] text-[var(--sc-ink-muted)]">
+              We migrate your data and run your first payroll alongside your current process, so you can check
+              every figure before you switch.
+            </p>
+          </Reveal>
+        </div>
+
+        <Stagger className="relative mt-14 grid gap-4 lg:mt-20 lg:grid-cols-3" delayChildren={0.1}>
+          {/* Connector line behind the step numbers (desktop). */}
+          <span
+            className="pointer-events-none absolute left-[16%] right-[16%] top-[3.25rem] hidden h-px bg-gradient-to-r from-[var(--sc-coral)] via-[var(--sc-coral)]/40 to-[var(--sc-line)] lg:block"
+            aria-hidden
+          />
+          {HOW_IT_WORKS_STEPS.map((step, index) => (
+            <StaggerItem
+              key={step.step}
+              as="article"
+              className="relative rounded-[20px] border border-[var(--sc-line)] bg-white p-7 shadow-[0_1px_2px_rgba(26,23,20,0.04),0_24px_60px_-32px_rgba(26,23,20,0.22)]"
+            >
+              <span
+                className={`relative z-10 flex h-12 w-12 items-center justify-center rounded-[14px] text-[18px] font-semibold ${
+                  index === 0 ? 'bg-[var(--sc-coral)] text-white' : 'bg-[var(--sc-coral)]/10 text-[var(--sc-coral)]'
+                }`}
+              >
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <h3 className="mt-6 text-[22px] font-medium leading-tight tracking-[-0.02em] text-[var(--sc-ink)]">
                 {step.title}
               </h3>
-              <p className="text-sm leading-relaxed text-[var(--sc-ink-muted)]">{step.body}</p>
-            </div>
+              <p className="mt-3 text-[15px] leading-[1.7] text-[var(--sc-ink-muted)]">{step.body}</p>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       </StudioCraftContainer>
     </section>
   );
 }
+
+/* ---------------- Page ---------------- */
 
 export function PlatformPageContent() {
   return (
     <>
       <PlatformHero />
+      <HomeCapabilityTicker />
       <PlatformAudienceSection />
-      <PlatformModulesSection />
-      <PlatformArchitectureSection />
+      <PlatformModuleExplorer />
       <PlatformConnectedSection />
-      <PlatformComplianceSection />
-      <PlatformVerticalsSection />
+      <PlatformArchitectureSection />
+      <HomeComplianceProcess />
       <PlatformRolloutSection />
       <MarketingFaq items={PLATFORM_FAQ} />
-      <MarketingFinalCta />
+      <AboutFinalCta />
     </>
   );
 }

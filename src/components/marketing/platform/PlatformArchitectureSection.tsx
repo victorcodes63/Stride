@@ -117,27 +117,27 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
     <section
       className={
         leadSection
-          ? 'border-b border-[var(--sc-line)] bg-[var(--sc-paper-2)] pt-4 pb-16 sm:pt-6 sm:pb-20 lg:pb-28'
-          : 'border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32'
+          ? 'bg-white pt-4 pb-24 sm:pt-6 sm:pb-28 lg:pb-36'
+          : 'bg-white py-24 sm:py-28 lg:py-36'
       }
     >
       <StudioCraftContainer>
-        <Reveal y={revealY}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--sc-coral)]">
-            Platform architecture
-          </p>
-          <h2 className="mt-3 max-w-2xl text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
-            {CORE_PACKS_EXPLAINER.title}
-          </h2>
-        </Reveal>
-        <Reveal delay={0.06} y={revealY}>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--sc-ink-muted)]">
-            {CORE_PACKS_EXPLAINER.caption}
-          </p>
-        </Reveal>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-end lg:gap-16">
+          <Reveal y={revealY}>
+            <p className="mb-5 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-coral)] sm:mb-6">
+              Platform architecture
+            </p>
+            <h2 className="max-w-[760px] text-[clamp(2.25rem,5vw,4rem)] font-medium leading-[1.04] tracking-[-0.03em] text-[var(--sc-ink)] [text-wrap:balance]">
+              {CORE_PACKS_EXPLAINER.title}
+            </h2>
+          </Reveal>
+          <Reveal delay={0.06} y={revealY}>
+            <p className="text-[16px] leading-[1.7] text-[var(--sc-ink-muted)]">{CORE_PACKS_EXPLAINER.caption}</p>
+          </Reveal>
+        </div>
 
         {/* DESKTOP: pinned visual on the left, scrolling steps on the right */}
-        <div className="mt-12 hidden lg:mt-16 lg:grid lg:grid-cols-[1fr_minmax(380px,460px)] lg:gap-16">
+        <div className="mt-14 hidden lg:mt-20 lg:grid lg:grid-cols-[1fr_minmax(380px,460px)] lg:gap-16">
           {/* Pinned stage */}
           <div className="relative">
             <div className="sticky top-[calc(var(--nav-h)+3rem)] flex h-[calc(100vh-var(--nav-h)-6rem)] min-h-[480px] items-center">
