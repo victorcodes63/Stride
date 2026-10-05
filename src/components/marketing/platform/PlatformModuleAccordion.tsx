@@ -77,7 +77,7 @@ function AreaDetail({ area, index, tone }: { area: Area; index: number; tone: 'c
           <li key={feature} className={`flex items-start gap-3 text-[14px] leading-snug ${onCoral ? 'text-white' : 'text-[var(--sc-ink)]'}`}>
             <span
               className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                onCoral ? 'bg-white/20 text-white' : 'bg-[var(--sc-coral)]/12 text-[var(--sc-coral)]'
+                onCoral ? 'bg-white/20 text-white' : 'bg-[var(--sc-coral)]/15 text-[var(--sc-coral)]'
               }`}
             >
               <Check size={11} weight="bold" aria-hidden />

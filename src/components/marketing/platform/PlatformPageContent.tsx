@@ -247,7 +247,7 @@ function PlatformConnectedSection() {
                         className={`inline-block rounded-full px-3.5 py-2 text-[13px] font-medium first-letter:uppercase ${
                           stepIndex === steps.length - 1
                             ? 'bg-[var(--sc-coral)] text-white'
-                            : 'border border-white/12 bg-white/[0.05] text-white/85'
+                            : 'border border-white/15 bg-white/[0.05] text-white/85'
                         }`}
                       >
                         {step}

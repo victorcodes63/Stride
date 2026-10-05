@@ -213,7 +213,7 @@ export function PlatformProductBento() {
                 </span>
                 <motion.span
                   className={`w-full origin-bottom rounded-[8px] ${last ? 'bg-[var(--sc-coral)]' : 'bg-[rgba(255,84,54,0.16)]'}`}
-                  style={{ height: `${(d.present / maxPresent) * 72}%` }}
+                  style={{ height: `${30 + ((d.present - 100) / (maxPresent - 100)) * 60}%` }}
                   {...rise(0.08 * i)}
                 />
                 <span className="text-[12px] text-[var(--sc-ink-subtle)]">{d.day}</span>
@@ -240,7 +240,7 @@ export function PlatformProductBento() {
               <span
                 key={area.name}
                 className={`rounded-full px-2.5 py-1 text-[12px] font-medium ${
-                  on ? 'bg-white text-[var(--sc-coral-deep)]' : 'bg-white/12 text-white/70'
+                  on ? 'bg-white text-[var(--sc-coral-deep)]' : 'bg-white/15 text-white/75'
                 }`}
               >
                 {area.name}
