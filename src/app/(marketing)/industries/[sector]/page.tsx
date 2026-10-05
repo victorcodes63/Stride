@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { INDUSTRY_VERTICALS } from '@/lib/marketing-config';
 import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
-import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
-import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
+import { EditorialNumberedRows, EditorialTextLink } from '@/components/marketing/editorial/EditorialParts';
+import { EditorialPageHero } from '@/components/marketing/editorial/EditorialPageHero';
+import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 /**
@@ -51,29 +52,26 @@ export default async function IndustrySectorPage({ params }: Props) {
 
   return (
     <>
-      <MarketingPageHeader
+      <EditorialPageHero
+        size="page"
         breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: vertical.name, path: `/industries/${sector}` }]}
-        eyebrow="Coming soon"
+        badge="Coming soon"
         title={vertical.name}
         description={vertical.description}
-        align="center"
+        actions={<EditorialTextLink href="/platform" label="Explore the platform" />}
       />
 
-      <MarketingPageBody narrow>
-        <ul className="text-left text-sm text-pub-ink-muted">
-          {vertical.features.map((f) => (
-            <li key={f} className="border-b border-pub-border py-3">
-              {f}
-            </li>
-          ))}
-        </ul>
-        <p className="mt-10 text-center text-sm text-pub-ink-subtle">
-          This vertical is on the Stride roadmap. The horizontal core is available today.{' '}
-          <Link href="/platform" className="font-semibold text-[var(--pub-primary)] hover:underline">
-            Explore the platform →
-          </Link>
-        </p>
-      </MarketingPageBody>
+      <section className="bg-white pb-24 sm:pb-28">
+        <StudioCraftContainer>
+          <EditorialNumberedRows items={vertical.features.map((f) => ({ title: f, body: 'Planned for this pack.' }))} />
+          <p className="mt-10 text-[15px] text-[var(--sc-ink-muted)]">
+            This vertical is on the Stride roadmap. The horizontal core is available today.{' '}
+            <Link href="/platform" className="font-semibold text-[var(--sc-coral)] hover:underline">
+              Explore the platform →
+            </Link>
+          </p>
+        </StudioCraftContainer>
+      </section>
 
       <MarketingCtaBand
         title={`Join the ${vertical.name} waitlist`}

@@ -894,8 +894,8 @@ export const ABOUT_PAGE = {
     title: 'Three principles we do not compromise on.',
   },
   stats: [
-    { value: '6', label: 'Core modules on one login' },
-    { value: '100%', label: 'Kenyan statutory coverage — KRA, NSSF, SHIF' },
+    { value: '9', label: 'Product areas on one login' },
+    { value: '4', label: 'Statutory deductions on every payslip — PAYE, NSSF, SHIF, Housing Levy' },
     { value: 'Days', label: 'To go live, not months' },
     { value: '2', label: 'Countries supported — Kenya & Uganda' },
   ] as const,

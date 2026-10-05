@@ -136,10 +136,12 @@ function CompareGroup({
   );
 }
 
-export function PricingCompareMatrix() {
+export function PricingCompareMatrix({ showHeader = true }: { showHeader?: boolean } = {}) {
   return (
-    <section className="mt-16" aria-labelledby="pricing-compare-heading">
-      <div className="text-center">
+    <section className={showHeader ? 'mt-16' : ''} aria-label={showHeader ? undefined : 'Compare plan features'} aria-labelledby={showHeader ? 'pricing-compare-heading' : undefined}>
+      <div className={showHeader ? 'text-center' : 'flex justify-start'}>
+        {showHeader ? (
+        <>
         <h2
           id="pricing-compare-heading"
           className="font-heading text-[clamp(1.5rem,4vw,2rem)] font-extrabold tracking-[-0.02em] text-pub-ink"
@@ -150,6 +152,8 @@ export function PricingCompareMatrix() {
           Exactly what each plan unlocks by default — horizontal and vertical modules show as add-ons on
           Essentials where that is honest. Plans differ by features, never by team size.
         </p>
+        </>
+        ) : null}
         <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-pub-ink-subtle">
           <span>
             <span className="font-semibold text-[var(--pub-primary)]">✓</span> included
@@ -163,7 +167,7 @@ export function PricingCompareMatrix() {
         </p>
       </div>
 
-      <div className="mt-8 rounded-[20px] border border-pub-border bg-white px-4 sm:px-6">
+      <div className="mt-8 rounded-[22px] border border-[var(--sc-line)] bg-white px-4 shadow-[0_1px_2px_rgba(26,23,20,0.04),0_24px_60px_-34px_rgba(26,23,20,0.22)] sm:px-6">
         {PRICING_COMPARE_GROUPS.map((group, index) => (
           <CompareGroup
             key={group.id}

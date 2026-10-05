@@ -1,6 +1,4 @@
-import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
-import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
-import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
+import { IndustrySectorPage } from '@/components/marketing/industries/IndustrySectorPage';
 import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
@@ -20,31 +18,18 @@ const FEATURES = [
 
 export default function ConstructionIndustryPage() {
   return (
-    <>
-      <MarketingPageHeader
-        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: 'Construction', path: '/industries/construction' }]}
-        eyebrow="Construction"
-        title="Sites, plant, and subcontractors."
-        description="Construction vertical pack on the Stride projects and finance core — built for Kenyan contractors."
-        visual={<IndustryWireframePreview industryId="construction" />}
-      />
-      <MarketingPageBody>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {FEATURES.map((f) => (
-            <article key={f.title} className="rounded-2xl border border-pub-border bg-white p-5 sm:p-6">
-              <h2 className="font-heading text-lg font-bold text-pub-ink">{f.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-pub-ink-muted">{f.body}</p>
-            </article>
-          ))}
-        </div>
-      </MarketingPageBody>
-      <MarketingCtaBand
-        title="See Stride for construction"
-        description="Book a walkthrough of site hierarchy, plant tracking, and subcontractor AP."
-        primary={{ href: '/contact', label: 'Book a demo' }}
-        secondary={{ href: '/pricing', label: 'View pricing' }}
-        variant="coral"
-      />
-    </>
+    <IndustrySectorPage
+      sectorId="construction"
+      name="Construction"
+      path="/industries/construction"
+      title="Sites, plant, and subcontractors."
+      description="Construction vertical pack on the Stride projects and finance core — built for Kenyan contractors."
+      visual={<IndustryWireframePreview industryId="construction" />}
+      features={FEATURES}
+      cta={{
+        title: 'See Stride for construction',
+        description: 'Book a walkthrough of site hierarchy, plant tracking, and subcontractor AP.',
+      }}
+    />
   );
 }

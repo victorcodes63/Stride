@@ -1,6 +1,4 @@
-import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
-import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
-import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
+import { IndustrySectorPage } from '@/components/marketing/industries/IndustrySectorPage';
 import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
@@ -47,45 +45,19 @@ const SACCO_FAQ = [
 
 export default function SaccosIndustryPage() {
   return (
-    <>
-      <MarketingPageHeader
-        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: 'SACCOs', path: '/industries/saccos' }]}
-        eyebrow="SACCOs"
-        title="Member-trusted operations on the Stride core."
-        description="Built for regulated SACCOs that need modern member servicing, dividend workflows, and board-ready SASRA reporting without a multi-year core replacement."
-        visual={<IndustryWireframePreview industryId="saccos" />}
-      />
-
-      <MarketingPageBody>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {FEATURES.map((f) => (
-            <article key={f.title} className="rounded-2xl border border-pub-border bg-white p-5 sm:p-6">
-              <h2 className="font-heading text-lg font-bold text-pub-ink">{f.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-pub-ink-muted">{f.body}</p>
-            </article>
-          ))}
-        </div>
-
-        <section className="mt-16">
-          <h2 className="font-heading text-2xl font-bold text-pub-ink">SACCO FAQ</h2>
-          <div className="mt-6 divide-y divide-pub-border rounded-2xl border border-pub-border bg-white">
-            {SACCO_FAQ.map((item) => (
-              <div key={item.q} className="px-6 py-5">
-                <h3 className="font-heading font-semibold text-pub-ink">{item.q}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-pub-ink-muted">{item.a}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      </MarketingPageBody>
-
-      <MarketingCtaBand
-        title="See Stride for SACCOs"
-        description="Book a walkthrough of the member ledger, dividend run, and SASRA reporting on the Stride core."
-        primary={{ href: '/contact', label: 'Book a demo' }}
-        secondary={{ href: '/pricing', label: 'View pricing' }}
-        variant="coral"
-      />
-    </>
+    <IndustrySectorPage
+      sectorId="saccos"
+      name="SACCOs"
+      path="/industries/saccos"
+      title="Member-trusted operations on the Stride core."
+      description="Built for regulated SACCOs that need modern member servicing, dividend workflows, and board-ready SASRA reporting without a multi-year core replacement."
+      visual={<IndustryWireframePreview industryId="saccos" />}
+      features={FEATURES}
+      faq={SACCO_FAQ}
+      cta={{
+        title: 'See Stride for SACCOs',
+        description: 'Book a walkthrough of the member ledger, dividend run, and SASRA reporting on the Stride core.',
+      }}
+    />
   );
 }

@@ -1,6 +1,4 @@
-import { MarketingCtaBand } from '@/components/marketing/MarketingCtaBand';
-import { MarketingPageBody } from '@/components/marketing/MarketingPageBody';
-import { MarketingPageHeader } from '@/components/marketing/MarketingPageHeader';
+import { IndustrySectorPage } from '@/components/marketing/industries/IndustrySectorPage';
 import { FleetBoardMockup } from '@/components/marketing/mockups/FleetBoardMockup';
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
@@ -47,45 +45,19 @@ const LOGISTICS_FAQ = [
 
 export default function LogisticsIndustryPage() {
   return (
-    <>
-      <MarketingPageHeader
-        breadcrumb={[{ name: 'Home', path: '/' }, { name: 'Industries', path: '/industries' }, { name: 'Logistics', path: '/industries/logistics' }]}
-        eyebrow="Industry pack · Logistics"
-        title="Fleet operations on the same platform as payroll."
-        description="Built for cargo operators, transporters and 3PLs who need trip management, compliance and billing without bolting on a separate fleet system."
-        visual={<FleetBoardMockup />}
-      />
-
-      <MarketingPageBody>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {FEATURES.map((f) => (
-            <article key={f.title} className="rounded-2xl border border-pub-border bg-white p-5 sm:p-6">
-              <h2 className="font-heading text-lg font-bold text-pub-ink">{f.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-pub-ink-muted">{f.body}</p>
-            </article>
-          ))}
-        </div>
-
-        <section className="mt-16">
-          <h2 className="font-heading text-2xl font-bold text-pub-ink">Logistics FAQ</h2>
-          <div className="mt-6 divide-y divide-pub-border rounded-2xl border border-pub-border bg-white">
-            {LOGISTICS_FAQ.map((item) => (
-              <div key={item.q} className="px-6 py-5">
-                <h3 className="font-heading font-semibold text-pub-ink">{item.q}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-pub-ink-muted">{item.a}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      </MarketingPageBody>
-
-      <MarketingCtaBand
-        title="See Stride for logistics"
-        description="Book a walkthrough of fleet, trip and settlement workflows on the Stride core."
-        primary={{ href: '/contact', label: 'Book a demo' }}
-        secondary={{ href: '/pricing', label: 'View pricing' }}
-        variant="coral"
-      />
-    </>
+    <IndustrySectorPage
+      sectorId="logistics"
+      name="Logistics"
+      path="/industries/logistics"
+      title="Fleet operations on the same platform as payroll."
+      description="Built for cargo operators, transporters and 3PLs who need trip management, compliance and billing without bolting on a separate fleet system."
+      visual={<FleetBoardMockup />}
+      features={FEATURES}
+      faq={LOGISTICS_FAQ}
+      cta={{
+        title: 'See Stride for logistics',
+        description: 'Book a walkthrough of fleet, trip and settlement workflows on the Stride core.',
+      }}
+    />
   );
 }
