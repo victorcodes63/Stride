@@ -1,5 +1,5 @@
 import { IndustrySectorPage } from '@/components/marketing/industries/IndustrySectorPage';
-import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
@@ -51,7 +51,7 @@ export default function SaccosIndustryPage() {
       path="/industries/saccos"
       title="Member-trusted operations on the Stride core."
       description="Built for regulated SACCOs that need modern member servicing, dividend workflows, and board-ready SASRA reporting without a multi-year core replacement."
-      visual={<IndustryWireframePreview industryId="saccos" />}
+      visual={<ProductIndustryPreview industryId="saccos" />}
       features={FEATURES}
       faq={SACCO_FAQ}
       cta={{

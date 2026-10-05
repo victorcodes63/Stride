@@ -1,5 +1,5 @@
 import { IndustrySectorPage } from '@/components/marketing/industries/IndustrySectorPage';
-import { FleetBoardMockup } from '@/components/marketing/mockups/FleetBoardMockup';
+import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
@@ -51,7 +51,7 @@ export default function LogisticsIndustryPage() {
       path="/industries/logistics"
       title="Fleet operations on the same platform as payroll."
       description="Built for cargo operators, transporters and 3PLs who need trip management, compliance and billing without bolting on a separate fleet system."
-      visual={<FleetBoardMockup />}
+      visual={<ProductIndustryPreview industryId="logistics" />}
       features={FEATURES}
       faq={LOGISTICS_FAQ}
       cta={{

@@ -65,6 +65,8 @@ export function ProductFrame({
     <figure
       role="img"
       aria-label={label}
+      // Demo data: keep it out of search snippets.
+      data-nosnippet
       className={`stride-product-frame overflow-hidden rounded-[18px] ${fill ? 'flex h-full flex-col' : ''} border border-[var(--sc-line)] bg-white shadow-[0_1px_2px_rgba(26,23,20,0.04),0_30px_70px_-34px_rgba(26,23,20,0.35)] ${className}`.trim()}
     >
       {path ? (

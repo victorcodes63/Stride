@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
+import type { MarketingVerticalScreenshotId } from '@/lib/marketing-config';
 import { ProductOverviewSlice } from '@/components/marketing/product/ProductSlices';
 import { Reveal } from '@/components/marketing/motion/Reveal';
 import { PlatformSectionHead } from '@/components/marketing/platform/PlatformSectionHead';
@@ -99,8 +100,9 @@ function LayerVisual({ layer }: { layer: Layer }) {
     return <ProductOverviewSlice fill className="h-full w-full" />;
   }
   return (
-    <IndustryWireframePreview
-      industryId={layer.mediaKey as 'logistics' | 'saccos' | 'healthcare' | 'energy' | 'construction'}
+    <ProductIndustryPreview
+      fill
+      industryId={layer.mediaKey as MarketingVerticalScreenshotId}
       className="h-full w-full"
     />
   );

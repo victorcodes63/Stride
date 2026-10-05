@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRef, type ReactNode } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { CountUp, MOTION_EASE } from '@/components/marketing/motion';
-import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
 import {
   INDUSTRY_VERTICALS,
   MARKETING_INDUSTRIES_SECTION,
@@ -106,24 +106,25 @@ function PackCard({
   visualClassName?: string;
   featured?: boolean;
 }) {
-  const ref = useRef<HTMLAnchorElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
   const visualY = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [40, -40]);
 
   return (
     <motion.div variants={cardIn} transition={{ duration: 0.8, ease: MOTION_EASE }} className={className}>
-      <Link
+      <div
         ref={ref}
-        href={pack.href}
-        className="group relative flex h-full min-h-[380px] flex-col overflow-hidden rounded-[18px] bg-[var(--sc-paper-2)] p-7 ring-1 ring-inset ring-[var(--sc-line)] transition-shadow duration-500 hover:shadow-[0_30px_60px_-30px_rgba(26,23,20,0.28)] sm:p-8"
+        className="group relative flex h-full min-h-[380px] flex-col overflow-hidden rounded-[18px] bg-[var(--sc-paper-2)] p-7 ring-1 ring-inset ring-[var(--sc-line)] transition-shadow duration-500 focus-within:ring-2 focus-within:ring-[var(--sc-coral)] hover:shadow-[0_30px_60px_-30px_rgba(26,23,20,0.28)] sm:p-8"
       >
+        {/* Full-card link as an overlay, so the product preview's own links aren't nested in it. */}
+        <Link href={pack.href} className="absolute inset-0 z-20 rounded-[18px] focus:outline-none" aria-label={`${pack.name}: explore the pack`} />
         {/* Product shot, bleeding off the bottom-right like a photographed object. */}
         <motion.div
           style={{ y: visualY }}
           className={`pointer-events-none absolute transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] ${visualClassName}`}
         >
-          <IndustryWireframePreview industryId={pack.id as MarketingVerticalScreenshotId} className="h-full" />
+          <ProductIndustryPreview industryId={pack.id as MarketingVerticalScreenshotId} fill designWidth={pack.id === 'logistics' ? 760 : 620} className="h-full" />
         </motion.div>
 
 
@@ -153,7 +154,7 @@ function PackCard({
           </p>
           <GrowArrow label="Explore the pack" />
         </div>
-      </Link>
+      </div>
     </motion.div>
   );
 }

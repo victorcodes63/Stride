@@ -5,10 +5,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'motion/react';
 import { ArrowRight, Check } from '@phosphor-icons/react';
 import { MOTION_EASE, Reveal } from '@/components/marketing/motion';
-import {
-  IndustryWireframePreview,
-  MarketingScreenshotFrame,
-} from '@/components/marketing/mockups/IndustryWireframePreview';
+import { MarketingScreenshotFrame } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
 import { ProductBusinessPulseSlice, ProductOverviewSlice } from '@/components/marketing/product/ProductSlices';
 import { StatutoryWireframe } from '@/components/marketing/mockups/StatutoryWireframe';
 import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
@@ -91,7 +89,7 @@ const SOLUTIONS: readonly Solution[] = [
       'Same records and compliance underneath',
     ],
     link: { href: MARKETING_ROUTES.industries, label: 'Browse industries' },
-    visual: <IndustryWireframePreview industryId="logistics" />,
+    visual: <ProductIndustryPreview industryId="logistics" fill />,
   },
 ];
 

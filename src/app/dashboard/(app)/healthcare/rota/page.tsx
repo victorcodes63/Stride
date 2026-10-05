@@ -6,6 +6,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { DashboardTable, DashboardTableCard, DashboardTableEmpty, DashboardTableViewport } from '@/components/dashboard/DashboardDataTable';
 import { DashboardAsyncState, DashboardPageSkeleton } from '@/components/dashboard/DashboardAsyncState';
 import { StrideSelect } from '@/components/ui/stride-select';
+import { ClinicalRotaGrid, rotaWeekStart } from '@/components/healthcare/ClinicalRotaGrid';
 
 type Ward = { id: string; code: string; name: string };
 type Employee = { id: string; firstName: string; lastName: string; employeeNumber: string | null };
@@ -116,6 +117,13 @@ export default function HealthcareRotaPage() {
         <button type="submit" className="h-10 rounded-lg bg-primary-500 text-sm font-medium text-white">Assign</button>
       </form>
       {error ? <DashboardAsyncState variant="error" title="Clinical rota" message={error} onRetry={() => void load()} /> : (
+        <>
+        <ClinicalRotaGrid
+          assignments={assignments}
+          wards={wards.map((w) => ({ code: w.code, name: w.name }))}
+          weekStart={rotaWeekStart()}
+        />
+        <div className="mt-6" />
         <DashboardTableCard title="Assignments">
           <DashboardTableViewport>
             <DashboardTable>
@@ -135,6 +143,7 @@ export default function HealthcareRotaPage() {
             {assignments.length === 0 ? <DashboardTableEmpty message="No clinical assignments yet." /> : null}
           </DashboardTableViewport>
         </DashboardTableCard>
+        </>
       )}
     </DashboardPage>
   );

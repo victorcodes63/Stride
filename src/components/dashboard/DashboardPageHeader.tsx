@@ -57,6 +57,8 @@ export type DashboardPageHeaderProps = {
   titleSuppressHydrationWarning?: boolean;
   metaSuppressHydrationWarning?: boolean;
   className?: string;
+  /** Element for the title. Defaults to h1; previews embedded in other pages use "p". */
+  titleAs?: 'h1' | 'h2' | 'p';
 };
 
 type ResolvedVariant = DashboardPageHeaderVariant;
@@ -159,6 +161,7 @@ function PanelPageHeader({
   titleSuppressHydrationWarning,
   metaSuppressHydrationWarning,
   className,
+  titleAs: TitleTag = 'h1',
 }: {
   title: ReactNode;
   TitleIcon?: LucideIcon;
@@ -173,6 +176,7 @@ function PanelPageHeader({
   titleSuppressHydrationWarning?: boolean;
   metaSuppressHydrationWarning?: boolean;
   className?: string;
+  titleAs?: 'h1' | 'h2' | 'p';
 }) {
   return (
     <section className={cn('dashboard-surface dashboard-page-header-surface shadow-sm', className)}>
@@ -184,7 +188,7 @@ function PanelPageHeader({
             </p>
           ) : null}
           {badges.length > 0 ? <HeaderBadges badges={badges} variant="panel" /> : null}
-          <h1
+          <TitleTag
             className={cn('page-title', TitleIcon && 'flex items-center gap-2')}
             suppressHydrationWarning={titleSuppressHydrationWarning}
           >
@@ -196,7 +200,7 @@ function PanelPageHeader({
               />
             ) : null}
             {title}
-          </h1>
+          </TitleTag>
           {description ? <div className="page-description max-w-4xl !mt-0">{description}</div> : null}
           {meta ? (
             <div
@@ -238,6 +242,7 @@ export function DashboardPageHeader({
   titleSuppressHydrationWarning,
   metaSuppressHydrationWarning,
   className,
+  titleAs,
 }: DashboardPageHeaderProps) {
   const pathname = usePathname();
   const routeKey = href ?? pathname ?? '/dashboard';
@@ -313,6 +318,7 @@ export function DashboardPageHeader({
       titleSuppressHydrationWarning={titleSuppressHydrationWarning}
       metaSuppressHydrationWarning={metaSuppressHydrationWarning}
       className={className}
+      titleAs={titleAs}
     />
   );
 }

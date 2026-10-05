@@ -3,22 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import {
-  DashboardTable,
-  DashboardTableCard,
-  DashboardTableEmpty,
-  DashboardTableViewport,
-} from '@/components/dashboard/DashboardDataTable';
+import { SaccoMemberRegister, type SaccoMemberRow } from '@/components/sacco/SaccoMemberRegister';
 import { DashboardAsyncState, DashboardPageSkeleton } from '@/components/dashboard/DashboardAsyncState';
 
-type Member = {
-  id: string;
-  memberNumber: string;
-  fullName: string;
-  status: string;
-  joinedAt: string;
-  balances: { shares: number; bosa: number; fosa: number };
-};
+type Member = SaccoMemberRow;
 
 export default function SaccoMembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -110,35 +98,7 @@ export default function SaccoMembersPage() {
       {error ? (
         <DashboardAsyncState variant="error" title="Members" message={error} onRetry={() => void load()} />
       ) : (
-        <DashboardTableCard title="Member register">
-          <DashboardTableViewport>
-            <DashboardTable>
-              <thead>
-                <tr>
-                  <th>Member #</th>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Shares</th>
-                  <th>BOSA</th>
-                  <th>FOSA</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m) => (
-                  <tr key={m.id}>
-                    <td className="font-mono text-xs">{m.memberNumber}</td>
-                    <td>{m.fullName}</td>
-                    <td className="capitalize">{m.status}</td>
-                    <td>{m.balances.shares.toLocaleString()}</td>
-                    <td>{m.balances.bosa.toLocaleString()}</td>
-                    <td>{m.balances.fosa.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </DashboardTable>
-            {members.length === 0 ? <DashboardTableEmpty message="No members yet." /> : null}
-          </DashboardTableViewport>
-        </DashboardTableCard>
+        <SaccoMemberRegister members={members} />
       )}
     </DashboardPage>
   );

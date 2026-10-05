@@ -1,5 +1,5 @@
 import { IndustrySectorPage } from '@/components/marketing/industries/IndustrySectorPage';
-import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
@@ -24,7 +24,7 @@ export default function ConstructionIndustryPage() {
       path="/industries/construction"
       title="Sites, plant, and subcontractors."
       description="Construction vertical pack on the Stride projects and finance core — built for Kenyan contractors."
-      visual={<IndustryWireframePreview industryId="construction" />}
+      visual={<ProductIndustryPreview industryId="construction" />}
       features={FEATURES}
       cta={{
         title: 'See Stride for construction',

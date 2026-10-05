@@ -1,5 +1,5 @@
 import { IndustrySectorPage } from '@/components/marketing/industries/IndustrySectorPage';
-import { IndustryWireframePreview } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
@@ -24,7 +24,7 @@ export default function HealthcareIndustryPage() {
       path="/industries/healthcare"
       title="Clinical workforce on the Stride core."
       description="Rota, attendance, credentials, and statutory payroll in one system — built for Kenyan hospitals and clinics."
-      visual={<IndustryWireframePreview industryId="healthcare" />}
+      visual={<ProductIndustryPreview industryId="healthcare" />}
       features={FEATURES}
       cta={{
         title: 'See Stride for healthcare',
