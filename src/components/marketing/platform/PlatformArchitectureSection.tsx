@@ -9,6 +9,7 @@ import {
   IndustryWireframePreview,
 } from '@/components/marketing/mockups/IndustryWireframePreview';
 import { Reveal } from '@/components/marketing/motion/Reveal';
+import { PlatformSectionHead } from '@/components/marketing/platform/PlatformSectionHead';
 import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import {
   CORE_CAPABILITIES,
@@ -110,7 +111,6 @@ function LayerVisual({ layer }: { layer: Layer }) {
 export function PlatformArchitectureSection({ leadSection = false }: { leadSection?: boolean }) {
   const { active, setStepRef } = useActiveLayer(LAYERS.length);
   const reduceMotion = useReducedMotion();
-  const revealY = leadSection ? 0 : 24;
   const activeLayer = LAYERS[active];
 
   return (
@@ -122,19 +122,13 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
       }
     >
       <StudioCraftContainer>
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-end lg:gap-16">
-          <Reveal y={revealY}>
-            <p className="mb-5 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-coral)] sm:mb-6">
-              Platform architecture
-            </p>
-            <h2 className="max-w-[760px] text-[clamp(2.25rem,5vw,4rem)] font-medium leading-[1.04] tracking-[-0.03em] text-[var(--sc-ink)] [text-wrap:balance]">
-              {CORE_PACKS_EXPLAINER.title}
-            </h2>
-          </Reveal>
-          <Reveal delay={0.06} y={revealY}>
-            <p className="text-[16px] leading-[1.7] text-[var(--sc-ink-muted)]">{CORE_PACKS_EXPLAINER.caption}</p>
-          </Reveal>
-        </div>
+        <PlatformSectionHead
+          index="05"
+          label="Platform architecture"
+          title="Industry packs"
+          statement={CORE_PACKS_EXPLAINER.title}
+          note={CORE_PACKS_EXPLAINER.caption}
+        />
 
         {/* DESKTOP: pinned visual on the left, scrolling steps on the right */}
         <div className="mt-14 hidden lg:mt-20 lg:grid lg:grid-cols-[1fr_minmax(380px,460px)] lg:gap-16">

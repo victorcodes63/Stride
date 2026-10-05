@@ -3,8 +3,8 @@ import { PlatformPageContent } from '@/components/marketing/platform/PlatformPag
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 /**
- * Lives outside the (marketing) route group so it can use the overlay nav,
- * like the homepage: a transparent bar over the dark hero.
+ * Lives outside the (marketing) route group so it controls its own shell;
+ * the hero is light, so the nav renders as a solid bar.
  */
 export const metadata = marketingMetadata({
   title: 'HR, Payroll & Finance Software Modules — Stride Platform',
@@ -15,7 +15,7 @@ export const metadata = marketingMetadata({
 
 export default function PlatformPage() {
   return (
-    <MarketingShell navOverlay>
+    <MarketingShell>
       <PlatformPageContent />
     </MarketingShell>
   );
