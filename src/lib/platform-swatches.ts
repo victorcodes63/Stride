@@ -10,7 +10,7 @@ import { DEFAULT_PRIMARY_COLOR, DEFAULT_SECONDARY_COLOR } from '@/lib/brand-them
 export const STRIDE_CORE = {
   coral: DEFAULT_PRIMARY_COLOR,
   ink: DEFAULT_SECONDARY_COLOR,
-  paper: '#FBF8F4',
+  paper: '#FFFFFF',
   logo: '#FF5436',
 } as const;
 

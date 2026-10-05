@@ -16,14 +16,14 @@ export const STRIDE_PALETTE = {
 
   /** Structural ink + warm paper neutrals */
   ink: '#1A1714',
-  inkMuted: '#3D3833',
-  inkSubtle: '#8A8076',
-  paper: '#FBF8F4',
-  paper2: '#F4EFE8',
-  line: '#E6DED4',
-  lineStrong: '#D8CDBF',
+  inkMuted: '#44403C',
+  inkSubtle: '#78716C',
+  paper: '#FFFFFF',
+  paper2: '#F5F5F7',
+  line: '#E7E7EB',
+  lineStrong: '#D4D4D8',
   warmMuted: '#C9C0B6',
-  warmSubtle: '#8A8076',
+  warmSubtle: '#78716C',
 
   /** Semantic */
   success: '#15803D',
@@ -130,7 +130,7 @@ export function buildStrideBrandScaleCssVars(
     '--color-secondary-50': mix(secondary, 'white', 0.94),
     '--color-secondary-100': mix(secondary, 'white', 0.88),
     '--color-secondary-200': STRIDE_PALETTE.lineStrong,
-    '--color-secondary-300': '#B8ADA0',
+    '--color-secondary-300': '#A8A29E',
     '--color-secondary-400': STRIDE_PALETTE.inkSubtle,
     '--color-secondary-500': secondary,
     '--color-secondary-600': mix(secondary, 'black', 0.08),
@@ -183,7 +183,7 @@ export function stridePaletteCssVars(): Record<string, string> {
     '--pub-gradient-end': p.coralDeep,
 
     '--neutral-50': p.paper2,
-    '--neutral-100': '#EDE6DC',
+    '--neutral-100': '#EEEEF1',
     '--neutral-200': p.line,
     '--neutral-400': p.inkSubtle,
     '--neutral-500': p.inkSubtle,

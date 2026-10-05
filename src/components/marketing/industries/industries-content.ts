@@ -2,13 +2,6 @@ import { MARKETING_CTAS, MARKETING_ROUTES } from '@/lib/marketing-config';
 
 export type IndustryStatus = 'available' | 'coming_soon';
 
-export type IndustryStat = {
-  value: number;
-  suffix?: string;
-  prefix?: string;
-  label: string;
-};
-
 export type IndustryDeepDive = {
   id: string;
   name: string;
@@ -17,7 +10,6 @@ export type IndustryDeepDive = {
   pain: string;
   strideRuns: string;
   opportunity: string;
-  stats: IndustryStat[];
   href: string;
   ctaLabel: string;
   mediaKey: 'logistics' | 'hr_consultancy' | 'saccos' | 'healthcare' | 'energy' | 'construction';
@@ -28,7 +20,7 @@ export const INDUSTRIES_HERO = {
   eyebrow: 'Industries',
   title: 'Built for your industry.',
   subhead:
-    'Sector-specific workflows on Stride — logistics is live today; SACCOs, healthcare, energy and construction packs are on the roadmap, all on the shared core.',
+    'Industry packs for HR consultancies, logistics, SACCOs, healthcare, energy and construction. Each one adds your sector’s workflows on the same HR, payroll and finance records.',
 } as const;
 
 /** Shared core platform capabilities */
@@ -43,7 +35,7 @@ export const CORE_CAPABILITIES = [
 export const CORE_PACKS_EXPLAINER = {
   title: 'One core. Vertical packs on top.',
   caption:
-    'One system, one login, no integration project — verticals are packs layered on the shared platform, not separate products.',
+    'One system, one login, no integration project, verticals are packs layered on the shared platform, not separate products.',
   coreLabel: 'Stride Core',
 } as const;
 
@@ -56,55 +48,18 @@ export const VERTICAL_PACKS = [
   { id: 'construction', label: 'Construction', color: '#E63E22' },
 ] as const;
 
-/** Illustrative industry metrics for marketing pages — not verified figures. */
-export const HR_CONSULTANCY_STATS: IndustryStat[] = [
-  { value: 1, label: 'ATS from careers site to offer' },
-  { value: 3, suffix: '×', label: 'faster shortlist with scored assessments' },
-  { value: 40, suffix: '%', label: 'less tool-switching for boutique firms' },
-];
-export const LOGISTICS_STATS: IndustryStat[] = [
-  { value: 1, label: 'timeline for every trip' },
-  { value: 40, suffix: '%', label: 'faster settlement cycles' },
-  { value: 12, suffix: '+', label: 'admin hours saved per week' },
-];
-
-export const SACCO_STATS: IndustryStat[] = [
-  { value: 5120, suffix: '+', label: 'members managed' },
-  { value: 60, suffix: '%', label: 'reporting time saved' },
-  { value: 35, suffix: '%', label: 'manual work removed' },
-];
-
-export const HEALTHCARE_STATS: IndustryStat[] = [
-  { value: 800, suffix: '+', label: 'shifts scheduled monthly' },
-  { value: 98, suffix: '%', label: 'attendance accuracy' },
-  { value: 50, suffix: '%', label: 'scheduling time saved' },
-];
-
-export const ENERGY_STATS: IndustryStat[] = [
-  { value: 12, suffix: '+', label: 'entities unified' },
-  { value: 45, suffix: '%', label: 'faster incident response' },
-  { value: 4, suffix: '+', label: 'statutory configs supported' },
-];
-
-export const CONSTRUCTION_STATS: IndustryStat[] = [
-  { value: 25, suffix: '+', label: 'sites tracked' },
-  { value: 30, suffix: '%', label: 'plant utilization gain' },
-  { value: 5, suffix: ' days', label: 'payment cycle reduced' },
-];
-
 export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
   {
     id: 'hr-consultancy',
     name: 'HR Consultancy',
     status: 'available',
-    positioning: 'Recruitment, assessments, and client workforce ops — one login.',
+    positioning: 'Recruitment, assessments, and client workforce ops, one login.',
     pain:
-      'Boutique HR firms juggle separate ATS tools, spreadsheet shortlists, and payroll for each client — assessments live outside the pipeline and client billing is manual.',
+      'Boutique HR firms juggle separate ATS tools, spreadsheet shortlists, and payroll for each client, assessments live outside the pipeline and client billing is manual.',
     strideRuns:
       'Careers site and job posts → applicant pipeline → built-in AssessIQ candidate assessments (skills & aptitude, auto-scored) → interviews → hire → payroll and finance for client workforces on the same platform.',
     opportunity:
-      'Thousands of East African HR consultancies outgrow spreadsheets but cannot afford enterprise talent suites — Stride bundles ATS, assessments, and Kenya-compliant payroll at SaaS pricing.',
-    stats: HR_CONSULTANCY_STATS,
+      'Thousands of East African HR consultancies outgrow spreadsheets but cannot afford enterprise talent suites. Stride bundles ATS, assessments, and Kenya-compliant payroll at SaaS pricing.',
     href: MARKETING_ROUTES.contact,
     ctaLabel: MARKETING_CTAS.bookDemo,
     mediaKey: 'hr_consultancy',
@@ -115,12 +70,11 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
     status: 'available',
     positioning: 'The full fleet workflow on one platform.',
     pain:
-      'Mid-size fleets run on WhatsApp, spreadsheets and disconnected tools — no single view of a trip, disputed settlements, billing done by hand.',
+      'Mid-size fleets run on WhatsApp, spreadsheets and disconnected tools, no single view of a trip, disputed settlements, billing done by hand.',
     strideRuns:
       'Order intake → route & trip planning → vehicle & driver allocation → pre-trip compliance → in-transit monitoring → proof of delivery → settlement & billing.',
     opportunity:
-      'East African logistics is fragmented; mid-size operators can\'t justify enterprise TMS — Stride gives them one at SaaS pricing.',
-    stats: LOGISTICS_STATS,
+      'East African logistics is fragmented; mid-size operators can\'t justify enterprise TMS. Stride gives them one at SaaS pricing.',
     href: '/industries/logistics',
     ctaLabel: 'See the demo',
     mediaKey: 'logistics',
@@ -135,8 +89,7 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
     strideRuns:
       'Member management, dividends, BOSA/FOSA operations, regulatory (SASRA-aligned) reporting.',
     opportunity:
-      'Thousands of regulated SACCOs need modern, affordable digital operations — an underserved, compliance-heavy market.',
-    stats: SACCO_STATS,
+      'Thousands of regulated SACCOs need modern, affordable digital operations, an underserved, compliance-heavy market.',
     href: '/industries/saccos',
     ctaLabel: 'See the demo',
     mediaKey: 'saccos',
@@ -151,7 +104,6 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
     strideRuns: 'Rota & shift scheduling, biometric clock-in, attendance, compliance.',
     opportunity:
       'Growing private facilities need affordable, reliable workforce ops without enterprise HRIS cost.',
-    stats: HEALTHCARE_STATS,
     href: '/industries/healthcare',
     ctaLabel: 'See the demo',
     mediaKey: 'healthcare',
@@ -167,7 +119,6 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
       'HSE & compliance, incident reporting, multi-entity / multi-country operations and statutory.',
     opportunity:
       'Downstream operators run hundreds of staff across entities and borders with no unified system.',
-    stats: ENERGY_STATS,
     href: '/industries/energy',
     ctaLabel: 'See the demo',
     mediaKey: 'energy',
@@ -182,7 +133,6 @@ export const INDUSTRY_DEEP_DIVES: IndustryDeepDive[] = [
     strideRuns: 'Site & project management, plant tracking, subcontractor workflows.',
     opportunity:
       'Project-based firms lack affordable tools to control plant, labor and subcontractor spend.',
-    stats: CONSTRUCTION_STATS,
     href: '/industries/construction',
     ctaLabel: 'See the demo',
     mediaKey: 'construction',
@@ -193,7 +143,7 @@ export const CORE_CAPABILITIES_BAND = {
   eyebrow: 'Shared foundation',
   title: 'Every vertical inherits the core.',
   description:
-    'People, payroll, finance, self-service and analytics — live on day one, regardless of which pack you add.',
+    'People, payroll, finance, self-service and analytics, live on day one, regardless of which pack you add.',
 } as const;
 
 export const STRIDE_VS_ALTERNATIVE = {
@@ -211,7 +161,7 @@ export const STRIDE_VS_ALTERNATIVE = {
     heading: 'With Stride',
     items: [
       'One platform, one login',
-      'Vertical packs — not separate products',
+      'Vertical packs, not separate products',
       'Core + sector workflows unified',
       'East African compliance built in',
     ],

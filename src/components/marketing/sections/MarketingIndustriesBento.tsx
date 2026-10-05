@@ -22,7 +22,7 @@ export function MarketingIndustriesBento() {
         </MarketingReveal>
         <MarketingReveal delay={0.16}>
           <p className="mt-[18px] max-w-[540px] text-[17px] leading-relaxed text-pub-ink-muted">
-            The core runs every business. Industry packs add the depth your sector needs — Logistics
+            The core runs every business. Industry packs add the depth your sector needs. Logistics
             is live; SACCOs, healthcare, energy and construction are coming soon.
           </p>
         </MarketingReveal>

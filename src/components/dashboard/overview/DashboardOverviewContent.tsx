@@ -3,16 +3,19 @@
 import Link from 'next/link';
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
-  Bell,
-  Building2,
+  CalendarClock,
   ChevronRight,
+  Clock,
   Pin,
+  Receipt,
+  ShieldCheck,
+  Users,
 } from 'lucide-react';
+import { DashboardTodayHome, type TodayStat } from '@/components/dashboard/overview/DashboardTodayHome';
 import { useEntity } from '@/components/EntitySwitcher';
 import { useDashboardSession } from '@/contexts/dashboard-session';
 import type { OverviewCoreMetrics } from '@/lib/dashboard-overview-metrics';
 import { readOverviewCoreCache, writeOverviewCoreCache } from '@/lib/dashboard-overview-cache';
-import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import {
   ALL_MODULES_ENABLED,
   buildDashboardNavSections,
@@ -35,8 +38,6 @@ import {
   type OverviewShortcut,
 } from '@/lib/dashboard-overview-personalization';
 import { useDashboardModuleOrder } from '@/contexts/dashboard-module-order';
-import { OverviewModuleCommandCenter } from '@/components/dashboard/overview/OverviewModuleCommandCenter';
-import { ModuleKpiSnapshotCard } from '@/components/dashboard/overview/ModuleKpiSnapshotCard';
 import {
   FULL_WIDTH_OVERVIEW_WIDGETS,
   orderKpisByLayout,
@@ -45,9 +46,6 @@ import {
   type OverviewWidgetId,
 } from '@/lib/dashboard-overview-layout';
 import { useDashboardOverviewLayout } from '@/contexts/dashboard-overview-layout';
-import { OverviewWidgetHeader } from '@/components/dashboard/overview/OverviewWidgetHeader';
-import { PersonalPlanningSection } from '@/components/dashboard/overview/PersonalPlanningSection';
-import { NeedsAttentionSection } from '@/components/dashboard/overview/NeedsAttentionSection';
 import { DemoWalkthroughCard } from '@/components/dashboard/DemoWalkthroughCard';
 import { isPublicDemoMode } from '@/lib/deployment-flags';
 
@@ -176,8 +174,32 @@ export default function DashboardOverviewContent() {
         || readOverviewCoreCache(sessionUser.currentOrgId, activeEntity.id),
     );
 
-    const loadCore = async () => {
+    const loadHomePaint = async () => {
       if (!hasWarmCore) setCoreLoading(true);
+      try {
+        const res = await fetch('/api/dashboard/overview?metricsOnly=1&slice=home', {
+          credentials: 'include',
+        });
+        if (cancelled || !res.ok) return;
+        const data = (await res.json()) as OverviewCoreMetrics;
+        if (cancelled) return;
+        // First paint: clear the hero stats skeleton with the trimmed home slice.
+        applyOverviewCoreMetrics(data, {
+          setTotalStaff,
+          setOnDuty,
+          setPendingApprovals,
+          setOpenAttendanceExceptions,
+          setCredentialsExpiring,
+          setCredentialsExpired,
+          setUnreadNotifications,
+          setCrossModule,
+        });
+      } finally {
+        if (!cancelled) setCoreLoading(false);
+      }
+    };
+
+    const loadFullCore = async () => {
       try {
         const res = await fetch('/api/dashboard/overview?metricsOnly=1&slice=core', {
           credentials: 'include',
@@ -195,9 +217,22 @@ export default function DashboardOverviewContent() {
           setUnreadNotifications,
           setCrossModule,
         });
-        writeOverviewCoreCache(sessionUser.currentOrgId!, activeEntity.id, data);
-      } finally {
-        if (!cancelled) setCoreLoading(false);
+        // Attention badge is written once full metrics land (includes cross-module queues).
+        const personaNow = resolveOverviewPersona(sessionUser);
+        const attentionTotal = buildAttentionItems({
+          pendingLeave: data.pendingApprovals,
+          openAttendanceExceptions: data.openAttendanceExceptions,
+          credentialsExpiring: data.credentialsExpiring,
+          credentialsExpired: data.credentialsExpired,
+          myOnboardingCount: 0,
+          unreadNotifications: data.unreadNotifications,
+          crossModule: data.crossModule,
+          persona: personaNow,
+          modules: sessionModules ?? ALL_MODULES_ENABLED,
+        }).length;
+        writeOverviewCoreCache(sessionUser.currentOrgId!, activeEntity.id, data, attentionTotal);
+      } catch {
+        // Full core is best-effort after home paint.
       }
     };
 
@@ -213,15 +248,35 @@ export default function DashboardOverviewContent() {
       }
     };
 
-    void Promise.all([loadCore(), loadPinnedNav()]);
+    void loadHomePaint().then(() => {
+      if (!cancelled) void loadFullCore();
+    });
+    void loadPinnedNav();
     if (sessionUser?.currentOrgId && bootstrapOverviewCore) {
-      writeOverviewCoreCache(sessionUser.currentOrgId, activeEntity.id, bootstrapOverviewCore);
+      const personaNow = resolveOverviewPersona(sessionUser);
+      const attentionTotal = buildAttentionItems({
+        pendingLeave: bootstrapOverviewCore.pendingApprovals,
+        openAttendanceExceptions: bootstrapOverviewCore.openAttendanceExceptions,
+        credentialsExpiring: bootstrapOverviewCore.credentialsExpiring,
+        credentialsExpired: bootstrapOverviewCore.credentialsExpired,
+        myOnboardingCount: 0,
+        unreadNotifications: bootstrapOverviewCore.unreadNotifications,
+        crossModule: bootstrapOverviewCore.crossModule,
+        persona: personaNow,
+        modules: sessionModules ?? ALL_MODULES_ENABLED,
+      }).length;
+      writeOverviewCoreCache(
+        sessionUser.currentOrgId,
+        activeEntity.id,
+        bootstrapOverviewCore,
+        attentionTotal,
+      );
     }
 
     return () => {
       cancelled = true;
     };
-  }, [sessionUser?.currentOrgId, activeEntity.id, bootstrapOverviewCore]);
+  }, [sessionUser, activeEntity.id, bootstrapOverviewCore, sessionModules]);
 
   const me = sessionUser;
   const modules = sessionModules;
@@ -391,25 +446,26 @@ export default function DashboardOverviewContent() {
     layout,
   ]);
 
+  const personalPlanningHidden = (layout.hiddenWidgets ?? []).includes('personal-planning');
+
   const eligibleFullWidthWidgets = useMemo(() => {
     const ids: OverviewWidgetId[] = [];
-    if (!coreLoading && attentionItems.length > 0) ids.push('attention');
-    ids.push('personal-planning');
+    if (!personalPlanningHidden) ids.push('personal-planning');
+    // Standalone attention only when Getting into work is hidden (otherwise it's folded in).
+    if (!coreLoading && attentionItems.length > 0 && personalPlanningHidden) ids.push('attention');
     if (!coreLoading && snapshotKpis.length > 0) ids.push('snapshot');
     ids.push('command-center');
     return ids;
-  }, [coreLoading, attentionItems.length, snapshotKpis.length]);
+  }, [coreLoading, attentionItems.length, snapshotKpis.length, personalPlanningHidden]);
 
   const orderedFullWidthWidgets = useMemo(
     () => resolveWidgetOrder(eligibleFullWidthWidgets, layout, FULL_WIDTH_OVERVIEW_WIDGETS),
     [eligibleFullWidthWidgets, layout],
   );
 
-  const personalPlanningHidden = (layout.hiddenWidgets ?? []).includes('personal-planning');
-
   const eligibleSidebarWidgets = useMemo(() => {
     const ids: OverviewWidgetId[] = ['shortcuts'];
-    // Inbox lives inside Plan my work; only surface the standalone Updates panel if that widget is hidden.
+    // Inbox lives inside Getting into work; only surface the standalone Updates panel if that widget is hidden.
     if (!coreLoading && personalPlanningHidden) ids.push('notifications');
     return ids;
   }, [coreLoading, personalPlanningHidden]);
@@ -428,139 +484,70 @@ export default function DashboardOverviewContent() {
     );
   }
 
+  const todayStats: TodayStat[] = [
+    {
+      label: 'Team',
+      value: totalStaff,
+      caption: `${onDuty} on duty today`,
+      href: '/dashboard/employees',
+      icon: Users,
+    },
+    {
+      label: 'Approvals waiting',
+      value: pendingApprovals,
+      caption: pendingApprovals === 1 ? 'Leave request to review' : 'Leave requests to review',
+      href: '/dashboard/leave',
+      icon: CalendarClock,
+      tone: 'attention',
+    },
+    {
+      label: 'Attendance exceptions',
+      value: openAttendanceExceptions,
+      caption: 'Open today',
+      href: '/dashboard/attendance',
+      icon: Clock,
+      tone: 'attention',
+    },
+    crossModule.hasFinanceClient
+      ? {
+          label: 'Unpaid invoices',
+          value: crossModule.invoicesOutstanding,
+          caption: 'Awaiting payment',
+          href: '/dashboard/accounts',
+          icon: Receipt,
+          tone: 'attention' as const,
+        }
+      : {
+          label: 'Credentials expiring',
+          value: credentialsExpiring + credentialsExpired,
+          caption: credentialsExpired > 0 ? `${credentialsExpired} already expired` : 'In the next 30 days',
+          href: '/dashboard/employees',
+          icon: ShieldCheck,
+          tone: 'attention' as const,
+        },
+  ];
+
   return (
-    <div className="page-shell">
-      <DashboardPageHeader
-        variant="hero"
-        badges={[
-          { label: roleLabel },
-          { label: activeEntity.name, icon: Building2 },
-        ]}
-        title={greeting}
-        description={subtitle}
-        meta={todayLabel || undefined}
-        actions={headerActions}
-        titleSuppressHydrationWarning
-        metaSuppressHydrationWarning
+    <>
+      {isPublicDemoMode() ? (
+        <div className="page-shell pb-0">
+          <DemoWalkthroughCard />
+        </div>
+      ) : null}
+      <DashboardTodayHome
+        greeting={greeting}
+        dateLabel={todayLabel}
+        entityName={activeEntity.name}
+        roleLabel={roleLabel}
+        subtitle={subtitle}
+        primaryAction={primaryAction}
+        secondaryAction={secondaryAction}
+        stats={todayStats}
+        attentionItems={!coreLoading ? attentionItems : []}
+        shortcuts={shortcuts}
+        businessKpis={snapshotKpis}
+        loading={coreLoading}
       />
-
-      {isPublicDemoMode() ? <DemoWalkthroughCard /> : null}
-
-      {isCustom ? (
-        <p className="text-xs text-[var(--dash-text-subtle)]">
-          Your personalized dashboard layout.{' '}
-          <Link href="/dashboard/settings#dashboard-layout" className="font-medium text-primary-700 hover:text-primary-800">
-            Manage in Settings
-          </Link>
-        </p>
-      ) : null}
-
-      {orderedFullWidthWidgets.includes('attention') && !coreLoading && attentionItems.length > 0 ? (
-        <NeedsAttentionSection
-          items={attentionItems}
-          domains={visibleDomains}
-          attentionByDomain={attentionByDomain}
-        />
-      ) : null}
-
-      {orderedFullWidthWidgets.includes('personal-planning') ? (
-        <PersonalPlanningSection onUnreadChange={setUnreadNotifications} />
-      ) : null}
-
-      {orderedFullWidthWidgets.includes('snapshot') ? (
-        coreLoading ? (
-          <div className="skeleton h-56 rounded-xl" aria-hidden />
-        ) : (
-          <section className="dashboard-panel group/pin-target overflow-hidden">
-            <OverviewWidgetHeader widgetId="snapshot" title="Business snapshot tiles" />
-            <div className="grid grid-cols-1 gap-4 px-2 py-2 sm:grid-cols-2 sm:px-3 xl:grid-cols-3">
-              {snapshotKpis.map((kpi) => (
-                <ModuleKpiSnapshotCard
-                  key={kpi.domainId}
-                  label={kpi.label}
-                  value={kpi.value}
-                  note={kpi.note}
-                  icon={kpi.icon}
-                  href={kpi.href}
-                  chartSegments={kpi.chartSegments}
-                  chartPlaceholder={kpi.chartPlaceholder}
-                />
-              ))}
-            </div>
-          </section>
-        )
-      ) : null}
-
-      {orderedFullWidthWidgets.includes('command-center') ? (
-        coreLoading ? (
-          <div className="skeleton h-44 rounded-xl" aria-hidden />
-        ) : (
-          <OverviewModuleCommandCenter
-            attentionByDomain={attentionByDomain}
-            domainSnapshots={domainSnapshots}
-          />
-        )
-      ) : null}
-
-      {orderedSidebarWidgets.length > 0 ? (
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <aside className="space-y-6 xl:col-span-12">
-          {orderedSidebarWidgets.includes('shortcuts') ? (
-          <div className="dashboard-panel group/pin-target overflow-hidden">
-            <OverviewWidgetHeader
-              widgetId="shortcuts"
-              title="Jump to a module"
-              trailing={
-                pinnedShortcuts.length > 0 ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--dash-text-subtle)]">
-                    <Pin className="h-3 w-3" /> Pinned first
-                  </span>
-                ) : null
-              }
-            />
-            <div className="space-y-0.5 px-2 pb-3 pt-1 sm:px-3">
-              {shortcuts.map((item) => (
-                <ShortcutTile key={item.href} item={item} pinned={pinnedHrefSet.has(item.href)} />
-              ))}
-            </div>
-            <p className="border-t border-[var(--dash-border-subtle)] px-4 py-2.5 text-[11px] leading-relaxed text-[var(--dash-text-subtle)] sm:px-5">
-              Pin any sidebar link to surface it here — hover a nav item and click the pin icon.
-            </p>
-          </div>
-          ) : null}
-
-          {orderedSidebarWidgets.includes('notifications') ? (
-          <div className="dashboard-panel group/pin-target overflow-hidden">
-            <OverviewWidgetHeader
-              widgetId="notifications"
-              title="Updates"
-              trailing={
-                unreadNotifications > 0 ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-primary-700 dark:bg-primary-950/40 dark:text-primary-300">
-                    <Bell className="h-3 w-3" />
-                    {unreadNotifications}
-                  </span>
-                ) : null
-              }
-            />
-            <div className="px-4 py-5 text-center sm:px-5">
-              <p className="text-sm text-[var(--dash-text-muted)]">
-                {unreadNotifications > 0
-                  ? `${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}.`
-                  : 'You’re caught up.'}
-              </p>
-              <Link
-                href="/dashboard/notifications"
-                className="mt-2 inline-flex text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-400"
-              >
-                Open notifications →
-              </Link>
-            </div>
-          </div>
-          ) : null}
-        </aside>
-      </section>
-      ) : null}
-    </div>
+    </>
   );
 }

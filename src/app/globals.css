@@ -4,10 +4,10 @@
 
 :root {
   /* Dashboard KPI swatches — warm ink scale (no legacy blue/teal primaries) */
-  --swatch-sky-bg: #f4efe8;
-  --swatch-sky-fg: #3d3833;
-  --swatch-sky-accent: #8a8076;
-  --swatch-sky-border: #e6ded4;
+  --swatch-sky-bg: #F5F5F7;
+  --swatch-sky-fg: #44403C;
+  --swatch-sky-accent: #78716C;
+  --swatch-sky-border: #E7E7EB;
   --swatch-emerald-bg: #dcfce7;
   --swatch-emerald-fg: #15803d;
   --swatch-emerald-accent: #10b981;
@@ -33,9 +33,9 @@
   --swatch-coral-accent: var(--brand-primary);
   --swatch-coral-border: var(--color-primary-200);
 
-  /* Layout, type, spacing — semantic colors live in stride-palette.css */
-  --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-display: var(--font-bricolage), var(--font-inter), system-ui, sans-serif;
+  /* Product + marketing share Plus Jakarta Sans (heading + body); mono stays IBM Plex. */
+  --font-sans: var(--font-jakarta), var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --text-base: 14px;
   --line-base: 22px;
@@ -398,16 +398,17 @@ button, a, input, textarea {
   50% { opacity: 0.4; }
 }
 
+/* Tabular figures for aligned columns — stay on the platform sans (Plus Jakarta).
+   Reference IDs / codes in the product shell also use sans (see dashboard-theme);
+   keep true monospace only for kbd, code, pre, and `.font-mono-literal`. */
 table .numeric,
 [data-numeric='true'],
 .tabular-nums {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-feature-settings: 'tnum';
   font-variant-numeric: tabular-nums;
 }
 
-/* Payroll table: keep numbers column-aligned but use the readable sans font
-   instead of the monospace treatment for a cleaner, less "styled" look. */
 .payroll-table-clean .tabular-nums,
 .payroll-table-clean [data-numeric='true'] {
   font-family: var(--font-sans);

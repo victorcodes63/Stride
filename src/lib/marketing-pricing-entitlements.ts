@@ -72,7 +72,7 @@ export function marketingTierModuleSummary(tierId: MarketingPricingTierId): stri
       return [
         'HR & Payroll and Finance always included',
         'Choose 2 horizontal plug-in modules (e.g. Procurement, Legal)',
-        'Any team size — you pay only for active employees',
+        'Any team size, you pay only for active employees',
         'Employee self-service (ESS)',
         'M-Pesa disbursements',
         'KRA PAYE, NSSF, SHIF and Housing Levy compliance',
@@ -83,7 +83,7 @@ export function marketingTierModuleSummary(tierId: MarketingPricingTierId): stri
         'HR & Payroll and Finance always included',
         '4 horizontal plug-in modules included',
         'One vertical pack (e.g. Logistics fleet)',
-        'Any team size — you pay only for active employees',
+        'Any team size, you pay only for active employees',
         'Multi-entity support',
         'Advanced approvals & workflows',
         'Priority support + onboarding',

@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle2, LayoutDashboard } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { DashboardPage, DashboardPageSection } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { DashboardStatCard, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardStatBadge, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { NavReadinessBadge } from '@/components/dashboard/NavReadinessBadge';
 import { getDashboardModuleDomain } from '@/lib/dashboard-module-domains';
 import type { ModuleHomeMeta, ModuleHomeWorkspace } from '@/lib/dashboard-module-homes';
@@ -21,6 +21,7 @@ export type ModuleHomeStat = {
   href?: string;
   tone?: DashboardStatTone;
   warn?: boolean;
+  icon?: LucideIcon;
 };
 
 export type ModuleHomePageProps = {
@@ -135,24 +136,17 @@ export function ModuleHomePage({
             </div>
           ) : (
             <DashboardStatGrid columns={stats.length >= 4 ? 4 : stats.length === 3 ? 3 : 2}>
-              {stats.map((stat) => {
-                const card = (
-                  <DashboardStatCard
-                    label={stat.label}
-                    value={stat.value}
-                    hint={stat.hint}
-                    tone={stat.tone ?? 'primary'}
-                    warn={stat.warn}
-                  />
-                );
-                return stat.href ? (
-                  <Link key={stat.label} href={stat.href} className="block transition hover:opacity-90">
-                    {card}
-                  </Link>
-                ) : (
-                  <div key={stat.label}>{card}</div>
-                );
-              })}
+              {stats.map((stat) => (
+                <DashboardStatBadge
+                  key={stat.label}
+                  label={stat.label}
+                  value={stat.value}
+                  hint={stat.hint}
+                  href={stat.href}
+                  icon={stat.icon}
+                  attention={Boolean(stat.warn)}
+                />
+              ))}
             </DashboardStatGrid>
           )}
         </DashboardPageSection>

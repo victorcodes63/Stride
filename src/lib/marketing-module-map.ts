@@ -128,12 +128,12 @@ const MARKETING_AREA_COPY: Record<
   'hr-payroll': {
     headline: 'Pay people correctly. Hire and develop them on the same records.',
     description:
-      'People, leave, time, payroll, disciplinary, ESS, recruitment, assessments, performance, training, reports and communications — on one employee graph with KRA, NSSF and SHIF built in.',
+      'People, leave, time, payroll, disciplinary, ESS, recruitment, assessments, performance, training, reports and communications, on one employee graph with KRA, NSSF and SHIF built in.',
     features: [
       'Employee directory, org chart, onboarding and tasks',
       'Leave, rota, attendance and biometric clock-in',
       'Payroll runs, payslips, statutory and M-Pesa disbursements',
-      'Recruitment & Talent — jobs, pipeline, interviews and careers site',
+      'Recruitment & Talent, jobs, pipeline, interviews and careers site',
       'AssessIQ candidate assessments linked to applications',
       'Performance cycles, scorecards and review workflows',
     ],
@@ -164,7 +164,7 @@ const MARKETING_AREA_COPY: Record<
   'legal-documents': {
     headline: 'Contracts, credentials and policies in one place.',
     description:
-      'Legal obligations register, employee credentials and company policy library — core registers are usable; unified compliance hub and renewal automation are still maturing.',
+      'Legal obligations register, employee credentials and company policy library, core registers are usable; unified compliance hub and renewal automation are still maturing.',
     features: [
       'Contracts linked to employees and clients',
       'Credential expiry tracking',
@@ -175,7 +175,7 @@ const MARKETING_AREA_COPY: Record<
   projects: {
     headline: 'Deliverables tied to real people and budgets.',
     description:
-      'Project register, kanban board, milestones, tasks, and budget vs actual — linked to Finance budgets and your people master.',
+      'Project register, kanban board, milestones, tasks, and budget vs actual, linked to Finance budgets and your people master.',
     features: [
       'Project register and milestone tracking',
       'Kanban board and task assignment',
@@ -184,7 +184,7 @@ const MARKETING_AREA_COPY: Record<
     ],
   },
   'admin-operations': {
-    headline: 'Assets, HSE and operational reporting — not a junk drawer.',
+    headline: 'Assets, HSE and operational reporting, not a junk drawer.',
     description:
       'Company asset registry, HSE incident tracking, announcements and workforce analytics. Assignment lifecycle, handover acknowledgement, and warranty alerts are live in the operations hub.',
     features: [
@@ -195,9 +195,9 @@ const MARKETING_AREA_COPY: Record<
     ],
   },
   'fleet-logistics': {
-    headline: 'Logistics industry pack — trips on the same platform as payroll.',
+    headline: 'Logistics industry pack, trips on the same platform as payroll.',
     description:
-      'Optional industry pack for transporters: orders, dispatch, compliance, settlements and client billing — billed on the same finance module as payroll.',
+      'Optional industry pack for transporters: orders, dispatch, compliance, settlements and client billing, billed on the same finance module as payroll.',
     features: [
       'Transport orders and trip board',
       'Vehicle and driver registers',
@@ -208,7 +208,7 @@ const MARKETING_AREA_COPY: Record<
   'hr-outsourcing': {
     headline: 'Per-client payroll and workforce for BPO operators.',
     description:
-      'End-client register, outsourced workforce, and per-client payroll, attendance, leave and disciplinary — built for boutique HR firms and outsourcing operators.',
+      'End-client register, outsourced workforce, and per-client payroll, attendance, leave and disciplinary, built for boutique HR firms and outsourcing operators.',
     features: [
       'End-client register with entity codes',
       'Outsourced employee and department management',
@@ -219,7 +219,7 @@ const MARKETING_AREA_COPY: Record<
   sales: {
     headline: 'Pipeline KPIs on the same scorecards as performance.',
     description:
-      'Sales pipeline attainment auto-measures for revenue roles via performance scorecards — tied to the same review cycles as the rest of HR.',
+      'Sales pipeline attainment auto-measures for revenue roles via performance scorecards, tied to the same review cycles as the rest of HR.',
     features: [
       'Pipeline attainment KPI provider',
       'Scorecard auto-measures for sales roles',
@@ -285,7 +285,7 @@ export const MARKETING_PRODUCT_AREAS = buildMarketingProductAreas();
 /** Homepage card shape (subset of product areas). */
 export function buildCoreModulesFromRegistry() {
   return MARKETING_PRODUCT_AREAS.map((area) => ({
-    num: `${area.num} — ${area.name.split(' ')[0]}`,
+    num: `${area.num}, ${area.name.split(' ')[0]}`,
     name: area.name,
     readiness: area.readiness,
     description: area.description,

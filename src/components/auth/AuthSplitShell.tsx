@@ -55,24 +55,24 @@ export function AuthSplitShell({
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-coral)]">
               {eyebrow}
             </p>
-            <h1 className="max-w-[22rem] text-[clamp(1.75rem,3.5vw,2.375rem)] font-normal leading-[1.08] tracking-tight !text-[#fbf8f4]">
+            <h1 className="max-w-[22rem] text-[clamp(1.75rem,3.5vw,2.375rem)] font-normal leading-[1.08] tracking-tight !text-[#FFFFFF]">
               {title}
             </h1>
-            <p className="max-w-[30ch] text-[14px] leading-relaxed text-[#fbf8f4]/82">{subtitle}</p>
+            <p className="max-w-[30ch] text-[14px] leading-relaxed text-[#FFFFFF]/82">{subtitle}</p>
           </div>
 
           <footer className="bd-demo-tagline mt-10 hidden lg:block">
             <p className="text-[11px] font-medium uppercase tracking-[0.12em]" suppressHydrationWarning>
               © {year} {brandConfig.productName}
             </p>
-            <nav className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#fbf8f4]/50">
-              <Link href={getAppPageUrl('/careers')} className="transition-colors hover:text-[#fbf8f4]">
+            <nav className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#FFFFFF]/50">
+              <Link href={getAppPageUrl('/careers')} className="transition-colors hover:text-[#FFFFFF]">
                 Careers
               </Link>
-              <Link href={getMarketingPageUrl(privacyPolicyUrl || '/privacy')} className="transition-colors hover:text-[#fbf8f4]">
+              <Link href={getMarketingPageUrl(privacyPolicyUrl || '/privacy')} className="transition-colors hover:text-[#FFFFFF]">
                 Privacy
               </Link>
-              <Link href={getMarketingPageUrl(termsUrl || '/terms')} className="transition-colors hover:text-[#fbf8f4]">
+              <Link href={getMarketingPageUrl(termsUrl || '/terms')} className="transition-colors hover:text-[#FFFFFF]">
                 Terms
               </Link>
             </nav>
@@ -107,7 +107,7 @@ export function LoginCard({
     <div className={`w-full space-y-6 ${className}`.trim()}>
       {children}
       {footer ? (
-        <div className="border-t border-white/10 pt-4 text-[0.8125rem] text-[#fbf8f4]/55">{footer}</div>
+        <div className="border-t border-white/10 pt-4 text-[0.8125rem] text-[#FFFFFF]/55">{footer}</div>
       ) : null}
     </div>
   );

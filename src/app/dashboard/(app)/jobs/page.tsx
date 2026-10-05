@@ -239,7 +239,7 @@ export default function DashboardJobsPage() {
  <tbody>
  {filteredJobs.map((job) => (
  <tr key={job.id} className="group transition-colors">
- <td className="text-neutral-500 font-mono text-xs whitespace-nowrap align-middle">
+ <td className="text-neutral-500 tabular-nums text-xs whitespace-nowrap align-middle">
  {job.referenceId ?? '—'}
  </td>
  <td className="align-middle max-w-[20rem]">

@@ -1,12 +1,9 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { DASHBOARD_STAT_CARD_CLASS } from '@/lib/dashboard-layout';
-import {
-  DASHBOARD_KPI_CLASSES,
-  DASHBOARD_STAT_TONE_CLASSES,
-  type DashboardKpiVariant,
-  type DashboardStatTone,
-} from '@/lib/platform-swatches';
+import type { DashboardKpiVariant, DashboardStatTone } from '@/lib/platform-swatches';
 
 function cn(...parts: (string | false | undefined)[]) {
   return parts.filter(Boolean).join(' ');
@@ -32,28 +29,107 @@ export function DashboardStatGrid({
   columns?: Columns;
   className?: string;
 }) {
-  return <div className={cn('grid gap-3', columnClass[columns], className)}>{children}</div>;
+  return <div className={cn('grid gap-3 sm:gap-4', columnClass[columns], className)}>{children}</div>;
 }
 
-const KPI_TONE_ALIASES: Record<string, DashboardKpiVariant> = {
-  info: 'violet',
-  success: 'emerald',
-  warning: 'amber',
-  rose: 'amber',
-};
-
-function resolveKpiTone(tone: DashboardKpiVariant | string): DashboardKpiVariant {
-  if (tone in DASHBOARD_KPI_CLASSES) return tone as DashboardKpiVariant;
-  return KPI_TONE_ALIASES[tone] ?? 'primary';
-}
-
-/** KPI card with icon — unified styling for recruitment, people, and module headers. */
-export function DashboardMetricCard({
+/**
+ * Platform-standard stats badge (Overview home hero).
+ * Label + optional icon, large tabular value, caption — used across module homes and workspaces.
+ */
+export function DashboardStatBadge({
   label,
   value,
   hint,
   icon: Icon,
-  tone = 'primary',
+  href,
+  attention = false,
+  size = 'default',
+  className,
+  onClick,
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: string;
+  icon?: LucideIcon;
+  href?: string;
+  /** Coral icon well when the metric needs action. */
+  attention?: boolean;
+  size?: 'default' | 'compact';
+  className?: string;
+  onClick?: () => void;
+}) {
+  const interactive = Boolean(href || onClick);
+  const body = (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13px] font-medium text-[var(--dash-text-muted)]">{label}</span>
+        {Icon ? (
+          <span
+            className={cn(
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+              attention
+                ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-300'
+                : 'bg-[var(--dash-surface-muted)] text-[var(--dash-text-muted)]',
+            )}
+            aria-hidden
+          >
+            <Icon className="h-4 w-4" strokeWidth={1.75} />
+          </span>
+        ) : null}
+      </div>
+      <p
+        className={cn(
+          'font-semibold leading-none tracking-[-0.03em] text-[var(--dash-text-strong)] tabular-nums',
+          size === 'compact'
+            ? 'mt-4 text-[22px] sm:text-[26px]'
+            : 'mt-6 text-[28px] sm:text-[34px]',
+        )}
+      >
+        {value}
+      </p>
+      {hint ? (
+        <p className="mt-2 flex items-center gap-1 text-[13px] text-[var(--dash-text-subtle)]">
+          {hint}
+          {interactive ? (
+            <ArrowUpRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+          ) : null}
+        </p>
+      ) : null}
+    </>
+  );
+
+  const shellClass = cn(
+    DASHBOARD_STAT_CARD_CLASS,
+    'group relative flex flex-col justify-between !p-5 sm:!p-6 transition-all duration-200',
+    interactive && 'hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-18px_rgba(26,23,20,0.35)]',
+    className,
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={shellClass}>
+        {body}
+      </Link>
+    );
+  }
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cn(shellClass, 'w-full text-left')}>
+        {body}
+      </button>
+    );
+  }
+
+  return <div className={shellClass}>{body}</div>;
+}
+
+/** @deprecated Prefer DashboardStatBadge — kept as an alias for existing call sites. */
+export function DashboardMetricCard({
+  label,
+  value,
+  hint,
+  icon,
   highlighted = false,
   className,
 }: {
@@ -65,93 +141,52 @@ export function DashboardMetricCard({
   highlighted?: boolean;
   className?: string;
 }) {
-  const styles = DASHBOARD_KPI_CLASSES[resolveKpiTone(tone)];
-
   return (
-    <div
-      className={cn(
-        DASHBOARD_STAT_CARD_CLASS,
-        'relative min-w-0 overflow-hidden shadow-sm transition-shadow hover:shadow-md',
-        styles.card,
-        highlighted && 'ring-1 ring-[var(--swatch-coral-accent)]/35',
-        className,
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="dash-stat-label text-[10px] font-bold uppercase tracking-widest text-[var(--dash-text-muted)] sm:text-[11px]">
-            {label}
-          </p>
-          <p className={cn('mt-1 text-2xl font-bold tabular-nums sm:text-3xl', styles.value)}>{value}</p>
-          {hint ? (
-            <p className="dash-stat-hint mt-1 text-[11px] leading-snug text-[var(--dash-text-subtle)]">{hint}</p>
-          ) : null}
-        </div>
-        <div
-          className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', styles.icon)}
-          aria-hidden
-        >
-          <Icon className="h-5 w-5" strokeWidth={1.75} />
-        </div>
-      </div>
-    </div>
+    <DashboardStatBadge
+      label={label}
+      value={value}
+      hint={hint}
+      icon={icon}
+      attention={highlighted}
+      className={className}
+    />
   );
 }
 
+/** @deprecated Prefer DashboardStatBadge — kept as an alias for existing call sites. */
 export function DashboardStatCard({
   label,
   value,
   hint,
   trend,
   className,
-  tone = 'primary',
+  tone: _tone = 'primary',
   warn,
   size = 'default',
+  icon,
+  href,
 }: {
   label: string;
   value: ReactNode;
   hint?: string;
   trend?: ReactNode;
   className?: string;
-  /** Coloured accent strip + subtle card wash */
   tone?: DashboardStatTone;
   warn?: boolean;
-  /** `compact` fits long currency strings in narrow / 6-column grids (e.g. payroll). */
   size?: 'default' | 'compact';
+  icon?: LucideIcon;
+  href?: string;
 }) {
-  const styles = DASHBOARD_STAT_TONE_CLASSES[tone] ?? DASHBOARD_STAT_TONE_CLASSES.primary;
-
   return (
-    <div
-      className={cn(
-        DASHBOARD_STAT_CARD_CLASS,
-        'relative overflow-hidden bg-gradient-to-br shadow-sm',
-        styles.wash,
-        className,
-      )}
-    >
-      <div
-        className={cn('absolute inset-y-0 left-0 w-1.5', styles.bar)}
-        aria-hidden
-      />
-      <div className="relative min-w-0 pl-3.5">
-        <p className="dash-stat-label text-[11px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
-          {label}
-        </p>
-        <div className="mt-1 flex min-w-0 items-end justify-between gap-2">
-          <p
-            className={cn(
-              'dash-stat-value min-w-0 font-semibold tabular-nums leading-snug text-[var(--dash-text-strong)]',
-              size === 'compact' ? 'text-sm sm:text-[15px] lg:text-base' : 'text-2xl',
-              warn && 'text-[var(--dash-text-strong)]',
-            )}
-          >
-            {value}
-          </p>
-          {trend ? <div className="shrink-0 text-xs text-[var(--dash-text-muted)]">{trend}</div> : null}
-        </div>
-        {hint ? <p className="dash-stat-hint mt-1 text-xs text-[var(--dash-text-subtle)]">{hint}</p> : null}
-      </div>
-    </div>
+    <DashboardStatBadge
+      label={label}
+      value={value}
+      hint={hint ?? (typeof trend === 'string' ? trend : undefined)}
+      icon={icon}
+      href={href}
+      attention={Boolean(warn)}
+      size={size}
+      className={className}
+    />
   );
 }

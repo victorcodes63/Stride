@@ -4,11 +4,11 @@ import { MarketingReveal } from '@/components/marketing/MarketingReveal';
 const STATS = [
   {
     value: '6',
-    label: 'Business functions in one platform — HR, Finance, Procurement, Legal, Projects, Admin',
+    label: 'Business functions in one platform. HR, Finance, Procurement, Legal, Projects, Admin',
   },
   {
     value: 'Day 1',
-    label: 'KRA, NSSF and SHIF compliance out of the box — zero configuration required',
+    label: 'KRA, NSSF and SHIF compliance out of the box, zero configuration required',
   },
   {
     value: '1',
@@ -25,7 +25,7 @@ export function MarketingWhySection() {
             <MarketingEyebrow tone="dark">Why Stride</MarketingEyebrow>
           </MarketingReveal>
           <MarketingReveal delay={0.08}>
-            <h2 className="font-heading text-[clamp(2rem,4vw,3.25rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-[#FBF8F4]">
+            <h2 className="font-heading text-[clamp(2rem,4vw,3.25rem)] font-extrabold leading-[1.06] tracking-[-1.5px] text-[#FFFFFF]">
               Built for
               <br />
               <span className="text-[var(--pub-primary)]">East Africa.</span>
@@ -36,7 +36,7 @@ export function MarketingWhySection() {
           <MarketingReveal delay={0.16}>
             <p className="mt-[18px] max-w-[540px] text-[17px] leading-relaxed text-[#F0EFE9]/65">
               Global ERPs were designed for other markets and retrofitted for Kenya. Stride is built
-              from the ground up —{' '}
+              from the ground up:{' '}
               <strong className="font-semibold text-pub-surface">
                 M-Pesa disbursements, KRA compliance, multi-entity SACCO structures and East African
                 payroll logic

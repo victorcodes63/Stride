@@ -10,7 +10,6 @@ import {
   Loader2,
   Pencil,
   Plus,
-  Sparkles,
   Target,
   Trash2,
   TrendingUp,
@@ -734,7 +733,7 @@ function LeadDetailDrawer({
         {breakdown ? (
           <div className="rounded-lg border border-[var(--dash-border)] p-3">
             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--dash-text-muted)]">
-              <Sparkles className="h-3.5 w-3.5" /> Score breakdown
+              <BarChart3 className="h-3.5 w-3.5" /> Score breakdown
             </div>
             <ScoreBreakdown result={breakdown} />
           </div>

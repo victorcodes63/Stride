@@ -14,6 +14,7 @@ export const BOOTSTRAP_PENDING_MODULES: Record<ModuleKey, boolean> = {
   disciplinary: false,
   reports: false,
   assets: false,
+  inventory: false,
   fleet: false,
   sacco: false,
   healthcare: false,

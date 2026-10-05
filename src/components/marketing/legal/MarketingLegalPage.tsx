@@ -1,11 +1,6 @@
 import Link from 'next/link';
 
-import {
-  MarketingPageHero,
-  MarketingPageHeroDescription,
-  MarketingPageHeroEyebrow,
-  MarketingPageHeroTitle,
-} from '@/components/marketing/MarketingPageHero';
+import { EditorialPageHero } from '@/components/marketing/editorial/EditorialPageHero';
 import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import type { MarketingLegalPageProps } from '@/components/marketing/legal/legal-types';
 
@@ -28,35 +23,41 @@ export function MarketingLegalPage({
 }: MarketingLegalPageProps) {
   return (
     <>
-      <MarketingPageHero>
-        <MarketingPageHeroEyebrow>{eyebrow}</MarketingPageHeroEyebrow>
-        <MarketingPageHeroTitle className="mt-5 max-w-[720px]">{title}</MarketingPageHeroTitle>
-        <MarketingPageHeroDescription className="mt-4">{description}</MarketingPageHeroDescription>
-        <p className="mt-5 text-sm text-[var(--sc-ink-muted)]">
-          Last updated{' '}
-          <time dateTime={lastUpdated} className="font-medium text-[var(--sc-ink)]">
-            {formatLastUpdated(lastUpdated)}
-          </time>
-        </p>
-      </MarketingPageHero>
+      <EditorialPageHero
+        size="page"
+        badge={eyebrow}
+        title={title}
+        description={description}
+        actions={
+          <p className="inline-flex items-center gap-2 rounded-full border border-[var(--sc-line)] px-4 py-2 text-[14px] text-[var(--sc-ink-muted)]">
+            Last updated{' '}
+            <time dateTime={lastUpdated} className="font-medium text-[var(--sc-ink)]">
+              {formatLastUpdated(lastUpdated)}
+            </time>
+          </p>
+        }
+      />
 
-      <div className="border-t border-[var(--sc-line)] bg-[var(--sc-paper)] pb-16 pt-10 sm:pb-20 sm:pt-12">
+      <div className="border-t border-[var(--sc-line)] bg-white pb-24 pt-14 sm:pb-28 sm:pt-20">
         <StudioCraftContainer>
           <div className="lg:grid lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-x-12 xl:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] xl:gap-x-16">
             <nav
               aria-label="On this page"
               className="mb-10 lg:sticky lg:top-[calc(var(--nav-h)+1.25rem)] lg:mb-0 lg:max-h-[calc(100vh-var(--nav-h)-2rem)] lg:self-start lg:overflow-y-auto"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--sc-coral)]">
+              <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-coral)]">
                 On this page
               </p>
-              <ol className="mt-4 space-y-2 border-l border-[var(--sc-line)] pl-4">
-                {sections.map((section) => (
-                  <li key={section.id}>
+              <ol className="mt-5 border-t border-[var(--sc-line)]">
+                {sections.map((section, index) => (
+                  <li key={section.id} className="border-b border-[var(--sc-line)]">
                     <Link
                       href={`#${section.id}`}
-                      className="block text-sm leading-snug text-[var(--sc-ink-muted)] transition-colors hover:text-[var(--sc-coral)] focus:outline-none focus-visible:text-[var(--sc-coral)] focus-visible:underline"
+                      className="group flex gap-3 py-2.5 text-[14px] leading-snug text-[var(--sc-ink-muted)] transition-colors hover:text-[var(--sc-ink)] focus:outline-none focus-visible:text-[var(--sc-coral)] focus-visible:underline"
                     >
+                      <span className="w-6 shrink-0 text-[12px] font-medium text-[var(--sc-ink-subtle)] transition-colors group-hover:text-[var(--sc-coral)]">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
                       {section.title}
                     </Link>
                   </li>
@@ -71,10 +72,11 @@ export function MarketingLegalPage({
                   id={section.id}
                   className={`scroll-mt-[calc(var(--nav-h)+1rem)] ${index > 0 ? 'mt-12 border-t border-[var(--sc-line)] pt-12' : ''}`}
                 >
-                  <h2 className="text-xl font-semibold tracking-tight text-[var(--sc-ink)] sm:text-[1.375rem]">
+                  <p className="text-[13px] font-medium text-[var(--sc-coral)]">{String(index + 1).padStart(2, '0')}</p>
+                  <h2 className="mt-2 text-[clamp(1.5rem,2.4vw,2rem)] font-medium leading-tight tracking-[-0.025em] text-[var(--sc-ink)]">
                     {section.title}
                   </h2>
-                  <div className="mt-4 space-y-4 text-base leading-relaxed text-[var(--sc-ink-muted)] [&_a]:font-medium [&_a]:text-[var(--sc-coral)] [&_a]:underline-offset-2 hover:[&_a]:underline [&_h3]:mt-6 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-[var(--sc-ink)] [&_li]:pl-1 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-5 [&_p+p]:mt-4 [&_strong]:font-semibold [&_strong]:text-[var(--sc-ink)] [&_table]:mt-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_td]:border [&_td]:border-[var(--sc-line)] [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_th]:border [&_th]:border-[var(--sc-line)] [&_th]:bg-[var(--sc-paper-2)] [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-[var(--sc-ink)] [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
+                  <div className="mt-5 space-y-4 text-[16px] leading-[1.75] text-[var(--sc-ink-muted)] [&_table]:block [&_table]:overflow-x-auto sm:[&_table]:table [&_a]:font-medium [&_a]:text-[var(--sc-coral)] [&_a]:underline-offset-2 hover:[&_a]:underline [&_h3]:mt-6 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-[var(--sc-ink)] [&_li]:pl-1 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-5 [&_p+p]:mt-4 [&_strong]:font-semibold [&_strong]:text-[var(--sc-ink)] [&_table]:mt-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_td]:border [&_td]:border-[var(--sc-line)] [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_th]:border [&_th]:border-[var(--sc-line)] [&_th]:bg-[var(--sc-paper-2)] [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-[var(--sc-ink)] [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
                     {section.content}
                   </div>
                 </section>

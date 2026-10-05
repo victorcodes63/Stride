@@ -35,7 +35,7 @@ import type { UserSummary } from '@/types/dashboard';
 import type { ModuleKey } from '@/lib/modules';
 import { resolveDashboardBreadcrumbs } from '@/lib/dashboard-breadcrumbs';
 import { ALL_MODULES_ENABLED } from '@/lib/dashboard-nav-catalog';
-import { DASHBOARD_SHELL_GUTTER } from '@/lib/dashboard-layout';
+import { DASHBOARD_CHROME_HEADER_CLASS, DASHBOARD_SHELL_GUTTER } from '@/lib/dashboard-layout';
 import { useDashboardDomain } from '@/contexts/dashboard-domain';
 import { getDomainQuickActions } from '@/lib/dashboard-domain-quick-actions';
 import { getDomainSearchPlaceholder } from '@/lib/dashboard-domain-nav';
@@ -232,7 +232,7 @@ export default function DashboardTopbar({
 
   return (
     <header className="print:hidden sticky top-0 z-30 flex-shrink-0 overflow-visible border-b dash-topbar">
-      <div className={`flex h-14 items-center gap-2 sm:gap-3 ${contentGutterClass}`}>
+      <div className={`flex ${DASHBOARD_CHROME_HEADER_CLASS} items-center gap-2 sm:gap-3 ${contentGutterClass}`}>
         {/* Left: menu + breadcrumbs — only when sidebar is collapsed */}
         {!sidebarOpen ? (
           <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">

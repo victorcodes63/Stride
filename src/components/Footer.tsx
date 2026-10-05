@@ -31,7 +31,7 @@ const Footer = () => {
               {publicFooterText?.trim() || tagline}
             </p>
             <p className="mt-3 text-sm font-medium text-white/80">{orgName}</p>
-            <div className="mt-5 space-y-2 text-sm text-[#8A8076]">
+            <div className="mt-5 space-y-2 text-sm text-[#78716C]">
               {contactEmail ? (
                 <a href={`mailto:${contactEmail}`} className="block hover:text-primary-500">
                   {contactEmail}
@@ -43,7 +43,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="mb-4 text-xs font-medium uppercase tracking-wider text-[#8A8076]">
+            <h4 className="mb-4 text-xs font-medium uppercase tracking-wider text-[#78716C]">
               Product
             </h4>
             <ul className="space-y-2.5">
@@ -61,7 +61,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="mb-4 text-xs font-medium uppercase tracking-wider text-[#8A8076]">
+            <h4 className="mb-4 text-xs font-medium uppercase tracking-wider text-[#78716C]">
               {orgName}
             </h4>
             <ul className="space-y-2.5">
@@ -80,7 +80,7 @@ const Footer = () => {
         </div>
 
         <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 sm:flex-row">
-          <p className="text-sm text-[#8A8076]">
+          <p className="text-sm text-[#78716C]">
             © {new Date().getFullYear()} Stride · {orgName}
           </p>
           <div className="flex items-center gap-6">
@@ -88,7 +88,7 @@ const Footer = () => {
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-sm text-[#8A8076] transition-colors hover:text-primary-500"
+                className="text-sm text-[#78716C] transition-colors hover:text-primary-500"
               >
                 {link.name}
               </Link>

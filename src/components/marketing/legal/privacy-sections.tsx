@@ -25,7 +25,7 @@ export function getPrivacySections(): LegalSection[] {
             <strong>app.getstride.co.ke</strong>, or interact with us for sales and support.
           </p>
           <p>
-            Stride is a multi-tenant software-as-a-service platform for East African businesses — covering HR &
+            Stride is a multi-tenant software-as-a-service platform for East African businesses, covering HR &
             payroll, finance, procurement, projects, legal, and industry-specific modules. Because we process
             employee, payroll, and financial records on behalf of customer organisations, this policy describes both
             our role as a data processor and the limited data we control directly as a data controller.
@@ -47,8 +47,8 @@ export function getPrivacySections(): LegalSection[] {
           <p>
             <strong>When Stride is the data processor.</strong> For employee, applicant, payroll, finance, and
             operational data entered into a customer&rsquo;s Stride tenant, the <strong>customer organisation</strong>{' '}
-            is the data controller. We process that data only on documented instructions from the customer — to
-            provide, secure, and support the subscribed services — and in accordance with our data processing terms
+            is the data controller. We process that data only on documented instructions from the customer, to
+            provide, secure, and support the subscribed services, and in accordance with our data processing terms
             and this policy.
           </p>
           <p>
@@ -251,7 +251,7 @@ export function getPrivacySections(): LegalSection[] {
               tax and accounting purposes.
             </li>
             <li>
-              <strong>Security and audit logs:</strong> typically 12–24 months, unless needed for an active
+              <strong>Security and audit logs:</strong> typically 12 to 24 months, unless needed for an active
               investigation.
             </li>
             <li>
@@ -330,7 +330,7 @@ export function getPrivacySections(): LegalSection[] {
           <p>
             Some sub-processors (for example Vercel edge infrastructure and email delivery) may process limited
             metadata outside your selected cell. Where personal data is transferred outside Kenya, we implement
-            appropriate safeguards — including contractual clauses and vendor security assessments — consistent
+            appropriate safeguards, including contractual clauses and vendor security assessments, consistent
             with the Kenya Data Protection Act and ODPC guidance.
           </p>
           <p>

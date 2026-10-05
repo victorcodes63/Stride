@@ -70,8 +70,8 @@ export function getTermsSections(): LegalSection[] {
       content: (
         <>
           <p>
-            Stride is offered on recurring subscription plans — typically <strong>{ESSENTIALS}</strong>,{' '}
-            <strong>{GROWTH}</strong>, and <strong>{ENTERPRISE}</strong> — priced in Kenyan shillings (KES) unless
+            Stride is offered on recurring subscription plans, typically <strong>{ESSENTIALS}</strong>,{' '}
+            <strong>{GROWTH}</strong>, and <strong>{ENTERPRISE}</strong>, priced in Kenyan shillings (KES) unless
             otherwise stated on your order form. Current list pricing and included modules are published at{' '}
             <Link href="/pricing">getstride.co.ke/pricing</Link>.
           </p>
@@ -85,15 +85,15 @@ export function getTermsSections(): LegalSection[] {
           <h3>Per-employee fees</h3>
           <ul>
             <li>
-              <strong>{ESSENTIALS}</strong> — billed per active employee per month at the published rate for that
+              <strong>{ESSENTIALS}</strong>, billed per active employee per month at the published rate for that
               plan. There is no minimum charge and no headcount cap.
             </li>
             <li>
-              <strong>{GROWTH}</strong> — billed per active employee per month at the published rate for that plan,
+              <strong>{GROWTH}</strong>, billed per active employee per month at the published rate for that plan,
               with additional modules and multi-entity support. There is no minimum charge and no headcount cap.
             </li>
             <li>
-              <strong>{ENTERPRISE}</strong> — fees, modules, and rollout terms are as set out in your signed order
+              <strong>{ENTERPRISE}</strong>, fees, modules, and rollout terms are as set out in your signed order
               form.
             </li>
           </ul>
@@ -209,12 +209,12 @@ export function getTermsSections(): LegalSection[] {
               <tr>
                 <td>{ESSENTIALS}</td>
                 <td>99.5%</td>
-                <td>Email — next business day for standard issues</td>
+                <td>Email, next business day for standard issues</td>
               </tr>
               <tr>
                 <td>{GROWTH}</td>
                 <td>99.9%</td>
-                <td>Priority email/chat — within 8 business hours for critical issues</td>
+                <td>Priority email/chat, within 8 business hours for critical issues</td>
               </tr>
               <tr>
                 <td>{ENTERPRISE}</td>

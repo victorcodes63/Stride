@@ -21,7 +21,7 @@ function clampEmployees(value: number): number {
   return Math.min(maxEmployees, Math.max(minEmployees, Math.round(value)));
 }
 
-export function PricingCalculator() {
+export function PricingCalculator({ showHeader = true }: { showHeader?: boolean } = {}) {
   const [employees, setEmployees] = useState<number>(defaultEmployees);
   // The number box keeps its own draft so it can be cleared and retyped; it is clamped on blur.
   const [draft, setDraft] = useState<string>(String(defaultEmployees));
@@ -45,8 +45,9 @@ export function PricingCalculator() {
   const overThreshold = employees > enterpriseThreshold;
 
   return (
-    <section className="mt-12 sm:mt-16" aria-labelledby="pricing-calculator-heading">
-      <div className="rounded-[20px] border border-pub-border bg-white p-5 sm:p-8">
+    <section className={showHeader ? 'mt-12 sm:mt-16' : ''} aria-label={showHeader ? undefined : 'Pricing calculator'} aria-labelledby={showHeader ? 'pricing-calculator-heading' : undefined}>
+      <div className="rounded-[22px] border border-[var(--sc-line)] bg-white p-5 shadow-[0_1px_2px_rgba(26,23,20,0.04),0_24px_60px_-34px_rgba(26,23,20,0.22)] sm:p-8">
+        {showHeader ? (
         <div className="text-center">
           <h2
             id="pricing-calculator-heading"
@@ -58,8 +59,9 @@ export function PricingCalculator() {
             Move the slider to your headcount. There is no minimum and no band to fall into.
           </p>
         </div>
+        ) : null}
 
-        <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] lg:gap-10">
+        <div className={`${showHeader ? 'mt-7 ' : ''}grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] lg:gap-10`}>
           <div className="min-w-0">
             <div
               className="flex rounded-full border border-pub-border bg-pub-surface-muted p-1"
@@ -77,7 +79,7 @@ export function PricingCalculator() {
                     onClick={() => setPlanId(option.id)}
                     className={`min-h-11 flex-1 rounded-full px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pub-primary)]/30 ${
                       selected
-                        ? 'bg-pub-ink text-[#FBF8F4]'
+                        ? 'bg-pub-ink text-[#FFFFFF]'
                         : 'text-pub-ink-muted hover:text-pub-ink'
                     }`}
                   >

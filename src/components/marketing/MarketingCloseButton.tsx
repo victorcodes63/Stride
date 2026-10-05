@@ -35,7 +35,7 @@ export function MarketingCloseButton({
           /* use default link navigation */
         }
       }}
-      className={`absolute right-5 top-5 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-[#fbf8f4]/70 transition-colors hover:border-white/20 hover:text-[#fbf8f4] sm:right-8 sm:top-8 ${className}`.trim()}
+      className={`absolute right-5 top-5 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-[#FFFFFF]/70 transition-colors hover:border-white/20 hover:text-[#FFFFFF] sm:right-8 sm:top-8 ${className}`.trim()}
       aria-label={label}
     >
       <X className="h-4 w-4" aria-hidden />

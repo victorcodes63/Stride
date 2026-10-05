@@ -5,16 +5,16 @@
 
 :root {
   /* Canvas & surfaces — Stride Paper (warm cream) */
-  --dash-canvas: var(--stride-paper, #fbf8f4);
+  --dash-canvas: var(--stride-paper, #FFFFFF);
   --dash-canvas-gradient-1: rgba(var(--stride-coral-rgb), 0.1);
   --dash-canvas-gradient-2: rgba(26, 23, 20, 0.06);
   --dash-canvas-gradient-3: rgba(var(--stride-coral-rgb), 0.05);
   --dash-surface: rgba(255, 255, 255, 0.92);
   --dash-surface-solid: #ffffff;
   --dash-surface-raised: rgba(255, 255, 255, 0.97);
-  --dash-surface-muted: var(--brand-navy-subtle, #f4efe8);
-  --dash-surface-soft: rgba(251, 248, 244, 0.95);
-  --dash-border: #e6ded4;
+  --dash-surface-muted: var(--brand-navy-subtle, #F5F5F7);
+  --dash-surface-soft: rgba(255, 255, 255, 0.95);
+  --dash-border: #E7E7EB;
   --dash-border-glass: rgba(255, 255, 255, 0.72);
   --dash-border-subtle: rgba(230, 222, 212, 0.65);
 
@@ -28,10 +28,10 @@
   --dash-backdrop: rgba(26, 23, 20, 0.4);
 
   /* Typography — ink scale, no slate */
-  --dash-text: #3d3833;
+  --dash-text: #44403C;
   --dash-text-strong: #1a1714;
-  --dash-text-body: #3d3833;
-  --dash-text-muted: #8a8076;
+  --dash-text-body: #44403C;
+  --dash-text-muted: #78716C;
   --dash-text-subtle: #7a7168;
   --dash-text-faint: #9a9188;
 
@@ -39,9 +39,9 @@
   --dash-accent: var(--stride-coral);
 
   /* Interactive */
-  --dash-hover: #f4efe8;
+  --dash-hover: #F5F5F7;
   --dash-input-bg: rgba(255, 255, 255, 0.9);
-  --dash-input-border: #e6ded4;
+  --dash-input-border: #E7E7EB;
   --dash-focus-ring: rgba(var(--stride-coral-rgb), 0.3);
 
   /* Elevation — ink shadows */
@@ -61,10 +61,10 @@
   --dash-danger-border: #fecaca;
 
   /* KPI swatches — warm ink (aligned with stride-palette; no legacy blue primaries) */
-  --swatch-sky-bg: var(--sc-paper-2, #f4efe8);
-  --swatch-sky-fg: var(--sc-ink-muted, #3d3833);
-  --swatch-sky-accent: var(--sc-ink-subtle, #8a8076);
-  --swatch-sky-border: var(--sc-line, #e6ded4);
+  --swatch-sky-bg: var(--sc-paper-2, #F5F5F7);
+  --swatch-sky-fg: var(--sc-ink-muted, #44403C);
+  --swatch-sky-accent: var(--sc-ink-subtle, #78716C);
+  --swatch-sky-border: var(--sc-line, #E7E7EB);
   --swatch-emerald-bg: #dcfce7;
   --swatch-emerald-fg: #15803d;
   --swatch-emerald-accent: #10b981;
@@ -90,16 +90,41 @@
   --swatch-coral-accent: var(--brand-primary, var(--stride-coral));
   --swatch-coral-border: var(--color-primary-200, #ffcfc7);
 
-  /* Hero banner — flat Stride coral (matches btn-primary) */
+  /* Hero banner — slightly deeper coral in light mode */
   --dash-hero-border: rgba(255, 255, 255, 0.2);
-  --dash-hero-gradient: var(--brand-primary, var(--stride-coral));
+  --dash-hero-gradient:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--brand-primary, var(--stride-coral)) 96%, #ffffff) 0%,
+      var(--brand-primary, var(--stride-coral)) 32%,
+      var(--stride-coral-deep, #e63e22) 68%,
+      color-mix(in srgb, var(--stride-coral-deep, #e63e22) 72%, var(--brand-ink, #1a1714)) 100%
+    );
   --dash-hero-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 12px 32px rgba(var(--stride-coral-rgb), 0.35);
-  --dash-hero-glow-tr: transparent;
-  --dash-hero-glow-bl: transparent;
-  --dash-hero-radial: none;
-  --dash-hero-vignette: none;
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 18px 42px -12px rgba(var(--stride-coral-rgb), 0.48),
+    0 8px 20px rgba(26, 23, 20, 0.14);
+  --dash-hero-glow-tr: rgba(255, 255, 255, 0.16);
+  --dash-hero-glow-bl: rgba(26, 23, 20, 0.28);
+  --dash-hero-radial:
+    radial-gradient(ellipse 70% 90% at 12% -10%, rgba(255, 255, 255, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 70% at 92% 10%, rgba(255, 200, 175, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 55% at 78% 108%, rgba(26, 23, 20, 0.36) 0%, transparent 55%);
+  --dash-hero-vignette:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 28%, transparent 65%, rgba(26, 23, 20, 0.22) 100%);
+  --dash-hero-mesh:
+    repeating-linear-gradient(
+      -28deg,
+      transparent 0,
+      transparent 11px,
+      rgba(255, 255, 255, 0.035) 11px,
+      rgba(255, 255, 255, 0.035) 12px
+    );
+  --dash-hero-glass-bg: rgba(0, 0, 0, 0.14);
+  --dash-hero-glass-border: rgba(255, 255, 255, 0.28);
+  --dash-hero-glass-bg-strong: rgba(0, 0, 0, 0.2);
+  --dash-hero-ring: rgba(255, 255, 255, 0.14);
 
   /* Table zebra — light surfaces */
   --dashboard-table-stripe-primary: color-mix(in srgb, var(--brand-primary, var(--stride-coral)) 7%, var(--dash-surface-solid));
@@ -219,16 +244,41 @@ html.dark {
   --dashboard-table-stripe-secondary: color-mix(in srgb, #ffffff 5%, var(--dash-surface-solid));
   --dashboard-table-stripe-hover: color-mix(in srgb, var(--brand-primary, var(--stride-coral)) 17%, var(--dash-surface-raised));
 
-  /* Hero — flat Stride coral (matches btn-primary) */
-  --dash-hero-border: rgba(255, 255, 255, 0.16);
-  --dash-hero-gradient: var(--brand-primary, var(--stride-coral));
+  /* Hero — deeper coral on dark canvas (less washed) */
+  --dash-hero-border: rgba(255, 255, 255, 0.14);
+  --dash-hero-gradient:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--brand-primary, var(--stride-coral)) 92%, #1a1714) 0%,
+      var(--brand-primary, var(--stride-coral)) 36%,
+      var(--stride-coral-deep, #e63e22) 70%,
+      color-mix(in srgb, var(--stride-coral-deep, #e63e22) 58%, #000000) 100%
+    );
   --dash-hero-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 12px 36px rgba(var(--stride-coral-rgb), 0.4);
-  --dash-hero-glow-tr: transparent;
-  --dash-hero-glow-bl: transparent;
-  --dash-hero-radial: none;
-  --dash-hero-vignette: none;
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 20px 48px -14px rgba(var(--stride-coral-rgb), 0.4),
+    0 10px 28px rgba(0, 0, 0, 0.55);
+  --dash-hero-glow-tr: rgba(255, 255, 255, 0.1);
+  --dash-hero-glow-bl: rgba(0, 0, 0, 0.45);
+  --dash-hero-radial:
+    radial-gradient(ellipse 70% 90% at 12% -10%, rgba(255, 255, 255, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 70% at 92% 10%, rgba(255, 160, 130, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 55% at 78% 108%, rgba(0, 0, 0, 0.42) 0%, transparent 55%);
+  --dash-hero-vignette:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 28%, transparent 62%, rgba(0, 0, 0, 0.32) 100%);
+  --dash-hero-mesh:
+    repeating-linear-gradient(
+      -28deg,
+      transparent 0,
+      transparent 11px,
+      rgba(255, 255, 255, 0.03) 11px,
+      rgba(255, 255, 255, 0.03) 12px
+    );
+  --dash-hero-glass-bg: rgba(0, 0, 0, 0.22);
+  --dash-hero-glass-border: rgba(255, 255, 255, 0.28);
+  --dash-hero-glass-bg-strong: rgba(0, 0, 0, 0.32);
+  --dash-hero-ring: rgba(255, 255, 255, 0.12);
 }
 
 /* ── Shell classes (token-driven) ── */
@@ -395,18 +445,63 @@ html.dark .dashboard-stat-card {
   box-shadow: var(--dash-shadow-md);
 }
 
-/* Module hero banner — flat Stride coral */
+/* Module hero banner — layered Stride coral with light & depth */
 .dashboard-page-header-hero {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   border-color: var(--dash-hero-border);
   background: var(--dash-hero-gradient);
   box-shadow: var(--dash-hero-shadow);
 }
 
+.dashboard-page-header-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    var(--dash-hero-radial),
+    var(--dash-hero-vignette),
+    var(--dash-hero-mesh);
+}
+
+.dashboard-page-header-hero::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  right: -6%;
+  top: 50%;
+  width: min(42%, 22rem);
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  border: 1px solid var(--dash-hero-ring);
+  box-shadow:
+    0 0 0 28px color-mix(in srgb, var(--dash-hero-ring) 35%, transparent),
+    0 0 0 56px color-mix(in srgb, var(--dash-hero-ring) 20%, transparent),
+    inset 0 0 48px color-mix(in srgb, var(--dash-hero-ring) 40%, transparent);
+  opacity: 0.9;
+}
+
 .dashboard-page-header-hero-glow-tr,
 .dashboard-page-header-hero-glow-bl {
-  display: none;
+  display: block;
+  z-index: 0;
+}
+
+.dashboard-page-header-hero-glow-tr {
+  background: var(--dash-hero-glow-tr);
+}
+
+.dashboard-page-header-hero-glow-bl {
+  background: var(--dash-hero-glow-bl);
+}
+
+.dashboard-page-header-hero > .relative {
+  z-index: 1;
 }
 
 /* Hero CTAs — fixed contrast; not remapped by .dashboard-canvas utility bridge */
@@ -414,19 +509,24 @@ html.dark .dashboard-stat-card {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 0.5rem;
-  background: #000000;
-  padding: 0.625rem 1rem;
+  border-radius: 0.625rem;
+  background: #1a1714;
+  padding: 0.625rem 1.05rem;
   font-size: 0.875rem;
   font-weight: 600;
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
-  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 6px 18px rgba(0, 0, 0, 0.28);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .dash-hero-cta-primary:hover {
-  background: #1a1714;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  background: #0e0c0a;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 8px 22px rgba(0, 0, 0, 0.34);
+  transform: translateY(-1px);
 }
 
 .dash-hero-cta-primary svg {
@@ -437,20 +537,22 @@ html.dark .dashboard-stat-card {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.14);
-  padding: 0.625rem 1rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--dash-hero-glass-border);
+  background: var(--dash-hero-glass-bg);
+  padding: 0.625rem 1.05rem;
   font-size: 0.875rem;
   font-weight: 500;
   color: #ffffff;
-  backdrop-filter: blur(6px);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
 .dash-hero-cta-secondary:hover {
-  background: rgba(255, 255, 255, 0.24);
-  border-color: rgba(255, 255, 255, 0.75);
+  background: var(--dash-hero-glass-bg-strong);
+  border-color: rgba(255, 255, 255, 0.7);
+  transform: translateY(-1px);
 }
 
 /* Panel header CTAs — fixed coral + white; not remapped by utility bridge */
@@ -565,15 +667,25 @@ html.dark .dash-feature-link:hover {
 
 /* Preserve glass styling inside hero — utility bridge must not remap these */
 .dashboard-page-header-hero .border-white\/20 {
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--dash-hero-glass-border);
 }
 
 .dashboard-page-header-hero .bg-white\/10 {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--dash-hero-glass-bg);
 }
 
 .dashboard-page-header-hero .bg-white\/5 {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: color-mix(in srgb, var(--dash-hero-glass-bg) 70%, transparent);
+}
+
+.dashboard-page-header-hero .text-white\/88,
+.dashboard-page-header-hero .text-white\/90 {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.dashboard-page-header-hero .text-white\/72,
+.dashboard-page-header-hero .text-white\/70 {
+  color: rgba(255, 255, 255, 0.78);
 }
 
 html.dark .dashboard-toolbar,
@@ -859,7 +971,7 @@ html.dark .payroll-subtotal-row td {
 }
 
 .skeleton {
-  background: #e6ded4;
+  background: #E7E7EB;
 }
 
 /* ── Tailwind utility bridge under dashboard canvas ── */
@@ -1480,14 +1592,32 @@ html.dark .dash-popover .text-amber-800 {
   border: 1px solid var(--dash-border);
   background: var(--dash-surface-solid);
   padding: 0.125rem 0.375rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
   font-size: 10px;
   font-weight: 500;
   color: var(--dash-text-subtle);
 }
 
+/*
+ * Product shell typography: job IDs, asset tags, LPO numbers, etc. that still
+ * use Tailwind `font-mono` should match Plus Jakarta (with tabular figures),
+ * not IBM Plex’s dotted zeros. Marketing pages without `.dashboard-canvas`
+ * keep true mono. Escape hatch: `.font-mono-literal`, kbd, code, pre.
+ */
+html:has(.dashboard-canvas) .font-mono:not(kbd):not(code):not(pre):not(.dash-kbd):not(.font-mono-literal) {
+  font-family: var(--font-sans);
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+html:has(.dashboard-canvas) :is(kbd, code, pre, .dash-kbd, .font-mono-literal) {
+  font-family: var(--font-ibm-plex-mono), ui-monospace, Menlo, Consolas, monospace;
+}
+
 .dash-sidebar-brand {
   border-color: var(--dash-border-subtle);
+  /* Keep the brand strip locked to the topbar chrome height. */
+  box-sizing: border-box;
 }
 
 /* ── Extended utility bridge ── */

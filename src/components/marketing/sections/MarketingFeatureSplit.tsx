@@ -22,7 +22,7 @@ export function MarketingFeatureSplit() {
           <MarketingReveal delay={0.16}>
             <p className="mt-[18px] max-w-[540px] text-[17px] leading-relaxed text-pub-ink-muted">
               No more juggling spreadsheets, WhatsApp approvals and disconnected tools. Stride brings
-              your whole operation into one place — so your team stops switching context and starts
+              your whole operation into one place, so your team stops switching context and starts
               moving.
             </p>
             <Link

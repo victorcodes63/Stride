@@ -6,6 +6,8 @@ import { OverviewWidgetHeader } from '@/components/dashboard/overview/OverviewWi
 import { MyTasksCountsCard } from '@/components/dashboard/overview/MyTasksCountsCard';
 import { InboxPreviewCard } from '@/components/dashboard/overview/InboxPreviewCard';
 import { MyCalendarCompactCard } from '@/components/dashboard/overview/MyCalendarCompactCard';
+import { NeedsAttentionSection } from '@/components/dashboard/overview/NeedsAttentionSection';
+import type { OverviewAttentionItem } from '@/lib/dashboard-overview-personalization';
 
 const QUICK_LINKS = [
   {
@@ -23,48 +25,70 @@ const QUICK_LINKS = [
 ] as const;
 
 export function PersonalPlanningSection({
+  attentionItems = [],
   onUnreadChange,
 }: {
+  attentionItems?: OverviewAttentionItem[];
   onUnreadChange?: (count: number) => void;
 }) {
-  return (
-    <section className="dashboard-panel group/pin-target overflow-hidden">
-      <OverviewWidgetHeader
-        widgetId="personal-planning"
-        title="Plan my work"
-        trailing={
-          <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--dash-text-subtle)]">
-            Tasks · Inbox · Calendar
-          </span>
-        }
-      />
+  const showAttention = attentionItems.length > 0;
 
-      <div className="grid grid-cols-1 gap-3 px-2 py-3 sm:px-3 lg:grid-cols-3">
-        <MyTasksCountsCard />
-        <InboxPreviewCard limit={6} onUnreadChange={onUnreadChange} />
-        <MyCalendarCompactCard />
+  return (
+    <section className="space-y-3">
+      <div className="dashboard-panel group/pin-target overflow-hidden">
+        <OverviewWidgetHeader
+          widgetId="personal-planning"
+          title="Getting into work"
+          description="Your queues, tasks, inbox, and calendar — start here."
+        />
       </div>
 
-      <div className="border-t border-[var(--dash-border-subtle)] px-2 py-2 sm:px-3">
-        <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-          {QUICK_LINKS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link key={item.href} href={item.href} className="dash-overview-row-link group">
-                <span className="dash-icon-well flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                  <Icon className="h-4 w-4" strokeWidth={1.75} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-[var(--dash-text-strong)]">
-                    {item.label}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-[var(--dash-text-muted)]">{item.desc}</p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-[var(--dash-text-faint)] transition group-hover:text-[var(--dash-text-muted)]" />
-              </Link>
-            );
-          })}
+      <div
+        className={`grid grid-cols-1 gap-3 lg:grid-cols-2 ${
+          showAttention ? 'xl:grid-cols-2' : 'xl:grid-cols-3'
+        }`}
+      >
+        {showAttention ? (
+          <div className="min-h-[22rem] lg:col-span-2 xl:col-span-1 xl:row-span-2">
+            <NeedsAttentionSection items={attentionItems} />
+          </div>
+        ) : null}
+
+        <div className="min-h-[22rem]">
+          <MyTasksCountsCard />
         </div>
+
+        <div className="min-h-[22rem]">
+          <InboxPreviewCard limit={6} onUnreadChange={onUnreadChange} />
+        </div>
+
+        <div className={`min-h-[22rem] ${showAttention ? 'lg:col-span-2 xl:col-span-1' : ''}`}>
+          <MyCalendarCompactCard />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {QUICK_LINKS.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="dash-overview-row-link group rounded-xl border border-[var(--dash-border-subtle)] bg-[var(--dash-surface-solid)] px-3 py-2.5"
+            >
+              <span className="dash-icon-well flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                <Icon className="h-4 w-4" strokeWidth={1.75} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-[var(--dash-text-strong)]">
+                  {item.label}
+                </p>
+                <p className="mt-0.5 truncate text-xs text-[var(--dash-text-muted)]">{item.desc}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-[var(--dash-text-faint)] transition group-hover:text-[var(--dash-text-muted)]" />
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

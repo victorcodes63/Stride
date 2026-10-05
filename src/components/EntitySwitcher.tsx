@@ -303,7 +303,7 @@ export function EntitySwitcher({
           </>
         )}
         <span
-          className={`shrink-0 rounded font-mono text-[10px] font-semibold text-primary-800 ${
+          className={`shrink-0 rounded text-[10px] font-semibold tabular-nums text-primary-800 ${
             isTopbar ? 'bg-primary-100/80 px-1 py-0.5' : 'ml-0.5 text-xs bg-primary-50 px-1.5 py-0.5'
           }`}
         >

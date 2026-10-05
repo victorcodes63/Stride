@@ -19,7 +19,7 @@ function CompareCell({ cell }: { cell: PricingCompareCell }) {
     return <span className="text-sm leading-snug text-pub-ink-muted">{cell.value}</span>;
   }
 
-  const symbol = cell.value === 'included' ? '✓' : cell.value === 'addon' ? '➕' : '—';
+  const symbol = cell.value === 'included' ? '✓' : cell.value === 'addon' ? '➕' : 'No';
   const colorClass =
     cell.value === 'included'
       ? 'text-[var(--pub-primary)]'
@@ -69,7 +69,7 @@ function CompareGroup({
           <div className="marketing-compare-table-wrap hidden overflow-x-auto rounded-xl border border-pub-border bg-white sm:block">
             <table className="w-full min-w-[640px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-pub-border bg-[var(--pub-paper-2,#FBF8F4)]">
+                <tr className="border-b border-pub-border bg-[var(--pub-paper-2,#FFFFFF)]">
                   <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-pub-ink-subtle">
                     Feature
                   </th>
@@ -136,10 +136,12 @@ function CompareGroup({
   );
 }
 
-export function PricingCompareMatrix() {
+export function PricingCompareMatrix({ showHeader = true }: { showHeader?: boolean } = {}) {
   return (
-    <section className="mt-16" aria-labelledby="pricing-compare-heading">
-      <div className="text-center">
+    <section className={showHeader ? 'mt-16' : ''} aria-label={showHeader ? undefined : 'Compare plan features'} aria-labelledby={showHeader ? 'pricing-compare-heading' : undefined}>
+      <div className={showHeader ? 'text-center' : 'flex justify-start'}>
+        {showHeader ? (
+        <>
         <h2
           id="pricing-compare-heading"
           className="font-heading text-[clamp(1.5rem,4vw,2rem)] font-extrabold tracking-[-0.02em] text-pub-ink"
@@ -147,9 +149,11 @@ export function PricingCompareMatrix() {
           Compare features
         </h2>
         <p className="mx-auto mt-3 max-w-[36rem] text-sm leading-relaxed text-pub-ink-muted">
-          Exactly what each plan unlocks by default — horizontal and vertical modules show as add-ons on
+          Exactly what each plan unlocks by default. Horizontal and vertical modules show as add-ons on
           Essentials where that is honest. Plans differ by features, never by team size.
         </p>
+        </>
+        ) : null}
         <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-pub-ink-subtle">
           <span>
             <span className="font-semibold text-[var(--pub-primary)]">✓</span> included
@@ -158,12 +162,12 @@ export function PricingCompareMatrix() {
             <span className="font-semibold text-pub-ink-muted">➕</span> available as add-on
           </span>
           <span>
-            <span className="font-semibold text-pub-ink-subtle">—</span> not on this plan
+            <span className="font-semibold text-pub-ink-subtle">No</span> not on this plan
           </span>
         </p>
       </div>
 
-      <div className="mt-8 rounded-[20px] border border-pub-border bg-white px-4 sm:px-6">
+      <div className="mt-8 rounded-[22px] border border-[var(--sc-line)] bg-white px-4 shadow-[0_1px_2px_rgba(26,23,20,0.04),0_24px_60px_-34px_rgba(26,23,20,0.22)] sm:px-6">
         {PRICING_COMPARE_GROUPS.map((group, index) => (
           <CompareGroup
             key={group.id}

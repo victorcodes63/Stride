@@ -14,6 +14,14 @@ import type {
 } from '@/lib/dashboard-attention/types';
 import { attentionItem, moduleOn } from '@/lib/dashboard-attention/types';
 
+export type {
+  AttentionAction,
+  AttentionActionKind,
+  AttentionQueueId,
+  AttentionQueueSummary,
+  AttentionWorkItem,
+} from '@/lib/dashboard-attention/work-items';
+
 ensureAttentionContributorsRegistered();
 
 export type {

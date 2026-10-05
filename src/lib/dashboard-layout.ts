@@ -2,6 +2,12 @@
 export const DASHBOARD_SIDEBAR_WIDTH = 280;
 
 /**
+ * Shared height for the sidebar brand strip and sticky top bar so their
+ * bottom borders and content baselines stay level.
+ */
+export const DASHBOARD_CHROME_HEADER_CLASS = 'h-14';
+
+/**
  * Symmetric horizontal inset for the dashboard shell (top bar + main).
  * Kept modest so data views use the full canvas; scales slightly on larger screens.
  */

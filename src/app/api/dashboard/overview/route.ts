@@ -28,9 +28,11 @@ export async function GET(request: NextRequest) {
 
     const metricsOnly = request.nextUrl.searchParams.get('metricsOnly') === '1';
     const sliceParam = request.nextUrl.searchParams.get('slice');
-    const slice = sliceParam === 'core' || sliceParam === 'details' ? sliceParam : 'all';
-    const loadCore = slice === 'all' || slice === 'core';
+    const slice =
+      sliceParam === 'home' || sliceParam === 'core' || sliceParam === 'details' ? sliceParam : 'all';
+    const loadCore = slice === 'all' || slice === 'core' || slice === 'home';
     const loadDetails = slice === 'all' || slice === 'details';
+    const coreScope = slice === 'home' ? 'home' : 'full';
 
     try {
       const setup = metricsOnly ? null : await loadCompanySetupSettingsForOrg(ctx.organizationId);
@@ -46,6 +48,7 @@ export async function GET(request: NextRequest) {
       // Core metrics collapse to one combined SQL round-trip; resolving the
       // client and loading the user/details reuse the same connection, avoiding
       // extra connection acquisitions that dominate latency on a remote DB.
+      // `slice=home` skips payroll / sales / fleet / assets / HSE for first paint.
       const dbResult = await withOrgContext(
         ctx.organizationId,
         async (tx) => {
@@ -69,6 +72,7 @@ export async function GET(request: NextRequest) {
                   staff: ctx.staff,
                   clientId,
                   enabledModules: modules,
+                  scope: coreScope,
                 })
               : Promise.resolve(null),
             loadDetails

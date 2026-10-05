@@ -169,7 +169,7 @@ export const MARKETING_HERO = {
   /** Final phrase on the accent line, rendered in brand coral. */
   titleAccent: 'as one.',
   sub:
-    'HR & payroll and finance at the core — plug-in modules and industry packs on the same platform. East African compliance built in, not bolted on.',
+    'HR & payroll and finance at the core, plug-in modules and industry packs on the same platform. East African compliance built in, not bolted on.',
   descriptionHighlight: 'East African compliance',
   trustBadge: 'Built for Kenya',
   trustTags: 'M-Pesa · KRA · NSSF',
@@ -197,12 +197,12 @@ export const MARKETING_WHY_STRIDE = {
   paragraphs: [
     {
       lead:
-        'Most global platforms were built for somewhere else, then adapted for Kenya — M-Pesa bolted on, statutory rules approximated, support queued in another timezone. Stride flips that: a horizontal core every business runs on, with vertical packs that add industry depth — ',
-      emphasis: 'no separate system, no integration project.',
+        'Most global platforms were built for somewhere else, then adapted for Kenya: M-Pesa bolted on, statutory rules approximated, support queued in another timezone. Stride flips that: a horizontal core every business runs on, with vertical packs that add industry depth. ',
+      emphasis: 'No separate system, no integration project.',
     },
     {
       lead:
-        'We build and deploy Stride for SACCOs, fintechs, HR consultancies and logistics operators — organisations that have outgrown spreadsheets but can\u2019t justify an eighteen-month ERP rollout.',
+        'We build and deploy Stride for SACCOs, fintechs, HR consultancies and logistics operators: organisations that have outgrown spreadsheets but can\u2019t justify an eighteen-month ERP rollout.',
     },
   ] as const,
 } as const;
@@ -211,7 +211,7 @@ export const MARKETING_INDUSTRIES_SECTION = {
   badge: 'Built for your industry',
   title: 'Then it gets specific.',
   subLead:
-    'Every business runs the same core — people, payroll, finance. What sets you apart is the work that defines your industry. Stride adds that as a vertical pack on the same platform: same login, same records, same compliance. Not a second system. Not an integration project.',
+    'Every business runs the same core: people, payroll, finance. What sets you apart is the work that defines your industry. Stride adds that as a vertical pack on the same platform: same login, same records, same compliance. Not a second system. Not an integration project.',
 } as const;
 
 /** Brand tokens for studio-craft (v3) — mirrors public-theme.css, no new colors. */
@@ -219,26 +219,30 @@ export const MARKETING_BRAND = {
   coral: '#FF5436',
   coralDeep: '#E63E22',
   ink: '#1A1714',
-  inkMuted: '#3D3833',
-  paper: '#FBF8F4',
-  paper2: '#F4EFE8',
-  line: '#E6DED4',
+  inkMuted: '#44403C',
+  paper: '#FFFFFF',
+  paper2: '#F5F5F7',
+  line: '#E7E7EB',
 } as const;
 
-/** Product screenshot for homepage hero showcase — clipped to hero viewport. */
+/**
+ * Product screenshot for the homepage hero showcase — clipped to hero viewport.
+ * To swap in a new capture: export at 2880×1800 (light mode, demo tenant, no money amounts),
+ * save it in /public/images/ and update src/width/height here. /platform uses its own entry below.
+ */
 export const MARKETING_DASHBOARD_HERO = {
   src: '/images/dashboard_home.png',
-  width: 2984,
-  height: 1792,
-  alt: 'Stride People & workforce module — HR, employees, leave, and payroll home',
+  width: 2880,
+  height: 1800,
+  alt: 'Stride People & workforce module. HR, employees, leave, and payroll home',
 } as const;
 
 /** Statutory compliance screenshot for “Why we built it”. */
 export const MARKETING_STATUTORY_SCREENSHOT = {
   src: '/images/payroll_screenshot.png',
-  width: 3230,
-  height: 1944,
-  alt: 'Stride statutory compliance — PAYE, NSSF, SHIF and Housing Levy in one Kenya payroll view',
+  width: 2880,
+  height: 1800,
+  alt: 'Stride statutory compliance. PAYE, NSSF, SHIF and Housing Levy in one Kenya payroll view',
 } as const;
 
 /** Platform overview — module command center on the live dashboard. */
@@ -246,7 +250,7 @@ export const MARKETING_PLATFORM_MODULES_SCREENSHOT = {
   src: '/images/platform_modules.png',
   width: 1024,
   height: 615,
-  alt: 'Stride platform overview — Finance, HR & Payroll, Legal, Procurement, Admin and Projects on one login',
+  alt: 'Stride platform overview. Finance, HR & Payroll, Legal, Procurement, Admin and Projects on one login',
 } as const;
 
 /** Product screenshots for industry / architecture vertical previews. */
@@ -260,35 +264,35 @@ export const MARKETING_VERTICAL_SCREENSHOTS = {
   },
   logistics: {
     src: '/marketing/stride-vertical-logistics.png',
-    alt: 'Stride logistics trip board — fleet workflow kanban',
+    alt: 'Stride logistics trip board, fleet workflow kanban',
     moduleLabel: 'Fleet & logistics',
     screenTitle: 'Trip board',
     path: '/fleet/trips',
   },
   saccos: {
     src: '/marketing/stride-vertical-saccos.png',
-    alt: 'Stride Heritage Members SACCO — statutory payroll and compliance',
+    alt: 'Stride Heritage Members SACCO, statutory payroll and compliance',
     moduleLabel: 'Heritage Members SACCO',
     screenTitle: 'Statutory compliance',
     path: '/payroll/statutory',
   },
   healthcare: {
     src: '/marketing/stride-vertical-healthcare.png',
-    alt: 'Stride rota grid — shift scheduling for clinical teams',
+    alt: 'Stride rota grid, shift scheduling for clinical teams',
     moduleLabel: 'Healthcare',
     screenTitle: 'Rota grid',
     path: '/rota',
   },
   energy: {
     src: '/marketing/stride-vertical-energy.png',
-    alt: 'Stride HSE incidents panel — safety and compliance tracking',
+    alt: 'Stride HSE incidents panel, safety and compliance tracking',
     moduleLabel: 'Energy',
     screenTitle: 'HSE panel',
     path: '/hse',
   },
   construction: {
     src: '/marketing/stride-vertical-construction.png',
-    alt: 'Stride asset register — plant and site equipment tracking',
+    alt: 'Stride asset register, plant and site equipment tracking',
     moduleLabel: 'Construction',
     screenTitle: 'Site tracker',
     path: '/projects',
@@ -366,12 +370,12 @@ export const MARKETING_READINESS_META: Record<
   },
   partial: {
     label: 'Partial',
-    title: 'Core workflows shipping — some features still on the roadmap',
+    title: 'Core workflows shipping, some features still on the roadmap',
     badgeClass: 'border-amber-200 bg-amber-50 text-amber-900',
   },
   roadmap: {
     label: 'Roadmap',
-    title: 'Planned — not yet available for production use',
+    title: 'Planned, not yet available for production use',
     badgeClass: 'border-[var(--sc-line)] bg-[var(--sc-paper-2)] text-[var(--sc-ink-muted)]',
   },
 };
@@ -386,38 +390,38 @@ export const PLATFORM_PAGE = {
     eyebrow: 'The platform',
     titleLines: ['Core ops first.', 'Industry depth when you need it.'] as const,
     description:
-      'Stride is a horizontal operations platform: HR & payroll and finance at the core. Add procurement, legal, projects and admin as plug-ins — then industry packs for logistics, SACCOs and more. Same login, same records, same compliance.',
+      'Stride is a horizontal operations platform: HR & payroll and finance at the core. Add procurement, legal, projects and admin as plug-ins, then industry packs for logistics, SACCOs and more. Same login, same records, same compliance.',
     highlights: [
       'HR & payroll and finance included on every plan',
       'Kenyan payroll, M-Pesa disbursements and statutory filing on the core',
-      'Plug-in modules and industry packs when you need them — no shelfware',
+      'Plug-in modules and industry packs when you need them, no shelfware',
     ],
   },
   audience: {
     badge: 'Who it is for',
     title: 'Built for teams that have outgrown spreadsheets.',
-    body: 'If payroll lives in Excel, approvals happen on WhatsApp and finance reconciles at month-end, Stride replaces the patchwork — without an eighteen-month ERP rollout.',
+    body: 'If payroll lives in Excel, approvals happen on WhatsApp and finance reconciles at month-end, Stride replaces the patchwork, without an eighteen-month ERP rollout.',
   },
   connected: {
     badge: 'One data layer',
     title: 'Modules that actually talk to each other.',
-    body: 'One employee record, one approval chain, one ledger — so a payslip, purchase order or trip settlement is never re-keyed in a second system.',
+    body: 'One employee record, one approval chain, one ledger, so a payslip, purchase order or trip settlement is never re-keyed in a second system.',
   },
   compliance: {
     badge: 'East Africa native',
     title: 'Compliance is not an add-on.',
-    body: 'Statutory logic, disbursement rails and data protection are designed for how Kenyan businesses operate — not retrofitted from a global template.',
+    body: 'Statutory logic, disbursement rails and data protection are designed for how Kenyan businesses operate, not retrofitted from a global template.',
   },
 } as const;
 
 export const PLATFORM_AUDIENCE = [
   {
-    title: '15–300 staff',
+    title: '15 to 300 staff',
     body: 'Growing SMEs and mid-market operators who need structure without enterprise complexity or per-seat pricing that scales out of control.',
   },
   {
     title: 'Multi-department teams',
-    body: 'HR, finance and operations leaders who need one source of truth — not three systems that never reconcile at month-end.',
+    body: 'HR, finance and operations leaders who need one source of truth, not three systems that never reconcile at month-end.',
   },
   {
     title: 'Regulated organisations',
@@ -430,13 +434,13 @@ export const PLATFORM_WORKFLOWS = [
     title: 'Hire to pay',
     status: 'live' as const,
     flow: 'Recruit → onboard → payroll run → M-Pesa disbursement → ledger',
-    body: 'New hires move from offer letter to first payslip on shared employee records — no duplicate profiles across HR and finance.',
+    body: 'New hires move from offer letter to first payslip on shared employee records, no duplicate profiles across HR and finance.',
   },
   {
     title: 'Request to pay',
     status: 'roadmap' as const,
     flow: 'Purchase request → approval → LPO → GRN → vendor payment',
-    body: 'Procurement is on the roadmap — the intended flow is approvals feeding finance when goods are received, with a full audit trail from who asked to who paid.',
+    body: 'Procurement is on the roadmap, the intended flow is approvals feeding finance when goods are received, with a full audit trail from who asked to who paid.',
   },
   {
     title: 'Trip to invoice',
@@ -497,7 +501,7 @@ export const PLATFORM_COMPLIANCE_HOMEPAGE = [
   {
     id: 'statutory',
     label: 'Statutory native',
-    detail: 'PAYE, NSSF, SHIF and Housing Levy — P9 and iTax-ready exports every pay run',
+    detail: 'PAYE, NSSF, SHIF and Housing Levy. P9 and iTax-ready exports every pay run',
     category: 'Statutory',
     tags: ['PAYE', 'NSSF', 'SHIF', 'P9', 'iTax'],
   },
@@ -512,7 +516,7 @@ export const PLATFORM_COMPLIANCE_HOMEPAGE = [
     id: 'multi-region',
     label: 'Multi-entity KE+UG & ODPC-ready',
     detail:
-      'Kenya and Uganda entities in one account — audit trails, access controls and data export on exit',
+      'Kenya and Uganda entities in one account, audit trails, access controls and data export on exit',
     category: 'Governance',
     tags: ['KE + UG', 'ODPC'],
   },
@@ -531,12 +535,12 @@ export const PLATFORM_FAQ = [
   {
     question: 'How is Stride different from other HR platforms?',
     answer:
-      "Most HR platforms either focus narrowly on payroll or are foreign tools retrofitted for Kenya. Stride is built from the ground up for East Africa — M-Pesa, KRA, NSSF and SHIF aren't add-ons — and grows beyond HR into finance, procurement, projects and industry-specific modules like fleet management, all on one login.",
+      "Most HR platforms either focus narrowly on payroll or are foreign tools retrofitted for Kenya. Stride is built from the ground up for East Africa. M-Pesa, KRA, NSSF and SHIF aren't add-ons, and grows beyond HR into finance, procurement, projects and industry-specific modules like fleet management, all on one login.",
   },
   {
     question: 'What modules do we sign up with?',
     answer:
-      'Every Stride account includes two sign-up modules: HR & Payroll and Finance. Switch on procurement, legal, admin, projects and vertical packs when your operations need them — one login, one data layer throughout.',
+      'Every Stride account includes two sign-up modules: HR & Payroll and Finance. Switch on procurement, legal, admin, projects and vertical packs when your operations need them, one login, one data layer throughout.',
   },
   {
     question: 'Which modules are included in each plan?',
@@ -546,17 +550,17 @@ export const PLATFORM_FAQ = [
   {
     question: 'Do you support M-Pesa for salary disbursements?',
     answer:
-      'M-Pesa bulk disbursements and reconciliation are first-class — designed for how Kenyan businesses actually pay people, with matching back to payroll runs.',
+      'M-Pesa bulk disbursements and reconciliation are first-class, designed for how Kenyan businesses actually pay people, with matching back to payroll runs.',
   },
   {
     question: 'Do you support multi-entity or cross-border operations?',
     answer:
-      'Yes. Stride supports multi-entity structures out of the box — separate legal entities, currencies and statutory configurations (including Kenya and Uganda) from a single account, with consolidated and entity-level reporting.',
+      'Yes. Stride supports multi-entity structures out of the box, separate legal entities, currencies and statutory configurations (including Kenya and Uganda) from a single account, with consolidated and entity-level reporting.',
   },
   {
     question: 'What industry verticals are available today?',
     answer:
-      'HR Consultancy, Logistics & Cargo, SACCOs, Healthcare, Oil & Gas / Energy, and Construction are live vertical packs today — each with a demo pack on the platform.',
+      'HR Consultancy, Logistics & Cargo, SACCOs, Healthcare, Oil & Gas / Energy, and Construction are live vertical packs today, each with a demo pack on the platform.',
   },
 ] as const;
 
@@ -581,7 +585,7 @@ export const INDUSTRY_VERTICALS: {
     name: 'HR Consultancy',
     status: 'available',
     description:
-      'Careers site, recruitment ATS, built-in AssessIQ candidate assessments, and Kenya-compliant payroll for client workforces — built for boutique HR firms and outsourcing operators.',
+      'Careers site, recruitment ATS, built-in AssessIQ candidate assessments, and Kenya-compliant payroll for client workforces, built for boutique HR firms and outsourcing operators.',
     features: [
       'Careers site & job posts',
       'Applicant tracking pipeline',
@@ -596,7 +600,7 @@ export const INDUSTRY_VERTICALS: {
     name: 'Logistics & Cargo',
     status: 'available',
     description:
-      'Order intake, route & trip planning, vehicle and driver allocation, pre-trip compliance, in-transit monitoring, proof of delivery, settlement and billing — the full fleet workflow on one platform.',
+      'Order intake, route & trip planning, vehicle and driver allocation, pre-trip compliance, in-transit monitoring, proof of delivery, settlement and billing. The full fleet workflow on one platform.',
     features: [
       'Fleet & vehicle register',
       'Route & trip planning',
@@ -611,7 +615,7 @@ export const INDUSTRY_VERTICALS: {
     name: 'SACCOs',
     status: 'available',
     description:
-      'Member-trusted payroll, workforce operations and board-ready reporting — our beachhead vertical with a live demo pack.',
+      'Member-trusted payroll, workforce operations and board-ready reporting: our beachhead vertical with a live demo pack.',
     features: ['Member management', 'Dividends', 'BOSA / FOSA', 'Regulatory reporting'],
     href: '/industries/saccos',
   },
@@ -733,12 +737,12 @@ export const PRICING_COMPARE_GROUPS: PricingCompareGroup[] = [
     title: 'People & operations modules',
     rows: [
       { label: 'Disciplinary & grievance', essentials: inc, growth: inc, enterprise: inc },
-      { label: 'Recruitment / ATS — jobs, pipeline, interviews, careers', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Recruitment / ATS, jobs, pipeline, interviews, careers', essentials: add, growth: inc, enterprise: inc },
       { label: 'Candidate assessments', essentials: add, growth: inc, enterprise: inc },
-      { label: 'Performance — goals, reviews, cycles', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Performance, goals, reviews, cycles', essentials: add, growth: inc, enterprise: inc },
       { label: 'Training / learning', essentials: add, growth: inc, enterprise: inc },
-      { label: 'Procurement — PR → LPO → GRN, spend', essentials: add, growth: inc, enterprise: inc },
-      { label: 'Legal & compliance — contracts, credentials, obligations', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Procurement. PR → LPO → GRN, spend', essentials: add, growth: inc, enterprise: inc },
+      { label: 'Legal & compliance, contracts, credentials, obligations', essentials: add, growth: inc, enterprise: inc },
       { label: 'Communications', essentials: add, growth: inc, enterprise: inc },
     ],
   },
@@ -747,7 +751,7 @@ export const PRICING_COMPARE_GROUPS: PricingCompareGroup[] = [
     title: 'Platform & scale',
     rows: [
       { label: 'Horizontal modules included', essentials: txt('up to 2'), growth: txt('up to 4'), enterprise: txt('all') },
-      { label: 'Vertical packs — Fleet, Assets, HSE', essentials: add, growth: txt('1 included'), enterprise: txt('full suite') },
+      { label: 'Vertical packs. Fleet, Assets, HSE', essentials: add, growth: txt('1 included'), enterprise: txt('full suite') },
       { label: 'Multi-entity / regional cells', essentials: none, growth: inc, enterprise: inc },
       { label: 'Dedicated instance + custom integrations + SLAs', essentials: none, growth: none, enterprise: inc },
       { label: 'Support', essentials: txt('Email'), growth: txt('Priority + onboarding'), enterprise: txt('Dedicated success mgr + on-site') },
@@ -759,22 +763,22 @@ export const FAQ_ITEMS = [
   {
     question: 'Is Stride compliant with Kenyan payroll regulations?',
     answer:
-      'Yes. KRA PAYE, NSSF, SHIF, Housing Levy and statutory deductions are built in from day one — not bolted on as an afterthought. Payslips, P9s and filing exports are included.',
+      'Yes. KRA PAYE, NSSF, SHIF, Housing Levy and statutory deductions are built in from day one, not bolted on as an afterthought. Payslips, P9s and filing exports are included.',
   },
   {
     question: 'How is Stride different from other HR platforms?',
     answer:
-      "Most HR platforms either focus narrowly on payroll or are foreign tools retrofitted for Kenya. Stride is built from the ground up for East Africa — M-Pesa, KRA, NSSF and SHIF aren't add-ons — and grows beyond HR into finance, procurement, projects and industry-specific modules like fleet management, all on one login. Pricing is a flat rate per active employee per month in Kenyan shillings with no minimum, so it fits a 12-person consultancy and a 300-staff SACCO alike.",
+      "Most HR platforms either focus narrowly on payroll or are foreign tools retrofitted for Kenya. Stride is built from the ground up for East Africa. M-Pesa, KRA, NSSF and SHIF aren't add-ons, and grows beyond HR into finance, procurement, projects and industry-specific modules like fleet management, all on one login. Pricing is a flat rate per active employee per month in Kenyan shillings with no minimum, so it fits a 12-person consultancy and a 300-staff SACCO alike.",
   },
   {
     question: 'What modules do we sign up with?',
     answer:
-      'Every Stride account includes two sign-up modules: HR & Payroll and Finance. Switch on procurement, legal, admin, projects and vertical packs when your operations need them — one login, one data layer throughout.',
+      'Every Stride account includes two sign-up modules: HR & Payroll and Finance. Switch on procurement, legal, admin, projects and vertical packs when your operations need them, one login, one data layer throughout.',
   },
   {
     question: 'Do you support M-Pesa for salary disbursements?',
     answer:
-      'M-Pesa bulk disbursements and reconciliation are first-class — designed for how Kenyan businesses actually pay people.',
+      'M-Pesa bulk disbursements and reconciliation are first-class, designed for how Kenyan businesses actually pay people.',
   },
   {
     question: 'How long does onboarding take?',
@@ -789,17 +793,17 @@ export const FAQ_ITEMS = [
   {
     question: 'What happens to our data if we leave?',
     answer:
-      'Your data is yours. If you ever decide to leave, we provide a full export of your records — employees, payroll history, financial data — in standard formats, with no lock-in penalty or hidden fees.',
+      'Your data is yours. If you ever decide to leave, we provide a full export of your records, employees, payroll history, financial data, in standard formats, with no lock-in penalty or hidden fees.',
   },
   {
     question: 'Do you support multi-entity or cross-border operations?',
     answer:
-      'Yes. Stride supports multi-entity structures out of the box — manage separate legal entities, currencies and statutory configurations (including Kenya and Uganda) from a single account, with consolidated and entity-level reporting.',
+      'Yes. Stride supports multi-entity structures out of the box, manage separate legal entities, currencies and statutory configurations (including Kenya and Uganda) from a single account, with consolidated and entity-level reporting.',
   },
   {
     question: 'Do you support my industry?',
     answer:
-      'The horizontal core works for any business. Six vertical packs are live today — HR Consultancy, Logistics, SACCOs, Healthcare, Energy, and Construction — each layered on the same Stride core.',
+      'The horizontal core works for any business. Six vertical packs are live today. HR Consultancy, Logistics, SACCOs, Healthcare, Energy, and Construction, each layered on the same Stride core.',
   },
 ] as const;
 
@@ -807,7 +811,7 @@ export const HOW_IT_WORKS_STEPS = [
   {
     step: 'Step 01',
     title: 'Start with what you need',
-    body: 'Sign up with HR & Payroll and Finance — your two included modules. Add Procurement, Projects, Admin or vertical packs when you need them. No forced bundles, no shelfware.',
+    body: 'Sign up with HR & Payroll and Finance, your two included modules. Add Procurement, Projects, Admin or vertical packs when you need them. No forced bundles, no shelfware.',
   },
   {
     step: 'Step 02',
@@ -817,7 +821,7 @@ export const HOW_IT_WORKS_STEPS = [
   {
     step: 'Step 03',
     title: 'Live in days',
-    body: 'Guided onboarding, data import and local support from a team that knows your market — not a queue in another timezone.',
+    body: 'Guided onboarding, data import and local support from a team that knows your market, not a queue in another timezone.',
   },
 ] as const;
 
@@ -832,7 +836,7 @@ export const ABOUT_ORIGIN = {
   paragraphs: [
     {
       text:
-        'Raven Tech Group builds software for East African businesses. Along the way we kept seeing the same gap in HR, payroll and operations: global platforms that approximated KRA rules, billed in dollars and queued support in another timezone — or spreadsheets and disconnected tools holding the rest together.',
+        'Raven Tech Group builds software for East African businesses. Along the way we kept seeing the same gap in HR, payroll and operations: global platforms that approximated KRA rules, billed in dollars and queued support in another timezone, or spreadsheets and disconnected tools holding the rest together.',
     },
     {
       text: 'So we built the system we wished existed, and ',
@@ -863,7 +867,7 @@ export const ABOUT_TRUST = {
     {
       id: 'export',
       title: 'You own your data',
-      body: 'Full export of employees, payroll and financial records on exit — no lock-in.',
+      body: 'Full export of employees, payroll and financial records on exit, no lock-in.',
       icon: 'download' as const,
     },
     {
@@ -882,11 +886,11 @@ export const ABOUT_PAGE = {
     titleLines: ['Built in East Africa,', 'for East Africa.'] as const,
     titleAccent: 'for East Africa.',
     description:
-      'Stride is the operations platform from Raven Tech Group — payroll, finance and sector workflows on one login, in Kenyan shillings, with compliance from day one.',
+      'Stride is the operations platform from Raven Tech Group, payroll, finance and sector workflows on one login, in Kenyan shillings, with compliance from day one.',
     highlights: [
-      'Horizontal core with vertical packs — not separate systems to integrate',
+      'Horizontal core with vertical packs, not separate systems to integrate',
       'Built for Kenyan statutory, M-Pesa and multi-entity reality',
-      'Honest roadmap — we ship what works and label what is coming soon',
+      'Honest roadmap, we ship what works and label what is coming soon',
     ],
   },
   principles: {
@@ -894,10 +898,10 @@ export const ABOUT_PAGE = {
     title: 'Three principles we do not compromise on.',
   },
   stats: [
-    { value: '6', label: 'Core modules on one login' },
-    { value: '100%', label: 'Kenyan statutory coverage — KRA, NSSF, SHIF' },
+    { value: '9', label: 'Product areas on one login' },
+    { value: '4', label: 'Statutory deductions on every payslip. PAYE, NSSF, SHIF, Housing Levy' },
     { value: 'Days', label: 'To go live, not months' },
-    { value: '2', label: 'Countries supported — Kenya & Uganda' },
+    { value: '2', label: 'Countries supported. Kenya & Uganda' },
   ] as const,
   closing: {
     title: 'See Stride in action',
@@ -909,7 +913,7 @@ export const ABOUT_PAGE = {
 export const ABOUT_PRINCIPLES = [
   {
     title: 'Built here, not ported',
-    body: 'M-Pesa disbursements, KRA compliance, NSSF and SHIF logic, and multi-entity structures are first-class — not retrofitted from a global template.',
+    body: 'M-Pesa disbursements, KRA compliance, NSSF and SHIF logic, and multi-entity structures are first-class, not retrofitted from a global template.',
   },
   {
     title: 'Horizontal first, vertical when it matters',
@@ -917,7 +921,7 @@ export const ABOUT_PRINCIPLES = [
   },
   {
     title: 'Honest about the roadmap',
-    body: 'We ship what works. Verticals marked coming soon are on the roadmap — we do not pretend features exist when they do not.',
+    body: 'We ship what works. Verticals marked coming soon are on the roadmap, we do not pretend features exist when they do not.',
   },
 ] as const;
 

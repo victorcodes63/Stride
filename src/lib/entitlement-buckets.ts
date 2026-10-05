@@ -26,6 +26,7 @@ export const MODULE_BUCKET: Record<ModuleKey, EntitlementBucket> = {
   outsourcing: 'horizontal',
   hse: 'vertical',
   assets: 'vertical',
+  inventory: 'horizontal',
   fleet: 'vertical',
   sacco: 'vertical',
   healthcare: 'vertical',

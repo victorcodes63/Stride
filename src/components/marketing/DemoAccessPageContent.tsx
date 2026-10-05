@@ -23,7 +23,7 @@ export function DemoAccessPageContent() {
         </h1>
         <p className="mt-4 text-sm leading-relaxed text-pub-muted">
           Use these seeded accounts on a demo or development instance. The shared demo password is
-          provided in your sandbox invite or briefing — it is not published on this site.
+          provided in your sandbox invite or briefing, it is not published on this site.
         </p>
 
         <p className="mt-6 text-sm text-pub-muted">

@@ -11,7 +11,7 @@ import {
 
 export function StudioCraftWhySection() {
   return (
-    <section className="sc-hero-next-section relative border-t border-[var(--sc-line)]/50 bg-[var(--sc-paper-2)] pt-10 pb-16 sm:pt-20 sm:pb-20 lg:pt-24 lg:pb-28">
+    <section className="sc-hero-next-section relative bg-white pt-6 pb-24 sm:pb-28 lg:pb-36">
       <StudioCraftContainer>
         <Reveal>
           <SectionBadge number="01" label={MARKETING_WHY_STRIDE.badge} />

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <PublicAppShell
-      className="bg-[var(--sc-ink)] font-[var(--font-inter)] text-[var(--sc-paper)] antialiased"
+      className="bg-[var(--sc-ink)] font-[var(--font-jakarta)] text-[var(--sc-paper)] antialiased"
       style={studioCraftBrandVars}
     >
       {children}

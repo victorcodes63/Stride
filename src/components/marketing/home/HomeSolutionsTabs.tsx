@@ -5,12 +5,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'motion/react';
 import { ArrowRight, Check } from '@phosphor-icons/react';
 import { MOTION_EASE, Reveal } from '@/components/marketing/motion';
-import { CoreDashboardWireframe } from '@/components/marketing/mockups/CoreDashboardWireframe';
-import {
-  IndustryWireframePreview,
-  MarketingScreenshotFrame,
-} from '@/components/marketing/mockups/IndustryWireframePreview';
-import { PlatformModulesWireframe } from '@/components/marketing/mockups/PlatformModulesWireframe';
+import { MarketingScreenshotFrame } from '@/components/marketing/mockups/IndustryWireframePreview';
+import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
+import { ProductBusinessPulseSlice, ProductOverviewSlice } from '@/components/marketing/product/ProductSlices';
 import { StatutoryWireframe } from '@/components/marketing/mockups/StatutoryWireframe';
 import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import { MARKETING_ROUTES } from '@/lib/marketing-config';
@@ -22,7 +19,7 @@ type Solution = {
   body: string;
   points: readonly string[];
   link: { href: string; label: string };
-  /** Coded mock shown until a real screenshot is set below. */
+  /** Product preview: real dashboard components with demo data, or a coded mock until one exists. */
   visual: ReactNode;
   /**
    * Real product screenshot. When set, it replaces `visual`. Drop the PNG in
@@ -45,11 +42,7 @@ const SOLUTIONS: readonly Solution[] = [
       'Payslips and P9s generated on every run',
     ],
     link: { href: MARKETING_ROUTES.platform, label: 'Explore HR & Payroll' },
-    visual: (
-      <MarketingScreenshotFrame moduleLabel="HR & Payroll" screenTitle="People overview" path="/dashboard">
-        <CoreDashboardWireframe />
-      </MarketingScreenshotFrame>
-    ),
+    visual: <ProductOverviewSlice domains={['hr-payroll']} fill />,
   },
   {
     id: 'compliance',
@@ -83,11 +76,7 @@ const SOLUTIONS: readonly Solution[] = [
       'Multi-entity across Kenya and Uganda',
     ],
     link: { href: MARKETING_ROUTES.platform, label: 'View all modules' },
-    visual: (
-      <MarketingScreenshotFrame moduleLabel="Stride Core" screenTitle="Platform overview" path="/dashboard">
-        <PlatformModulesWireframe />
-      </MarketingScreenshotFrame>
-    ),
+    visual: <ProductBusinessPulseSlice withKpis fill />,
   },
   {
     id: 'industries',
@@ -100,7 +89,7 @@ const SOLUTIONS: readonly Solution[] = [
       'Same records and compliance underneath',
     ],
     link: { href: MARKETING_ROUTES.industries, label: 'Browse industries' },
-    visual: <IndustryWireframePreview industryId="logistics" />,
+    visual: <ProductIndustryPreview industryId="logistics" fill />,
   },
 ];
 
@@ -176,7 +165,7 @@ export function HomeSolutionsTabs() {
                   }}
                   className={`relative min-h-11 flex-1 overflow-hidden whitespace-nowrap rounded-xl px-4 text-[14px] font-semibold transition-colors sm:text-[15px] ${
                     selected
-                      ? 'bg-[var(--sc-ink)] text-[#FBF8F4] shadow-sm'
+                      ? 'bg-[var(--sc-ink)] text-[#FFFFFF] shadow-sm'
                       : 'text-[var(--sc-ink-muted)] hover:bg-white hover:text-[var(--sc-ink)]'
                   }`}
                 >

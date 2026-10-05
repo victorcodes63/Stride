@@ -22,12 +22,18 @@ import {
 } from '@/lib/dashboard-module-domains';
 import { useDashboardDomain } from '@/contexts/dashboard-domain';
 import { useDashboardModuleOrder } from '@/contexts/dashboard-module-order';
+import { useEntity } from '@/components/EntitySwitcher';
 import { getNavItemReadiness } from '@/lib/dashboard-nav-readiness';
 import { NavReadinessBadge } from '@/components/dashboard/NavReadinessBadge';
+import {
+  readOverviewAttentionCount,
+  subscribeOverviewCoreCache,
+} from '@/lib/dashboard-overview-cache';
 import { ChevronRight, Pin, PinOff, type LucideIcon } from 'lucide-react';
 
 const NAV_STORAGE_KEY = 'dashboard-nav-expanded';
 const SIDEBAR_COLLAPSED_KEY = 'dashboard-sidebar-collapsed';
+const PLAN_MY_WORK_COLLAPSED_KEY = 'dashboard-nav-plan-work-collapsed';
 
 interface DashboardNavProps {
   currentUserRole: UserRole | null;
@@ -35,6 +41,8 @@ interface DashboardNavProps {
   canViewSystemAnalytics?: boolean;
   canAccessCompanySetup?: boolean;
   enabledModules?: EnabledModulesMap;
+  /** Used to read the shared overview metrics cache for the Action Center badge. */
+  currentOrgId?: string | null;
   onNavigate?: () => void;
 }
 
@@ -142,6 +150,7 @@ function NavRootLink({
   onNavigate,
   isPinned,
   onTogglePin,
+  badgeCount,
 }: {
   href: string;
   label: string;
@@ -150,6 +159,7 @@ function NavRootLink({
   onNavigate?: () => void;
   isPinned: boolean;
   onTogglePin: (href: string) => void;
+  badgeCount?: number;
 }) {
   const isActive = isPathActive(pathname, href);
 
@@ -163,6 +173,17 @@ function NavRootLink({
     >
       <Icon className="dash-nav-icon" />
       <span className="truncate">{label}</span>
+      {badgeCount != null && badgeCount > 0 ? (
+        <span
+          className={`ml-1 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none tabular-nums ${
+            isActive
+              ? 'bg-white/20 text-white'
+              : 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200'
+          }`}
+        >
+          {badgeCount > 99 ? '99+' : badgeCount}
+        </span>
+      ) : null}
       <NavPinButton
         href={href}
         isPinned={isPinned}
@@ -211,6 +232,11 @@ function getActiveSectionIds(sections: DashboardNavSection[], pathname: string):
   return active;
 }
 
+function isPlanMyWorkPath(pathname: string): boolean {
+  const links = [...PERSONAL_PLANNING_LINKS, ...OVERVIEW_PERSONAL_LINKS];
+  return links.some((item) => isPathActive(pathname, item.href));
+}
+
 export function readSidebarCollapsed(): boolean {
   if (typeof window === 'undefined') return false;
   try {
@@ -234,10 +260,12 @@ export default function DashboardNav({
   canViewSystemAnalytics = false,
   canAccessCompanySetup = false,
   enabledModules = ALL_MODULES_ENABLED,
+  currentOrgId = null,
   onNavigate,
 }: DashboardNavProps) {
   const { activeDomainId, activeDomain, pathname } = useDashboardDomain();
   const { visibleDomains } = useDashboardModuleOrder();
+  const { activeEntity } = useEntity();
   const overviewItem = useMemo(() => getDomainOverviewNavItem(activeDomainId), [activeDomainId]);
 
   const navOptions = useMemo(
@@ -265,6 +293,7 @@ export default function DashboardNav({
   );
   const [pinnedHrefs, setPinnedHrefs] = useState<string[]>([]);
   const [pinsLoaded, setPinsLoaded] = useState(false);
+  const [attentionBadgeCount, setAttentionBadgeCount] = useState(0);
 
   const pinnedItems = useMemo(() => {
     const inDomain = pinnedHrefs.filter((href) => isHrefInDomain(href, activeDomainId));
@@ -274,6 +303,7 @@ export default function DashboardNav({
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [hydrated, setHydrated] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [planWorkExpanded, setPlanWorkExpanded] = useState(true);
 
   useEffect(() => {
     setHasMounted(true);
@@ -298,6 +328,43 @@ export default function DashboardNav({
   }, [hasMounted]);
 
   useEffect(() => {
+    if (!hasMounted || !currentOrgId) return;
+    let cancelled = false;
+
+    const applyCount = (count: number | null) => {
+      if (cancelled || count == null) return;
+      setAttentionBadgeCount(count > 0 ? count : 0);
+    };
+
+    const cached = readOverviewAttentionCount(currentOrgId, activeEntity.id);
+    if (cached != null) {
+      applyCount(cached);
+    } else {
+      // Cold nav (never hit Overview) — cheap leave/attendance counts only.
+      fetch('/api/dashboard/attention?summaryOnly=1', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: { summary?: { total?: number } } | null) => {
+          if (cancelled) return;
+          const total = data?.summary?.total;
+          applyCount(typeof total === 'number' ? total : 0);
+        })
+        .catch(() => {
+          if (!cancelled) setAttentionBadgeCount(0);
+        });
+    }
+
+    const unsubscribe = subscribeOverviewCoreCache((detail) => {
+      if (detail.orgId !== currentOrgId || detail.entityId !== activeEntity.id) return;
+      applyCount(detail.attentionCount);
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [hasMounted, currentOrgId, activeEntity.id]);
+
+  useEffect(() => {
     if (!hasMounted) return;
     setExpanded(new Set(sections.map((section) => section.id)));
   }, [activeDomainId, hasMounted, sections]);
@@ -309,7 +376,25 @@ export default function DashboardNav({
     const expandedSet = new Set([...stored, ...activeSections]);
     setExpanded(expandedSet);
     setHydrated(true);
+    try {
+      const collapsed = localStorage.getItem(PLAN_MY_WORK_COLLAPSED_KEY) === '1';
+      setPlanWorkExpanded(isPlanMyWorkPath(pathname) ? true : !collapsed);
+    } catch {
+      setPlanWorkExpanded(true);
+    }
   }, [hasMounted, pathname, sections]);
+
+  const togglePlanWork = useCallback(() => {
+    setPlanWorkExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(PLAN_MY_WORK_COLLAPSED_KEY, next ? '0' : '1');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
 
   const persistPins = useCallback(async (next: string[]) => {
     try {
@@ -349,6 +434,9 @@ export default function DashboardNav({
     });
   };
 
+  const attentionBadgeFor = (href: string) =>
+    href === '/dashboard/attention' && attentionBadgeCount > 0 ? attentionBadgeCount : undefined;
+
   const renderPinnedLink = (item: DashboardNavItem) => (
     <NavRootLink
       key={item.href}
@@ -357,6 +445,7 @@ export default function DashboardNav({
       onNavigate={onNavigate}
       isPinned={isPinned(item.href)}
       onTogglePin={togglePin}
+      badgeCount={attentionBadgeFor(item.href)}
     />
   );
 
@@ -499,20 +588,64 @@ export default function DashboardNav({
         )}
       </div>
 
-      <div className="mt-2 border-t border-[var(--dash-border-subtle)] pt-2 pb-1">
-        <NavGroupLabel label="Plan my work" />
-        <div className="space-y-0.5">
-          {(isCommandCenter ? OVERVIEW_PERSONAL_LINKS : PERSONAL_PLANNING_LINKS).map((item) => (
-            <NavRootLink
-              key={item.href}
-              {...item}
-              pathname={pathname}
-              onNavigate={onNavigate}
-              isPinned={isPinned(item.href)}
-              onTogglePin={togglePin}
-            />
-          ))}
-        </div>
+      <div className="mt-2 border-t border-[var(--dash-border-subtle)] pt-1 pb-1">
+        {(() => {
+          const planLinks = isCommandCenter ? OVERVIEW_PERSONAL_LINKS : PERSONAL_PLANNING_LINKS;
+          const planActive = planLinks.some((item) => isPathActive(pathname, item.href));
+          const planExpanded = !hasMounted || !hydrated ? true : planWorkExpanded;
+          return (
+            <>
+              <button
+                type="button"
+                onClick={togglePlanWork}
+                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition hover:bg-[var(--dash-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
+                  planActive ? 'bg-[var(--dash-hover)]' : ''
+                }`}
+                aria-expanded={planExpanded}
+                aria-controls="nav-section-plan-my-work"
+                id="nav-trigger-plan-my-work"
+              >
+                <span className="min-w-0 flex-1 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--dash-text-subtle)]">
+                  Plan my work
+                </span>
+                {attentionBadgeCount > 0 && !planExpanded ? (
+                  <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-rose-100 px-1 text-[10px] font-semibold leading-none tabular-nums text-rose-800 dark:bg-rose-950/50 dark:text-rose-200">
+                    {attentionBadgeCount > 99 ? '99+' : attentionBadgeCount}
+                  </span>
+                ) : null}
+                <ChevronRight
+                  className={`h-3.5 w-3.5 flex-shrink-0 text-[var(--dash-text-faint)] transition-transform duration-200 ${
+                    planExpanded ? 'rotate-90' : ''
+                  }`}
+                />
+              </button>
+              <div
+                id="nav-section-plan-my-work"
+                role="region"
+                aria-labelledby="nav-trigger-plan-my-work"
+                className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                  planExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="space-y-0.5 pb-1 pt-0.5">
+                    {planLinks.map((item) => (
+                      <NavRootLink
+                        key={item.href}
+                        {...item}
+                        pathname={pathname}
+                        onNavigate={onNavigate}
+                        isPinned={isPinned(item.href)}
+                        onTogglePin={togglePin}
+                        badgeCount={attentionBadgeFor(item.href)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </nav>
   );

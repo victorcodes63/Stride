@@ -33,6 +33,7 @@ import { DashboardModuleOrderProvider } from '@/contexts/dashboard-module-order'
 import { SkipToMain } from '@/components/a11y/SkipToMain';
 import { PlatformNavigationLoader } from '@/components/platform/PlatformNavigationLoader';
 import {
+ DASHBOARD_CHROME_HEADER_CLASS,
  DASHBOARD_MAIN_PADDING_BOTTOM,
  DASHBOARD_MAIN_PADDING_TOP,
  DASHBOARD_SHELL_GUTTER,
@@ -299,7 +300,7 @@ export default function DashboardAppLayoutClient({
  aria-hidden={hasMounted && !sidebarOpen}
  >
  <div
- className="dash-sidebar-brand flex flex-shrink-0 items-center justify-center border-b px-3.5 py-3"
+ className={`dash-sidebar-brand flex ${DASHBOARD_CHROME_HEADER_CLASS} flex-shrink-0 items-center justify-center border-b px-3.5`}
  onClick={closeSidebarOnMobile}
  >
  {sidebarBrand}
@@ -311,6 +312,7 @@ export default function DashboardAppLayoutClient({
  canViewSystemAnalytics={currentUser?.canViewSystemAnalytics ?? false}
  canAccessCompanySetup={canAccessCompanySetup}
  enabledModules={enabledModules}
+ currentOrgId={currentUser?.currentOrgId ?? null}
  onNavigate={closeSidebarOnMobile}
  />
 

@@ -26,7 +26,6 @@ import {
   Receipt,
   Search,
   Shield,
-  Sparkles,
   Stethoscope,
   TrendingUp,
   Truck,
@@ -336,7 +335,7 @@ function ReportCard({
       ) : access === 'coming-soon' ? (
         <div className="mt-auto pt-1">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface-muted)] px-3 py-2 text-xs font-medium text-[var(--dash-text-muted)]">
-            <Sparkles className="h-3.5 w-3.5" />
+            <Clock3 className="h-3.5 w-3.5" />
             In development — available soon
           </span>
         </div>
@@ -509,7 +508,7 @@ export default function ReportsPage() {
         title="Report Center"
         description="Platform-wide reporting across HR, payroll, finance, operations, and compliance — preview live, then export to CSV, Excel, or PDF."
         badges={[
-          { label: `${tierLabel(deploymentTier)} plan`, icon: Sparkles },
+          { label: `${tierLabel(deploymentTier)} plan`, icon: BadgeCheck },
           { label: `${coverage.available} reports ready` },
         ]}
         actions={
@@ -616,7 +615,7 @@ export default function ReportsPage() {
           <FilterChip
             active={activeCategory === 'featured'}
             onClick={() => setActiveCategory('featured')}
-            icon={Sparkles}
+            icon={BadgeCheck}
           >
             Featured
           </FilterChip>

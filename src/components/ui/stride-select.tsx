@@ -75,21 +75,21 @@ const SURFACE_STYLES: Record<StrideSelectSurface, SurfaceStyles> = {
     option: 'text-[var(--ess-text,#1a1714)]',
     optionActive: 'bg-[color-mix(in_srgb,var(--ess-primary,#ff5436)_14%,transparent)]',
     optionSelected: 'font-semibold text-[var(--ess-primary,#ff5436)]',
-    placeholder: 'text-[var(--ess-muted,#8a8076)]',
-    chevron: 'text-[var(--ess-muted,#8a8076)]',
+    placeholder: 'text-[var(--ess-muted,#78716C)]',
+    chevron: 'text-[var(--ess-muted,#78716C)]',
   },
   public: {
     // Self-contained tokens with literal fallbacks so the portaled menu (rendered
     // on document.body, outside the .public-app scope) still themes correctly.
     trigger: () =>
-      'h-10 rounded-md border border-[var(--pub-border,#e6ded4)] bg-[var(--pub-surface,#fbf8f4)] px-3 text-sm text-[var(--pub-ink,#1a1714)] focus-visible:ring-2 focus-visible:ring-primary-500/30',
+      'h-10 rounded-md border border-[var(--pub-border,#E7E7EB)] bg-[var(--pub-surface,#FFFFFF)] px-3 text-sm text-[var(--pub-ink,#1a1714)] focus-visible:ring-2 focus-visible:ring-primary-500/30',
     menu:
-      'border border-[var(--pub-border,#e6ded4)] bg-[var(--pub-surface-elevated,#fbf8f4)] text-[var(--pub-ink,#1a1714)] shadow-2xl',
+      'border border-[var(--pub-border,#E7E7EB)] bg-[var(--pub-surface-elevated,#FFFFFF)] text-[var(--pub-ink,#1a1714)] shadow-2xl',
     option: 'text-[var(--pub-ink,#1a1714)]',
-    optionActive: 'bg-[var(--pub-surface-muted,#f4efe8)]',
+    optionActive: 'bg-[var(--pub-surface-muted,#F5F5F7)]',
     optionSelected: 'font-medium text-[var(--pub-primary,#ff5436)]',
-    placeholder: 'text-[var(--pub-ink-subtle,#8a8076)]',
-    chevron: 'text-[var(--pub-ink-subtle,#8a8076)]',
+    placeholder: 'text-[var(--pub-ink-subtle,#78716C)]',
+    chevron: 'text-[var(--pub-ink-subtle,#78716C)]',
   },
 };
 

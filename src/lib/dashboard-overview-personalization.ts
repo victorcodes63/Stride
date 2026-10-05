@@ -33,6 +33,7 @@ export { groupAttentionByDomain };
 function buildPersonalPlanningShortcuts(): OverviewShortcut[] {
   const descByLabel: Record<string, string> = {
     Calendar: 'Your personal calendar & reminders',
+    'Action Center': 'Operational queues to clear',
     'My tasks': 'Tasks assigned to you',
     Inbox: 'Personal notifications and updates',
     Leave: 'Request and track your leave',
@@ -151,17 +152,17 @@ export function getOverviewRoleLabel(user: UserSummary | null): string {
 export function getOverviewSubtitle(persona: OverviewPersona): string {
   switch (persona) {
     case 'admin':
-      return 'What needs you today — then open a module from the sidebar for charts and depth.';
+      return 'Start with your queues and tasks — then open a module for charts and depth.';
     case 'director':
-      return 'Cross-module priorities at a glance — drill into Finance, HR, or Operations for detail.';
+      return 'Clear your Action Center and personal work first — modules hold the detail.';
     case 'finance':
-      return 'Quick signals on payables and payroll — open Finance for invoices, AP, and trends.';
+      return 'Your inbox and queues first — Finance holds invoices, AP, and trends.';
     case 'business_manager':
-      return 'People workflows and approvals — open HR & Payroll for attendance, leave, and payroll.';
+      return 'Tasks, leave, and approvals that need you — then open HR for the rest.';
     case 'viewer':
       return 'Read-only overview. Contact an administrator to request access changes.';
     default:
-      return 'Pick a module to work in — charts and detailed metrics live on each module home.';
+      return 'Your tasks, inbox, and calendar — pick a card and get into work.';
   }
 }
 
@@ -311,7 +312,7 @@ export function buildAttentionItems(input: {
   return collectDomainAttentionItems(input);
 }
 
-/** Highest-priority attention item for hero CTA (rose > amber > sky > neutral). */
+/** Highest-priority attention item for hero CTA — always routes into Action Center. */
 export function pickTopAttentionAction(
   items: OverviewAttentionItem[],
 ): OverviewPrimaryAction | null {
@@ -320,7 +321,7 @@ export function pickTopAttentionAction(
   const sorted = [...items].sort((a, b) => rank[a.tone] - rank[b.tone]);
   const top = sorted[0]!;
   return {
-    href: top.href,
+    href: `/dashboard/attention?type=${encodeURIComponent(top.id)}`,
     label: top.label,
     icon: Inbox,
     variant: 'primary',

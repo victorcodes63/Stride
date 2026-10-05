@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import {
-  CoreDashboardWireframePreview,
-  IndustryWireframePreview,
-} from '@/components/marketing/mockups/IndustryWireframePreview';
+import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
+import type { MarketingVerticalScreenshotId } from '@/lib/marketing-config';
+import { ProductOverviewSlice } from '@/components/marketing/product/ProductSlices';
 import { Reveal } from '@/components/marketing/motion/Reveal';
+import { PlatformSectionHead } from '@/components/marketing/platform/PlatformSectionHead';
 import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import {
   CORE_CAPABILITIES,
@@ -39,9 +39,9 @@ const LAYERS: Layer[] = [
     label: CORE_PACKS_EXPLAINER.coreLabel,
     accent: 'var(--sc-ink)',
     status: 'always',
-    positioning: 'Shared platform layer — always on.',
+    positioning: 'Shared platform layer, always on.',
     detail:
-      'HR, payroll, finance, procurement, documents, projects and admin — one login, one data layer every vertical pack inherits.',
+      'HR, payroll, finance, procurement, documents, projects and admin, one login, one data layer every vertical pack inherits.',
     mediaKey: 'core',
     isCore: true,
   },
@@ -97,11 +97,12 @@ function useActiveLayer(count: number) {
 
 function LayerVisual({ layer }: { layer: Layer }) {
   if (layer.isCore) {
-    return <CoreDashboardWireframePreview className="h-full w-full" />;
+    return <ProductOverviewSlice fill className="h-full w-full" />;
   }
   return (
-    <IndustryWireframePreview
-      industryId={layer.mediaKey as 'logistics' | 'saccos' | 'healthcare' | 'energy' | 'construction'}
+    <ProductIndustryPreview
+      fill
+      industryId={layer.mediaKey as MarketingVerticalScreenshotId}
       className="h-full w-full"
     />
   );
@@ -110,34 +111,26 @@ function LayerVisual({ layer }: { layer: Layer }) {
 export function PlatformArchitectureSection({ leadSection = false }: { leadSection?: boolean }) {
   const { active, setStepRef } = useActiveLayer(LAYERS.length);
   const reduceMotion = useReducedMotion();
-  const revealY = leadSection ? 0 : 24;
   const activeLayer = LAYERS[active];
 
   return (
     <section
       className={
         leadSection
-          ? 'border-b border-[var(--sc-line)] bg-[var(--sc-paper-2)] pt-4 pb-16 sm:pt-6 sm:pb-20 lg:pb-28'
-          : 'border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32'
+          ? 'bg-white pt-4 pb-24 sm:pt-6 sm:pb-28 lg:pb-36'
+          : 'bg-white py-24 sm:py-28 lg:py-36'
       }
     >
       <StudioCraftContainer>
-        <Reveal y={revealY}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--sc-coral)]">
-            Platform architecture
-          </p>
-          <h2 className="mt-3 max-w-2xl text-[clamp(1.75rem,4vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.02em] text-[var(--sc-ink)]">
-            {CORE_PACKS_EXPLAINER.title}
-          </h2>
-        </Reveal>
-        <Reveal delay={0.06} y={revealY}>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--sc-ink-muted)]">
-            {CORE_PACKS_EXPLAINER.caption}
-          </p>
-        </Reveal>
+        <PlatformSectionHead
+          index="04"
+          label="Platform architecture"
+          title={CORE_PACKS_EXPLAINER.title}
+          note={CORE_PACKS_EXPLAINER.caption}
+        />
 
         {/* DESKTOP: pinned visual on the left, scrolling steps on the right */}
-        <div className="mt-12 hidden lg:mt-16 lg:grid lg:grid-cols-[1fr_minmax(380px,460px)] lg:gap-16">
+        <div className="mt-14 hidden lg:mt-20 lg:grid lg:grid-cols-[1fr_minmax(380px,460px)] lg:gap-16">
           {/* Pinned stage */}
           <div className="relative">
             <div className="sticky top-[calc(var(--nav-h)+3rem)] flex h-[calc(100vh-var(--nav-h)-6rem)] min-h-[480px] items-center">
@@ -203,7 +196,7 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
                     animate={{ opacity: isActive ? 1 : 0.4 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <p className="font-mono text-[11px] text-[var(--sc-ink-subtle,#8A8076)]">
+                    <p className="font-mono text-[11px] text-[var(--sc-ink-subtle,#78716C)]">
                       {String(i).padStart(2, '0')} / {String(LAYERS.length - 1).padStart(2, '0')}
                     </p>
                     <h3 className="mt-2 text-2xl font-medium tracking-tight text-[var(--sc-ink)] sm:text-3xl">
@@ -212,7 +205,7 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
                     <p className="mt-3 max-w-md text-base leading-relaxed text-[var(--sc-ink-muted)]">
                       {layer.positioning}
                     </p>
-                    <p className="mt-2 max-w-md text-sm leading-relaxed text-[var(--sc-ink-subtle,#8A8076)]">
+                    <p className="mt-2 max-w-md text-sm leading-relaxed text-[var(--sc-ink-subtle,#78716C)]">
                       {layer.detail}
                     </p>
                     {layer.href && (

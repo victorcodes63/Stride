@@ -69,10 +69,10 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        heading: ['var(--font-bricolage)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-bricolage)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
-        pub: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-jakarta)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-jakarta)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-jakarta)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        pub: ['var(--font-jakarta)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-ibm-plex-mono)', 'ui-monospace', 'monospace'],
       },
       animation: {

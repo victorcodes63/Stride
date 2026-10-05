@@ -3,19 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { DashboardTable, DashboardTableCard, DashboardTableEmpty, DashboardTableViewport } from '@/components/dashboard/DashboardDataTable';
+import { ConstructionSiteTable, type ConstructionSiteRow } from '@/components/construction/ConstructionSiteTable';
 import { DashboardAsyncState, DashboardPageSkeleton } from '@/components/dashboard/DashboardAsyncState';
 import { StrideSelect } from '@/components/ui/stride-select';
 
-type Site = {
-  id: string;
-  code: string;
-  name: string;
-  status: string;
-  parentSiteCode: string | null;
-  projectCode: string | null;
-  childCount: number;
-};
+type Site = ConstructionSiteRow;
 
 export default function ConstructionSitesPage() {
   const [sites, setSites] = useState<Site[]>([]);
@@ -89,26 +81,7 @@ export default function ConstructionSitesPage() {
         <button type="submit" className="h-10 rounded-lg bg-primary-500 text-sm font-medium text-white">Add site</button>
       </form>
       {error ? <DashboardAsyncState variant="error" title="Sites" message={error} onRetry={() => void load()} /> : (
-        <DashboardTableCard title="Construction sites">
-          <DashboardTableViewport>
-            <DashboardTable>
-              <thead><tr><th>Code</th><th>Name</th><th>Status</th><th>Parent</th><th>Project</th><th>Children</th></tr></thead>
-              <tbody>
-                {sites.map((s) => (
-                  <tr key={s.id}>
-                    <td className="font-mono text-xs">{s.code}</td>
-                    <td>{s.name}</td>
-                    <td className="capitalize">{s.status}</td>
-                    <td>{s.parentSiteCode ?? '—'}</td>
-                    <td>{s.projectCode ?? '—'}</td>
-                    <td>{s.childCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </DashboardTable>
-            {sites.length === 0 ? <DashboardTableEmpty message="No sites configured." /> : null}
-          </DashboardTableViewport>
-        </DashboardTableCard>
+        <ConstructionSiteTable sites={sites} />
       )}
     </DashboardPage>
   );

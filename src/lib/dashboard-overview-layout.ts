@@ -31,8 +31,8 @@ export const DEFAULT_OVERVIEW_LAYOUT: DashboardOverviewLayout = {
 };
 
 export const FULL_WIDTH_OVERVIEW_WIDGETS: OverviewWidgetId[] = [
-  'attention',
   'personal-planning',
+  'attention',
   'command-center',
   'snapshot',
 ];

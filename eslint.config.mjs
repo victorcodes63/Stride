@@ -40,6 +40,24 @@ const eslintConfig = [
     },
   },
   {
+    // Marketing product previews reuse dashboard UI. Keep them presentational:
+    // no database, session or data-fetching code in the public site's bundle.
+    files: ["src/components/marketing/product/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["@/lib/prisma", "@/lib/prisma/*", "@prisma/client"], message: "Marketing previews must not touch the database." },
+            { group: ["next-auth", "next-auth/*", "@/lib/auth", "@/lib/auth/*", "@/lib/session*"], message: "Marketing previews must not read the session." },
+            { group: ["@/contexts/*"], message: "Pass demo data as props instead of using dashboard providers." },
+            { group: ["server-only"], message: "Marketing previews run on the client." },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: [
       "node_modules/**",
       ".next/**",

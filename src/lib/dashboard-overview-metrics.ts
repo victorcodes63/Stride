@@ -87,6 +87,9 @@ type OverviewCoreRow = {
   openHseActions: number;
 };
 
+/** What the Overview home paints first — keep this set small. */
+export type OverviewMetricsScope = 'home' | 'full';
+
 export async function loadOverviewCoreMetrics(
   tx: Prisma.TransactionClient,
   params: {
@@ -95,8 +98,12 @@ export async function loadOverviewCoreMetrics(
     clientId: string;
     enabledModules: Record<ModuleKey, boolean>;
     now?: Date;
+    /** `home` = first-paint stats only; `full` = every overview metric (default). */
+    scope?: OverviewMetricsScope;
   },
 ): Promise<OverviewCoreMetrics> {
+  const scope = params.scope ?? 'full';
+  const homeOnly = scope === 'home';
   const now = params.now ?? new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
@@ -131,13 +138,15 @@ export async function loadOverviewCoreMetrics(
   const core = moduleEnabled(modules, 'core');
   const time = moduleEnabled(modules, 'time');
   const leave = moduleEnabled(modules, 'leave');
-  const payroll = moduleEnabled(modules, 'payroll') && canAccessPayroll(params.staff);
+  const payroll = !homeOnly && moduleEnabled(modules, 'payroll') && canAccessPayroll(params.staff);
   const credentials = core && canAccessCredentials(params.staff);
   const accounts = moduleEnabled(modules, 'accounts');
-  const fleet = moduleEnabled(modules, 'fleet');
-  const sales = moduleEnabled(modules, 'sales');
-  const assets = moduleEnabled(modules, 'assets');
-  const hse = moduleEnabled(modules, 'hse');
+  const fleet = !homeOnly && moduleEnabled(modules, 'fleet');
+  const sales = !homeOnly && moduleEnabled(modules, 'sales');
+  const assets = !homeOnly && moduleEnabled(modules, 'assets');
+  const hse = !homeOnly && moduleEnabled(modules, 'hse');
+  const loadUnread = !homeOnly;
+  const loadVendorAndPr = !homeOnly;
 
   const columns: Prisma.Sql[] = [
     col(core, Prisma.sql`(SELECT COUNT(*)::int FROM "Employee" WHERE "outsourcingClientId" = ${clientId})`, zero, 'totalStaff'),
@@ -149,16 +158,16 @@ export async function loadOverviewCoreMetrics(
     col(leave, Prisma.sql`(SELECT COUNT(*)::int FROM "StaffLeaveApplication" WHERE "status"::text = 'approved' AND "startDate" <= ${endToday} AND "endDate" >= ${startToday})`, zero, 'staffLeaveOnToday'),
     col(credentials, Prisma.sql`(SELECT COUNT(*)::int FROM "EmployeeCredential" WHERE "status"::text NOT IN ('suspended','revoked') AND "expiryDate" < ${now} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'credentialsExpired'),
     col(credentials, Prisma.sql`(SELECT COUNT(*)::int FROM "EmployeeCredential" WHERE "status"::text NOT IN ('suspended','revoked') AND "expiryDate" >= ${now} AND "expiryDate" <= ${horizon90} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'credentialsExpiring'),
-    col(true, Prisma.sql`(SELECT COUNT(*)::int FROM "StaffNotification" WHERE "userId" = ${userId} AND "readAt" IS NULL AND "title" NOT LIKE '[SEED_ACCOUNTS]%' AND "title" NOT LIKE '[SEED_INVOICE]%')`, zero, 'unreadNotifications'),
+    col(loadUnread, Prisma.sql`(SELECT COUNT(*)::int FROM "StaffNotification" WHERE "userId" = ${userId} AND "readAt" IS NULL AND "title" NOT LIKE '[SEED_ACCOUNTS]%' AND "title" NOT LIKE '[SEED_INVOICE]%')`, zero, 'unreadNotifications'),
     col(payroll, Prisma.sql`(SELECT COALESCE(SUM("grossPay"),0)::float8 FROM "Payroll" WHERE "month" = ${month} AND "year" = ${year} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'grossTotal'),
     col(payroll, Prisma.sql`(SELECT COALESCE(SUM("netPay"),0)::float8 FROM "Payroll" WHERE "month" = ${month} AND "year" = ${year} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'netTotal'),
     col(payroll, Prisma.sql`(SELECT COALESCE(SUM("paye" + "nssf" + "nhif" + "ahl"),0)::float8 FROM "Payroll" WHERE "month" = ${month} AND "year" = ${year} AND "employeeId" IN (${scopedEmployeeIds}))`, zero, 'deductionsTotal'),
     col(accounts, Prisma.sql`(SELECT EXISTS(SELECT 1 FROM "AccountsClient" WHERE "outsourcingClientId" = ${clientId}))`, falseVal, 'hasFinanceClient'),
     col(accounts, Prisma.sql`(SELECT COUNT(*)::int FROM "AccountsInvoice" WHERE "status"::text IN ('unpaid','partial') AND "clientId" IN (SELECT "id" FROM "AccountsClient" WHERE "outsourcingClientId" = ${clientId}))`, zero, 'invoicesOutstanding'),
-    col(accounts, Prisma.sql`(SELECT COUNT(*)::int FROM "AccountsVendorBill" WHERE "status"::text IN ('unpaid','partial'))`, zero, 'vendorBillsOutstanding'),
+    col(loadVendorAndPr && accounts, Prisma.sql`(SELECT COUNT(*)::int FROM "AccountsVendorBill" WHERE "status"::text IN ('unpaid','partial'))`, zero, 'vendorBillsOutstanding'),
     col(fleet, Prisma.sql`(SELECT COUNT(*)::int FROM "FleetTrip" WHERE "outsourcingClientId" = ${clientId} AND "status"::text IN ('allocated','compliance_check','loaded','in_transit'))`, zero, 'activeFleetTrips'),
     col(fleet, Prisma.sql`(SELECT COUNT(*)::int FROM "FleetIncident" WHERE "outsourcingClientId" = ${clientId} AND "status"::text IN ('open','investigating'))`, zero, 'openFleetIncidents'),
-    col(core, Prisma.sql`(SELECT COUNT(*)::int FROM "PurchaseRequest" WHERE "outsourcingClientId" = ${clientId} AND "status"::text = 'submitted')`, zero, 'pendingPurchaseRequests'),
+    col(loadVendorAndPr && core, Prisma.sql`(SELECT COUNT(*)::int FROM "PurchaseRequest" WHERE "outsourcingClientId" = ${clientId} AND "status"::text = 'submitted')`, zero, 'pendingPurchaseRequests'),
     col(sales, Prisma.sql`(SELECT COUNT(*)::int FROM "SalesDeal" WHERE "stage"::text IN ${openStages} AND "updatedAt" < ${stalledBefore})`, zero, 'salesStalledDeals'),
     col(sales, Prisma.sql`(SELECT COUNT(*)::int FROM "SalesDeal" WHERE "stage"::text IN ${openStages} AND "expectedCloseDate" < ${todayStr}::date)`, zero, 'salesPastDueCloses'),
     col(sales, Prisma.sql`(SELECT COUNT(*)::int FROM "SalesDeal" WHERE "stage"::text IN ${openStages} AND "expectedCloseDate" >= ${todayStr}::date AND "expectedCloseDate" <= ${weekEndStr}::date)`, zero, 'salesClosingThisWeek'),
@@ -172,7 +181,7 @@ export async function loadOverviewCoreMetrics(
 
   // One round-trip computes every metric on the caller's tenant transaction,
   // instead of ~25 serial count queries — critical when the database is far
-  // from the app.
+  // from the app. `home` skips payroll / sales / fleet / assets / HSE / unread.
   const rows = await tx.$queryRaw<OverviewCoreRow[]>(
     Prisma.sql`SELECT ${Prisma.join(columns, ', ')}`,
   );

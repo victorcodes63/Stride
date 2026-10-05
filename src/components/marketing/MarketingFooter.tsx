@@ -1,51 +1,64 @@
 import Link from 'next/link';
 import { Linkedin } from 'lucide-react';
 import { StrideWordmarkLockup } from '@/components/marketing/StrideMark';
+import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
+import { STRIDE_WORDMARK_SRC } from '@/lib/brand-constants';
 import {
-  MarketingPrimaryLink,
-  MarketingSignInLink,
-  StudioCraftContainer,
-} from '@/components/marketing/v3/studio-craft-shared';
-import {
-  MARKETING_CTAS,
+  INDUSTRY_VERTICALS,
   MARKETING_LINKEDIN_URL,
   MARKETING_ROUTES,
   MARKETING_SALES_EMAIL,
+  getMarketingLoginUrl,
 } from '@/lib/marketing-config';
+import { PRICING_INTENTS, contactHref } from '@/lib/pricing';
 
-const FOOTER_PRODUCT_LINKS = [
-  { href: MARKETING_ROUTES.platform, label: 'Platform' },
-  { href: MARKETING_ROUTES.industries, label: 'Industries' },
+type FooterLink = { href: string; label: string; external?: boolean };
+
+const PRODUCT_LINKS: FooterLink[] = [
+  { href: MARKETING_ROUTES.platform, label: 'Platform overview' },
   { href: MARKETING_ROUTES.pricing, label: 'Pricing' },
-] as const;
+  { href: contactHref(PRICING_INTENTS.parallelRun), label: 'Free payroll run' },
+  { href: MARKETING_ROUTES.contact, label: 'Book a demo' },
+  { href: getMarketingLoginUrl(), label: 'Sign in' },
+];
 
-const FOOTER_COMPANY_LINKS = [
-  { href: MARKETING_ROUTES.about, label: 'About' },
+/** Descriptive anchor text doubles as internal linking for search. */
+const PAYROLL_LINKS: FooterLink[] = [
+  { href: MARKETING_ROUTES.platform, label: 'Payroll software Kenya' },
+  { href: MARKETING_ROUTES.platform, label: 'PAYE, NSSF & SHIF' },
+  { href: MARKETING_ROUTES.platform, label: 'Housing Levy' },
+  { href: MARKETING_ROUTES.platform, label: 'M-Pesa salary payouts' },
+  { href: MARKETING_ROUTES.platform, label: 'HR & leave management' },
+];
+
+const INDUSTRY_LINKS: FooterLink[] = INDUSTRY_VERTICALS.map((vertical) => ({
+  href: vertical.href,
+  label: vertical.name,
+}));
+
+const COMPANY_LINKS: FooterLink[] = [
+  { href: MARKETING_ROUTES.about, label: 'About Stride' },
+  { href: MARKETING_ROUTES.contact, label: 'Contact' },
   { href: MARKETING_ROUTES.privacy, label: 'Privacy' },
   { href: MARKETING_ROUTES.terms, label: 'Terms' },
-  { href: MARKETING_ROUTES.contact, label: 'Contact' },
-] as const;
+];
 
-function FooterNavColumn({
-  title,
-  links,
-  className = '',
-}: {
-  title: string;
-  links: ReadonlyArray<{ href: string; label: string }>;
-  className?: string;
-}) {
+function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) {
   return (
-    <nav aria-label={title} className={className}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/60">{title}</p>
-      <ul className="mt-4 space-y-3">
+    <nav aria-label={title} className="min-w-0">
+      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-white/40">{title}</p>
+      <ul className="mt-5 space-y-3.5">
         {links.map((link) => (
-          <li key={link.href}>
+          <li key={`${title}-${link.label}`}>
             <Link
               href={link.href}
-              className="text-sm text-[#C9C0B6] transition-colors hover:text-[var(--sc-coral)]"
+              className="group relative inline-flex text-[15px] text-white/70 transition-colors duration-200 hover:text-white"
             >
               {link.label}
+              <span
+                aria-hidden
+                className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-0 bg-[var(--sc-coral)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+              />
             </Link>
           </li>
         ))}
@@ -56,75 +69,86 @@ function FooterNavColumn({
 
 export function MarketingFooter() {
   return (
-    <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[var(--sc-ink,var(--pub-ink,#1a1714))] px-5 py-12 sm:px-8 sm:py-16 lg:px-12">
+    <footer className="sc-on-ink relative isolate overflow-hidden bg-[var(--sc-ink,#1a1714)] text-white">
+      {/* A hairline that glows coral in the middle, separating CTA band and footer. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 top-[35%] bg-[radial-gradient(120%_85%_at_50%_100%,rgba(255,84,54,0.22)_0%,rgba(255,84,54,0.1)_32%,rgba(26,23,20,0)_68%)]"
+        className="h-px w-full bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.12)_20%,rgba(255,84,54,0.6)_50%,rgba(255,255,255,0.12)_80%,transparent)]"
       />
 
-      <StudioCraftContainer className="relative px-0">
-        <div className="grid gap-10 max-lg:grid-cols-1 lg:grid-cols-12 lg:gap-10">
-          <div className="max-lg:contents lg:col-span-4 lg:flex lg:flex-col">
-            <div className="max-lg:order-1 max-lg:flex max-lg:flex-col max-lg:items-center max-lg:text-center">
-              <Link href={MARKETING_ROUTES.home}>
-                <StrideWordmarkLockup theme="on-ink" markClassName="h-6" wordClassName="text-xl" />
-              </Link>
-              <p className="mt-3 text-sm italic !text-[var(--sc-coral)]">Hit your stride.</p>
+      <StudioCraftContainer>
+        <div className="grid gap-14 pb-16 pt-16 sm:pt-20 lg:grid-cols-12 lg:gap-10 lg:pb-20 lg:pt-24">
+          {/* Brand */}
+          <div className="lg:col-span-4">
+            <Link href={MARKETING_ROUTES.home} aria-label="Stride home" className="inline-flex">
+              <StrideWordmarkLockup theme="on-ink" markClassName="h-7" wordClassName="text-xl" />
+            </Link>
+            <p className="mt-6 max-w-[22rem] text-[15px] leading-[1.7] text-white/60">
+              Payroll, HR and finance software for Kenyan businesses, with industry packs on the same
+              platform.
+            </p>
+
+            <div className="mt-8 space-y-3 text-[15px]">
+              <a
+                href={`mailto:${MARKETING_SALES_EMAIL}`}
+                className="block text-white/80 transition-colors hover:text-[var(--sc-coral)]"
+              >
+                {MARKETING_SALES_EMAIL}
+              </a>
+              <p className="text-white/45">Westlands, Nairobi</p>
             </div>
 
-            <div className="max-lg:order-2 max-lg:flex max-lg:flex-col max-lg:items-center max-lg:text-center lg:mt-4">
-              <p className="max-w-xs text-sm leading-relaxed text-[#C9C0B6] max-lg:max-w-sm">
-                One operations platform for East African businesses — HR, finance, and industry packs
-                on a single data layer.
-              </p>
-              <div className="mt-4 flex flex-col items-start gap-3 max-lg:items-center">
-                <a
-                  href={`mailto:${MARKETING_SALES_EMAIL}`}
-                  className="text-sm text-[#C9C0B6] transition-colors hover:text-[var(--sc-coral)]"
-                >
-                  {MARKETING_SALES_EMAIL}
-                </a>
-                <a
-                  href={MARKETING_LINKEDIN_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#C9C0B6] transition-colors hover:bg-white/5 hover:text-[var(--sc-coral)]"
-                  aria-label="Stride on LinkedIn (opens in new tab)"
-                >
-                  <Linkedin className="h-4 w-4 shrink-0" aria-hidden />
-                </a>
-              </div>
+            <div className="mt-8 flex items-center gap-3">
+              <a
+                href={MARKETING_LINKEDIN_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Stride on LinkedIn (opens in new tab)"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-white/70 transition-colors hover:border-[var(--sc-coral)]/50 hover:text-[var(--sc-coral)]"
+              >
+                <Linkedin className="h-4 w-4" aria-hidden />
+              </a>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-[12px] text-white/55">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+                ODPC-ready data handling
+              </span>
             </div>
           </div>
 
-          <div className="flex max-lg:order-3 max-lg:justify-center max-lg:gap-12 lg:col-span-4 lg:grid lg:grid-cols-2 lg:gap-12">
-            <FooterNavColumn title="Product" links={FOOTER_PRODUCT_LINKS} className="min-w-[7.25rem]" />
-            <FooterNavColumn title="Company" links={FOOTER_COMPANY_LINKS} className="min-w-[7.25rem]" />
-          </div>
-
-          <div className="max-lg:order-4 max-lg:flex max-lg:flex-col max-lg:items-center max-lg:text-center lg:col-span-4 lg:justify-self-end">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/60">
-              Get started
-            </p>
-            <p className="mt-4 hidden max-w-sm text-sm leading-relaxed text-[#C9C0B6] sm:block max-lg:max-w-md">
-              See how Stride fits your team — we&apos;ll walk through core modules and any vertical
-              packs you need.
-            </p>
-            <div className="marketing-footer-cta mt-4 flex w-full max-w-sm flex-col gap-3 sm:mt-6 sm:flex-row sm:items-center lg:max-w-none lg:flex-col lg:items-stretch">
-              <MarketingPrimaryLink
-                href={MARKETING_ROUTES.contact}
-                label={MARKETING_CTAS.bookDemo}
-                fullWidth
-              />
-              <MarketingSignInLink tone="dark" fullWidth />
-            </div>
+          {/* Links */}
+          <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-4 lg:col-span-8">
+            <FooterColumn title="Product" links={PRODUCT_LINKS} />
+            <FooterColumn title="Payroll & HR" links={PAYROLL_LINKS} />
+            <FooterColumn title="Industries" links={INDUSTRY_LINKS} />
+            <FooterColumn title="Company" links={COMPANY_LINKS} />
           </div>
         </div>
+      </StudioCraftContainer>
 
-        <div className="marketing-footer-meta mt-10 border-t border-white/10 pt-8 text-xs text-[#8A8076] max-lg:text-center sm:mt-12">
+      {/* Oversized wordmark, fading into the page edge. */}
+      <div className="pointer-events-none relative select-none" aria-hidden>
+        <StudioCraftContainer>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={STRIDE_WORDMARK_SRC}
+            alt=""
+            className="mx-auto block h-auto w-full opacity-[0.09] [mask-image:linear-gradient(to_bottom,black_15%,transparent_95%)]"
+          />
+        </StudioCraftContainer>
+      </div>
+
+      <StudioCraftContainer>
+        <div className="flex flex-col gap-4 border-t border-white/10 py-7 text-[13px] text-white/45 sm:flex-row sm:items-center sm:justify-between">
           <p suppressHydrationWarning>
-            © {new Date().getFullYear()} Stride. A Raven Tech Group product.
+            © {new Date().getFullYear()} Stride · A Raven Tech Group product
           </p>
+          <div className="flex items-center gap-6">
+            <span>Built in Nairobi</span>
+            <a href="#" className="inline-flex items-center gap-1.5 text-white/60 transition-colors hover:text-white">
+              Back to top
+              <span aria-hidden>↑</span>
+            </a>
+          </div>
         </div>
       </StudioCraftContainer>
     </footer>

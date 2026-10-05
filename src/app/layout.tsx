@@ -18,7 +18,7 @@ const inter = Inter({
   display: 'swap',
 });
 
-/** Marketing site face — scoped to .studio-craft-marketing in public-theme.css. */
+/** Marketing site face — shared with dashboard/ESS via globals + Tailwind. */
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
@@ -196,7 +196,7 @@ export default async function RootLayout({
       <head>
         <link rel="icon" href={favicon.startsWith('/') ? favicon : `/${favicon}`} />
       </head>
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${jakarta.className} antialiased`}>
         <DashboardThemeScript />
         <script
           type="application/ld+json"

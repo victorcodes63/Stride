@@ -202,12 +202,12 @@ export function StaffLoginContent({ initialError, welcomeCopy }: StaffLoginConte
       welcomeSubtitle={welcomeCopy.welcomeSubtitle}
       footer={
         <footer className="border-t border-white/10 px-5 py-4 text-center lg:hidden">
-          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-[#fbf8f4]/50">
-            <Link href="/careers" className="hover:text-[#fbf8f4]">Careers</Link>
-            <Link href={privacyPolicyUrl || '/privacy'} className="hover:text-[#fbf8f4]">Privacy</Link>
-            <Link href={termsUrl || '/terms'} className="hover:text-[#fbf8f4]">Terms</Link>
+          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-[#FFFFFF]/50">
+            <Link href="/careers" className="hover:text-[#FFFFFF]">Careers</Link>
+            <Link href={privacyPolicyUrl || '/privacy'} className="hover:text-[#FFFFFF]">Privacy</Link>
+            <Link href={termsUrl || '/terms'} className="hover:text-[#FFFFFF]">Terms</Link>
           </nav>
-          <p className="mx-auto mt-2 max-w-xs text-pretty text-xs leading-relaxed text-[#fbf8f4]/45" suppressHydrationWarning>
+          <p className="mx-auto mt-2 max-w-xs text-pretty text-xs leading-relaxed text-[#FFFFFF]/45" suppressHydrationWarning>
             © {new Date().getFullYear()} {brandConfig.productName}
           </p>
         </footer>

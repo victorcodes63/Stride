@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -127,6 +127,8 @@ export function ApplicationsKanban({
   onStatusChange: (app: ApplicationListItem, status: ApplicationStatus) => void;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Stable id keeps dnd-kit's aria-describedby identical on server and client (no hydration mismatch).
+  const dndId = useId();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor),
@@ -159,6 +161,7 @@ export function ApplicationsKanban({
 
   return (
     <DndContext
+      id={dndId}
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}

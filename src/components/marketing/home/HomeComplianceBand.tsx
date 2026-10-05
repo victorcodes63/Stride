@@ -9,7 +9,7 @@ export function HomeComplianceBand() {
   const { compliance } = PLATFORM_PAGE;
 
   return (
-    <section className="relative overflow-hidden border-y border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-20 sm:py-28 lg:py-32">
+    <section className="relative overflow-hidden bg-white py-24 sm:py-28 lg:py-36">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.45]"
         aria-hidden

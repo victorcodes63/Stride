@@ -179,6 +179,11 @@ export function DashboardModuleOrderProvider({
   );
 }
 
+/** Like {@link useDashboardModuleOrder}, but returns null outside the provider (e.g. marketing previews). */
+export function useOptionalDashboardModuleOrder(): DashboardModuleOrderContextValue | null {
+  return useContext(DashboardModuleOrderContext);
+}
+
 export function useDashboardModuleOrder(): DashboardModuleOrderContextValue {
   const context = useContext(DashboardModuleOrderContext);
   if (!context) {

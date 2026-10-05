@@ -48,3 +48,4 @@ prisma/migrations/**/migration_lock.toml
 .stride-app-env.json
 .stride-cell-provision-key.json
 .env.vercel*
+.backup/

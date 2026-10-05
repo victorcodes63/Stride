@@ -208,6 +208,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         if (typeof body.nextStep === 'string') {
           patchData.nextStep = body.nextStep.trim() || null;
         }
+        if (typeof body.expectedCloseDate === 'string') {
+          patchData.expectedCloseDate = body.expectedCloseDate.trim()
+            ? new Date(`${body.expectedCloseDate.trim()}T00:00:00.000Z`)
+            : null;
+          patchData.lastActivityAt = new Date();
+        }
         if (typeof body.nextStepDue === 'string') {
           patchData.nextStepDue = body.nextStepDue
             ? new Date(`${body.nextStepDue}T00:00:00.000Z`)

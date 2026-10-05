@@ -8,7 +8,7 @@ export const MARKETING_OG_IMAGE = {
   url: '/og/stride-default.png',
   width: 1200,
   height: 630,
-  alt: `${brandConfig.productName} — ${brandConfig.tagline}`,
+  alt: `${brandConfig.productName}, ${brandConfig.tagline}`,
 } as const;
 
 type MarketingMetadataInput = {

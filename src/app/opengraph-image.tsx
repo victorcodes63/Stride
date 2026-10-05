@@ -7,9 +7,9 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 const CORAL = '#FF5436';
-const PAPER = '#FBF8F4';
+const PAPER = '#FFFFFF';
 const INK = '#1A1714';
-const INK_SUBTLE = '#8A8076';
+const INK_SUBTLE = '#78716C';
 
 export default async function Image() {
   const wordmarkSvg = await readFile(join(process.cwd(), 'public/brand/stride-wordmark.svg'));

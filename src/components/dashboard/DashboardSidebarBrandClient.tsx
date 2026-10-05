@@ -8,7 +8,7 @@ export function DashboardSidebarBrandClient() {
   return (
     <Link
       href="/dashboard"
-      className="flex w-full items-center justify-center rounded-lg px-2 py-1.5 outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary-500/30"
+      className="flex h-full w-full items-center justify-center rounded-lg px-2 outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary-500/30"
       aria-label="Stride dashboard home"
     >
       <BrandLogo variant="sidebarWordmark" priority />

@@ -18,7 +18,7 @@ const WIDGET_LABELS: Record<OverviewWidgetId, string> = {
   snapshot: 'Business snapshot',
   'hr-details': 'HR & Payroll details',
   shortcuts: 'Jump to a module',
-  'personal-planning': 'Plan my work',
+  'personal-planning': 'Getting into work',
   notifications: 'Recent updates',
   credentials: 'Credential compliance',
 };

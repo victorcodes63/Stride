@@ -358,11 +358,11 @@ function JdDocumentView({
   form: JobDescriptionInput;
 }) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-[var(--sc-line,#e6ded4)] bg-[var(--sc-paper,#fbf8f4)] text-[var(--sc-ink,#1a1714)] shadow-sm">
+    <article className="overflow-hidden rounded-2xl border border-[var(--sc-line,#E7E7EB)] bg-[var(--sc-paper,#FFFFFF)] text-[var(--sc-ink,#1a1714)] shadow-sm">
       {/* Document masthead */}
-      <header className="relative bg-[var(--sc-ink,#1a1714)] px-6 py-7 text-[var(--sc-on-ink-fg,#fbf8f4)] sm:px-8">
+      <header className="relative bg-[var(--sc-ink,#1a1714)] px-6 py-7 text-[var(--sc-on-ink-fg,#FFFFFF)] sm:px-8">
         <div className="absolute inset-y-0 left-0 w-1.5 bg-[var(--stride-coral,#ff5436)]" aria-hidden />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sc-on-ink-fg-subtle,rgba(251,248,244,0.65))]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sc-on-ink-fg-subtle,rgba(255, 255, 255,0.65))]">
           Job description
         </p>
         <h2 className="mt-2 max-w-3xl text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
@@ -384,7 +384,7 @@ function JdDocumentView({
       </header>
 
       {/* Meta grid */}
-      <div className="grid gap-px border-b border-[var(--sc-line,#e6ded4)] bg-[var(--sc-line,#e6ded4)] sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-px border-b border-[var(--sc-line,#E7E7EB)] bg-[var(--sc-line,#E7E7EB)] sm:grid-cols-2 lg:grid-cols-3">
         {(
           [
             ['Job title', title],
@@ -404,8 +404,8 @@ function JdDocumentView({
             ],
           ] as const
         ).map(([label, value]) => (
-          <div key={label} className="bg-[var(--sc-paper,#fbf8f4)] px-5 py-3.5 sm:px-6">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--sc-ink-subtle,#8a8076)]">
+          <div key={label} className="bg-[var(--sc-paper,#FFFFFF)] px-5 py-3.5 sm:px-6">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--sc-ink-subtle,#78716C)]">
               {label}
             </dt>
             <dd className="mt-1 text-sm font-medium capitalize text-[var(--sc-ink,#1a1714)]">{value}</dd>
@@ -423,7 +423,7 @@ function JdDocumentView({
                 <span className="inline-block h-0.5 w-5 bg-[var(--stride-coral,#ff5436)]" aria-hidden />
                 {label}
               </h3>
-              <p className="mt-3 max-w-3xl whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--sc-ink-muted,#3d3833)]">
+              <p className="mt-3 max-w-3xl whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--sc-ink-muted,#44403C)]">
                 {body}
               </p>
             </section>
@@ -439,7 +439,7 @@ function JdDocumentView({
             {(form.kras ?? []).map((kra, idx) => (
               <div
                 key={idx}
-                className="rounded-xl border border-[var(--sc-line,#e6ded4)] bg-white/80 p-4 sm:p-5"
+                className="rounded-xl border border-[var(--sc-line,#E7E7EB)] bg-white/80 p-4 sm:p-5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -447,25 +447,25 @@ function JdDocumentView({
                       {idx + 1}. {kra.title}
                     </p>
                     {kra.description ? (
-                      <p className="mt-1 text-sm text-[var(--sc-ink-muted,#3d3833)]">{kra.description}</p>
+                      <p className="mt-1 text-sm text-[var(--sc-ink-muted,#44403C)]">{kra.description}</p>
                     ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs">
                     {kra.bscPerspective ? (
-                      <span className="rounded-md bg-[var(--sc-paper-2,#f4efe8)] px-2 py-1 font-medium text-[var(--sc-ink-muted,#3d3833)] ring-1 ring-[var(--sc-line,#e6ded4)]">
+                      <span className="rounded-md bg-[var(--sc-paper-2,#F5F5F7)] px-2 py-1 font-medium text-[var(--sc-ink-muted,#44403C)] ring-1 ring-[var(--sc-line,#E7E7EB)]">
                         {PERSPECTIVE_LABEL[kra.bscPerspective] ?? kra.bscPerspective}
                       </span>
                     ) : null}
-                    <span className="rounded-md bg-[var(--sc-paper-2,#f4efe8)] px-2 py-1 font-medium text-[var(--sc-ink-muted,#3d3833)] ring-1 ring-[var(--sc-line,#e6ded4)]">
+                    <span className="rounded-md bg-[var(--sc-paper-2,#F5F5F7)] px-2 py-1 font-medium text-[var(--sc-ink-muted,#44403C)] ring-1 ring-[var(--sc-line,#E7E7EB)]">
                       {kra.weightPercent}% weight
                     </span>
                   </div>
                 </div>
 
                 {(kra.kpis ?? []).length > 0 ? (
-                  <div className="mt-4 overflow-hidden rounded-lg border border-[var(--sc-line,#e6ded4)]">
+                  <div className="mt-4 overflow-hidden rounded-lg border border-[var(--sc-line,#E7E7EB)]">
                     <table className="w-full text-left text-sm">
-                      <thead className="bg-[var(--sc-paper-2,#f4efe8)] text-[11px] uppercase tracking-wide text-[var(--sc-ink-subtle,#8a8076)]">
+                      <thead className="bg-[var(--sc-paper-2,#F5F5F7)] text-[11px] uppercase tracking-wide text-[var(--sc-ink-subtle,#78716C)]">
                         <tr>
                           <th className="w-10 px-3 py-2 font-semibold">#</th>
                           <th className="px-3 py-2 font-semibold">Key performance indicator</th>
@@ -474,10 +474,10 @@ function JdDocumentView({
                       </thead>
                       <tbody>
                         {(kra.kpis ?? []).map((kpi, kpiIdx) => (
-                          <tr key={kpiIdx} className="border-t border-[var(--sc-line,#e6ded4)]">
-                            <td className="px-3 py-2.5 text-[var(--sc-ink-subtle,#8a8076)]">{kpiIdx + 1}</td>
+                          <tr key={kpiIdx} className="border-t border-[var(--sc-line,#E7E7EB)]">
+                            <td className="px-3 py-2.5 text-[var(--sc-ink-subtle,#78716C)]">{kpiIdx + 1}</td>
                             <td className="px-3 py-2.5 text-[var(--sc-ink,#1a1714)]">{kpi.name}</td>
-                            <td className="px-3 py-2.5 text-[var(--sc-ink-muted,#3d3833)]">
+                            <td className="px-3 py-2.5 text-[var(--sc-ink-muted,#44403C)]">
                               {[kpi.targetValue, kpi.unit].filter(Boolean).join(' ') || '—'}
                             </td>
                           </tr>
@@ -496,17 +496,17 @@ function JdDocumentView({
             <span className="inline-block h-0.5 w-5 bg-[var(--stride-coral,#ff5436)]" aria-hidden />
             Knowledge, skills &amp; competencies
           </h3>
-          <ul className="mt-4 divide-y divide-[var(--sc-line,#e6ded4)] overflow-hidden rounded-xl border border-[var(--sc-line,#e6ded4)] bg-white/80">
+          <ul className="mt-4 divide-y divide-[var(--sc-line,#E7E7EB)] overflow-hidden rounded-xl border border-[var(--sc-line,#E7E7EB)] bg-white/80">
             {(form.competencies ?? []).map((c, idx) => (
               <li key={idx} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <FileText className="h-4 w-4 shrink-0 text-[var(--sc-ink-subtle,#8a8076)]" aria-hidden />
+                  <FileText className="h-4 w-4 shrink-0 text-[var(--sc-ink-subtle,#78716C)]" aria-hidden />
                   <span className="text-sm font-medium text-[var(--sc-ink,#1a1714)]">{c.name}</span>
                 </div>
                 <CompetencyMeter
                   level={c.requiredLevel}
                   filledColor="var(--sc-ink,#1a1714)"
-                  emptyColor="var(--sc-line,#e6ded4)"
+                  emptyColor="var(--sc-line,#E7E7EB)"
                 />
               </li>
             ))}

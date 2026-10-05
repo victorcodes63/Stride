@@ -1,6 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import {
+  CalendarClock,
+  Clock,
+  Receipt,
+  ShieldAlert,
+  ShoppingCart,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import { ModuleHomePage, type ModuleHomeStat } from '@/components/dashboard/module-home/ModuleHomePage';
 import { useDashboardSession } from '@/contexts/dashboard-session';
 import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
@@ -103,6 +112,7 @@ function buildStats(
           value: overview?.totalStaff ?? 0,
           hint: 'Active workforce',
           href: '/dashboard/employees',
+          icon: Users,
           tone: 'primary',
         },
         {
@@ -110,6 +120,7 @@ function buildStats(
           value: overview?.onDuty ?? 0,
           hint: 'Clocked in',
           href: '/dashboard/attendance',
+          icon: Clock,
           tone: 'success',
         },
         {
@@ -117,6 +128,7 @@ function buildStats(
           value: pending,
           hint: pending > 0 ? 'Needs approval' : 'Queue clear',
           href: '/dashboard/staff-leave?tab=approvals',
+          icon: CalendarClock,
           tone: 'warning',
           warn: pending > 0,
         },
@@ -125,6 +137,7 @@ function buildStats(
           value: overview?.openAttendanceExceptions ?? 0,
           hint: 'Open today',
           href: '/dashboard/attendance?status=open',
+          icon: ShieldAlert,
           tone: 'violet',
           warn: (overview?.openAttendanceExceptions ?? 0) > 0,
         },
@@ -137,6 +150,7 @@ function buildStats(
           value: cross?.invoicesOutstanding ?? 0,
           hint: 'Awaiting payment',
           href: '/dashboard/accounts/invoices?status=unpaid',
+          icon: Receipt,
           tone: 'warning',
           warn: (cross?.invoicesOutstanding ?? 0) > 0,
         },
@@ -145,6 +159,7 @@ function buildStats(
           value: cross?.vendorBillsOutstanding ?? 0,
           hint: 'AP queue',
           href: '/dashboard/accounts/vendor-bills?status=unpaid',
+          icon: Wallet,
           tone: 'warning',
           warn: (cross?.vendorBillsOutstanding ?? 0) > 0,
         },
@@ -155,6 +170,7 @@ function buildStats(
             : (overview?.payroll?.netTotal ?? 0).toLocaleString(),
           hint: 'Current month',
           href: '/dashboard/payroll',
+          icon: Wallet,
           tone: 'success',
         },
       ];
@@ -166,6 +182,7 @@ function buildStats(
           value: pendingPr,
           hint: pendingPr > 0 ? 'Awaiting approval' : 'Queue clear',
           href: '/dashboard/procurement/purchase-requests?status=submitted',
+          icon: ShoppingCart,
           tone: 'warning',
           warn: pendingPr > 0,
         },
@@ -174,6 +191,7 @@ function buildStats(
           value: cross?.vendorBillsOutstanding ?? 0,
           hint: 'Pay via Finance AP',
           href: '/dashboard/accounts/vendor-bills',
+          icon: Wallet,
           tone: 'warning',
           warn: (cross?.vendorBillsOutstanding ?? 0) > 0,
         },
@@ -182,6 +200,7 @@ function buildStats(
           value: 'Finance',
           hint: 'Master vendor list',
           href: '/dashboard/accounts/vendors',
+          icon: Users,
           tone: 'primary',
         },
       ];

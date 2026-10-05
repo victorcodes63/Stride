@@ -73,7 +73,7 @@ const CONSOLE_LINES: ConsoleLine[] = [
   { step: 1, text: `› NSSF + SHIF … done` },
   { step: 2, text: `› Disbursing via M-Pesa … ${DISBURSED_COUNT.toLocaleString()} paid` },
   { step: 3, text: '› Posting to ledger … done' },
-  { step: 4, text: '✓ FILED — KRA, NSSF, SHIF', filed: true },
+  { step: 4, text: '✓ FILED. KRA, NSSF, SHIF', filed: true },
 ];
 
 function getCardState(cardId: ComplianceItem['id'], activeStep: number): CardState {

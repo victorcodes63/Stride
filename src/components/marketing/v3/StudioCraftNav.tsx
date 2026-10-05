@@ -48,13 +48,13 @@ export function StudioCraftNav({ overHero = false }: { overHero?: boolean }) {
     mounted && menuOpen
       ? createPortal(
           <div
-            className="fixed inset-0 z-[200] flex flex-col bg-[#FBF8F4] text-[#1A1714] md:hidden"
+            className="fixed inset-0 z-[200] flex flex-col bg-[#FFFFFF] text-[#1A1714] md:hidden"
             style={studioCraftBrandVars}
             role="dialog"
             aria-modal="true"
             aria-label="Site menu"
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-[#E6DED4] bg-[#FBF8F4] px-5 pb-4 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:px-6">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#E7E7EB] bg-[#FFFFFF] px-5 pb-4 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:px-6">
               <Link
                 href={MARKETING_ROUTES.home}
                 className="flex items-center"
@@ -79,7 +79,7 @@ export function StudioCraftNav({ overHero = false }: { overHero?: boolean }) {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="block rounded-xl px-2 py-3 text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-[#1A1714] transition-colors hover:bg-[#F4EFE8] sm:text-[2rem]"
+                      className="block rounded-xl px-2 py-3 text-[1.75rem] font-medium leading-tight tracking-[-0.02em] text-[#1A1714] transition-colors hover:bg-[#F5F5F7] sm:text-[2rem]"
                       onClick={closeMenu}
                     >
                       {link.label}
@@ -89,7 +89,7 @@ export function StudioCraftNav({ overHero = false }: { overHero?: boolean }) {
               </ul>
             </nav>
 
-            <div className="marketing-mobile-drawer-cta shrink-0 space-y-3 border-t border-[#E6DED4] bg-[#FBF8F4] px-5 py-5 sm:px-6">
+            <div className="marketing-mobile-drawer-cta shrink-0 space-y-3 border-t border-[#E7E7EB] bg-[#FFFFFF] px-5 py-5 sm:px-6">
               <MarketingPrimaryLink
                 href={MARKETING_ROUTES.contact}
                 label={MARKETING_CTAS.bookDemo}
@@ -111,15 +111,20 @@ export function StudioCraftNav({ overHero = false }: { overHero?: boolean }) {
         className={`relative z-20 transition-[background-color,border-color,box-shadow] duration-300 ${
           onDark
             ? 'border-b border-transparent bg-transparent'
-            : 'border-b border-[var(--sc-line)] bg-[#FBF8F4]/95 shadow-[0_1px_0_rgba(26,23,20,0.02)] backdrop-blur-md'
+            : 'border-b border-[var(--sc-line)] bg-[#FFFFFF]/95 shadow-[0_1px_0_rgba(26,23,20,0.02)] backdrop-blur-md'
         }`}
         aria-hidden={menuOpen}
       >
         <StudioCraftContainer>
-          <div className="flex h-[var(--nav-h)] items-center justify-between gap-6">
+          {/*
+            Desktop: equal 1fr side columns so primary links sit on the true
+            horizontal center. Sign in / Book a demo width no longer skews them.
+            Mobile: simple space-between (logo + menu).
+          */}
+          <div className="flex h-[var(--nav-h)] items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6">
             <Link
               href={MARKETING_ROUTES.home}
-              className="flex shrink-0 items-center"
+              className="flex shrink-0 items-center justify-self-start"
               aria-label="Stride home"
               tabIndex={menuOpen ? -1 : 0}
             >
@@ -133,7 +138,7 @@ export function StudioCraftNav({ overHero = false }: { overHero?: boolean }) {
                   href={link.href}
                   className={`text-[15px] font-medium transition-colors duration-200 ${
                     onDark
-                      ? 'text-[#FBF8F4]/80 hover:text-[#FBF8F4]'
+                      ? 'text-[#FFFFFF]/80 hover:text-[#FFFFFF]'
                       : 'text-[var(--sc-ink)]/80 hover:text-[var(--sc-ink)]'
                   }`}
                 >
@@ -142,11 +147,11 @@ export function StudioCraftNav({ overHero = false }: { overHero?: boolean }) {
               ))}
             </div>
 
-            <div className="hidden items-center gap-3 md:flex">
+            <div className="hidden items-center justify-self-end gap-3 md:flex">
               <Link
                 href={getMarketingLoginUrl()}
                 className={`px-3 py-2 text-[15px] font-medium transition-colors ${
-                  onDark ? 'text-[#FBF8F4]/85 hover:text-[#FBF8F4]' : 'text-[var(--sc-ink)]/80 hover:text-[var(--sc-ink)]'
+                  onDark ? 'text-[#FFFFFF]/85 hover:text-[#FFFFFF]' : 'text-[var(--sc-ink)]/80 hover:text-[var(--sc-ink)]'
                 }`}
               >
                 {MARKETING_CTAS.signIn}

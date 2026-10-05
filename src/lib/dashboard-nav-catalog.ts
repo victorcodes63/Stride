@@ -53,6 +53,7 @@ import {
   Wrench,
   Leaf,
   Bell,
+  Inbox,
   UserCheck,
   TrendingUp,
   Handshake,
@@ -93,6 +94,7 @@ export const OVERVIEW_NAV_ITEM: DashboardNavItem = {
 /** Always-visible self-service strip — personal tools for every staff member. */
 export const PERSONAL_PLANNING_LINKS: DashboardNavItem[] = [
   { href: '/dashboard/calendar?scope=personal', label: 'Calendar', icon: CalendarDays },
+  { href: '/dashboard/attention', label: 'Action Center', icon: Inbox },
   { href: '/dashboard/my-tasks', label: 'My tasks', icon: ClipboardList },
   { href: '/dashboard/notifications', label: 'Inbox', icon: Bell },
   { href: '/dashboard/staff-leave?tab=my', label: 'Leave', icon: CalendarOff },
@@ -105,6 +107,7 @@ export const PERSONAL_PLANNING_LINKS: DashboardNavItem[] = [
  */
 export const OVERVIEW_PERSONAL_LINKS: DashboardNavItem[] = [
   { href: '/dashboard/calendar?scope=personal', label: 'Calendar', icon: CalendarDays },
+  { href: '/dashboard/attention', label: 'Action Center', icon: Inbox },
   { href: '/dashboard/my-tasks', label: 'My work', icon: ClipboardList },
   { href: '/dashboard/people/me', label: 'My profile', icon: UserCog },
 ];
@@ -640,6 +643,7 @@ export const ALL_MODULES_ENABLED = {
   disciplinary: true,
   reports: true,
   assets: true,
+  inventory: true,
   fleet: true,
   sacco: true,
   healthcare: true,

@@ -7,13 +7,6 @@ import {
   marketingAppHostLabel,
   type MarketingVerticalScreenshotId,
 } from '@/lib/marketing-config';
-import { ConstructionWireframe } from './ConstructionWireframe';
-import { CoreDashboardWireframe } from './CoreDashboardWireframe';
-import { EnergyWireframe } from './EnergyWireframe';
-import { FleetBoardWireframe } from './FleetBoardWireframe';
-import { HealthcareWireframe } from './HealthcareWireframe';
-import { HrConsultancyWireframe } from './HrConsultancyWireframe';
-import { SaccosWireframe } from './SaccosWireframe';
 
 type MarketingScreenshotFrameProps = {
   moduleLabel: string;
@@ -98,52 +91,5 @@ export function MarketingScreenshotFrame({
         </div>
       </WireframeShell>
     </div>
-  );
-}
-
-export function CoreDashboardWireframePreview({ className = '' }: { className?: string }) {
-  return (
-    <MarketingScreenshotFrame
-      moduleLabel="Stride Core"
-      screenTitle="Operations overview"
-      path="/dashboard"
-      className={className}
-    >
-      <CoreDashboardWireframe className="h-full p-2" />
-    </MarketingScreenshotFrame>
-  );
-}
-
-type IndustryWireframePreviewProps = {
-  industryId: MarketingVerticalScreenshotId;
-  className?: string;
-};
-
-const INDUSTRY_WIREFRAMES: Record<
-  MarketingVerticalScreenshotId,
-  (props: { className?: string }) => ReactNode
-> = {
-  hr_consultancy: HrConsultancyWireframe,
-  logistics: FleetBoardWireframe,
-  saccos: SaccosWireframe,
-  healthcare: HealthcareWireframe,
-  energy: EnergyWireframe,
-  construction: ConstructionWireframe,
-};
-
-/** Branded product wireframe inside the marketing chrome frame — no live screenshots. */
-export function IndustryWireframePreview({ industryId, className = '' }: IndustryWireframePreviewProps) {
-  const shot = MARKETING_VERTICAL_SCREENSHOTS[industryId];
-  const Wireframe = INDUSTRY_WIREFRAMES[industryId];
-
-  return (
-    <MarketingScreenshotFrame
-      moduleLabel={shot.moduleLabel}
-      screenTitle={shot.screenTitle}
-      path={shot.path}
-      className={className}
-    >
-      <Wireframe className="h-full p-2" />
-    </MarketingScreenshotFrame>
   );
 }
