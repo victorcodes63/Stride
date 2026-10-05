@@ -44,6 +44,7 @@ import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
 import { brandThemeStyle } from '@/lib/brand-theme-style';
 import { getCompanySetupCapabilities } from '@/lib/company-setup-tier-features';
 import { getDeploymentTier, getDeploymentFeatureOverrides } from '@/lib/deployment-tier';
+import { getSiteMode } from '@/lib/site-mode';
 
 const siteUrl = getSiteUrl();
 /** Public product defaults — never the tenant placeholder (`Your Organisation`). */
@@ -184,6 +185,10 @@ export default async function RootLayout({
     allowColorScheme: capabilities.canConfigureColorScheme,
   });
   const favicon = '/favicon.ico';
+  // Marketing site must stay light: OS/dashboard dark mode was painting product
+  // previews (and dash tokens) black while the chrome stayed cream.
+  const siteMode = getSiteMode();
+  const forceLightTheme = siteMode === 'marketing';
 
   return (
     <html
@@ -191,20 +196,21 @@ export default async function RootLayout({
       className={`${bricolage.variable} ${inter.variable} ${jakarta.variable} ${ibmPlexMono.variable}`}
       style={themeStyle}
       data-table-zebra={publicBrand.dashboardTableZebraStriping ? 'true' : 'false'}
+      data-site-mode={siteMode}
       suppressHydrationWarning
     >
       <head>
         <link rel="icon" href={favicon.startsWith('/') ? favicon : `/${favicon}`} />
       </head>
       <body className={`${jakarta.className} antialiased`}>
-        <DashboardThemeScript />
+        <DashboardThemeScript forceLight={forceLightTheme} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(jsonLd(siteUrl, publicBrand.logoSrc)),
           }}
         />
-        <DashboardThemeProvider>
+        <DashboardThemeProvider forcedTheme={forceLightTheme ? 'light' : undefined}>
           <BrandProvider value={publicBrand}>{children}</BrandProvider>
         </DashboardThemeProvider>
         <ToastViewport />

@@ -753,14 +753,70 @@ html.dark .public-app:not(:has(.auth-split-form, .auth-studio-form, .bd-demo-pan
  * Real dashboard components rendered inside marketing pages (ProductFrame).
  * Restores the product's own typography and heading colours, which the marketing
  * heading rules would otherwise override (including inside dark sc-on-ink bands).
+ *
+ * Always paint the light product surface — even if html.dark leaked in — so sector
+ * previews and compliance frames match localhost (white panels, ink text).
  */
 .public-app .stride-product-frame {
+  color-scheme: light;
+  --stride-paper: #ffffff;
+  --dash-canvas: #ffffff;
+  --dash-canvas-gradient-1: rgba(var(--stride-coral-rgb), 0.1);
+  --dash-canvas-gradient-2: rgba(26, 23, 20, 0.06);
+  --dash-canvas-gradient-3: rgba(var(--stride-coral-rgb), 0.05);
+  --dash-surface: rgba(255, 255, 255, 0.92);
+  --dash-surface-solid: #ffffff;
+  --dash-surface-raised: rgba(255, 255, 255, 0.97);
+  --dash-surface-muted: #f5f5f7;
+  --dash-surface-soft: rgba(255, 255, 255, 0.95);
+  --dash-border: #e7e7eb;
+  --dash-border-glass: rgba(255, 255, 255, 0.72);
+  --dash-border-subtle: rgba(230, 222, 212, 0.65);
+  --dash-text: #44403c;
+  --dash-text-strong: #1a1714;
+  --dash-text-body: #44403c;
+  --dash-text-muted: #78716c;
+  --dash-text-subtle: #7a7168;
+  --dash-text-faint: #9a9188;
+  --dash-hover: #f5f5f7;
+  --dash-input-bg: rgba(255, 255, 255, 0.9);
+  --dash-input-border: #e7e7eb;
+  --dash-shadow-sm: 0 1px 2px rgba(26, 23, 20, 0.04);
+  --dash-shadow-md: 0 8px 24px rgba(26, 23, 20, 0.06);
+  --dash-shadow-lg: 0 12px 32px rgba(26, 23, 20, 0.1);
+  --dash-success-bg: #dcfce7;
+  --dash-success-fg: #15803d;
+  --dash-success-border: #bbf7d0;
+  --dash-warning-bg: #fef3c7;
+  --dash-warning-fg: #b45309;
+  --dash-warning-border: #fde68a;
+  --dash-danger-bg: #fee2e2;
+  --dash-danger-fg: #b91c1c;
+  --dash-danger-border: #fecaca;
   font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 16px;
   line-height: 1.5;
   letter-spacing: normal;
   color: var(--dash-text);
   text-align: left;
+}
+
+/* Undo hardcoded dark remaps that target .dashboard-canvas inside marketing frames. */
+html.dark .public-app .stride-product-frame .dashboard-canvas .data-table thead th,
+html.dark .public-app .stride-product-frame .data-table thead th {
+  background: linear-gradient(180deg, var(--dash-surface-soft) 0%, var(--dash-surface-muted) 92%);
+}
+
+html.dark .public-app .stride-product-frame .dashboard-panel,
+html.dark .public-app .stride-product-frame .dashboard-surface,
+html.dark .public-app .stride-product-frame .data-table-wrap {
+  background: var(--dash-surface-solid);
+  border-color: var(--dash-border-glass);
+  box-shadow: var(--dash-shadow-sm), var(--dash-shadow-md);
+}
+
+html.dark .public-app .stride-product-frame .dashboard-canvas .bg-white {
+  background-color: var(--dash-surface-solid);
 }
 
 .public-app.studio-craft-marketing .stride-product-frame :where(h1, h2, h3, h4, h5, h6),
