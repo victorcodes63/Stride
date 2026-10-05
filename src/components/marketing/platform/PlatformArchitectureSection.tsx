@@ -123,10 +123,9 @@ export function PlatformArchitectureSection({ leadSection = false }: { leadSecti
     >
       <StudioCraftContainer>
         <PlatformSectionHead
-          index="05"
+          index="04"
           label="Platform architecture"
-          title="Industry packs"
-          statement={CORE_PACKS_EXPLAINER.title}
+          title={CORE_PACKS_EXPLAINER.title}
           note={CORE_PACKS_EXPLAINER.caption}
         />
 

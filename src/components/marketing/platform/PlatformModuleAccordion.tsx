@@ -49,8 +49,8 @@ function AreaDetail({ area, index, tone }: { area: Area; index: number; tone: 'c
   return (
     <>
       <div className="flex items-start justify-between gap-4">
-        <span className={`flex items-center gap-2 text-[44px] font-light leading-none tracking-[-0.04em] ${onCoral ? 'text-white' : 'text-[var(--sc-ink)]'}`}>
-          <ArrowUpRight size={30} weight="light" aria-hidden />
+        <span className={`flex items-center gap-2 text-[32px] font-light leading-none tracking-[-0.04em] ${onCoral ? 'text-white' : 'text-[var(--sc-ink)]'}`}>
+          <ArrowUpRight size={24} weight="light" aria-hidden />
           {pad(index)}
         </span>
         <span
@@ -64,11 +64,11 @@ function AreaDetail({ area, index, tone }: { area: Area; index: number; tone: 'c
 
       <div className="mt-8 flex items-center gap-3">
         <Icon size={26} weight="duotone" aria-hidden className={onCoral ? 'text-white' : 'text-[var(--sc-coral)]'} />
-        <h3 className={`text-[26px] font-medium tracking-[-0.025em] ${onCoral ? 'sc-on-ink text-white' : 'text-[var(--sc-ink)]'}`}>
+        <h3 className={`text-[22px] font-medium tracking-[-0.02em] ${onCoral ? 'sc-on-ink text-white' : 'text-[var(--sc-ink)]'}`}>
           {area.name}
         </h3>
       </div>
-      <p className={`mt-3 text-[16px] leading-[1.6] ${onCoral ? 'text-white/85' : 'text-[var(--sc-ink-muted)]'}`}>
+      <p className={`mt-3 text-[15px] leading-[1.65] ${onCoral ? 'text-white/85' : 'text-[var(--sc-ink-muted)]'}`}>
         {area.headline}
       </p>
 

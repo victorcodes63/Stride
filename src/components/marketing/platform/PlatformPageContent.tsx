@@ -53,46 +53,43 @@ function PlatformHero() {
   const { src, width, height, alt } = MARKETING_PLATFORM_MODULES_SCREENSHOT;
 
   return (
-    <section className="relative bg-white pb-24 pt-10 sm:pb-28 sm:pt-14 lg:pb-36">
+    <section className="relative bg-white pb-24 pt-14 sm:pb-28 sm:pt-20 lg:pb-36 lg:pt-24">
       <StudioCraftContainer>
-        {/* SEO: the page's single H1 carries the search phrase; the oversized title below is visual. */}
-        <h1 className="mb-8 flex items-center gap-3 text-[14px] font-medium text-[var(--sc-ink-muted)] sm:text-[15px]">
-          <span className="h-px w-8 bg-[var(--sc-coral)]" aria-hidden />
-          The Stride platform: HR, Payroll, Finance &amp; industry modules
-        </h1>
+        {/* SEO: the page's single H1 carries the search phrase — same badge as the homepage hero. */}
+        <Reveal>
+          <h1 className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-2 pl-3.5 pr-4 text-[13px] font-medium text-[var(--sc-ink-muted)] sm:text-[14px]">
+            <span className="relative flex h-2 w-2" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--sc-coral)] opacity-60 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--sc-coral)]" />
+            </span>
+            The Stride platform: HR, Payroll, Finance &amp; industry modules
+          </h1>
+        </Reveal>
 
-        <PlatformSectionHead
-          as="p"
-          index="01"
-          label="The platform"
-          title={
-            <>
-              One platform<span className="text-[var(--sc-coral)]">.</span>
-            </>
-          }
-          statement={
-            <>
-              {hero.titleLines[0]} <span className="text-[var(--sc-coral)]">{hero.titleLines[1]}</span>
-            </>
-          }
-          note={
-            <>
-              <p>{hero.description}</p>
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-                <MarketingPrimaryLink href={MARKETING_ROUTES.contact} label={MARKETING_CTAS.bookDemo} variant="coral" showArrow />
-                <Link
-                  href={MARKETING_ROUTES.pricing}
-                  className="group inline-flex min-h-11 items-center gap-1.5 text-[14px] font-semibold text-[var(--sc-ink)] transition-colors hover:text-[var(--sc-coral)]"
-                >
-                  View pricing
-                  <span className="transition-transform group-hover:translate-x-0.5" aria-hidden>
-                    →
-                  </span>
-                </Link>
-              </div>
-            </>
-          }
-        />
+        <div>
+          <Reveal delay={0.04}>
+            {/* Same scale as the homepage hero headline. */}
+            <p className="max-w-[1100px] text-[clamp(2.75rem,7.4vw,6.25rem)] font-medium leading-[0.98] tracking-[-0.025em] text-[var(--sc-ink)] [text-wrap:balance]">
+              <span className="block">{hero.titleLines[0]}</span>
+              <span className="block text-[var(--sc-coral)]">{hero.titleLines[1]}</span>
+            </p>
+          </Reveal>
+          <Reveal delay={0.1} className="mt-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+            <p className="max-w-[620px] text-[17px] leading-[1.7] text-[var(--sc-ink-muted)] sm:text-[19px]">{hero.description}</p>
+            <div className="flex shrink-0 flex-wrap items-center gap-x-6 gap-y-3">
+              <MarketingPrimaryLink href={MARKETING_ROUTES.contact} label={MARKETING_CTAS.bookDemo} variant="coral" showArrow />
+              <Link
+                href={MARKETING_ROUTES.pricing}
+                className="group inline-flex min-h-11 items-center gap-2 text-[15px] font-semibold text-[var(--sc-ink)] transition-colors hover:text-[var(--sc-coral)]"
+              >
+                View pricing
+                <span className="transition-transform group-hover:translate-x-0.5" aria-hidden>
+                  →
+                </span>
+              </Link>
+            </div>
+          </Reveal>
+        </div>
 
         {/* Showcase panel: facts on the left, the product on the right. */}
         <Reveal delay={0.12}>
@@ -102,7 +99,7 @@ function PlatformHero() {
                 <p className="text-[13px] font-medium text-white/55">Stride Core</p>
                 <p className="text-[13px] font-semibold text-white">2/{PLATFORM_MODULES.length}</p>
               </div>
-              <p className="mt-5 text-[26px] font-medium leading-[1.15] tracking-[-0.025em] text-white">
+              <p className="mt-5 text-[22px] font-medium leading-[1.25] tracking-[-0.02em] text-white">
                 HR &amp; Payroll and Finance on every plan. Everything else plugs in.
               </p>
               <div className="mt-8">
@@ -153,10 +150,9 @@ function PlatformModulesSection() {
       <StudioCraftContainer>
         <PlatformSectionHead
           id="platform-modules-heading"
-          index="02"
+          index="01"
           label="Modules"
-          title="Modules"
-          statement={
+          title={
             <>
               Core first. <span className="text-[var(--sc-coral)]">Plug-ins when you need them.</span>
             </>
@@ -179,10 +175,9 @@ function PlatformProductSection() {
       <StudioCraftContainer>
         <PlatformSectionHead
           id="platform-product-heading"
-          index="03"
+          index="02"
           label="In the product"
-          title="Day to day"
-          statement={
+          title={
             <>
               What your team sees <span className="text-[var(--sc-coral)]">every morning.</span>
             </>
@@ -214,10 +209,9 @@ function PlatformConnectedSection() {
         <PlatformSectionHead
           tone="dark"
           id="platform-connected-heading"
-          index="04"
+          index="03"
           label={connected.badge}
-          title="Connected"
-          statement={
+          title={
             <>
               Modules that actually <span className="text-[var(--sc-coral)]">talk to each other.</span>
             </>
@@ -236,7 +230,7 @@ function PlatformConnectedSection() {
               >
                 <div>
                   <p className="text-[13px] text-white/40">{String(index + 1).padStart(2, '0')}</p>
-                  <h3 className="mt-1 text-[24px] font-medium tracking-[-0.025em] text-white">{workflow.title}</h3>
+                  <h3 className="mt-1 text-[22px] font-medium tracking-[-0.02em] text-white">{workflow.title}</h3>
                   <MarketingModuleBadge readiness={workflow.status} variant="dark" className="mt-3" />
                 </div>
 
@@ -278,10 +272,9 @@ function PlatformAudienceSection() {
       <StudioCraftContainer>
         <PlatformSectionHead
           id="platform-audience-heading"
-          index="06"
+          index="05"
           label={audience.badge}
-          title="Who it's for"
-          statement={
+          title={
             <>
               Teams that have <span className="text-[var(--sc-coral)]">outgrown spreadsheets.</span>
             </>
@@ -297,7 +290,7 @@ function PlatformAudienceSection() {
               className="group grid gap-3 border-t border-[var(--sc-line)] py-9 last:border-b sm:grid-cols-[80px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)_minmax(0,420px)] lg:items-baseline lg:gap-12"
             >
               <span className="text-[15px] font-medium text-[var(--sc-coral)]">{String(index + 1).padStart(2, '0')}</span>
-              <h3 className="text-[clamp(1.75rem,3.6vw,3rem)] font-medium leading-[1.05] tracking-[-0.035em] text-[var(--sc-ink)] transition-colors duration-300 group-hover:text-[var(--sc-coral)]">
+              <h3 className="text-[clamp(1.5rem,2.4vw,2rem)] font-medium leading-tight tracking-[-0.025em] text-[var(--sc-ink)] transition-colors duration-300 group-hover:text-[var(--sc-coral)]">
                 {segment.title}
               </h3>
               <p className="text-[15px] leading-[1.7] text-[var(--sc-ink-muted)] sm:col-start-2 lg:col-start-auto">{segment.body}</p>
@@ -317,10 +310,9 @@ function PlatformRolloutSection() {
       <StudioCraftContainer>
         <PlatformSectionHead
           id="platform-rollout-heading"
-          index="07"
+          index="06"
           label="Getting started"
-          title="Go live"
-          statement={
+          title={
             <>
               Live in <span className="text-[var(--sc-coral)]">days, not months.</span>
             </>
@@ -333,21 +325,21 @@ function PlatformRolloutSection() {
             <StaggerItem
               key={step.step}
               as="article"
-              className={`flex min-h-[340px] flex-col rounded-[22px] p-7 sm:p-8 ${
+              className={`flex min-h-[320px] flex-col rounded-[22px] p-7 sm:p-8 ${
                 index === 2
                   ? 'sc-on-ink bg-[var(--sc-coral)] text-white shadow-[0_30px_70px_-36px_rgba(230,62,34,0.7)]'
                   : 'border border-[var(--sc-line)] bg-white shadow-[0_1px_2px_rgba(26,23,20,0.04),0_24px_60px_-34px_rgba(26,23,20,0.22)]'
               }`}
             >
               <span
-                className={`text-[88px] font-light leading-[0.8] tracking-[-0.06em] ${
+                className={`text-[clamp(3rem,5vw,4.5rem)] font-light leading-[0.85] tracking-[-0.05em] ${
                   index === 2 ? 'text-white' : 'text-[rgba(26,23,20,0.14)]'
                 }`}
               >
                 {String(index + 1).padStart(2, '0')}
               </span>
               <h3
-                className={`mt-14 text-[24px] font-medium leading-tight tracking-[-0.025em] ${
+                className={`mt-12 text-[22px] font-medium leading-tight tracking-[-0.02em] ${
                   index === 2 ? 'text-white' : 'text-[var(--sc-ink)]'
                 }`}
               >

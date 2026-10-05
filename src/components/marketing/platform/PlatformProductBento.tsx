@@ -105,7 +105,7 @@ export function PlatformProductBento() {
         </div>
 
         <div className="relative mt-10 flex items-end gap-3">
-          <span className="text-[clamp(3.5rem,7vw,5.5rem)] font-medium leading-[0.85] tracking-[-0.05em]">
+          <span className="text-[clamp(3rem,5vw,4.5rem)] font-medium leading-[0.9] tracking-[-0.04em]">
             <CountUp value={Math.round((RUN.approved / TEAM) * 100)} duration={1.4} />%
           </span>
           <span className="pb-2 text-[14px] text-white/55">of payslips approved</span>
@@ -229,7 +229,7 @@ export function PlatformProductBento() {
           <WidgetHead title="Modules switched on" sub="Add or remove any time" onInk />
           <UsersThree size={22} weight="duotone" aria-hidden className="text-white" />
         </div>
-        <p className="mt-5 text-[64px] font-medium leading-none tracking-[-0.05em]">
+        <p className="mt-5 text-[clamp(3rem,5vw,4.5rem)] font-medium leading-none tracking-[-0.04em]">
           <CountUp value={SWITCHED_ON.size} duration={1.2} />
           <span className="text-white/50">/{PLATFORM_MODULES.length}</span>
         </p>
