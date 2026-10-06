@@ -89,8 +89,8 @@ export function PricingPlanCards() {
               ))}
             </ul>
 
-            {/* Row 5 — CTA */}
-            <div className="self-end">
+            {/* Row 5 — CTA: full-width + centered on mobile (self-end was shoving it right). */}
+            <div className="mt-auto w-full">
               {metered ? (
                 <MarketingPrimaryLink
                   href={planCtaHref(plan)}

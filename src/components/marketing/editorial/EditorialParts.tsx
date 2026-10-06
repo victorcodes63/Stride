@@ -91,12 +91,12 @@ export function EditorialShowcasePanel({
           ) : null}
         </div>
 
-        <div className="relative min-w-0 overflow-hidden rounded-[20px] bg-[#232020]">
+        <div className="relative min-w-0 overflow-hidden rounded-[20px] bg-[var(--sc-paper-2)]">
           <div
-            className="pointer-events-none absolute -left-20 -top-20 h-80 w-80 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.3),transparent)]"
+            className="pointer-events-none absolute -left-20 -top-20 h-80 w-80 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.16),transparent)]"
             aria-hidden
           />
-          <div className="relative flex h-full min-w-0 items-center p-4 sm:p-8 lg:p-10">
+          <div className="relative mx-auto flex h-full min-w-0 max-w-[720px] items-center p-2.5 sm:p-4 lg:max-w-none lg:p-5">
             <div className="w-full min-w-0">{children}</div>
           </div>
         </div>

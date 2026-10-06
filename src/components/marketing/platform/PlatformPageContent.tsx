@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { AboutFinalCta } from '@/components/marketing/about/AboutFinalCta';
 import { MarketingModuleBadge } from '@/components/marketing/MarketingModuleBadge';
@@ -7,13 +6,13 @@ import { PlatformArchitectureSection } from '@/components/marketing/platform/Pla
 import { PlatformModuleAccordion } from '@/components/marketing/platform/PlatformModuleAccordion';
 import { PlatformProductBento } from '@/components/marketing/platform/PlatformProductBento';
 import { PlatformSectionHead } from '@/components/marketing/platform/PlatformSectionHead';
+import { ProductBusinessPulseSlice } from '@/components/marketing/product/ProductSlices';
 import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
 import { MarketingPrimaryLink, StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import {
   HOW_IT_WORKS_STEPS,
   INDUSTRY_VERTICALS,
   MARKETING_CTAS,
-  MARKETING_PLATFORM_MODULES_SCREENSHOT,
   MARKETING_ROUTES,
   PLATFORM_AUDIENCE,
   PLATFORM_FAQ,
@@ -50,7 +49,6 @@ function DotMatrix() {
 
 function PlatformHero() {
   const { hero } = PLATFORM_PAGE;
-  const { src, width, height, alt } = MARKETING_PLATFORM_MODULES_SCREENSHOT;
 
   return (
     <section className="relative bg-white pb-24 pt-14 sm:pb-28 sm:pt-20 lg:pb-36 lg:pt-24">
@@ -91,9 +89,9 @@ function PlatformHero() {
           </Reveal>
         </div>
 
-        {/* Showcase panel: facts on the left, the product on the right. */}
+        {/* Showcase panel: facts on the left, live product UI on the right (not a compressed PNG). */}
         <Reveal delay={0.12}>
-          <div className="sc-on-ink mt-14 grid overflow-hidden rounded-[28px] bg-[var(--sc-ink)] p-3 text-white shadow-[0_40px_90px_-40px_rgba(26,23,20,0.7)] sm:mt-20 lg:grid-cols-[340px_minmax(0,1fr)]">
+          <div className="sc-on-ink mt-14 grid overflow-hidden rounded-[28px] bg-[var(--sc-ink)] p-3 text-white shadow-[0_40px_90px_-40px_rgba(26,23,20,0.7)] sm:mt-20 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-stretch">
             <div className="flex flex-col p-6 sm:p-8">
               <div className="flex items-center justify-between">
                 <p className="text-[13px] font-medium text-white/55">Stride Core</p>
@@ -117,21 +115,18 @@ function PlatformHero() {
               </dl>
             </div>
 
-            <div className="relative overflow-hidden rounded-[20px] bg-[#232020]">
+            <div className="relative flex min-h-[300px] items-stretch overflow-hidden rounded-[20px] bg-[var(--sc-paper-2)] sm:min-h-[360px] lg:min-h-0">
               <div
-                className="pointer-events-none absolute -left-20 -top-20 h-80 w-80 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.3),transparent)]"
+                className="pointer-events-none absolute -left-16 -top-16 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.18),transparent)]"
                 aria-hidden
               />
-              <div className="relative flex h-full items-center p-4 sm:p-8 lg:p-10">
-                <div className="w-full overflow-hidden rounded-[14px] border border-white/10 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)]">
-                  <div className="flex items-center gap-1.5 border-b border-white/10 bg-[#1d1a18] px-4 py-2.5" aria-hidden>
-                    <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-                    <span className="ml-3 rounded-md bg-white/[0.06] px-3 py-0.5 text-[11px] text-white/40">app.getstride.co.ke</span>
-                  </div>
-                  <Image src={src} alt={alt} width={width} height={height} priority className="block h-auto w-full" />
-                </div>
+              <div className="relative mx-auto flex w-full max-w-[720px] flex-1 p-2.5 sm:p-4 lg:max-w-none lg:p-5">
+                <ProductBusinessPulseSlice
+                  withKpis
+                  fill
+                  designWidth={680}
+                  className="h-full w-full !rounded-[16px] !shadow-[0_24px_60px_-28px_rgba(26,23,20,0.45)]"
+                />
               </div>
             </div>
           </div>

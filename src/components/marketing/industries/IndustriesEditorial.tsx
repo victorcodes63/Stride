@@ -111,20 +111,20 @@ export function IndustriesSectorIndex() {
           {/* Sticky preview of the hovered sector (desktop). */}
           <div className="hidden lg:block">
             <div className="sticky top-[calc(var(--nav-h)+2rem)] rounded-[28px] bg-[var(--sc-ink)] p-3 shadow-[0_40px_90px_-40px_rgba(26,23,20,0.7)]">
-              <div className="relative overflow-hidden rounded-[20px] bg-[#232020] p-6">
+              <div className="relative overflow-hidden rounded-[20px] bg-[var(--sc-paper-2)] p-3 sm:p-4">
                 <div
-                  className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.3),transparent)]"
+                  className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.16),transparent)]"
                   aria-hidden
                 />
                 <motion.div
-                    key={activeIndustry.id}
-                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, ease: MOTION_EASE }}
-                    className="relative"
-                  >
-                    <IndustryMediaMotif mediaKey={activeIndustry.mediaKey} />
-                  </motion.div>
+                  key={activeIndustry.id}
+                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: MOTION_EASE }}
+                  className="relative"
+                >
+                  <IndustryMediaMotif mediaKey={activeIndustry.mediaKey} />
+                </motion.div>
               </div>
               <div className="flex items-center justify-between px-4 pb-2 pt-4">
                 <p className="text-[14px] font-medium text-white">{activeIndustry.name}</p>
