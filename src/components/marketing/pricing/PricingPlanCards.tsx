@@ -35,8 +35,12 @@ function PriceBlock({ plan }: { plan: PricingPlan }) {
         {metered ? formatKes(plan.rateKesPerEmployee!) : plan.customPriceLabel}
       </p>
       <p className="mt-3 text-sm text-pub-ink-muted">{plan.unit}</p>
-      <p className="mt-1 text-[13px] text-pub-ink-subtle">
-        {example ?? 'Quoted on your order form'}
+      {/* Invisible spacer on Enterprise so the three cards keep a shared baseline. */}
+      <p
+        className={`mt-1 text-[13px] text-pub-ink-subtle ${example ? '' : 'invisible'}`}
+        aria-hidden={!example}
+      >
+        {example ?? '—'}
       </p>
     </div>
   );
