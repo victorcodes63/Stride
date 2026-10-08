@@ -131,6 +131,17 @@ export function getAppPageUrl(path: string): string {
 export const MARKETING_SALES_EMAIL = 'hello@getstride.co.ke';
 
 /**
+ * Shared Raven Tech Group / Stride office — Western Heights, Westlands.
+ * Used on the marketing footer, privacy/terms contact blocks, and JSON-LD.
+ */
+export const MARKETING_OFFICE = {
+  line1: '4th Floor, Western Heights',
+  line2: 'Westlands, Nairobi, Kenya',
+  /** Single-line postal form. */
+  full: '4th Floor, Western Heights, Westlands, Nairobi, Kenya',
+} as const;
+
+/**
  * TODO(launch): Replace with the confirmed Stride or Raven Tech Group LinkedIn company page URL.
  * Placeholder only — do not ship without verifying the page exists.
  */

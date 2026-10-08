@@ -6,6 +6,7 @@ import { STRIDE_WORDMARK_SRC } from '@/lib/brand-constants';
 import {
   INDUSTRY_VERTICALS,
   MARKETING_LINKEDIN_URL,
+  MARKETING_OFFICE,
   MARKETING_ROUTES,
   MARKETING_SALES_EMAIL,
   getMarketingLoginUrl,
@@ -95,7 +96,11 @@ export function MarketingFooter() {
               >
                 {MARKETING_SALES_EMAIL}
               </a>
-              <p className="text-white/45">Westlands, Nairobi</p>
+              <p className="text-white/45">
+                {MARKETING_OFFICE.line1}
+                <br />
+                {MARKETING_OFFICE.line2}
+              </p>
             </div>
 
             <div className="mt-8 flex items-center gap-3">

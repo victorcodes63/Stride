@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import type { LegalSection } from '@/components/marketing/legal/legal-types';
 import { brandConfig } from '@/lib/brand.config';
-import { getMarketingPageUrl, MARKETING_SALES_EMAIL } from '@/lib/marketing-config';
+import { getMarketingPageUrl, MARKETING_OFFICE, MARKETING_SALES_EMAIL } from '@/lib/marketing-config';
 import { BILLING_UNIT_DESCRIPTION, pricingPlanName } from '@/lib/pricing';
 
 const ESSENTIALS = pricingPlanName('essentials');

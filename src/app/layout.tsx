@@ -39,6 +39,7 @@ import { DashboardThemeProvider } from '@/components/dashboard/DashboardThemePro
 import { DashboardThemeScript } from '@/components/dashboard/DashboardThemeScript';
 import { brand, getSiteUrl } from '@/lib/brand';
 import { brandConfig } from '@/lib/brand.config';
+import { MARKETING_OFFICE } from '@/lib/marketing-config';
 import { MARKETING_OG_IMAGE } from '@/lib/marketing-metadata';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
 import { brandThemeStyle } from '@/lib/brand-theme-style';
@@ -127,6 +128,13 @@ const jsonLd = (baseUrl: string, logoSrc: string) => ({
       logo: {
         '@type': 'ImageObject',
         url: `${baseUrl}${logoSrc.startsWith('/') ? logoSrc : `/${logoSrc}`}`,
+      },
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: MARKETING_OFFICE.line1,
+        addressLocality: 'Westlands',
+        addressRegion: 'Nairobi',
+        addressCountry: 'KE',
       },
       contactPoint: {
         '@type': 'ContactPoint',

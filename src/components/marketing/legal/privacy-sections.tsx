@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import type { LegalSection } from '@/components/marketing/legal/legal-types';
 import { brandConfig } from '@/lib/brand.config';
-import { getMarketingPageUrl, MARKETING_SALES_EMAIL } from '@/lib/marketing-config';
+import { getMarketingPageUrl, MARKETING_OFFICE, MARKETING_SALES_EMAIL } from '@/lib/marketing-config';
 
 const PRIVACY_EMAIL = 'privacy@getstride.co.ke';
 const LEGAL_LAST_UPDATED = '2026-06-27';
@@ -402,8 +402,7 @@ export function getPrivacySections(): LegalSection[] {
               <a href={`mailto:${MARKETING_SALES_EMAIL}`}>{MARKETING_SALES_EMAIL}</a>
             </li>
             <li>
-              <strong>Postal address:</strong> Raven Tech Group, Nairobi, Kenya (full registered address available
-              on request for contractual and regulatory correspondence)
+              <strong>Postal address:</strong> Raven Tech Group, {MARKETING_OFFICE.full}
             </li>
           </ul>
           <p>
