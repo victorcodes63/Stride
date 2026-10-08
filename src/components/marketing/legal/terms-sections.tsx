@@ -416,6 +416,9 @@ export function getTermsSections(): LegalSection[] {
               <strong>Legal / contracts:</strong>{' '}
               <a href="mailto:legal@getstride.co.ke">legal@getstride.co.ke</a>
             </li>
+            <li>
+              <strong>Office:</strong> Raven Tech Group, {MARKETING_OFFICE.full}
+            </li>
           </ul>
           <p>
             See also our <Link href={privacyUrl}>Privacy Policy</Link> for how we handle personal data.
