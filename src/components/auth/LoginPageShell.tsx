@@ -24,6 +24,7 @@ export function LoginPageShell({
 
   return (
     <AuthSplitShell
+      audience={audience}
       eyebrow={portalLabel}
       title={welcomeTitle?.trim() || 'Welcome back'}
       subtitle={welcomeSubtitle?.trim() || tagline}

@@ -24,53 +24,8 @@
   animation: bd-demo-drift-b 38s ease-in-out infinite alternate-reverse;
 }
 
-/* Default left brand panel — dark coral (login / AuthSplitShell). */
+/* Left brand panel — white paper + coral wash (login + book demo). */
 .bd-demo-panel {
-  background:
-    radial-gradient(ellipse 90% 80% at 20% 10%, rgba(255, 84, 54, 0.55) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 85% 75%, rgba(230, 62, 34, 0.35) 0%, transparent 50%),
-    linear-gradient(145deg, #3d1810 0%, #1a1714 42%, #0e0c0a 100%);
-}
-
-.bd-demo-panel::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.22;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay;
-  pointer-events: none;
-}
-
-.bd-demo-panel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(14, 12, 10, 0.75) 0%, transparent 45%);
-  pointer-events: none;
-}
-
-.bd-demo-copy h1,
-.public-app .bd-demo-panel .bd-demo-copy :where(h1, h2, h3, h4) {
-  color: #ffffff !important;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
-}
-
-.bd-demo-copy p {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.bd-demo-copy .bd-demo-tagline {
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.bd-demo-steps {
-  max-width: 22rem;
-  width: 100%;
-}
-
-/* Book-a-demo light shell — brighter panel + form (does not affect login). */
-.bd-demo-shell .bd-demo-panel {
   background:
     radial-gradient(ellipse 90% 80% at 18% 8%, rgba(255, 84, 54, 0.28) 0%, transparent 55%),
     radial-gradient(ellipse 70% 60% at 92% 88%, rgba(255, 84, 54, 0.14) 0%, transparent 50%),
@@ -78,27 +33,37 @@
   border: 1px solid var(--sc-line, #e8e2da);
 }
 
-.bd-demo-shell .bd-demo-panel::before {
+.bd-demo-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   opacity: 0.08;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
-.bd-demo-shell .bd-demo-panel::after {
+.bd-demo-panel::after {
   display: none;
 }
 
-.bd-demo-shell .bd-demo-copy h1,
-.public-app .bd-demo-shell .bd-demo-panel .bd-demo-copy :where(h1, h2, h3, h4) {
+.bd-demo-copy h1,
+.public-app .bd-demo-panel .bd-demo-copy :where(h1, h2, h3, h4) {
   color: var(--sc-ink, #1a1714) !important;
   text-shadow: none;
 }
 
-.bd-demo-shell .bd-demo-copy p {
+.bd-demo-copy p {
   color: var(--sc-ink-muted, rgba(26, 23, 20, 0.62));
 }
 
-.bd-demo-shell .bd-demo-copy .bd-demo-tagline {
+.bd-demo-copy .bd-demo-tagline {
   color: rgba(26, 23, 20, 0.4);
+}
+
+.bd-demo-steps {
+  max-width: 22rem;
+  width: 100%;
 }
 
 .public-app .bd-demo-shell .bd-demo-form :where(h1, h2, h3, h4),
@@ -162,13 +127,50 @@ html.dark .public-app .bd-demo-shell .bd-demo-form p {
   transition: background-color 9999s ease-out 0s;
 }
 
-/* Staff / auth login — dark panel matching legacy contact (kept for login). */
+/* Staff / auth login — white form with popping coral CTA (matches book demo).
+   Beat html.dark dashboard input tokens so saved dark preference can't paint fields black. */
+.bd-demo-shell,
+.bd-demo-shell .auth-studio-form {
+  color-scheme: light;
+  --dash-text-strong: var(--sc-ink, #1a1714);
+  --dash-input-bg: #ffffff;
+  --dash-input-border: var(--sc-line, #e8e2da);
+  --dash-text-subtle: rgba(26, 23, 20, 0.4);
+  --dash-text-muted: rgba(26, 23, 20, 0.62);
+  --dash-border: var(--sc-line, #e8e2da);
+  --dash-focus-ring: rgba(255, 84, 54, 0.18);
+}
+
+html.dark .bd-demo-shell .dash-auth-input,
+html.dark .public-app .bd-demo-shell .dash-auth-input,
+.bd-demo-shell .dash-auth-input,
+.bd-demo-shell .auth-studio-form .dash-auth-input {
+  background-color: #ffffff !important;
+  color: var(--sc-ink, #1a1714) !important;
+  border-color: var(--sc-line, #e8e2da) !important;
+  -webkit-text-fill-color: var(--sc-ink, #1a1714);
+  caret-color: var(--sc-ink, #1a1714);
+  color-scheme: light;
+}
+
+html.dark .public-app .bd-demo-shell .dash-auth-input:-webkit-autofill,
+html.dark .public-app .bd-demo-shell .dash-auth-input:-webkit-autofill:hover,
+html.dark .public-app .bd-demo-shell .dash-auth-input:-webkit-autofill:focus,
+.bd-demo-shell .dash-auth-input:-webkit-autofill,
+.bd-demo-shell .dash-auth-input:-webkit-autofill:hover,
+.bd-demo-shell .dash-auth-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: var(--sc-ink, #1a1714) !important;
+  caret-color: var(--sc-ink, #1a1714);
+}
+
 .auth-studio-form {
-  --dash-text-strong: #ffffff;
+  --dash-text-strong: var(--sc-ink, #1a1714);
 }
 
 .auth-studio-form .dash-auth-title {
-  color: #ffffff;
+  color: var(--sc-ink, #1a1714);
   font-size: clamp(1.5rem, 3.5vw, 2rem);
   font-weight: 400;
   letter-spacing: -0.02em;
@@ -176,11 +178,11 @@ html.dark .public-app .bd-demo-shell .bd-demo-form p {
 
 .auth-studio-form .dash-auth-label,
 .auth-studio-form .dash-auth-body {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--sc-ink, #1a1714);
 }
 
 .auth-studio-form .dash-auth-muted {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--sc-ink-muted, rgba(26, 23, 20, 0.62));
 }
 
 .auth-studio-form .dash-auth-link {
@@ -193,48 +195,48 @@ html.dark .public-app .bd-demo-shell .bd-demo-form p {
 
 .auth-studio-form .dash-auth-input {
   height: 2.75rem;
-  border-color: rgba(255, 255, 255, 0.1);
-  background-color: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  border-color: var(--sc-line, #e8e2da);
+  background-color: #ffffff;
+  color: var(--sc-ink, #1a1714);
 }
 
 .auth-studio-form .dash-auth-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(26, 23, 20, 0.35);
 }
 
 .auth-studio-form .dash-auth-input:hover {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(26, 23, 20, 0.22);
 }
 
 .auth-studio-form .dash-auth-input:focus {
-  border-color: rgba(255, 84, 54, 0.5);
-  box-shadow: 0 0 0 4px rgba(255, 84, 54, 0.15);
+  border-color: rgba(255, 84, 54, 0.45);
+  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
 }
 
 .auth-studio-form .dash-auth-submit {
   height: 2.75rem;
   border-radius: 0.75rem;
-  border: 1px solid rgba(255, 84, 54, 0.35);
-  background: var(--color-primary-800, var(--pub-primary-pressed, #ad3925));
+  border: 1px solid transparent;
+  background: var(--sc-coral, #ff5436);
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(255, 84, 54, 0.22);
+  box-shadow: 0 8px 20px -6px rgba(255, 84, 54, 0.55);
   transition:
     background-color 150ms ease,
     box-shadow 150ms ease;
 }
 
 .auth-studio-form .dash-auth-submit:hover:not(:disabled) {
-  background: var(--color-primary-900, #852c1c);
-  box-shadow: 0 4px 10px rgba(255, 84, 54, 0.28);
+  background: var(--sc-coral-deep, #e63e22);
+  box-shadow: 0 10px 24px -6px rgba(255, 84, 54, 0.65);
   transform: none;
 }
 
 .auth-studio-form .dash-auth-submit:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--sc-ink, #1a1714),
-    0 0 0 4px rgba(255, 84, 54, 0.35);
+    0 0 0 2px #ffffff,
+    0 0 0 4px rgba(255, 84, 54, 0.45);
 }
 
 .auth-studio-form .dash-auth-submit:disabled {
@@ -242,34 +244,34 @@ html.dark .public-app .bd-demo-shell .bd-demo-form p {
 }
 
 .auth-studio-form .dash-auth-oauth-btn {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: #ffffff;
+  border-color: var(--sc-line, #e8e2da);
+  background: #ffffff;
+  color: var(--sc-ink, #1a1714);
 }
 
 .auth-studio-form .dash-auth-oauth-btn:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(26, 23, 20, 0.22);
+  background: var(--sc-paper-2, #faf8f6);
 }
 
 .auth-studio-form .dash-auth-divider-line {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--sc-line, #e8e2da);
 }
 
 .auth-studio-form .dash-auth-divider-label {
-  color: rgba(255, 255, 255, 0.72);
-  background: var(--sc-ink, #1a1714);
+  color: var(--sc-ink-muted, rgba(26, 23, 20, 0.62));
+  background: #ffffff;
 }
 
 .auth-studio-form .dash-auth-checkbox {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(26, 23, 20, 0.25);
+  background: #ffffff;
   accent-color: var(--sc-coral, var(--stride-coral));
 }
 
 .auth-studio-form .dash-auth-footer {
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.55);
+  border-color: var(--sc-line, #e8e2da);
+  color: var(--sc-ink-muted, rgba(26, 23, 20, 0.62));
 }
 
 @media (prefers-reduced-motion: reduce) {

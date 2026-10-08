@@ -201,13 +201,13 @@ export function StaffLoginContent({ initialError, welcomeCopy }: StaffLoginConte
       welcomeTitle={welcomeCopy.welcomeTitle}
       welcomeSubtitle={welcomeCopy.welcomeSubtitle}
       footer={
-        <footer className="border-t border-white/10 px-5 py-4 text-center lg:hidden">
-          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-[#FFFFFF]/50">
-            <Link href="/careers" className="hover:text-[#FFFFFF]">Careers</Link>
-            <Link href={privacyPolicyUrl || '/privacy'} className="hover:text-[#FFFFFF]">Privacy</Link>
-            <Link href={termsUrl || '/terms'} className="hover:text-[#FFFFFF]">Terms</Link>
+        <footer className="border-t border-[var(--sc-line)] px-5 py-4 text-center lg:hidden">
+          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-[var(--sc-ink-muted)]">
+            <Link href="/careers" className="hover:text-[var(--sc-ink)]">Careers</Link>
+            <Link href={privacyPolicyUrl || '/privacy'} className="hover:text-[var(--sc-ink)]">Privacy</Link>
+            <Link href={termsUrl || '/terms'} className="hover:text-[var(--sc-ink)]">Terms</Link>
           </nav>
-          <p className="mx-auto mt-2 max-w-xs text-pretty text-xs leading-relaxed text-[#FFFFFF]/45" suppressHydrationWarning>
+          <p className="mx-auto mt-2 max-w-xs text-pretty text-xs leading-relaxed text-[var(--sc-ink-muted)]" suppressHydrationWarning>
             © {new Date().getFullYear()} {brandConfig.productName}
           </p>
         </footer>
@@ -234,9 +234,9 @@ export function StaffLoginContent({ initialError, welcomeCopy }: StaffLoginConte
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: reduceMotion ? 0 : -6 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="flex items-start gap-2 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-[0.8125rem] leading-snug text-red-200"
+                className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-[0.8125rem] leading-snug text-rose-800"
               >
-                <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-red-300" />
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-rose-600" />
                 <span>{error}</span>
               </motion.div>
             ) : null}
@@ -294,7 +294,7 @@ export function StaffLoginContent({ initialError, welcomeCopy }: StaffLoginConte
               >
                 <motion.div
                   variants={itemVariants}
-                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5"
+                  className="flex items-center gap-3 rounded-xl border border-[var(--sc-line)] bg-[var(--sc-paper-2)] px-3 py-2.5"
                 >
                   <span
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-coral)]/15 text-sm font-semibold text-[var(--sc-coral)]"

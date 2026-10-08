@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import PublicAppShell from '@/components/public/PublicAppShell';
+import { ForceLightTheme } from '@/components/auth/ForceLightTheme';
 import { studioCraftBrandVars } from '@/components/marketing/v3/StudioCraftShell';
 import { DEFAULT_PRIMARY_COLOR } from '@/lib/brand-theme';
 
@@ -13,7 +14,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'Stride',
   },
 };
@@ -21,10 +22,17 @@ export const metadata: Metadata = {
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <PublicAppShell
-      className="bg-[var(--sc-ink)] font-[var(--font-jakarta)] text-[var(--sc-paper)] antialiased"
+      className="bg-white font-[var(--font-jakarta)] text-[var(--sc-ink)] antialiased"
       style={studioCraftBrandVars}
     >
-      {children}
+      {/* Before paint: strip dashboard dark class so email/password fields stay white. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html:
+            "(function(){try{document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light';}catch(e){}})();",
+        }}
+      />
+      <ForceLightTheme>{children}</ForceLightTheme>
     </PublicAppShell>
   );
 }

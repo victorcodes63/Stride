@@ -191,6 +191,7 @@ export default async function RootLayout({
   const favicon = '/favicon.ico';
   // Marketing site must stay light: OS/dashboard dark mode was painting product
   // previews (and dash tokens) black while the chrome stayed cream.
+  // Auth login pages force light via AuthLayout + CSS (see book-demo.css).
   const siteMode = getSiteMode();
   const forceLightTheme = siteMode === 'marketing';
 
