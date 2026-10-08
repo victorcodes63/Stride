@@ -8,7 +8,7 @@ import { marketingMetadata } from '@/lib/marketing-metadata';
 export const metadata = marketingMetadata({
   title: 'Privacy Policy',
   description:
-    'How Stride collects, uses, and protects personal data for East African businesses — Kenya DPA 2019 aligned, ODPC-ready.',
+    'How Stride collects, uses, and protects personal data for East African businesses. Kenya DPA 2019 aligned, ODPC-ready.',
   path: '/privacy',
 });
 
@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
     <MarketingLegalPage
       eyebrow="Privacy policy"
       title="Privacy Policy"
-      description="How Raven Tech Group processes personal data when you use Stride — the multi-tenant operations platform for HR, payroll, finance, and more across East Africa."
+      description="How Raven Tech Group processes personal data when you use Stride, the multi-tenant operations platform for HR, payroll, finance, and more across East Africa."
       lastUpdated={PRIVACY_LAST_UPDATED}
       sections={getPrivacySections()}
     />

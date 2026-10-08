@@ -5,7 +5,7 @@ import { marketingMetadata } from '@/lib/marketing-metadata';
 export const metadata = marketingMetadata({
   title: 'Logistics industry pack',
   description:
-    'Stride industry pack for cargo and road freight: fleet, trips, drivers and billing on the same HR & finance platform — not a separate fleet system.',
+    'Stride industry pack for cargo and road freight: fleet, trips, drivers and billing on the same HR & finance platform, not a separate fleet system.',
   path: '/industries/logistics',
 });
 
@@ -39,7 +39,7 @@ const LOGISTICS_FAQ = [
   },
   {
     q: 'Does it replace our HRIS?',
-    a: 'No — it extends Stride. Driver payroll, leave and compliance sit on the same core as fleet operations.',
+    a: 'No. It extends Stride. Driver payroll, leave and compliance sit on the same core as fleet operations.',
   },
 ] as const;
 

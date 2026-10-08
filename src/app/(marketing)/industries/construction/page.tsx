@@ -23,7 +23,7 @@ export default function ConstructionIndustryPage() {
       name="Construction"
       path="/industries/construction"
       title="Sites, plant, and subcontractors."
-      description="Construction vertical pack on the Stride projects and finance core — built for Kenyan contractors."
+      description="Construction vertical pack on the Stride projects and finance core, built for Kenyan contractors."
       visual={<ProductIndustryPreview industryId="construction" />}
       features={FEATURES}
       cta={{

@@ -49,7 +49,7 @@ import { getSiteMode } from '@/lib/site-mode';
 
 const siteUrl = getSiteUrl();
 /** Public product defaults — never the tenant placeholder (`Your Organisation`). */
-const defaultDescription = `${brandConfig.productName} — ${brandConfig.tagline}`;
+const defaultDescription = `${brandConfig.productName}: ${brandConfig.tagline}`;
 const keywords =
   'Stride, HRIS, HR software, payroll, operations platform, recruitment, leave management, workforce, East Africa';
 

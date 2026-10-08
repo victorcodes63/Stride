@@ -7,7 +7,7 @@ import { marketingMetadata } from '@/lib/marketing-metadata';
  * the hero is light, so the nav renders as a solid bar.
  */
 export const metadata = marketingMetadata({
-  title: 'HR, Payroll & Finance Software Modules — Stride Platform',
+  title: 'HR, Payroll & Finance Software Modules | Stride Platform',
   description:
     'Explore the Stride platform: HR & payroll and finance on every plan, plug-in modules for procurement, legal, projects and admin, and industry packs. PAYE, NSSF, SHIF, Housing Levy and M-Pesa built in.',
   path: '/platform',

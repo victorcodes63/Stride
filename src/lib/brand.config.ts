@@ -16,8 +16,8 @@ export const brandConfig = {
   companyLegal: 'Raven Tech Group',
   beachhead: 'sacco' as const,
   tagline:
-    'One operations platform for East African businesses — HR & payroll and finance at the core, industry packs on top.',
-  shortTagline: 'HR, finance, and industry packs — M-Pesa-native, compliance-ready.',
+    'One operations platform for East African businesses: HR & payroll and finance at the core, industry packs on top.',
+  shortTagline: 'HR, finance, and industry packs. M-Pesa-native, compliance-ready.',
   theme: {
     primary: STRIDE_BRAND_PRIMARY,
     secondary: STRIDE_BRAND_SECONDARY,
@@ -25,7 +25,7 @@ export const brandConfig = {
   demo: {
     saccoOrgName: 'Heritage Members SACCO Ltd',
     saccoTagline:
-      'Member-trusted payroll and workforce operations — compliant, M-Pesa-native, board-ready.',
+      'Member-trusted payroll and workforce operations. Compliant, M-Pesa-native, board-ready.',
   },
   supportEmail: 'hello@getstride.co.ke',
 } as const;

@@ -48,7 +48,7 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     rateKesPerEmployee: 350,
     unit: 'per employee / month',
     description:
-      'HR, payroll and finance for a single entity — everything a Kenyan team needs to run and file correctly.',
+      'HR, payroll and finance for a single entity. Everything a Kenyan team needs to run and file correctly.',
     exampleEmployees: 10,
     ctaLabel: 'Get a free payroll run',
     ctaIntent: PRICING_INTENTS.parallelRun,
@@ -109,7 +109,7 @@ export const FREE_PARALLEL_RUN = {
     },
     {
       title: 'We run one full payroll cycle',
-      body: 'A complete cycle on Stride, in parallel with your existing process — nothing is switched off.',
+      body: 'A complete cycle on Stride, in parallel with your existing process. Nothing is switched off.',
     },
     {
       title: 'You check every figure',

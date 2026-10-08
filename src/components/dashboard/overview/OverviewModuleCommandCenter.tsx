@@ -50,7 +50,7 @@ function ModuleRow({
           {items.slice(0, 2).map((item) => (
             <li key={item.id} className="truncate text-[11px] leading-snug text-[var(--dash-text-muted)]">
               <span className="font-medium text-[var(--dash-text-body)]">{item.label}</span>
-              <span> — {item.detail}</span>
+              <span>: {item.detail}</span>
             </li>
           ))}
           {items.length > 2 ? (
@@ -93,7 +93,7 @@ export function OverviewModuleCommandCenter({
       <OverviewWidgetHeader
         widgetId="command-center"
         title="Business pulse"
-        description="One-line status per module — items needing action are listed first. Use the sidebar to switch context."
+        description="One-line status per module. Items needing action are listed first. Use the sidebar to switch context."
         trailing={
           <p className="flex items-center gap-3 text-[10px] text-[var(--dash-text-subtle)]">
             <span className="inline-flex items-center gap-1">

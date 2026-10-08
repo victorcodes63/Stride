@@ -57,8 +57,8 @@ export function ConstructionSiteTable({ sites }: { sites: ConstructionSiteRow[] 
                     {s.status}
                   </span>
                 </td>
-                <td>{s.parentSiteCode ?? '—'}</td>
-                <td>{s.projectCode ?? '—'}</td>
+                <td>{s.parentSiteCode ?? '-'}</td>
+                <td>{s.projectCode ?? '-'}</td>
                 <td>{s.childCount}</td>
               </tr>
             ))}

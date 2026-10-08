@@ -35,7 +35,7 @@ const SACCO_FAQ = [
   },
   {
     q: 'Is M-Pesa supported?',
-    a: 'Yes — the horizontal finance module supports M-Pesa reconciliation alongside payroll disbursements.',
+    a: 'Yes. The horizontal finance module supports M-Pesa reconciliation alongside payroll disbursements.',
   },
   {
     q: 'Can we demo with Heritage Members SACCO?',

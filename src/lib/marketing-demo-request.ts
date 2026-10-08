@@ -77,14 +77,14 @@ export async function notifyDemoRequest(payload: DemoRequestPayload): Promise<De
         <tr><td style="padding:8px 0;color:#78716C;width:140px;">Name</td><td style="padding:8px 0;"><strong>${escapeHtml(name)}</strong></td></tr>
         <tr><td style="padding:8px 0;color:#78716C;">Email</td><td style="padding:8px 0;">${escapeHtml(payload.email)}</td></tr>
         <tr><td style="padding:8px 0;color:#78716C;">Company</td><td style="padding:8px 0;">${escapeHtml(payload.company)}</td></tr>
-        <tr><td style="padding:8px 0;color:#78716C;">Team size</td><td style="padding:8px 0;">${escapeHtml(payload.teamSize || '—')}</td></tr>
-        <tr><td style="padding:8px 0;color:#78716C;">Modules</td><td style="padding:8px 0;">${escapeHtml(payload.modules.length ? payload.modules.join(', ') : '—')}</td></tr>
+        <tr><td style="padding:8px 0;color:#78716C;">Team size</td><td style="padding:8px 0;">${escapeHtml(payload.teamSize || '-')}</td></tr>
+        <tr><td style="padding:8px 0;color:#78716C;">Modules</td><td style="padding:8px 0;">${escapeHtml(payload.modules.length ? payload.modules.join(', ') : '-')}</td></tr>
         ${
           payload.otherModule
             ? `<tr><td style="padding:8px 0;color:#78716C;">Other module</td><td style="padding:8px 0;">${escapeHtml(payload.otherModule)}</td></tr>`
             : ''
         }
-        <tr><td style="padding:8px 0;color:#78716C;">Preferred date</td><td style="padding:8px 0;">${escapeHtml(payload.preferredDate || '—')}${payload.preferredTime ? ` (${escapeHtml(payload.preferredTime)})` : ''}</td></tr>
+        <tr><td style="padding:8px 0;color:#78716C;">Preferred date</td><td style="padding:8px 0;">${escapeHtml(payload.preferredDate || '-')}${payload.preferredTime ? ` (${escapeHtml(payload.preferredTime)})` : ''}</td></tr>
         <tr><td style="padding:8px 0;color:#78716C;">Interest</td><td style="padding:8px 0;">${escapeHtml(payload.interest)}</td></tr>
       </table>
       ${

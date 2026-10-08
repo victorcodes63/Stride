@@ -24,7 +24,7 @@ const essentialsRate = getPricingPlan('essentials').rateKesPerEmployee ?? 0;
 const TOTAL = 4;
 
 export const metadata = marketingMetadata({
-  title: 'Pricing — Stride',
+  title: 'Pricing | Stride',
   description: `Per-employee pricing for HR, payroll and finance in Kenya, from ${formatKes(essentialsRate)} per employee per month. Your first payroll run is free.`,
   path: '/pricing',
 });

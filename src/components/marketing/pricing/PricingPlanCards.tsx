@@ -40,7 +40,7 @@ function PriceBlock({ plan }: { plan: PricingPlan }) {
         className={`mt-1 text-[13px] text-pub-ink-subtle ${example ? '' : 'invisible'}`}
         aria-hidden={!example}
       >
-        {example ?? '—'}
+        {example ?? ' '}
       </p>
     </div>
   );

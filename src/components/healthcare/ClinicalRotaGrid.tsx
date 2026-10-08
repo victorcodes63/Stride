@@ -101,7 +101,7 @@ export function ClinicalRotaGrid({
         <div>
           <p className="text-sm font-semibold text-[var(--dash-text-strong)]">This week</p>
           <p className="mt-0.5 text-xs text-[var(--dash-text-muted)]">
-            {new Date(`${dates[0]}T00:00:00`).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })} –{' '}
+            {new Date(`${dates[0]}T00:00:00`).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })} to{' '}
             {new Date(`${dates[dates.length - 1]}T00:00:00`).toLocaleDateString('en-KE', {
               day: 'numeric',
               month: 'short',
@@ -162,7 +162,7 @@ export function ClinicalRotaGrid({
                       <td key={date} className="px-1.5 py-2 align-top">
                         {cell.length === 0 ? (
                           <span className="block rounded-md border border-dashed border-[var(--dash-border-subtle)] py-1.5 text-center text-[10px] text-[var(--dash-text-faint)]">
-                            —
+                            -
                           </span>
                         ) : (
                           <div className="space-y-1">
