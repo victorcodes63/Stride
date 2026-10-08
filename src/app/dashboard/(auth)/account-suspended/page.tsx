@@ -10,8 +10,8 @@ export default function StaffAccountSuspendedPage() {
           resolve billing or contract status.
         </p>
         <p className="mt-6 text-sm">
-          <a href="mailto:hello@raventechgroup.com" className="font-medium text-primary-700">
-            hello@raventechgroup.com
+          <a href="mailto:hello@getstride.co.ke" className="font-medium text-primary-700">
+            hello@getstride.co.ke
           </a>
         </p>
         <Link

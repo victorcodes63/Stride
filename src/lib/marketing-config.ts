@@ -124,9 +124,9 @@ export function getAppPageUrl(path: string): string {
 }
 
 /**
- * Public sales inbox — footer, contact page mailto links, and book-demo CTAs.
- * TODO(launch): Confirm hello@getstride.co.ke is live and monitored before shipping.
- * Update MARKETING_SALES_EMAIL and any legacy hello@raventechgroup.com references together.
+ * Official Stride sales / demo inbox — footer, contact mailto links, book-demo
+ * lead notifications, and Reply-To on platform mail. Cold outreach should also
+ * use this address (or a dedicated alias that replies here).
  */
 export const MARKETING_SALES_EMAIL = 'hello@getstride.co.ke';
 

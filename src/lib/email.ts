@@ -35,7 +35,8 @@ import {
 } from '@/lib/payslip-sender';
 
 const FROM_EMAIL = 'no-reply@getstride.co.ke';
-const REPLY_TO = 'hello@raventechgroup.com';
+/** Public Stride inbox — demos, sales replies, and cold-outreach reply handling. */
+const REPLY_TO = 'hello@getstride.co.ke';
 const FROM_NAME = mailFromName;
 
 /** Platform sender defaults — the ultimate fallback for every tenant. */

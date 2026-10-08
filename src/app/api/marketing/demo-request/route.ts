@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         emailSent: false,
         error:
           result.error ||
-          'Unable to notify our team right now. Please try again or email hello@raventechgroup.com.',
+          'Unable to notify our team right now. Please try again or email hello@getstride.co.ke.',
       },
       { status: 502 },
     );

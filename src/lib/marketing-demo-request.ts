@@ -1,8 +1,9 @@
 import { sendEmail } from '@/lib/email';
 import { buildBrandedEmailHtml, escapeHtml } from '@/lib/email-template';
+import { MARKETING_SALES_EMAIL } from '@/lib/marketing-config';
 
 /** Inbox for Book a demo leads — override with MARKETING_LEADS_TO if needed. */
-const DEFAULT_MARKETING_LEADS_TO = 'hello@raventechgroup.com';
+const DEFAULT_MARKETING_LEADS_TO = MARKETING_SALES_EMAIL;
 
 export type DemoRequestPayload = {
   firstName: string;
