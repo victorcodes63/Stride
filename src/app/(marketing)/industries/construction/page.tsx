@@ -3,7 +3,7 @@ import { ProductIndustryPreview } from '@/components/marketing/product/ProductIn
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
-  title: 'Construction',
+  title: 'Construction HR & payroll Kenya',
   description:
     'Site hierarchy, plant asset tracking, and subcontractor accounts payable for construction and civil contractors.',
   path: '/industries/construction',

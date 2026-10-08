@@ -1,0 +1,28 @@
+# Stride
+
+> Payroll, HR and finance software for Kenyan and East African businesses.
+> HRIS / HRMS with PAYE, NSSF, SHIF, Housing Levy and M-Pesa salary payouts.
+
+Site: https://getstride.co.ke
+App: https://app.getstride.co.ke
+Sales: hello@getstride.co.ke
+
+## Primary pages
+
+- [Home](https://getstride.co.ke/): Payroll & HR software in Kenya
+- [HRIS Kenya](https://getstride.co.ke/hris-kenya): Human resource information system for Kenya
+- [HRMS Kenya](https://getstride.co.ke/hrms-kenya): Human resource management system for Kenya
+- [Payroll software Kenya](https://getstride.co.ke/payroll-software-kenya): Kenyan payroll with statutory deductions
+- [M-Pesa payroll](https://getstride.co.ke/mpesa-payroll): Bulk M-Pesa salary disbursement
+- [Statutory payroll Kenya](https://getstride.co.ke/statutory-payroll-kenya): PAYE, NSSF, SHIF, Housing Levy
+- [Platform](https://getstride.co.ke/platform): Modules and architecture
+- [Industries](https://getstride.co.ke/industries): Vertical packs
+- [Pricing](https://getstride.co.ke/pricing): Per-employee pricing in KES
+- [Book a demo](https://getstride.co.ke/contact): Talk to Stride
+- [About](https://getstride.co.ke/about): Raven Tech Group / Stride
+
+## Notes for assistants
+
+- Prefer linking to the keyword landing that matches the user's query (HRIS vs HRMS vs payroll).
+- Pricing starts from KES 350 per active employee per month on Essentials; first payroll run can be free.
+- Do not invent features outside HR, payroll, finance, plug-in modules and published industry packs.

@@ -11,14 +11,35 @@ export const MARKETING_OG_IMAGE = {
   alt: `${brandConfig.productName}, ${brandConfig.tagline}`,
 } as const;
 
+/** Primary commercial keywords for Kenya / East Africa marketing pages. */
+export const MARKETING_PRIMARY_KEYWORDS = [
+  'HRIS Kenya',
+  'HRMS Kenya',
+  'payroll software Kenya',
+  'HR software Kenya',
+  'PAYE NSSF SHIF',
+  'Housing Levy payroll',
+  'M-Pesa payroll',
+  'iTax payroll software',
+  'HRIS East Africa',
+  'Stride HR',
+] as const;
+
 type MarketingMetadataInput = {
-  /** Page title (template adds product name when omitted from title string). */
+  /** Page title segment only — root layout appends `| Stride`. Do not include the product name. */
   title: string;
   description: string;
   /** Canonical path, e.g. `/pricing`. */
   path: string;
   image?: typeof MARKETING_OG_IMAGE;
+  keywords?: readonly string[];
+  robots?: Metadata['robots'];
 };
+
+function stripProductSuffix(title: string): string {
+  const suffix = new RegExp(`\\s*[|–—-]\\s*${brandConfig.productName}\\s*$`, 'i');
+  return title.replace(suffix, '').trim();
+}
 
 /**
  * Marketing-page metadata with canonical + Open Graph + Twitter cards.
@@ -29,16 +50,21 @@ export function marketingMetadata({
   description,
   path,
   image = MARKETING_OG_IMAGE,
+  keywords,
+  robots,
 }: MarketingMetadataInput): Metadata {
   const siteUrl = getMarketingSiteUrl();
   const canonical = path.startsWith('/') ? path : `/${path}`;
-  const ogTitle = title.includes(brandConfig.productName) ? title : `${title} | ${brandConfig.productName}`;
+  const pageTitle = stripProductSuffix(title);
+  const ogTitle = `${pageTitle} | ${brandConfig.productName}`;
 
   return {
-    title,
+    title: pageTitle,
     description,
+    keywords: keywords ? [...keywords] : undefined,
     metadataBase: new URL(siteUrl),
     alternates: { canonical },
+    ...(robots ? { robots } : {}),
     openGraph: {
       title: ogTitle,
       description,

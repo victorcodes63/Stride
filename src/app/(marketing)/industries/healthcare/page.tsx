@@ -3,7 +3,7 @@ import { ProductIndustryPreview } from '@/components/marketing/product/ProductIn
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
-  title: 'Healthcare',
+  title: 'Healthcare HR & payroll Kenya',
   description:
     'Clinical rota with licence gates, ward rules, biometric attendance, and SHIF-ready payroll for hospitals and clinics.',
   path: '/industries/healthcare',

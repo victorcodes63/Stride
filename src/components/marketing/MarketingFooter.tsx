@@ -25,11 +25,11 @@ const PRODUCT_LINKS: FooterLink[] = [
 
 /** Descriptive anchor text doubles as internal linking for search. */
 const PAYROLL_LINKS: FooterLink[] = [
-  { href: MARKETING_ROUTES.platform, label: 'Payroll software Kenya' },
-  { href: MARKETING_ROUTES.platform, label: 'PAYE, NSSF & SHIF' },
-  { href: MARKETING_ROUTES.platform, label: 'Housing Levy' },
-  { href: MARKETING_ROUTES.platform, label: 'M-Pesa salary payouts' },
-  { href: MARKETING_ROUTES.platform, label: 'HR & leave management' },
+  { href: MARKETING_ROUTES.hrisKenya, label: 'HRIS Kenya' },
+  { href: MARKETING_ROUTES.hrmsKenya, label: 'HRMS Kenya' },
+  { href: MARKETING_ROUTES.payrollSoftwareKenya, label: 'Payroll software Kenya' },
+  { href: MARKETING_ROUTES.statutoryPayrollKenya, label: 'PAYE, NSSF & SHIF' },
+  { href: MARKETING_ROUTES.mpesaPayroll, label: 'M-Pesa salary payouts' },
 ];
 
 const INDUSTRY_LINKS: FooterLink[] = INDUSTRY_VERTICALS.map((vertical) => ({

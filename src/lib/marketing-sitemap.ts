@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 import { getMarketingSiteUrl, INDUSTRY_VERTICALS, MARKETING_ROUTES } from '@/lib/marketing-config';
+import { SEO_LANDINGS } from '@/lib/marketing-seo-landings';
 
 /** Paths Google can crawl as distinct URLs (no #fragments — crawlers ignore them). */
 function isSitemapablePath(path: string): boolean {
@@ -28,6 +29,12 @@ export const MARKETING_SITEMAP_STATIC_PATHS: {
   { path: MARKETING_ROUTES.pricing, changeFrequency: 'monthly', priority: 0.9 },
   { path: MARKETING_ROUTES.about, changeFrequency: 'monthly', priority: 0.8 },
   { path: MARKETING_ROUTES.contact, changeFrequency: 'monthly', priority: 0.9 },
+  // High-intent SEO landings (HRIS / HRMS / payroll Kenya).
+  ...SEO_LANDINGS.map((landing) => ({
+    path: landing.path,
+    changeFrequency: 'monthly' as const,
+    priority: 0.95,
+  })),
   { path: '/privacy', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/terms', changeFrequency: 'yearly', priority: 0.3 },
 ].filter((entry) => isSitemapablePath(entry.path));

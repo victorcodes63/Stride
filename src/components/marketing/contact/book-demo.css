@@ -24,6 +24,7 @@
   animation: bd-demo-drift-b 38s ease-in-out infinite alternate-reverse;
 }
 
+/* Default left brand panel — dark coral (login / AuthSplitShell). */
 .bd-demo-panel {
   background:
     radial-gradient(ellipse 90% 80% at 20% 10%, rgba(255, 84, 54, 0.55) 0%, transparent 55%),
@@ -51,19 +52,8 @@
 
 .bd-demo-copy h1,
 .public-app .bd-demo-panel .bd-demo-copy :where(h1, h2, h3, h4) {
-  color: #FFFFFF !important;
+  color: #ffffff !important;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
-}
-
-/* Right column (incl. success state) — beat studio-craft dark heading override. */
-.public-app .bd-demo-form :where(h1, h2, h3, h4),
-html.dark .public-app .bd-demo-form :where(h1, h2, h3, h4) {
-  color: #FFFFFF !important;
-}
-
-.public-app .bd-demo-form p,
-html.dark .public-app .bd-demo-form p {
-  color: rgba(255, 255, 255, 0.75);
 }
 
 .bd-demo-copy p {
@@ -79,22 +69,64 @@ html.dark .public-app .bd-demo-form p {
   width: 100%;
 }
 
-.bd-demo-form input,
-.bd-demo-form select,
-.bd-demo-form textarea {
-  background-color: rgba(255, 255, 255, 0.06);
+/* Book-a-demo light shell — brighter panel + form (does not affect login). */
+.bd-demo-shell .bd-demo-panel {
+  background:
+    radial-gradient(ellipse 90% 80% at 18% 8%, rgba(255, 84, 54, 0.28) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 92% 88%, rgba(255, 84, 54, 0.14) 0%, transparent 50%),
+    linear-gradient(165deg, #ffffff 0%, #faf8f6 48%, #f4f0ec 100%);
+  border: 1px solid var(--sc-line, #e8e2da);
 }
 
-.bd-demo-form input:focus,
-.bd-demo-form input:focus-visible,
-.bd-demo-form select:focus,
-.bd-demo-form select:focus-visible,
-.bd-demo-form textarea:focus,
-.bd-demo-form textarea:focus-visible {
+.bd-demo-shell .bd-demo-panel::before {
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+}
+
+.bd-demo-shell .bd-demo-panel::after {
+  display: none;
+}
+
+.bd-demo-shell .bd-demo-copy h1,
+.public-app .bd-demo-shell .bd-demo-panel .bd-demo-copy :where(h1, h2, h3, h4) {
+  color: var(--sc-ink, #1a1714) !important;
+  text-shadow: none;
+}
+
+.bd-demo-shell .bd-demo-copy p {
+  color: var(--sc-ink-muted, rgba(26, 23, 20, 0.62));
+}
+
+.bd-demo-shell .bd-demo-copy .bd-demo-tagline {
+  color: rgba(26, 23, 20, 0.4);
+}
+
+.public-app .bd-demo-shell .bd-demo-form :where(h1, h2, h3, h4),
+html.dark .public-app .bd-demo-shell .bd-demo-form :where(h1, h2, h3, h4) {
+  color: var(--sc-ink, #1a1714) !important;
+}
+
+.public-app .bd-demo-shell .bd-demo-form p,
+html.dark .public-app .bd-demo-shell .bd-demo-form p {
+  color: var(--sc-ink-muted, rgba(26, 23, 20, 0.62));
+}
+
+.bd-demo-shell .bd-demo-form input,
+.bd-demo-shell .bd-demo-form select,
+.bd-demo-shell .bd-demo-form textarea {
+  background-color: #ffffff;
+}
+
+.bd-demo-shell .bd-demo-form input:focus,
+.bd-demo-shell .bd-demo-form input:focus-visible,
+.bd-demo-shell .bd-demo-form select:focus,
+.bd-demo-shell .bd-demo-form select:focus-visible,
+.bd-demo-shell .bd-demo-form textarea:focus,
+.bd-demo-shell .bd-demo-form textarea:focus-visible {
   outline: none;
   outline-offset: 0;
-  box-shadow: none;
-  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 84, 54, 0.12);
+  border-color: rgba(255, 84, 54, 0.45);
 }
 
 .bd-demo-form select {
@@ -104,7 +136,7 @@ html.dark .public-app .bd-demo-form p {
 
 .bd-demo-module-list {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 84, 54, 0.45) rgba(255, 255, 255, 0.08);
+  scrollbar-color: rgba(255, 84, 54, 0.4) rgba(26, 23, 20, 0.06);
 }
 
 .bd-demo-module-list::-webkit-scrollbar {
@@ -113,36 +145,30 @@ html.dark .public-app .bd-demo-form p {
 
 .bd-demo-module-list::-webkit-scrollbar-track {
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(26, 23, 20, 0.04);
 }
 
 .bd-demo-module-list::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(255, 84, 54, 0.45);
+  background: rgba(255, 84, 54, 0.4);
 }
 
-.bd-demo-form input:-webkit-autofill,
-.bd-demo-form input:-webkit-autofill:hover,
-.bd-demo-form input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #2a2520 inset;
-  -webkit-text-fill-color: #FFFFFF;
-  caret-color: #FFFFFF;
+.bd-demo-shell .bd-demo-form input:-webkit-autofill,
+.bd-demo-shell .bd-demo-form input:-webkit-autofill:hover,
+.bd-demo-shell .bd-demo-form input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  -webkit-text-fill-color: var(--sc-ink, #1a1714);
+  caret-color: var(--sc-ink, #1a1714);
   transition: background-color 9999s ease-out 0s;
 }
 
-/* Staff / auth login — dark panel matching contact form */
-/*
- * The panel is always dark, but --dash-text-strong follows the html light/dark
- * theme (near-black in light mode). Pin it to the panel's cream so any element
- * using the dashboard "strong text" token (e.g. the resolved org name / email
- * on the credentials step) stays legible on the dark surface.
- */
+/* Staff / auth login — dark panel matching legacy contact (kept for login). */
 .auth-studio-form {
-  --dash-text-strong: #FFFFFF;
+  --dash-text-strong: #ffffff;
 }
 
 .auth-studio-form .dash-auth-title {
-  color: #FFFFFF;
+  color: #ffffff;
   font-size: clamp(1.5rem, 3.5vw, 2rem);
   font-weight: 400;
   letter-spacing: -0.02em;
@@ -169,7 +195,7 @@ html.dark .public-app .bd-demo-form p {
   height: 2.75rem;
   border-color: rgba(255, 255, 255, 0.1);
   background-color: rgba(255, 255, 255, 0.06);
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .auth-studio-form .dash-auth-input::placeholder {
@@ -218,7 +244,7 @@ html.dark .public-app .bd-demo-form p {
 .auth-studio-form .dash-auth-oauth-btn {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .auth-studio-form .dash-auth-oauth-btn:hover {
@@ -253,13 +279,13 @@ html.dark .public-app .bd-demo-form p {
   }
 }
 
-/* Full-bleed mobile shell — kills cream paper bleed under the wizard. */
+/* Full-bleed mobile shell — bright paper, no ink bleed. */
 body:has(.bd-demo-shell) {
-  background: var(--sc-ink, #1a1714) !important;
+  background: #ffffff !important;
 }
 
 .bd-demo-shell {
-  background-color: var(--sc-ink, #1a1714);
+  background-color: #ffffff;
 }
 
 @supports (height: 100svh) {

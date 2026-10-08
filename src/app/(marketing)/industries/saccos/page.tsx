@@ -3,9 +3,9 @@ import { ProductIndustryPreview } from '@/components/marketing/product/ProductIn
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
-  title: 'SACCOs',
+  title: 'SACCO software Kenya',
   description:
-    'Member ledger, BOSA/FOSA operations, dividend runs, and SASRA-aligned reporting for regulated Kenyan SACCOs.',
+    'Member ledger, BOSA/FOSA operations, dividend runs, and SASRA-aligned reporting for regulated Kenyan SACCOs on Stride.',
   path: '/industries/saccos',
 });
 

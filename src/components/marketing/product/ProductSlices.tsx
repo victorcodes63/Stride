@@ -6,22 +6,31 @@
  * reads the session or touches the database.
  */
 import {
+  ArrowRight,
   BookOpen,
+  Briefcase,
   Building2,
+  CalendarCheck,
+  CalendarDays,
   CheckCircle2,
+  Clock,
   FileText,
   Home,
   Landmark,
+  LayoutGrid,
   ShieldCheck,
   Smartphone,
+  UserPlus,
   Users,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DashboardStatBadge, DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { ModuleKpiSnapshotCard } from '@/components/dashboard/overview/ModuleKpiSnapshotCard';
 import { NeedsAttentionSection } from '@/components/dashboard/overview/NeedsAttentionSection';
 import { OverviewModuleCommandCenter } from '@/components/dashboard/overview/OverviewModuleCommandCenter';
 import type { DashboardModuleDomainId } from '@/lib/dashboard-module-domains';
+import { getModuleHomeMeta } from '@/lib/dashboard-module-homes';
 import { DEMO_STATUTORY, DEMO_TENANT } from '@/components/marketing/mockups/demo-data';
 import {
   DEMO_ATTENTION_ITEMS,
@@ -73,7 +82,6 @@ export function ProductOverviewSlice({
   ...frame
 }: FrameOptions & { domains?: DashboardModuleDomainId[] }) {
   const items = domains ? DEMO_ATTENTION_ITEMS.filter((i) => domains.includes(i.domainId)) : DEMO_ATTENTION_ITEMS;
-  const visibleDomains = domains ? DEMO_DOMAINS.filter((d) => domains.includes(d.id)) : DEMO_DOMAINS;
   return (
     <ProductFrame
       label="Stride dashboard: today's numbers and the items that need attention"
@@ -84,11 +92,7 @@ export function ProductOverviewSlice({
     >
       <div className="space-y-4">
         <KpiRow domains={domains} />
-        <NeedsAttentionSection
-          items={items}
-          domains={visibleDomains}
-          attentionByDomain={demoAttentionByDomain(items)}
-        />
+        <NeedsAttentionSection items={items} />
       </div>
     </ProductFrame>
   );
@@ -428,6 +432,165 @@ export function ProductComplianceLedgerSlice(frame: FrameOptions = {}) {
               </span>
             </div>
           ))}
+        </div>
+      </div>
+    </ProductFrame>
+  );
+}
+
+const PEOPLE_WORKFORCE_STATS = [
+  { label: 'Total staff', value: DEMO_TEAM_SIZE, hint: 'Active', icon: Users, tone: 'neutral' as const },
+  { label: 'On duty', value: 112, hint: '93% clocked in', icon: Clock, tone: 'neutral' as const },
+  { label: 'Leave queue', value: 4, hint: 'Needs you', icon: CalendarDays, tone: 'attention' as const },
+  { label: 'Exceptions', value: 3, hint: 'Attendance', icon: ShieldCheck, tone: 'attention' as const },
+] as const;
+
+const PEOPLE_LEAVE_QUEUE = [
+  { name: 'Amina Otieno', type: 'Annual leave', when: '3 days · next week', status: 'Manager' },
+  { name: 'Brian Kamau', type: 'Sick leave', when: 'Today · half day', status: 'Pending' },
+  { name: 'Faith Wanjiru', type: 'Comp day', when: 'Tomorrow', status: 'Pending' },
+] as const;
+
+const PEOPLE_QUICK_LINKS: readonly { label: string; icon: LucideIcon }[] = [
+  { label: 'Employees', icon: Users },
+  { label: 'Leave', icon: CalendarDays },
+  { label: 'Attendance', icon: Clock },
+  { label: 'Payroll', icon: Landmark },
+  { label: 'Onboarding', icon: UserPlus },
+  { label: 'Jobs & ATS', icon: Briefcase },
+];
+
+/**
+ * Homepage solutions tab — HR module home (`/dashboard/people`).
+ * Coral hero + dense KPIs + leave queue, composed to fit the marketing crop.
+ */
+export function ProductPeopleWorkforceSlice(frame: FrameOptions = {}) {
+  const meta = getModuleHomeMeta('hr-payroll');
+
+  return (
+    <ProductFrame
+      label="Stride People & workforce: headcount, leave approvals, attendance and payroll in one HR command post"
+      path="/dashboard/people"
+      designWidth={frame.designWidth ?? 720}
+      fill={frame.fill}
+      className={frame.className}
+    >
+      <div className="space-y-3">
+        <DashboardPageHeader
+          variant="hero"
+          className="!p-4 sm:!p-4 lg:!p-5"
+          eyebrow={meta.eyebrow}
+          title={meta.title}
+          description="One employee record across leave, attendance and payroll."
+          icon={LayoutGrid}
+          badges={[{ label: 'Live', icon: CheckCircle2 }]}
+          actions={[
+            { label: 'Add employee', href: '#', icon: UserPlus, variant: 'primary' },
+            { label: 'Review leave', href: '#', icon: CalendarCheck, variant: 'secondary' },
+          ]}
+        />
+
+        <div className="grid grid-cols-4 gap-2">
+          {PEOPLE_WORKFORCE_STATS.map((stat) => {
+            const Icon = stat.icon;
+            const hot = stat.tone === 'attention';
+            return (
+              <article
+                key={stat.label}
+                className="dashboard-panel flex flex-col gap-1.5 !rounded-xl !p-2.5 sm:!p-3"
+              >
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="truncate text-[10px] font-medium text-[var(--dash-text-muted)]">
+                    {stat.label}
+                  </span>
+                  <span
+                    className={
+                      hot
+                        ? 'flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-300'
+                        : 'flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[var(--dash-surface-muted)] text-[var(--dash-text-muted)]'
+                    }
+                    aria-hidden
+                  >
+                    <Icon className="h-3 w-3" strokeWidth={1.75} />
+                  </span>
+                </div>
+                <p className="text-[20px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--dash-text-strong)]">
+                  {stat.value}
+                </p>
+                <p
+                  className={
+                    hot
+                      ? 'text-[10px] font-medium text-primary-700 dark:text-primary-300'
+                      : 'text-[10px] text-[var(--dash-text-subtle)]'
+                  }
+                >
+                  {stat.hint}
+                </p>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="dashboard-panel overflow-hidden">
+          <div className="flex items-center justify-between gap-3 border-b border-[var(--dash-border)] px-3.5 py-2.5">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--dash-text-strong)]">Leave approvals</p>
+              <p className="text-[11px] text-[var(--dash-text-subtle)]">
+                Approved leave posts straight into the next payroll run
+              </p>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary-200 bg-primary-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-primary-700 dark:border-primary-800 dark:bg-primary-950/40 dark:text-primary-300">
+              4 open
+            </span>
+          </div>
+          <ul className="divide-y divide-[var(--dash-border-subtle)]">
+            {PEOPLE_LEAVE_QUEUE.map((row) => (
+              <li key={row.name} className="flex items-center gap-3 px-3.5 py-2">
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--dash-surface-muted)] text-[10px] font-semibold text-[var(--dash-text-strong)]"
+                  aria-hidden
+                >
+                  {row.name
+                    .split(' ')
+                    .map((part) => part[0])
+                    .join('')
+                    .slice(0, 2)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="truncate text-[13px] font-semibold text-[var(--dash-text-strong)]">
+                      {row.name}
+                    </p>
+                    <span className="shrink-0 rounded-full bg-[var(--dash-surface-muted)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.04em] text-[var(--dash-text-muted)]">
+                      {row.status}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-[11px] text-[var(--dash-text-muted)]">
+                    {row.type} · {row.when}
+                  </p>
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[var(--dash-text-faint)]" aria-hidden />
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="dashboard-panel flex flex-wrap items-center gap-1.5 px-3 py-2.5">
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--dash-text-subtle)]">
+            Open
+          </span>
+          {PEOPLE_QUICK_LINKS.map((link) => {
+            const Icon = link.icon;
+            return (
+              <span
+                key={link.label}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-2 py-1 text-[11px] font-medium text-[var(--dash-text-strong)]"
+              >
+                <Icon className="h-3 w-3 text-primary-600" strokeWidth={1.75} aria-hidden />
+                {link.label}
+              </span>
+            );
+          })}
         </div>
       </div>
     </ProductFrame>

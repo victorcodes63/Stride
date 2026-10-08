@@ -7,8 +7,10 @@ import { PricingCompareMatrix } from '@/components/marketing/pricing/PricingComp
 import { PricingFreeRunBand, PricingInternationalBand } from '@/components/marketing/pricing/PricingOfferBands';
 import { PricingPlanCards } from '@/components/marketing/pricing/PricingPlanCards';
 import { MarketingFaq } from '@/components/marketing/sections/MarketingFaq';
+import { JsonLd } from '@/components/marketing/JsonLd';
 import { MarketingPrimaryLink, StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import { marketingMetadata } from '@/lib/marketing-metadata';
+import { softwareApplicationJsonLd } from '@/lib/marketing-schema';
 import {
   PRICING_FAQ,
   PRICING_FOOTNOTE,
@@ -24,14 +26,20 @@ const essentialsRate = getPricingPlan('essentials').rateKesPerEmployee ?? 0;
 const TOTAL = 4;
 
 export const metadata = marketingMetadata({
-  title: 'Pricing | Stride',
-  description: `Per-employee pricing for HR, payroll and finance in Kenya, from ${formatKes(essentialsRate)} per employee per month. Your first payroll run is free.`,
+  title: 'Pricing',
+  description: `Per-employee pricing for HRIS, HRMS, payroll and finance in Kenya, from ${formatKes(essentialsRate)} per employee per month. Your first payroll run is free.`,
   path: '/pricing',
+  keywords: ['Stride pricing', 'HRIS Kenya pricing', 'payroll software Kenya cost'],
 });
 
 export default function PricingPage() {
   return (
     <>
+      <JsonLd
+        data={softwareApplicationJsonLd(
+          `Per-employee HRIS, HRMS, payroll and finance pricing in Kenya from ${formatKes(essentialsRate)} per employee.`,
+        )}
+      />
       <EditorialPageHero
         breadcrumb={[
           { name: 'Home', path: '/' },

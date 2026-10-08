@@ -6,8 +6,10 @@
  *   node scripts/capture-marketing-hero.mjs --only=hero,statutory
  *
  * Outputs:
- *   public/images/dashboard_home.png      — SwiftFreight operations overview
- *   public/images/payroll_screenshot.png  — SwiftFreight statutory compliance
+ *   public/images/dashboard_home.png      — People & workforce (HR & Payroll)
+ *   public/images/payroll_screenshot.png  — Statutory compliance
+ *
+ * Local app (SITE_MODE=app): MARKETING_CAPTURE_BASE_URL=http://localhost:3004
  */
 
 import { chromium } from 'playwright';
@@ -48,7 +50,8 @@ const SHOTS = [
     id: 'hero',
     file: 'dashboard_home.png',
     path: '/dashboard/people',
-    entityMatch: /SwiftFreight/i,
+    // Prefer the multi-vertical demo org over logistics-only branding.
+    entityMatch: /Stride Demo|Imara|People/i,
     waitFor: /People & workforce|People &|Total staff|Module home/i,
     clip: { width: 1440, height: 900 },
   },
@@ -56,7 +59,7 @@ const SHOTS = [
     id: 'statutory',
     file: 'payroll_screenshot.png',
     path: '/dashboard/payroll/statutory',
-    entityMatch: /SwiftFreight/i,
+    entityMatch: /SwiftFreight|Savannah|Stride Demo/i,
     waitFor: /Statutory|KRA PAYE|Employer/i,
     clip: { width: 1440, height: 900 },
   },
@@ -69,7 +72,7 @@ const ENTITY_COOKIE = 'hris_entity_id';
 const ENTITY_STORAGE_KEY = 'hris_active_entity';
 
 const ENTITY_SLUG_FALLBACKS = {
-  hero: 'cargo-logistics__ke',
+  hero: null,
   statutory: 'cargo-logistics__ke',
 };
 
@@ -133,9 +136,18 @@ async function main() {
   const page = await context.newPage();
   console.log(`Signing in at ${BASE_URL}…`);
   await page.goto(`${BASE_URL}/dashboard/login`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await page.getByLabel('Email').fill(email);
+  // Two-step staff login: email → Continue → password → Sign in with password
+  await page.locator('#email').waitFor({ state: 'visible', timeout: 30_000 });
+  await page.locator('#email').fill(email);
+  const resolveWait = page.waitForResponse(
+    (r) => r.url().includes('/api/auth/resolve-email') && r.request().method() === 'POST',
+    { timeout: 45_000 },
+  );
+  await page.getByRole('button', { name: /^Continue$/i }).click();
+  await resolveWait;
+  await page.locator('#password').waitFor({ state: 'visible', timeout: 45_000 });
   await page.locator('#password').fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('button', { name: /Sign in with password/i }).click();
   await page.waitForURL((url) => url.pathname.startsWith('/dashboard') && !url.pathname.includes('/login'), {
     timeout: 60_000,
   });

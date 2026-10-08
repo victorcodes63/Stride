@@ -6,7 +6,7 @@ import { contactEnquiryTypeForIntent } from '@/lib/pricing';
 export const metadata: Metadata = marketingMetadata({
   title: 'Book a demo',
   description:
-    'Book a Stride walkthrough — see the HR & finance core, plug-in modules, and industry packs on one platform.',
+    'Book a Stride walkthrough — see HRIS, payroll and finance for Kenya, with plug-in modules and industry packs on one platform.',
   path: '/contact',
 });
 

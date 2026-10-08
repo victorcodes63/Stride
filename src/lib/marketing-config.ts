@@ -15,6 +15,12 @@ export const MARKETING_ROUTES = {
   privacy: '/privacy',
   terms: '/terms',
   login: '/dashboard/login',
+  /** High-intent SEO landings (HRIS / HRMS / payroll Kenya). */
+  hrisKenya: '/hris-kenya',
+  hrmsKenya: '/hrms-kenya',
+  payrollSoftwareKenya: '/payroll-software-kenya',
+  mpesaPayroll: '/mpesa-payroll',
+  statutoryPayrollKenya: '/statutory-payroll-kenya',
   /** Internal-only — /demo-access 404s unless NEXT_PUBLIC_INTERNAL_DEMO_SANDBOX (RAV-169). */
   demoAccess: '/demo-access',
 } as const;
@@ -238,8 +244,8 @@ export const MARKETING_BRAND = {
 
 /**
  * Product screenshot for the homepage hero showcase — clipped to hero viewport.
- * To swap in a new capture: export at 2880×1800 (light mode, demo tenant, no money amounts),
- * save it in /public/images/ and update src/width/height here. /platform uses its own entry below.
+ * Capture from the live app People home: `node scripts/capture-marketing-hero.mjs --only=hero`
+ * (MARKETING_CAPTURE_BASE_URL=http://localhost:3004).
  */
 export const MARKETING_DASHBOARD_HERO = {
   src: '/images/dashboard_home.png',

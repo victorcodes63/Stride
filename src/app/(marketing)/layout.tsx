@@ -7,9 +7,9 @@ import { marketingMetadata } from '@/lib/marketing-metadata';
  * with their own path; this catches any future (marketing) page that forgets.
  */
 export const metadata = marketingMetadata({
-  title: 'Stride | Operations platform for East African businesses',
+  title: 'Operations platform for East African businesses',
   description:
-    'One operations platform: HR & payroll plus finance at the core, with plug-in modules and industry packs. Built for East Africa. M-Pesa native, compliance-ready.',
+    'HRIS and HRMS for East Africa: HR & payroll plus finance at the core, with plug-in modules and industry packs. M-Pesa native, Kenya compliance-ready.',
   path: '/',
 });
 

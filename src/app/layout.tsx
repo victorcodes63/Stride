@@ -40,7 +40,8 @@ import { DashboardThemeScript } from '@/components/dashboard/DashboardThemeScrip
 import { brand, getSiteUrl } from '@/lib/brand';
 import { brandConfig } from '@/lib/brand.config';
 import { MARKETING_OFFICE } from '@/lib/marketing-config';
-import { MARKETING_OG_IMAGE } from '@/lib/marketing-metadata';
+import { MARKETING_OG_IMAGE, MARKETING_PRIMARY_KEYWORDS } from '@/lib/marketing-metadata';
+import { softwareAggregateOfferJsonLd } from '@/lib/marketing-schema';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
 import { brandThemeStyle } from '@/lib/brand-theme-style';
 import { getCompanySetupCapabilities } from '@/lib/company-setup-tier-features';
@@ -50,8 +51,7 @@ import { getSiteMode } from '@/lib/site-mode';
 const siteUrl = getSiteUrl();
 /** Public product defaults — never the tenant placeholder (`Your Organisation`). */
 const defaultDescription = `${brandConfig.productName}: ${brandConfig.tagline}`;
-const keywords =
-  'Stride, HRIS, HR software, payroll, operations platform, recruitment, leave management, workforce, East Africa';
+const keywords = ['Stride', ...MARKETING_PRIMARY_KEYWORDS].join(', ');
 
 export const metadata: Metadata = {
   title: {
@@ -163,16 +163,12 @@ const jsonLd = (baseUrl: string, logoSrc: string) => ({
       description: brandConfig.tagline,
       url: baseUrl,
       applicationCategory: 'BusinessApplication',
+      applicationSubCategory: 'HRIS',
       operatingSystem: 'Web',
-      offers: {
-        '@type': 'AggregateOffer',
-        priceCurrency: 'KES',
-        lowPrice: '18000',
-        highPrice: '55000',
-        offerCount: 3,
-        url: `${baseUrl}/pricing`,
-      },
+      offers: softwareAggregateOfferJsonLd(),
       publisher: { '@id': `${baseUrl}/#organization` },
+      areaServed: ['KE', 'UG'],
+      keywords: 'HRIS Kenya, HRMS Kenya, payroll software Kenya',
     },
   ],
 });

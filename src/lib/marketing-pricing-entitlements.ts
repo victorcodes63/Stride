@@ -91,7 +91,7 @@ export function marketingTierModuleSummary(tierId: MarketingPricingTierId): stri
     case 'enterprise':
       return [
         'All modules including Performance & full vertical suite',
-        'Volume rates on your signed order form',
+        'Volume rates negotiated with sales',
         'Dedicated success manager',
         'Custom integrations & SLAs',
         'On-site implementation',

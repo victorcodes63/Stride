@@ -33,26 +33,26 @@ function StepItem({ number, text, state }: StepItemProps) {
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-medium transition-all duration-300 ${
+      className={`flex items-center gap-3 py-2.5 text-[14px] transition-colors duration-300 ${
         active
-          ? 'bg-[#FFFFFF] text-[#1a1714] shadow-[0_12px_40px_rgba(26,23,20,0.18)]'
+          ? 'font-semibold text-[var(--sc-ink)]'
           : complete
-            ? 'border border-white/15 bg-white/[0.1] text-[#FFFFFF]'
-            : 'border border-white/10 bg-white/[0.05] text-[#FFFFFF]/55'
+            ? 'font-medium text-[var(--sc-ink)]'
+            : 'font-medium text-[var(--sc-ink-muted)]'
       }`}
     >
       <span
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-colors duration-300 ${
           active
-            ? 'bg-[var(--sc-coral)] text-white'
+            ? 'bg-[var(--sc-coral)] text-white shadow-[0_8px_20px_-6px_rgba(255,84,54,0.85)]'
             : complete
-              ? 'bg-white/20 text-[#FFFFFF]'
-              : 'bg-white/10 text-[#FFFFFF]/50'
+              ? 'bg-[var(--sc-coral)] text-white'
+              : 'bg-[var(--sc-coral)]/12 text-[var(--sc-coral)]'
         }`}
       >
-        {complete ? <Check className="h-3.5 w-3.5" aria-hidden /> : number}
+        {complete ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : number}
       </span>
-      <span className="leading-snug">{text}</span>
+      <span className={`leading-snug ${active ? 'text-[var(--sc-ink)]' : ''}`}>{text}</span>
     </div>
   );
 }
@@ -67,7 +67,7 @@ function SocialButton({ icon, label, href }: SocialButtonProps) {
   return (
     <a
       href={href}
-      className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-[#FFFFFF] transition-all duration-300 hover:border-white/20 hover:bg-white/[0.08]"
+      className="flex items-center justify-center gap-2 rounded-xl border border-[var(--sc-line)] bg-white px-4 py-3 text-sm font-medium text-[var(--sc-ink)] shadow-[0_1px_2px_rgba(26,23,20,0.04)] transition-all duration-300 hover:border-[var(--sc-ink)]/20 hover:bg-[var(--sc-paper-2)]"
     >
       {icon}
       {label}
@@ -98,7 +98,7 @@ function InputGroup({
 }: InputGroupProps) {
   return (
     <label className="block space-y-2">
-      <span className="text-[13px] font-medium text-[#FFFFFF]/90">{label}</span>
+      <span className="text-[13px] font-medium text-[var(--sc-ink)]">{label}</span>
       <input
         type={type}
         name={name}
@@ -107,7 +107,7 @@ function InputGroup({
         min={min}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className={`${fieldClass} placeholder:text-white/30`}
+        className={`${fieldClass} placeholder:text-[var(--sc-ink-muted)]/55`}
       />
     </label>
   );
@@ -150,10 +150,13 @@ const STEP_COPY = [
 ] as const;
 
 const fieldClass =
-  'h-11 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 text-[#FFFFFF] focus:outline-none focus:ring-0';
+  'h-11 w-full rounded-xl border border-[var(--sc-line)] bg-white px-4 text-[var(--sc-ink)] shadow-[0_1px_2px_rgba(26,23,20,0.03)] focus:outline-none focus:ring-0';
 
 const textareaClass =
-  'w-full resize-none rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[#FFFFFF] placeholder:text-white/30 focus:outline-none focus:ring-0';
+  'w-full resize-none rounded-xl border border-[var(--sc-line)] bg-white px-4 py-3 text-[var(--sc-ink)] shadow-[0_1px_2px_rgba(26,23,20,0.03)] placeholder:text-[var(--sc-ink-muted)]/55 focus:outline-none focus:ring-0';
+
+const selectTriggerClass =
+  '!h-11 !rounded-xl !border-[var(--sc-line)] !bg-white !px-4 !text-[var(--sc-ink)] !shadow-[0_1px_2px_rgba(26,23,20,0.03)]';
 
 function stepState(stepNumber: number, currentStep: number): StepItemProps['state'] {
   if (stepNumber === currentStep) return 'active';
@@ -163,14 +166,14 @@ function stepState(stepNumber: number, currentStep: number): StepItemProps['stat
 
 function BookDemoLeftPanel({ currentStep }: { currentStep: number }) {
   return (
-    <section className="bd-demo-panel relative hidden min-h-0 flex-col overflow-hidden rounded-[20px] shadow-[0_24px_80px_rgba(0,0,0,0.35)] lg:flex sm:rounded-[28px]">
+    <section className="bd-demo-panel relative hidden min-h-0 flex-col overflow-hidden rounded-[20px] shadow-[0_18px_50px_-28px_rgba(26,23,20,0.28)] lg:flex sm:rounded-[28px]">
       <div
-        className="pointer-events-none absolute -right-[10%] top-[5%] h-[55%] w-[55%] rounded-full opacity-30 blur-[80px] bd-demo-drift-a"
+        className="pointer-events-none absolute -right-[10%] top-[5%] h-[55%] w-[55%] rounded-full opacity-55 blur-[80px] bd-demo-drift-a"
         style={{ background: 'radial-gradient(circle, var(--sc-coral) 0%, transparent 68%)' }}
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -left-[8%] bottom-[10%] h-[45%] w-[45%] rounded-full opacity-20 blur-[70px] bd-demo-drift-b"
+        className="pointer-events-none absolute -left-[8%] bottom-[10%] h-[45%] w-[45%] rounded-full opacity-40 blur-[70px] bd-demo-drift-b"
         style={{ background: 'radial-gradient(circle, var(--sc-coral-deep) 0%, transparent 70%)' }}
         aria-hidden
       />
@@ -180,11 +183,14 @@ function BookDemoLeftPanel({ currentStep }: { currentStep: number }) {
         className="relative z-10 p-8 pb-0 xl:p-10 xl:pb-0"
         aria-label="Stride home"
       >
-        <StrideLogo heightClass="h-7 sm:h-8" className="brightness-0 invert" />
+        <StrideLogo heightClass="h-7 sm:h-8" />
       </Link>
 
       <div className="bd-demo-copy relative z-10 flex flex-1 flex-col justify-end p-8 pt-10 xl:p-10 xl:pb-12">
         <div className="space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--sc-coral)]">
+            Book a walkthrough
+          </p>
           <h1 className="text-[clamp(1.75rem,3.5vw,2.375rem)] font-normal leading-[1.08] tracking-tight">
             Get Stride
           </h1>
@@ -193,7 +199,7 @@ function BookDemoLeftPanel({ currentStep }: { currentStep: number }) {
           </p>
         </div>
 
-        <div className="bd-demo-steps mt-8 space-y-2">
+        <div className="bd-demo-steps mt-8 space-y-1">
           {MARKETING_DEMO_STEPS.map((step) => (
             <StepItem
               key={step.number}
@@ -205,7 +211,7 @@ function BookDemoLeftPanel({ currentStep }: { currentStep: number }) {
         </div>
 
         <p className="bd-demo-tagline mt-8 text-[11px] font-medium uppercase tracking-[0.12em]">
-          M-Pesa native · KRA ready · Built for East Africa
+          <span className="text-[var(--sc-coral)]">M-Pesa</span> native · KRA ready · Built for East Africa
         </p>
       </div>
     </section>
@@ -231,8 +237,8 @@ function MobileProgress({ currentStep }: { currentStep: number }) {
               state === 'active'
                 ? 'bg-[var(--sc-coral)]'
                 : state === 'complete'
-                  ? 'bg-[#FFFFFF]/70'
-                  : 'bg-white/15'
+                  ? 'bg-[var(--sc-coral)]/45'
+                  : 'bg-[var(--sc-line)]'
             }`}
           />
         );
@@ -372,11 +378,14 @@ export function BookDemoPage({
   }
 
   return (
-    <main className="bd-demo-shell flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-[var(--sc-ink)] selection:bg-[var(--sc-coral)]/25 lg:relative lg:grid lg:grid-cols-2 lg:gap-3 lg:p-4">
+    <main className="bd-demo-shell flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-white selection:bg-[var(--sc-coral)]/20 lg:relative lg:grid lg:grid-cols-2 lg:gap-3 lg:bg-[var(--sc-paper-2)] lg:p-4">
       <BookDemoLeftPanel currentStep={step} />
 
-      <section className="bd-demo-form-column relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--sc-ink)] lg:rounded-[28px]">
-        <MarketingCloseButton className="right-4 top-[max(1rem,env(safe-area-inset-top))] sm:right-8 sm:top-8" />
+      <section className="bd-demo-form-column relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white lg:rounded-[28px] lg:border lg:border-[var(--sc-line)] lg:shadow-[0_18px_50px_-28px_rgba(26,23,20,0.22)]">
+        <MarketingCloseButton
+          tone="light"
+          className="right-4 top-[max(1rem,env(safe-area-inset-top))] sm:right-8 sm:top-8"
+        />
 
         <div className="flex min-h-0 flex-1 flex-col px-5 pb-0 pt-0 sm:px-10 lg:px-14 lg:py-10 xl:px-20">
           <motion.div
@@ -386,14 +395,14 @@ export function BookDemoPage({
             transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
           >
             {submitted ? (
-              <div className="my-auto space-y-5 rounded-2xl border border-white/10 bg-white/[0.04] p-8">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--sc-coral)]/15 text-[var(--sc-coral)]">
+              <div className="my-auto space-y-5 rounded-2xl border border-[var(--sc-line)] bg-[var(--sc-paper-2)] p-8">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--sc-coral)]/12 text-[var(--sc-coral)]">
                   <Mail className="h-4 w-4" aria-hidden />
                 </span>
-                <h2 className="text-3xl font-normal tracking-tight text-[#FFFFFF]">
+                <h2 className="text-3xl font-normal tracking-tight text-[var(--sc-ink)]">
                   Request received
                 </h2>
-                <p className="text-[15px] leading-relaxed text-[#FFFFFF]/75">
+                <p className="text-[15px] leading-relaxed text-[var(--sc-ink-muted)]">
                   Thanks, {firstName}. We will confirm your walkthrough for{' '}
                   {new Date(`${preferredDate}T12:00:00`).toLocaleDateString('en-KE', {
                     weekday: 'long',
@@ -414,7 +423,7 @@ export function BookDemoPage({
               <div className="flex min-h-0 flex-1 flex-col">
                 <div className="bd-demo-topbar shrink-0 space-y-3 pb-4 pt-4 lg:hidden">
                   <Link href={MARKETING_ROUTES.home} className="inline-flex pr-12" aria-label="Stride home">
-                    <StrideLogo heightClass="h-6" className="brightness-0 invert" />
+                    <StrideLogo heightClass="h-6" />
                   </Link>
                   <MobileProgress currentStep={step} />
                 </div>
@@ -423,28 +432,28 @@ export function BookDemoPage({
                   <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--sc-coral)]">
                     Step {step} of {TOTAL_STEPS}
                   </p>
-                  <h2 className="text-[clamp(1.4rem,4.2vw,2rem)] font-normal leading-tight tracking-tight text-[#FFFFFF]">
+                  <h2 className="text-[clamp(1.4rem,4.2vw,2rem)] font-normal leading-tight tracking-tight text-[var(--sc-ink)]">
                     {stepMeta.title}
                   </h2>
-                  <p className="text-[13px] leading-relaxed text-[#FFFFFF]/60 sm:text-[14px]">
+                  <p className="text-[13px] leading-relaxed text-[var(--sc-ink-muted)] sm:text-[14px]">
                     {stepMeta.description}
                   </p>
                 </div>
 
                 {step === 1 ? (
                   <>
-                    <p className="shrink-0 pb-3 text-[13px] text-[#FFFFFF]/55 sm:hidden">
+                    <p className="shrink-0 pb-3 text-[13px] text-[var(--sc-ink-muted)] sm:hidden">
                       Prefer email?{' '}
                       <a
                         href={`mailto:${MARKETING_SALES_EMAIL}`}
-                        className="font-medium text-[#FFFFFF] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
+                        className="font-medium text-[var(--sc-ink)] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
                       >
                         Email us
                       </a>
                       {' · '}
                       <a
                         href={`mailto:${MARKETING_SALES_EMAIL}?subject=${encodeURIComponent('Stride sales enquiry')}`}
-                        className="font-medium text-[#FFFFFF] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
+                        className="font-medium text-[var(--sc-ink)] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
                       >
                         Talk to sales
                       </a>
@@ -464,8 +473,8 @@ export function BookDemoPage({
                     </div>
 
                     <div className="relative hidden shrink-0 items-center justify-center pb-4 sm:flex">
-                      <div className="absolute inset-x-0 border-t border-white/10" />
-                      <span className="relative bg-[var(--sc-ink)] px-4 text-[11px] font-medium uppercase tracking-[0.16em] text-white/35">
+                      <div className="absolute inset-x-0 border-t border-[var(--sc-line)]" />
+                      <span className="relative bg-white px-4 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--sc-ink-muted)]">
                         Or send a request
                       </span>
                     </div>
@@ -520,24 +529,24 @@ export function BookDemoPage({
                             required
                           />
                           <label className="block space-y-2">
-                            <span className="text-[13px] font-medium text-[#FFFFFF]/90">
+                            <span className="text-[13px] font-medium text-[var(--sc-ink)]">
                               What is this about?
                             </span>
                             <StrideSelect
                               surface="public"
                               ariaLabel="Enquiry type"
-                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#FFFFFF]"
+                              triggerClassName={selectTriggerClass}
                               value={enquiryType}
                               onChange={setEnquiryType}
                               options={ENQUIRY_TYPE_OPTIONS}
                             />
                           </label>
                           <label className="block space-y-2">
-                            <span className="text-[13px] font-medium text-[#FFFFFF]/90">Team size</span>
+                            <span className="text-[13px] font-medium text-[var(--sc-ink)]">Team size</span>
                             <StrideSelect
                               surface="public"
                               ariaLabel="Team size"
-                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#FFFFFF]"
+                              triggerClassName={selectTriggerClass}
                               value={teamSize}
                               onChange={setTeamSize}
                               options={TEAM_SIZE_OPTIONS.map((option) => ({
@@ -565,8 +574,8 @@ export function BookDemoPage({
                                 key={mod.name}
                                 className={`bd-demo-module-card relative flex cursor-pointer items-start gap-3.5 rounded-2xl border px-3.5 py-3.5 transition-all duration-200 active:scale-[0.99] sm:px-4 sm:py-3.5 ${
                                   selected
-                                    ? 'border-[var(--sc-coral)]/50 bg-[var(--sc-coral)]/12 shadow-[0_0_0_1px_rgba(255,84,54,0.12)]'
-                                    : 'border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.05]'
+                                    ? 'border-[var(--sc-coral)]/45 bg-[var(--sc-coral)]/8 shadow-[0_0_0_1px_rgba(255,84,54,0.1)]'
+                                    : 'border-[var(--sc-line)] bg-white hover:border-[var(--sc-ink)]/20 hover:bg-[var(--sc-paper-2)]'
                                 }`}
                               >
                                 <input
@@ -578,17 +587,17 @@ export function BookDemoPage({
                                   className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
                                     selected
                                       ? 'border-[var(--sc-coral)] bg-[var(--sc-coral)] text-white'
-                                      : 'border-white/25 bg-transparent text-transparent'
+                                      : 'border-[var(--sc-line)] bg-transparent text-transparent'
                                   }`}
                                   aria-hidden
                                 >
                                   <Check className="h-3 w-3" strokeWidth={3} />
                                 </span>
                                 <span className="min-w-0 flex-1">
-                                  <span className="block text-[15px] font-medium tracking-tight text-[#FFFFFF]">
+                                  <span className="block text-[15px] font-medium tracking-tight text-[var(--sc-ink)]">
                                     {mod.name}
                                   </span>
-                                  <span className="mt-0.5 block text-[12px] leading-snug text-[#FFFFFF]/52 line-clamp-2 sm:line-clamp-none sm:leading-relaxed">
+                                  <span className="mt-0.5 block text-[12px] leading-snug text-[var(--sc-ink-muted)] line-clamp-2 sm:line-clamp-none sm:leading-relaxed">
                                     {mod.description}
                                   </span>
                                 </span>
@@ -600,8 +609,8 @@ export function BookDemoPage({
                             <label
                               className={`bd-demo-module-card relative flex cursor-pointer items-start gap-3.5 rounded-2xl border px-3.5 py-3.5 transition-all duration-200 active:scale-[0.99] sm:px-4 ${
                                 somethingElse
-                                  ? 'border-[var(--sc-coral)]/50 bg-[var(--sc-coral)]/12 shadow-[0_0_0_1px_rgba(255,84,54,0.12)]'
-                                  : 'border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.05]'
+                                  ? 'border-[var(--sc-coral)]/45 bg-[var(--sc-coral)]/8 shadow-[0_0_0_1px_rgba(255,84,54,0.1)]'
+                                  : 'border-[var(--sc-line)] bg-white hover:border-[var(--sc-ink)]/20 hover:bg-[var(--sc-paper-2)]'
                               }`}
                             >
                               <input
@@ -613,17 +622,17 @@ export function BookDemoPage({
                                 className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
                                   somethingElse
                                     ? 'border-[var(--sc-coral)] bg-[var(--sc-coral)] text-white'
-                                    : 'border-white/25 bg-transparent text-transparent'
+                                    : 'border-[var(--sc-line)] bg-transparent text-transparent'
                                 }`}
                                 aria-hidden
                               >
                                 <Check className="h-3 w-3" strokeWidth={3} />
                               </span>
                               <span className="min-w-0 flex-1">
-                                <span className="block text-[15px] font-medium tracking-tight text-[#FFFFFF]">
+                                <span className="block text-[15px] font-medium tracking-tight text-[var(--sc-ink)]">
                                   {SOMETHING_ELSE_LABEL}
                                 </span>
-                                <span className="mt-0.5 block text-[12px] leading-snug text-[#FFFFFF]/52 line-clamp-2 sm:line-clamp-none">
+                                <span className="mt-0.5 block text-[12px] leading-snug text-[var(--sc-ink-muted)] line-clamp-2 sm:line-clamp-none">
                                   Tell us about a module or workflow your business needs.
                                 </span>
                               </span>
@@ -631,7 +640,7 @@ export function BookDemoPage({
 
                             {somethingElse ? (
                               <label className="block space-y-2 pl-1">
-                                <span className="text-[12px] font-medium text-[#FFFFFF]/75">
+                                <span className="text-[12px] font-medium text-[var(--sc-ink-muted)]">
                                   Which module or capability?
                                 </span>
                                 <input
@@ -668,13 +677,13 @@ export function BookDemoPage({
                             min={minDate}
                           />
                           <label className="block space-y-2">
-                            <span className="text-[13px] font-medium text-[#FFFFFF]/90">
+                            <span className="text-[13px] font-medium text-[var(--sc-ink)]">
                               Preferred time (EAT)
                             </span>
                             <StrideSelect
                               surface="public"
                               ariaLabel="Preferred time (EAT)"
-                              triggerClassName="!h-11 !rounded-xl !border-white/10 !bg-white/[0.06] !px-4 !text-[#FFFFFF]"
+                              triggerClassName={selectTriggerClass}
                               value={preferredTime}
                               onChange={setPreferredTime}
                               options={TIME_OPTIONS.map((option) => ({
@@ -684,7 +693,7 @@ export function BookDemoPage({
                             />
                           </label>
                           <label className="block space-y-2">
-                            <span className="text-[13px] font-medium text-[#FFFFFF]/90">
+                            <span className="text-[13px] font-medium text-[var(--sc-ink)]">
                               Anything else?
                             </span>
                             <textarea
@@ -697,7 +706,7 @@ export function BookDemoPage({
                             />
                           </label>
                           {modules.length > 0 || otherModule ? (
-                            <p className="text-[12px] text-[#FFFFFF]/50">
+                            <p className="text-[12px] text-[var(--sc-ink-muted)]">
                               Modules selected:{' '}
                               {[
                                 ...modules,
@@ -713,18 +722,18 @@ export function BookDemoPage({
                   </div>
 
                   {error ? (
-                    <p className="shrink-0 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    <p className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                       {error}
                     </p>
                   ) : null}
 
-                  <div className="bd-demo-actions shrink-0 border-t border-white/10 bg-[var(--sc-ink)] pt-3">
+                  <div className="bd-demo-actions shrink-0 border-t border-[var(--sc-line)] bg-white pt-3">
                     <div className="flex gap-3">
                       {step > 1 ? (
                         <button
                           type="button"
                           onClick={goBack}
-                          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/12 text-sm font-medium text-[#FFFFFF] transition hover:bg-white/[0.06] active:scale-[0.99]"
+                          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[var(--sc-line)] text-sm font-medium text-[var(--sc-ink)] transition hover:bg-[var(--sc-paper-2)] active:scale-[0.99]"
                         >
                           <ArrowLeft className="h-4 w-4" aria-hidden />
                           Back
@@ -733,7 +742,7 @@ export function BookDemoPage({
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="inline-flex h-12 flex-[2] items-center justify-center gap-2 rounded-2xl bg-[#FFFFFF] text-[14px] font-semibold text-[#1a1714] transition hover:bg-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                        className="inline-flex h-12 flex-[2] items-center justify-center gap-2 rounded-2xl bg-[var(--sc-coral)] text-[14px] font-semibold text-white shadow-[0_8px_24px_-12px_rgba(255,84,54,0.7)] transition hover:bg-[var(--sc-coral-deep)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         {submitting ? (
                           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -748,11 +757,11 @@ export function BookDemoPage({
                       </button>
                     </div>
 
-                    <p className="mt-3 hidden text-center text-sm text-[#FFFFFF]/55 lg:block">
+                    <p className="mt-3 hidden text-center text-sm text-[var(--sc-ink-muted)] lg:block">
                       Already on Stride?{' '}
                       <Link
                         href={getMarketingLoginUrl()}
-                        className="font-medium text-[#FFFFFF] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
+                        className="font-medium text-[var(--sc-ink)] underline-offset-4 hover:text-[var(--sc-coral)] hover:underline"
                       >
                         {MARKETING_CTAS.signIn}
                       </Link>

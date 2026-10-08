@@ -20,8 +20,8 @@ const byId = (id: MarketingVerticalScreenshotId) =>
   INDUSTRY_VERTICALS.find((vertical) => vertical.id === id) as Pack;
 
 /** Bento placement: one featured pack, then five packs across two rows. */
-const FEATURED = byId('logistics');
-const ROW_TWO = [byId('saccos'), byId('healthcare'), byId('hr_consultancy')];
+const FEATURED = byId('hr_consultancy');
+const ROW_TWO = [byId('logistics'), byId('saccos'), byId('healthcare')];
 const ROW_THREE = [byId('energy'), byId('construction')];
 
 const LIVE_COUNT = INDUSTRY_VERTICALS.filter((vertical) => vertical.status === 'available').length;
@@ -124,7 +124,12 @@ function PackCard({
           style={{ y: visualY }}
           className={`pointer-events-none absolute transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] ${visualClassName}`}
         >
-          <ProductIndustryPreview industryId={pack.id as MarketingVerticalScreenshotId} fill designWidth={pack.id === 'logistics' ? 760 : 620} className="h-full" />
+          <ProductIndustryPreview
+            industryId={pack.id as MarketingVerticalScreenshotId}
+            fill
+            designWidth={featured || pack.id === 'logistics' ? 760 : 620}
+            className="h-full"
+          />
         </motion.div>
 
 

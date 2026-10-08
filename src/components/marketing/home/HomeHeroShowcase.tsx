@@ -9,6 +9,7 @@ type HeroScreenshot = { src: string; alt: string; width: number; height: number 
 /**
  * Hero product shot as a centred showpiece: it starts tilted back in 3D and
  * swings flat as the page scrolls, lit from below by a soft coral glow.
+ * Desktop uses a real dashboard capture (`/dashboard/people`).
  */
 export function HomeHeroShowcase({ screenshot }: { screenshot: HeroScreenshot }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -22,7 +23,6 @@ export function HomeHeroShowcase({ screenshot }: { screenshot: HeroScreenshot })
 
   return (
     <div ref={ref} className="relative mx-auto max-w-[1180px] [perspective:2200px]">
-      {/* Coral light pooling under the frame. */}
       <motion.div
         aria-hidden
         style={{ opacity: glowOpacity }}
@@ -39,7 +39,6 @@ export function HomeHeroShowcase({ screenshot }: { screenshot: HeroScreenshot })
           className="relative rounded-[22px] bg-gradient-to-b from-white/[0.14] to-white/[0.03] p-[1px] shadow-[0_60px_160px_-40px_rgba(0,0,0,0.9)]"
         >
           <div className="relative overflow-hidden rounded-[21px] bg-[#0F0D0B] p-2 sm:p-2.5">
-            {/* Thin top highlight, like light catching the bezel. */}
             <span
               aria-hidden
               className="pointer-events-none absolute inset-x-[18%] top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"
@@ -56,7 +55,6 @@ export function HomeHeroShowcase({ screenshot }: { screenshot: HeroScreenshot })
                 className="block h-auto w-full"
               />
             </div>
-            {/* Gradual fade into the band below — a long gradient, so no visible edge. */}
             <div
               aria-hidden
               className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(to_bottom,rgba(26,23,20,0)_0%,rgba(26,23,20,0.35)_45%,rgba(26,23,20,0.85)_80%,#1A1714_100%)]"

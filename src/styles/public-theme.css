@@ -826,3 +826,10 @@ html.dark .public-app .stride-product-frame .dashboard-canvas .bg-white {
   font-family: inherit;
   letter-spacing: normal;
 }
+
+/* Coral hero band uses white type — don't force ink over `text-white`. */
+.public-app.studio-craft-marketing .stride-product-frame .dashboard-page-header-hero :where(h1, h2, h3, h4, h5, h6),
+.public-app.studio-craft-marketing .sc-on-ink .stride-product-frame .dashboard-page-header-hero :where(h1, h2, h3, h4, h5, h6),
+.public-app.studio-craft-marketing .pub-on-ink .stride-product-frame .dashboard-page-header-hero :where(h1, h2, h3, h4, h5, h6) {
+  color: #fff;
+}

@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 
 import { getMarketingSiteUrl } from '@/lib/marketing-config';
 import { buildMarketingSitemapEntries } from '@/lib/marketing-sitemap';
+import { getSiteMode } from '@/lib/site-mode';
 
 export const revalidate = 3600;
 
@@ -9,6 +10,11 @@ const baseUrl = getMarketingSiteUrl();
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = buildMarketingSitemapEntries(baseUrl);
+
+  // Tenant careers apply URLs belong on the app host, not the marketing crawl graph.
+  if (getSiteMode() === 'marketing') {
+    return routes;
+  }
 
   try {
     const jobsRes = await fetch(`${baseUrl}/api/jobs?activeOnly=true`, {

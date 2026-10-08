@@ -3,9 +3,9 @@ import { ProductIndustryPreview } from '@/components/marketing/product/ProductIn
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
-  title: 'Logistics industry pack',
+  title: 'Logistics HR & payroll software Kenya',
   description:
-    'Stride industry pack for cargo and road freight: fleet, trips, drivers and billing on the same HR & finance platform, not a separate fleet system.',
+    'Stride industry pack for cargo and road freight: fleet, trips, drivers and billing on the same HRIS and finance platform, not a separate fleet system.',
   path: '/industries/logistics',
 });
 

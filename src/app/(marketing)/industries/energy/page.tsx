@@ -3,7 +3,7 @@ import { ProductIndustryPreview } from '@/components/marketing/product/ProductIn
 import { marketingMetadata } from '@/lib/marketing-metadata';
 
 export const metadata = marketingMetadata({
-  title: 'Oil & Gas / Energy',
+  title: 'Energy & oil HR software Kenya',
   description:
     'Permit tracking, multi-entity HSE rollup, and compliance operations for petroleum retail and energy operators.',
   path: '/industries/energy',

@@ -89,21 +89,22 @@ function PlatformHero() {
           </Reveal>
         </div>
 
-        {/* Showcase panel: facts on the left, live product UI on the right (not a compressed PNG). */}
+        {/* Showcase panel: facts + live product UI. Mobile crops the frame; desktop stretches beside copy. */}
         <Reveal delay={0.12}>
           <div className="sc-on-ink mt-14 grid overflow-hidden rounded-[28px] bg-[var(--sc-ink)] p-3 text-white shadow-[0_40px_90px_-40px_rgba(26,23,20,0.7)] sm:mt-20 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-stretch">
-            <div className="flex flex-col p-6 sm:p-8">
-              <div className="flex items-center justify-between">
+            <div className="flex flex-col p-5 sm:p-8">
+              <div className="flex items-center justify-between gap-3">
                 <p className="text-[13px] font-medium text-white/55">Stride Core</p>
                 <p className="text-[13px] font-semibold text-white">2/{PLATFORM_MODULES.length}</p>
               </div>
-              <p className="mt-5 text-[22px] font-medium leading-[1.25] tracking-[-0.02em] text-white">
+              <p className="mt-4 text-[20px] font-medium leading-[1.25] tracking-[-0.02em] text-white sm:mt-5 sm:text-[22px]">
                 HR &amp; Payroll and Finance on every plan. Everything else plugs in.
               </p>
-              <div className="mt-8">
+              <div className="mt-6 sm:mt-8">
                 <DotMatrix />
               </div>
-              <dl className="mt-auto pt-10">
+              {/* Desktop: stats sit under the headline in the left rail. Mobile: rendered after the product crop. */}
+              <dl className="mt-auto hidden pt-10 lg:block">
                 {PROOF_POINTS.map((point) => (
                   <div key={point.label} className="flex items-baseline gap-4 border-t border-white/10 py-3.5">
                     <dt className="w-10 text-[24px] font-medium leading-none tracking-[-0.03em] text-white">
@@ -115,20 +116,31 @@ function PlatformHero() {
               </dl>
             </div>
 
-            <div className="relative flex min-h-[300px] items-stretch overflow-hidden rounded-[20px] bg-[var(--sc-paper-2)] sm:min-h-[360px] lg:min-h-0">
+            <div className="relative h-[280px] overflow-hidden rounded-[20px] bg-[var(--sc-paper-2)] sm:h-[340px] lg:h-auto lg:min-h-[440px]">
               <div
                 className="pointer-events-none absolute -left-16 -top-16 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,rgba(255,84,54,0.18),transparent)]"
                 aria-hidden
               />
-              <div className="relative mx-auto flex w-full max-w-[720px] flex-1 p-2.5 sm:p-4 lg:max-w-none lg:p-5">
+              <div className="absolute inset-0 p-2 sm:p-3 lg:p-5">
                 <ProductBusinessPulseSlice
                   withKpis
                   fill
-                  designWidth={680}
+                  designWidth={640}
                   className="h-full w-full !rounded-[16px] !shadow-[0_24px_60px_-28px_rgba(26,23,20,0.45)]"
                 />
               </div>
             </div>
+
+            <dl className="px-5 pb-5 pt-2 sm:px-8 sm:pb-6 lg:hidden">
+              {PROOF_POINTS.map((point) => (
+                <div key={point.label} className="flex items-baseline gap-4 border-t border-white/10 py-3">
+                  <dt className="w-10 text-[22px] font-medium leading-none tracking-[-0.03em] text-white">
+                    <CountUp value={point.count} duration={1.4} />
+                  </dt>
+                  <dd className="text-[13px] leading-snug text-white/55">{point.label}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </Reveal>
       </StudioCraftContainer>

@@ -5,10 +5,12 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'motion/react';
 import { ArrowRight, Check } from '@phosphor-icons/react';
 import { MOTION_EASE, Reveal } from '@/components/marketing/motion';
-import { MarketingScreenshotFrame } from '@/components/marketing/mockups/IndustryWireframePreview';
 import { ProductIndustryPreview } from '@/components/marketing/product/ProductIndustryPreview';
-import { ProductBusinessPulseSlice, ProductOverviewSlice } from '@/components/marketing/product/ProductSlices';
-import { StatutoryWireframe } from '@/components/marketing/mockups/StatutoryWireframe';
+import {
+  ProductBusinessPulseSlice,
+  ProductComplianceStatutorySlice,
+  ProductPeopleWorkforceSlice,
+} from '@/components/marketing/product/ProductSlices';
 import { StudioCraftContainer } from '@/components/marketing/v3/studio-craft-shared';
 import { MARKETING_ROUTES } from '@/lib/marketing-config';
 
@@ -42,7 +44,7 @@ const SOLUTIONS: readonly Solution[] = [
       'Payslips and P9s generated on every run',
     ],
     link: { href: MARKETING_ROUTES.platform, label: 'Explore HR & Payroll' },
-    visual: <ProductOverviewSlice domains={['hr-payroll']} fill />,
+    visual: <ProductPeopleWorkforceSlice fill designWidth={720} />,
   },
   {
     id: 'compliance',
@@ -55,15 +57,7 @@ const SOLUTIONS: readonly Solution[] = [
       'Audit trail from approval to payout',
     ],
     link: { href: MARKETING_ROUTES.platform, label: 'See how compliance works' },
-    visual: (
-      <MarketingScreenshotFrame
-        moduleLabel="Payroll · Kenya"
-        screenTitle="Statutory compliance"
-        path="/dashboard/payroll/statutory"
-      >
-        <StatutoryWireframe />
-      </MarketingScreenshotFrame>
-    ),
+    visual: <ProductComplianceStatutorySlice fill designWidth={560} />,
   },
   {
     id: 'finance',
@@ -147,7 +141,7 @@ export function HomeSolutionsTabs() {
           <div
             role="tablist"
             aria-label="Stride solutions"
-            className="flex gap-1 overflow-x-auto rounded-2xl bg-white/70 p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="grid grid-cols-2 gap-1 rounded-2xl bg-white/70 p-1.5 sm:flex"
           >
             {SOLUTIONS.map((solution) => {
               const selected = solution.id === active.id;
@@ -163,7 +157,7 @@ export function HomeSolutionsTabs() {
                     setUserPicked(true);
                     setActiveId(solution.id);
                   }}
-                  className={`relative min-h-11 flex-1 overflow-hidden whitespace-nowrap rounded-xl px-4 text-[14px] font-semibold transition-colors sm:text-[15px] ${
+                  className={`relative flex min-h-11 items-center justify-center rounded-xl px-2.5 text-center text-[12px] font-semibold leading-tight transition-colors sm:flex-1 sm:px-4 sm:text-[15px] sm:leading-normal sm:whitespace-nowrap ${
                     selected
                       ? 'bg-[var(--sc-ink)] text-[#FFFFFF] shadow-sm'
                       : 'text-[var(--sc-ink-muted)] hover:bg-white hover:text-[var(--sc-ink)]'
@@ -189,7 +183,7 @@ export function HomeSolutionsTabs() {
             role="tabpanel"
             id={`solution-panel-${active.id}`}
             aria-labelledby={`solution-tab-${active.id}`}
-            className="grid items-center gap-10 px-3 pb-6 pt-10 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14 lg:px-10 lg:pb-10 lg:pt-12"
+            className="grid min-w-0 items-center gap-8 px-3 pb-5 pt-8 sm:gap-10 sm:px-6 sm:pb-6 sm:pt-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14 lg:px-10 lg:pb-10 lg:pt-12"
           >
             <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -229,7 +223,7 @@ export function HomeSolutionsTabs() {
             <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={`${active.id}-visual`}
-              className="h-[320px] min-w-0 sm:h-[400px] lg:h-[440px]"
+              className="relative mx-auto h-[340px] w-full max-w-[520px] min-w-0 overflow-hidden sm:h-[420px] sm:max-w-none lg:mx-0 lg:h-[480px]"
               initial={reduceMotion ? false : { opacity: 0, x: 24, scale: 0.98 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={reduceMotion ? undefined : { opacity: 0, x: -16, scale: 0.99 }}
