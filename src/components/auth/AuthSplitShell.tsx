@@ -131,13 +131,12 @@ export function AuthSplitShell({
           </div>
 
           <div className="bd-demo-steps mt-8 hidden max-w-[26rem] flex-1 flex-col justify-center space-y-1 lg:flex">
-            {points.map((point, i) => (
+            {points.map((point) => (
               <BrandPoint
                 key={point.title}
                 icon={point.icon}
                 title={point.title}
                 detail={point.detail}
-                index={i + 1}
               />
             ))}
           </div>
