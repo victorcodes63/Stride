@@ -25,17 +25,17 @@ const STAFF_POINTS: readonly { icon: Icon; title: string; detail: string }[] = [
   {
     icon: UsersThree,
     title: 'People & payroll',
-    detail: 'Employees, leave, attendance and payslips on one record.',
+    detail: 'Employees, leave, attendance and payslips share one record across HR and finance.',
   },
   {
     icon: ChartLineUp,
     title: 'Kenya compliance built in',
-    detail: 'PAYE, NSSF, SHIF and Housing Levy on every run.',
+    detail: 'PAYE, NSSF, SHIF and Housing Levy calculated on every payroll run, ready for iTax.',
   },
   {
     icon: LockKey,
     title: 'Secure by design',
-    detail: 'Role-based access with optional SSO and MFA.',
+    detail: 'Role-based permissions with optional SSO and MFA for your whole organisation.',
   },
 ];
 
@@ -43,17 +43,17 @@ const ESS_POINTS: readonly { icon: Icon; title: string; detail: string }[] = [
   {
     icon: UsersThree,
     title: 'Self-service',
-    detail: 'Leave, payslips, attendance and profile in one place.',
+    detail: 'Leave, payslips, attendance and profile updates in one employee portal.',
   },
   {
     icon: CalendarCheck,
     title: 'Requests & approvals',
-    detail: 'Submit leave and track status without chasing HR.',
+    detail: 'Submit leave and track status without emailing HR or chasing managers.',
   },
   {
     icon: LockKey,
     title: 'Secure access',
-    detail: 'Sign in with your work account or organisation SSO.',
+    detail: 'Sign in with your work email, or use your organisation’s Microsoft or Google SSO.',
   },
 ];
 
@@ -67,13 +67,13 @@ function BrandPoint({
   detail: string;
 }) {
   return (
-    <div className="flex items-center gap-3 py-2.5">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--sc-coral)] text-white shadow-[0_8px_20px_-6px_rgba(255,84,54,0.85)]">
+    <div className="flex items-start gap-3 py-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--sc-coral)] text-white shadow-[0_8px_20px_-6px_rgba(255,84,54,0.85)]">
         <IconCmp className="h-3.5 w-3.5" weight="bold" aria-hidden />
       </span>
-      <p className="min-w-0 truncate text-[14px] leading-snug text-[var(--sc-ink)]">
+      <p className="min-w-0 text-[14px] leading-[1.45] text-[var(--sc-ink)]">
         <span className="font-semibold">{title}</span>
-        <span className="text-[var(--sc-ink-muted)]"> — {detail}</span>
+        <span className="text-[var(--sc-ink-muted)]">. {detail}</span>
       </p>
     </div>
   );
@@ -130,7 +130,7 @@ export function AuthSplitShell({
             </p>
           </div>
 
-          <div className="bd-demo-steps mt-8 hidden max-w-[26rem] flex-1 flex-col justify-center space-y-1 lg:flex">
+          <div className="bd-demo-steps mt-8 hidden w-full max-w-xl flex-1 flex-col justify-center space-y-1 lg:flex">
             {points.map((point) => (
               <BrandPoint
                 key={point.title}
