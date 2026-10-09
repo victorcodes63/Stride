@@ -54,9 +54,9 @@ function PlatformHero() {
     <section className="relative bg-white pb-24 pt-14 sm:pb-28 sm:pt-20 lg:pb-36 lg:pt-24">
       <StudioCraftContainer>
         {/* SEO: the page's single H1 carries the search phrase — same badge as the homepage hero. */}
-        <Reveal>
-          <h1 className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-2 pl-3.5 pr-4 text-[13px] font-medium text-[var(--sc-ink-muted)] sm:text-[14px]">
-            <span className="relative flex h-2 w-2" aria-hidden>
+        <Reveal className="flex justify-center sm:justify-start">
+          <h1 className="mb-8 inline-flex items-center justify-center gap-2.5 rounded-full border border-[var(--sc-line)] bg-[var(--sc-paper-2)] py-2 pl-3.5 pr-4 text-center text-[13px] font-medium text-[var(--sc-ink-muted)] sm:text-[14px]">
+            <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--sc-coral)] opacity-60 motion-reduce:animate-none" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--sc-coral)]" />
             </span>
