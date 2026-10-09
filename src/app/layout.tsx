@@ -39,7 +39,7 @@ import { DashboardThemeProvider } from '@/components/dashboard/DashboardThemePro
 import { DashboardThemeScript } from '@/components/dashboard/DashboardThemeScript';
 import { brand, getSiteUrl } from '@/lib/brand';
 import { brandConfig } from '@/lib/brand.config';
-import { MARKETING_OFFICE } from '@/lib/marketing-config';
+import { MARKETING_LINKEDIN_URL, MARKETING_OFFICE } from '@/lib/marketing-config';
 import { MARKETING_OG_IMAGE, MARKETING_PRIMARY_KEYWORDS } from '@/lib/marketing-metadata';
 import { softwareAggregateOfferJsonLd } from '@/lib/marketing-schema';
 import { getResolvedPublicBrand } from '@/lib/get-resolved-public-brand';
