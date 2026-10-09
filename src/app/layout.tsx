@@ -144,7 +144,7 @@ const jsonLd = (baseUrl: string, logoSrc: string) => ({
         areaServed: 'KE',
         availableLanguage: ['en', 'sw'],
       },
-      sameAs: ['https://linkedin.com/company/raventechgroup'],
+      sameAs: [MARKETING_LINKEDIN_URL],
     },
     {
       '@type': 'WebSite',

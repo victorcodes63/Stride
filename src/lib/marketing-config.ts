@@ -147,11 +147,8 @@ export const MARKETING_OFFICE = {
   full: '4th Floor, Western Heights, Westlands, Nairobi, Kenya',
 } as const;
 
-/**
- * TODO(launch): Replace with the confirmed Stride or Raven Tech Group LinkedIn company page URL.
- * Placeholder only — do not ship without verifying the page exists.
- */
-export const MARKETING_LINKEDIN_URL = 'https://linkedin.com/company/raventechgroup';
+/** Stride Africa LinkedIn showcase. */
+export const MARKETING_LINKEDIN_URL = 'https://www.linkedin.com/showcase/stride-africa';
 
 /** @deprecated Self-serve sandbox removed (RAV-169) — use book demo CTA. */
 export function getMarketingTryDemoUrl(): string {
